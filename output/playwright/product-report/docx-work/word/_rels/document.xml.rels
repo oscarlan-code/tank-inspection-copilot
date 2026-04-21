@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdImage1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/01-home.png"/>
+  <Relationship Id="rIdImage2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/02-surface-overview.png"/>
+  <Relationship Id="rIdImage3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/03-grid-location-picker-main.png"/>
+  <Relationship Id="rIdImage4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/04-location-confirmation-main.png"/>
+  <Relationship Id="rIdImage5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/05-defect-type-main.png"/>
+  <Relationship Id="rIdImage6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/06-defect-details-main.png"/>
+  <Relationship Id="rIdImage7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/07-measurements-main.png"/>
+  <Relationship Id="rIdImage8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/08-evidence-required-main.png"/>
+  <Relationship Id="rIdImage9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/09-evidence-with-photo-main.png"/>
+  <Relationship Id="rIdImage10" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/10-defect-saved-main.png"/>
+  <Relationship Id="rIdImage11" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/11-saved-defect-map-main.png"/>
+  <Relationship Id="rIdImage12" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/12-surface-review-main.png"/>
+  <Relationship Id="rIdImage13" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/13-inspection-validation-main.png"/>
+</Relationships>

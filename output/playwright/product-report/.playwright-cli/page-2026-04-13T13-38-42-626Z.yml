@@ -1,0 +1,54 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: Field capture
+        - heading "Tank Inspection Copilot" [level=1] [ref=e9]
+      - generic [ref=e10]: Draft
+    - generic [ref=e583]:
+      - generic [ref=e584]:
+        - paragraph [ref=e585]: Workflow
+        - heading "Confirm Location" [level=2] [ref=e586]
+        - paragraph [ref=e587]: Lock the location before defect typing.
+      - generic [ref=e588]:
+        - paragraph [ref=e589]: Selected location
+        - generic [ref=e590]:
+          - generic [ref=e591]:
+            - paragraph [ref=e592]: X
+            - paragraph [ref=e593]: "12"
+          - generic [ref=e594]:
+            - paragraph [ref=e595]: "Y"
+            - paragraph [ref=e596]: "4"
+          - generic [ref=e597]:
+            - paragraph [ref=e598]: Grid ID
+            - paragraph [ref=e599]: 12-4
+          - generic [ref=e600]:
+            - paragraph [ref=e601]: Plate
+            - paragraph [ref=e602]: A12
+      - generic [ref=e603]:
+        - generic [ref=e604]:
+          - generic [ref=e605]: "Origin: top-left"
+          - generic [ref=e606]: Pinch zoom and pan with the device browser
+        - img "bottom location grid" [ref=e608]:
+          - generic [ref=e655]:
+            - generic: A01
+          - generic [ref=e701]:
+            - generic: A07
+          - generic [ref=e751]:
+            - generic: A12
+          - generic [ref=e817]:
+            - generic: B04
+          - generic [ref=e877]:
+            - generic: C09
+        - generic [ref=e1009]:
+          - generic [ref=e1010]: Annular
+          - generic [ref=e1012]: Repair
+          - generic [ref=e1014]: Defect
+      - generic [ref=e1016]:
+        - button "Use This Location" [ref=e1017] [cursor=pointer]
+        - button "Edit Location" [ref=e1018] [cursor=pointer]
+    - navigation [ref=e40]:
+      - button "Home" [ref=e41] [cursor=pointer]
+      - button "Drafts" [ref=e42] [cursor=pointer]
+      - button "QA" [ref=e43] [cursor=pointer]
+      - button "Settings" [ref=e44] [cursor=pointer]

@@ -1,0 +1,27 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: Field capture
+        - heading "Tank Inspection Copilot" [level=1] [ref=e9]
+      - generic [ref=e10]: Unsynced
+    - generic [ref=e1078]:
+      - generic [ref=e1079]:
+        - paragraph [ref=e1080]: Workflow
+        - heading "Evidence" [level=2] [ref=e1081]
+        - paragraph [ref=e1082]: Bottom 12-4
+      - generic [ref=e1083]:
+        - generic [ref=e1084]:
+          - button "Take Photo" [active] [ref=e1085] [cursor=pointer]
+          - button "Upload Photo" [ref=e1086] [cursor=pointer]
+        - generic [ref=e1092]:
+          - generic [ref=e1093]:
+            - paragraph [ref=e1094]: Photo evidence
+            - paragraph [ref=e1095]: Linked to Bottom 12-4
+          - button "Delete" [ref=e1096] [cursor=pointer]
+      - button "Save Defect" [ref=e1088] [cursor=pointer]
+    - navigation [ref=e40]:
+      - button "Home" [ref=e41] [cursor=pointer]
+      - button "Drafts" [ref=e42] [cursor=pointer]
+      - button "QA" [ref=e43] [cursor=pointer]
+      - button "Settings" [ref=e44] [cursor=pointer]

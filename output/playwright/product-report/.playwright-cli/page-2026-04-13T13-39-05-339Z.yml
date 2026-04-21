@@ -1,0 +1,42 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: Field capture
+        - heading "Tank Inspection Copilot" [level=1] [ref=e9]
+      - generic [ref=e10]: Draft
+    - generic [ref=e1019]:
+      - generic [ref=e1020]:
+        - paragraph [ref=e1021]: Workflow
+        - heading "Defect Type" [level=2] [ref=e1022]
+        - paragraph [ref=e1023]: Bottom 12-4
+      - generic [ref=e1024]:
+        - button "Corrosion Select" [ref=e1025] [cursor=pointer]:
+          - text: Corrosion
+          - generic [ref=e1026]: Select
+        - button "Crack Select" [ref=e1027] [cursor=pointer]:
+          - text: Crack
+          - generic [ref=e1028]: Select
+        - button "Deformation Select" [ref=e1029] [cursor=pointer]:
+          - text: Deformation
+          - generic [ref=e1030]: Select
+        - button "Coating Failure Select" [ref=e1031] [cursor=pointer]:
+          - text: Coating Failure
+          - generic [ref=e1032]: Select
+        - button "Leakage Select" [ref=e1033] [cursor=pointer]:
+          - text: Leakage
+          - generic [ref=e1034]: Select
+        - button "Weld Defect Select" [ref=e1035] [cursor=pointer]:
+          - text: Weld Defect
+          - generic [ref=e1036]: Select
+        - button "Patch/Repair Observation Select" [ref=e1037] [cursor=pointer]:
+          - text: Patch/Repair Observation
+          - generic [ref=e1038]: Select
+        - button "Other Select" [ref=e1039] [cursor=pointer]:
+          - text: Other
+          - generic [ref=e1040]: Select
+    - navigation [ref=e40]:
+      - button "Home" [ref=e41] [cursor=pointer]
+      - button "Drafts" [ref=e42] [cursor=pointer]
+      - button "QA" [ref=e43] [cursor=pointer]
+      - button "Settings" [ref=e44] [cursor=pointer]

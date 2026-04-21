@@ -1,0 +1,52 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: API 653 field capture prototype
+      - heading "Tank Inspection Copilot" [level=1] [ref=e6]
+      - paragraph [ref=e7]: "Mobile-first inspection workflow that turns tank defects into report-ready evidence: geometry-aware location maps, mandatory photo proof, bottom MFL import, QA validation, and structured JSON/CSV export."
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - strong [ref=e10]: "31"
+        - generic [ref=e11]: latest screens captured for customer validation
+      - generic [ref=e12]:
+        - strong [ref=e13]: "5"
+        - generic [ref=e14]: "surface models: bottom, shell, roof, annular, nozzle"
+      - generic [ref=e15]:
+        - strong [ref=e16]: "2"
+        - generic [ref=e17]: "export formats: full JSON package and defect CSV"
+    - generic [ref=e18]:
+      - article [ref=e19]:
+        - heading "Locate every finding precisely" [level=2] [ref=e20]
+        - paragraph [ref=e21]: Tap grid cells, enter X/Y coordinates, search by plate ID, or use surface-specific maps for shell courses, roof sectors, annular zones, and nozzle clock positions.
+      - article [ref=e22]:
+        - heading "Attach defensible evidence" [level=2] [ref=e23]
+        - paragraph [ref=e24]: Each saved defect links type, severity, measurements, weld context, notes, photo evidence, surface, grid ID, and plate metadata for audit review.
+      - article [ref=e25]:
+        - heading "Fit bottom inspection practice" [level=2] [ref=e26]
+        - paragraph [ref=e27]: Bottom inspection starts with contractor MFL report import, then supports manual observations when the inspector needs to add field notes or photos.
+      - article [ref=e28]:
+        - heading "Validate before handoff" [level=2] [ref=e29]
+        - paragraph [ref=e30]: Surface QA and whole-inspection validation flag missing evidence, incomplete required surfaces, invalid locations, and missing report context before export.
+    - generic [ref=e31]:
+      - paragraph [ref=e32]: Customer walkthrough flow
+      - generic [ref=e33]:
+        - generic [ref=e34]: Setup
+        - generic [ref=e35]: Tank profile
+        - generic [ref=e36]: Locate defect
+        - generic [ref=e37]: Evidence + QA
+        - generic [ref=e38]: Export
+  - region "Latest screen previews" [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - img "Bottom grid map" [ref=e42]
+        - generic [ref=e43]: Bottom grid with plate overlays
+      - generic [ref=e44]:
+        - img "Shell map" [ref=e45]
+        - generic [ref=e46]: Shell course and plate map
+      - generic [ref=e47]:
+        - img "Bottom MFL report" [ref=e48]
+        - generic [ref=e49]: MFL report import
+      - generic [ref=e50]:
+        - img "Export summary" [ref=e51]
+        - generic [ref=e52]: Summary and export
+    - generic [ref=e53]: Latest design · April 2026

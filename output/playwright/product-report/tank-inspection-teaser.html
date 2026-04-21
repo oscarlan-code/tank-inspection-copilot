@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tank Inspection Copilot - One Page Teaser</title>
+    <style>
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e8eeeb;
+        color: #17201e;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      .sheet {
+        width: 297mm;
+        height: 210mm;
+        overflow: hidden;
+        background: #f4f7f6;
+        display: grid;
+        grid-template-columns: 1.08fr 1fr;
+        gap: 10mm;
+        padding: 12mm;
+      }
+
+      .left {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        min-width: 0;
+      }
+
+      .eyebrow {
+        margin: 0 0 4mm;
+        color: #075f5c;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 160mm;
+        margin: 0;
+        color: #17201e;
+        font-size: 36px;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .lede {
+        max-width: 150mm;
+        margin: 5mm 0 0;
+        color: #52625e;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        margin-top: 8mm;
+      }
+
+      .metric {
+        min-height: 23mm;
+        border: 1px solid #cbd8d4;
+        border-radius: 7px;
+        background: #ffffff;
+        padding: 3.5mm;
+      }
+
+      .metric strong {
+        display: block;
+        color: #075f5c;
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 2mm;
+        color: #52625e;
+        font-size: 10px;
+        line-height: 1.25;
+      }
+
+      .value-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3mm;
+        margin-top: 9mm;
+      }
+
+      .value {
+        border-left: 3px solid #087f7a;
+        background: #ffffff;
+        border-radius: 7px;
+        padding: 4mm;
+      }
+
+      .value h2 {
+        margin: 0;
+        color: #075f5c;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+
+      .value p {
+        margin: 2mm 0 0;
+        color: #52625e;
+        font-size: 10.4px;
+        line-height: 1.35;
+      }
+
+      .workflow {
+        align-self: end;
+        margin-top: 6mm;
+        border: 1px solid #cbd8d4;
+        border-radius: 7px;
+        background: #dcefe9;
+        padding: 4mm;
+      }
+
+      .workflow-title {
+        margin: 0 0 2mm;
+        color: #075f5c;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2mm;
+      }
+
+      .step {
+        border-radius: 6px;
+        background: #ffffff;
+        padding: 2.5mm;
+        text-align: center;
+        color: #17201e;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .right {
+        position: relative;
+        min-width: 0;
+      }
+
+      .phone-wall {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 4mm;
+      }
+
+      .phone-card {
+        overflow: hidden;
+        border: 1px solid #cbd8d4;
+        border-radius: 7px;
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(23, 32, 30, 0.12);
+        display: grid;
+        grid-template-rows: 1fr auto;
+      }
+
+      .phone-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
+      }
+
+      .caption {
+        min-height: 10mm;
+        border-top: 1px solid #cbd8d4;
+        background: #ffffff;
+        padding: 2.4mm 3mm;
+        color: #17201e;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .tag {
+        position: absolute;
+        right: 4mm;
+        bottom: 4mm;
+        border-radius: 7px;
+        background: #075f5c;
+        color: #ffffff;
+        padding: 3mm 4mm;
+        font-size: 10px;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(23, 32, 30, 0.18);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <section class="left">
+        <div>
+          <p class="eyebrow">Surface geometry focus · API 653 field capture</p>
+          <h1>Tank Inspection Copilot</h1>
+          <p class="lede">
+            Mobile-first inspection workflow for geometry-aware defect capture across the shell,
+            roof, and annular ring. Inspectors can locate findings on course-by-plate shell maps,
+            polar roof sectors, and 10 degree annular zones before evidence, QA, and export.
+          </p>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <strong>Shell</strong>
+            <span>unwrapped courses, plates, seam offsets, azimuth, and elevation</span>
+          </div>
+          <div class="metric">
+            <strong>Roof</strong>
+            <span>polar sectors and rings from apex to outer edge</span>
+          </div>
+          <div class="metric">
+            <strong>Annular</strong>
+            <span>circumferential band zones at the floor-to-shell junction</span>
+          </div>
+        </div>
+
+        <div class="value-grid">
+          <article class="value">
+            <h2>Shell: course and plate map</h2>
+            <p>Define course count, plate width, seam origin, and offset rules, then capture defects by course, plate, azimuth, elevation, and weld context.</p>
+          </article>
+          <article class="value">
+            <h2>Roof: polar inspection grid</h2>
+            <p>Split the roof into angular sectors and radial rings so every finding has a repeatable sector, ring, azimuth range, and zone identifier.</p>
+          </article>
+          <article class="value">
+            <h2>Annular ring: edge-band focus</h2>
+            <p>Capture the critical annular inspection band as 36 ten-degree zones around the floor edge, aligned to the same tank orientation reference.</p>
+          </article>
+          <article class="value">
+            <h2>Evidence and validation</h2>
+            <p>Each defect links type, severity, measurements, notes, photos, surface position, QA warnings, and report-ready JSON/CSV export.</p>
+          </article>
+        </div>
+
+        <div class="workflow">
+          <p class="workflow-title">Customer walkthrough flow</p>
+          <div class="steps">
+            <div class="step">Tank profile</div>
+            <div class="step">Shell map</div>
+            <div class="step">Roof map</div>
+            <div class="step">Annular ring</div>
+            <div class="step">Evidence + QA</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="right" aria-label="Latest screen previews">
+        <div class="phone-wall">
+          <div class="phone-card">
+            <img src="./latest-21-shell-map.png" alt="Shell map" />
+            <div class="caption">Shell: courses, plates, seam origins</div>
+          </div>
+          <div class="phone-card">
+            <img src="./latest-23-roof-map.png" alt="Roof map" />
+            <div class="caption">Roof: sector and ring location</div>
+          </div>
+          <div class="phone-card">
+            <img src="./latest-25-annular-map.png" alt="Annular ring map" />
+            <div class="caption">Annular ring: 10 degree zones</div>
+          </div>
+          <div class="phone-card">
+            <img src="./latest-30-export-summary.png" alt="Export summary" />
+            <div class="caption">QA summary and report export</div>
+          </div>
+        </div>
+        <div class="tag">Shell · Roof · Annular ring</div>
+      </section>
+    </main>
+  </body>
+</html>

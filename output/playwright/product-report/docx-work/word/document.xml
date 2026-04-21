@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document
+  xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
+  mc:Ignorable="w14 wp14">
+  <w:body>
+    <w:p><w:r><w:rPr><w:b/><w:color w:val="17201E"/><w:sz w:val="40"/></w:rPr><w:t xml:space="preserve">Tank Inspection Copilot</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Product Report</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Generated: April 13, 2026</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Project: tank-inspection-coplilot</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Target: mobile and tablet field use; this prototype is implemented as a mobile-only single-column UI.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Core workflow: tank setup -&gt; surface -&gt; grid location -&gt; defect -&gt; evidence -&gt; validation.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Executive Summary</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Tank Inspection Copilot is a mobile-first field data-capture app for tank inspection defects. It records each defect against a repeatable spatial coordinate using a flattened 2D matrix for tank surfaces.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">The current prototype focuses on the detailed location capture workflow: select tank context, choose a surface, tap or enter a location, capture defect details, attach required photo evidence, review validation warnings, and prepare a report-ready dataset.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Product Scope</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Mobile-only field workflow with single-column layout and large touch targets.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Offline draft persistence through local storage with draft, unsynced, and synced status badges.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Guided inspection setup for site, client, tank ID, inspection type, inspector, and date context.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Surface selection for bottom, shell, roof, annular ring, nozzle area, and weld zone.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Primary tap-on-grid location capture plus manual X/Y entry and plate ID fallback modes.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- SVG grid map with disabled cells outside circular tank footprint for bottom and roof surfaces.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shell view uses an unwrapped rectangular grid with lower-left origin behavior.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Layer toggles for plate IDs, grid labels, prior defects, and repair overlays.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Defect details capture for type, subtype, severity, extent, description, measurements, and photo evidence.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Validation panels for missing photos, missing subtype, annular review, required surfaces, and invalid coordinates.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Report-ready structured data model for InspectionSession, SurfaceInspection, GridLocation, DefectRecord, and EvidenceItem.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">At-a-Glance Workflow</w:t></w:r></w:p>
+<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="6" w:color="CBD8D4"/><w:left w:val="single" w:sz="6" w:color="CBD8D4"/><w:bottom w:val="single" w:sz="6" w:color="CBD8D4"/><w:right w:val="single" w:sz="6" w:color="CBD8D4"/><w:insideH w:val="single" w:sz="6" w:color="CBD8D4"/><w:insideV w:val="single" w:sz="6" w:color="CBD8D4"/></w:tblBorders></w:tblPr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Phase</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Screens</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Purpose</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Start</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Home, Inspection Setup, Tank Overview</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Open or create the inspection draft and choose the tank surface.</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Location</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Location Mode, Grid Map, Manual X/Y, Plate ID, Location Confirmation</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Capture a repeatable surface, X, Y, grid ID, and optional plate ID.</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Defect Capture</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Defect Type, Defect Details, Measurements, Evidence</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Record defect type, severity, measurements, notes, and required photo evidence.</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Review</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Defect Saved, Surface Map, Surface Review</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Confirm the saved record, review spatial markers, and run surface-level QA.</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Submit</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Inspection Validation, Submission Success</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">Run whole-inspection QA, block invalid submission, and close the workflow.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+<w:p><w:pPr><w:pageBreakBefore/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Screenshot Gallery</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 1: Mobile Home</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Entry screen with sync status, active draft context, and actions to start, resume, or view inspections.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="1" name="Mobile Home"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="01-home.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 2: Tank Overview and Surface Selection</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Surface cards for bottom, shell, roof, annular ring, nozzle area, and weld zone with completion state.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="2" name="Tank Overview and Surface Selection"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="2" name="02-surface-overview.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage2"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 3: Grid Map Location Picker</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Primary location capture screen with plate IDs, repair overlays, prior defects, grid labels, disabled cells, and selected X/Y summary.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="7880018"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="3" name="Grid Map Location Picker"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="3" name="03-grid-location-picker-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage3"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="7880018"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 4: Location Confirmation</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Locked location review before defect typing, with location summary and a mini map preview.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="6732094"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="4" name="Location Confirmation"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="4" name="04-location-confirmation-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage4"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="6732094"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 5: Defect Type Selection</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Location-linked defect taxonomy picker for corrosion, crack, deformation, coating failure, leakage, weld defect, repair observation, or other.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5918982"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="5" name="Defect Type Selection"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="5" name="05-defect-type-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage5"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5918982"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 6: Defect Details</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Structured defect details with subtype, severity, extent, and field note capture.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="6" name="Defect Details"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="6" name="06-defect-details-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage6"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 7: Measurement Capture</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Dynamic measurement fields and defect-specific warning logic, shown here for corrosion without UT thickness.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="7" name="Measurement Capture"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="7" name="07-measurements-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage7"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 8: Evidence Required</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Evidence capture screen blocks save until at least one photo is attached.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="8" name="Evidence Required"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="8" name="08-evidence-required-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage8"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 9: Evidence Attached</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Mock photo evidence linked to tank, surface, and X/Y location, with delete control.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="9" name="Evidence Attached"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="9" name="09-evidence-with-photo-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage9"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 10: Defect Saved</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Saved defect summary showing type, severity, location, photo count, and next actions.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="10" name="Defect Saved"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="10" name="10-defect-saved-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage10"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 11: Saved Defect Map</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Surface map with saved defect marker, layer toggles, legend, and finish surface action.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="7054948"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="11" name="Saved Defect Map"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="11" name="11-saved-defect-map-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage11"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="7054948"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 12: Surface Completion Review</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Surface-level QA summary with defect count, photo count, grid size, status, and warnings.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="12" name="Surface Completion Review"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="12" name="12-surface-review-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage12"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screenshot 13: Inspection Validation</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Whole-inspection QA blocks submission until required surfaces and defect records pass validation.</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="2331720" cy="5046081"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="13" name="Inspection Validation"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="13" name="13-inspection-validation-main.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage13"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2331720" cy="5046081"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:pPr><w:pageBreakBefore/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Complete Screen-by-Screen Function and Feature Description</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 01 - Home</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Entry point for the field engineer and quick access to the active draft.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows app name, field capture context, and sync status badge.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows active draft header with site, tank ID, inspection type, and inspector.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Provides Start New Inspection, Resume Draft Inspection, and View Past Inspections actions.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows open draft metrics for tank, defect count, and completed surfaces.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Bottom navigation provides Home, Drafts, QA, and Settings access.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">No blocking validation on this screen.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Routes to Inspection Setup for a new inspection or Tank Overview for an existing draft.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 02 - Inspection Setup</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Create or update the inspection context before location capture begins.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures site, client, tank ID, and inspection type.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Inspection type supports routine, external, internal, and special.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Inspection date and inspector are treated as auto-filled context for the draft.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Continue saves the inspection context and moves to Tank Overview.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Save Draft writes the inspection context locally and returns to Home.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Continue is disabled until site, tank ID, and inspection type are present.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Updates the InspectionSession object and sets sync status to unsynced.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 03 - Tank Overview</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Select the inspectable surface for the next defect capture operation.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows inspection header with site, tank ID, inspection type, and inspector.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Lists bottom, shell, roof, annular ring, nozzle area, and weld zone.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Each surface card includes a short operational description.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Each surface card shows Not started, defect count, or Complete state.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Selecting a surface initializes a default draft location for that surface.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">No blocking validation on this screen.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Routes to Location Mode Selection with the chosen surface.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 04 - Location Mode Selection</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Let the engineer choose the most practical location capture method.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Tap on Grid Map is marked as the recommended method.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Manual X,Y Entry supports checklist-driven or difficult touch conditions.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Plate ID Entry supports engineers working directly from a plate map drawing.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Each option explains when to use the method.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">No blocking validation on this screen.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Routes to Grid Map Location Picker, Manual X,Y Entry, or Plate ID Picker.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 05A - Grid Map Location Picker</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Primary location capture screen for selecting the exact X/Y partition.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Displays tank header, surface name, and grid size such as 20 x 10.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Renders an SVG rectangular grid with every valid cell tappable.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Disables cells outside the valid circular footprint for bottom and roof surfaces.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows the active origin convention: top-left for bottom/roof and lower-left for shell.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Supports plate ID, grid label, prior defect, and repair overlay toggles.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Highlights annular edge cells on the bottom surface.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Highlights selected cell and updates X, Y, grid ID, and plate ID summary.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows a map legend for annular, repair, and defect states.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- The scrollable SVG supports device browser zoom and pan behavior.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Confirm Location is disabled until a valid cell is selected.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Creates a GridLocation with surface, x, y, gridId, optional plateId, locationMode, and isAnnular.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 05B - Manual X,Y Entry</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Fallback location entry for known coordinates or poor map interaction conditions.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows the selected surface as context.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures X partition and Y partition as integer inputs.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Provides a live valid or invalid partition message.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Preview on Map returns to the grid map for visual confirmation.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Confirm Location accepts only valid inspectable coordinates.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">X and Y must be integers, within grid bounds, and inside the valid surface footprint.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Creates the same GridLocation object as tap-on-grid mode with locationMode set to manual_xy.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 05C - Plate ID Picker</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Capture location by plate number when working from a floor plate drawing.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Searches available plate IDs by typed query.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows plate cards with plate ID, subzone, and mapped X/Y coordinate.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Selecting a plate auto-fills the mapped location.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Show on Map returns to the grid map if the engineer wants visual confirmation.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Only listed mapped plates can be selected in the MVP.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Creates a GridLocation with locationMode set to plate_id and the mapped plateId.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 06 - Location Confirmation</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Lock the selected location before defect type and details are entered.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows location summary for surface, X, Y, grid ID, and optional plate ID.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows mini grid preview with the selected location highlighted.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Use This Location advances to defect typing.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Edit Location returns to the original location capture mode.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Use This Location is disabled if no location is available.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Confirms the location for the draft defect record.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 07 - Defect Type Selection</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Start a defect record linked to the confirmed location.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows selected surface and grid ID in the screen subtitle.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Offers corrosion, crack, deformation, coating failure, leakage, weld defect, patch/repair observation, and other.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Each type is a large touch target for field use.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">The user must select one defect type to continue.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Stores defectType on the draft record and routes to Defect Details.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 08 - Defect Detail Form</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Capture structured qualitative defect details.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows defect type as the context heading.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures subtype as free text.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures severity as minor, moderate, or severe.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures extent as single cell, multi-cell region, or edge/annular.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures a concise description or field note.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Supports Next: Measurements and Skip Measurements actions.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Next: Measurements requires defect type and severity.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Updates draft defect subtype, severity, extent, and description.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 09 - Measurement Capture</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Capture numeric NDE or visual measurement values when relevant.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Captures measurement method.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- For cracks, captures crack length and crack width.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- For deformation, captures deformation dimension.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- For corrosion and other default cases, captures UT thickness, minimum thickness, and pit depth.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows defect-specific warning text when important measurement values are missing.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Corrosion without UT/min thickness, crack without size, and deformation without dimension produce warnings.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Updates the DefectMeasurement object and routes to Evidence.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 10 - Evidence Capture</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Attach required proof to the defect before saving.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows selected surface and grid ID as context.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Provides Take Photo and Upload Photo actions in the MVP.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Displays attached evidence in a gallery-style strip.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Each evidence item is linked to surface, X, and Y metadata.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Delete removes an attached evidence item before saving.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- The data model can represent photo, video, and audio evidence, but the current UI implements photo flows first.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Save Defect is disabled until at least one photo is attached.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Creates evidence metadata and enables local defect save.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 11 - Defect Saved Summary</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Confirm local save and let the engineer choose the next field action.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows that the record is saved locally and queued for sync.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Summarizes defect type, severity, location, and photo count.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Add Another Defect keeps the same location context for rapid capture.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Return to Surface Map shows spatial defect context.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Finish Surface moves to surface completion review.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">This screen is reached only after required defect fields and photo evidence pass save rules.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Adds a DefectRecord to the active SurfaceInspection and sets sync status to unsynced.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 12 - Surface Map with Saved Defects</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Review recorded defects spatially on the selected tank surface.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows the selected surface map with saved defect markers on top of the grid.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows the number of saved defects on the surface.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Keeps plate ID, grid label, prior defect, and repair overlay toggles available.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Provides Add New Defect and Finish Surface actions.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Keeps annular, repair, and defect legend visible below the map.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">No blocking validation on the map itself.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Routes back to location capture for a new defect or to Surface Completion Review.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 13 - Surface Completion Review</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Run surface-level QA before marking a surface complete.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Summarizes defect count, photo count, grid size, and surface status.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows validation panel for surface-specific warnings.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Warns when saved defects are missing photos or subtype.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Warns when bottom surface has no saved defects or no annular zone record.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Go Back and Fix returns to the surface map.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Mark Surface Complete marks the current surface complete and moves to inspection validation.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Warnings are shown for QA review; the current prototype still allows Mark Surface Complete.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Updates the SurfaceInspection completed flag and sets sync status to unsynced.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 14 - Inspection Validation</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Whole-inspection QA before submission.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows all blocking inspection warnings in one validation panel.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Checks required surfaces, currently bottom and shell.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Checks defect photo requirement across saved defects.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Checks saved defect locations against the surface grid validity rule.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows readiness summaries for required surfaces, invalid coordinates, and photo requirement.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Fix Issues returns to the tank overview.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Submit Inspection is disabled until blocking warnings are resolved.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Submission is blocked if required surfaces are incomplete, defects have no photo, or defects have invalid coordinates.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">When valid, sets sync status to synced and routes to Submission Success.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">Screen 15 - Submission Success</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Purpose: </w:t></w:r><w:r><w:t xml:space="preserve">Close the inspection workflow after a successful submit.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Functions and features:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Shows submitted state and report-ready dataset confirmation.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- View Defect Map returns to the saved defect map.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Start Another Inspection creates a fresh session.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Return Home goes back to the mobile home screen.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Validation: </w:t></w:r><w:r><w:t xml:space="preserve">Only reachable after inspection validation allows submission.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Output: </w:t></w:r><w:r><w:t xml:space="preserve">Ends the current workflow and leaves the dataset available for review.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pageBreakBefore/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Location Capture Model</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Each defect location is stored as a structured grid coordinate:</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">{ &quot;surface&quot;: &quot;bottom&quot;, &quot;x&quot;: 12, &quot;y&quot;: 4, &quot;gridId&quot;: &quot;12-4&quot;, &quot;plateId&quot;: &quot;A12&quot;, &quot;locationMode&quot;: &quot;tap_map&quot;, &quot;isAnnular&quot;: false }</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Bottom and roof surfaces use a circular validity mask inside a rectangular grid abstraction. Shell, nozzle, and weld surfaces use rectangular unwrapped grids. The MVP uses integer partitions only.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Data Model Summary</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- InspectionSession: inspection ID, site, client, tank ID, inspection type, inspector, surfaces, and syncStatus.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- SurfaceInspection: surface type, grid columns, grid rows, completion state, and saved defects.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- GridLocation: surface, x, y, gridId, optional plateId, locationMode, and isAnnular.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- DefectRecord: inspection ID, tank ID, location, defect type, subtype, severity, extent, description, measurements, evidence, creator, and timestamp.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- EvidenceItem: local URI, type, timestamp, optional GPS, linked surface, linked X, and linked Y.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Validation and Offline Behavior</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Location requires a valid surface, X, and Y.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Selected grid cells must be inside the valid tank footprint.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Defect type is required.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Severity is required.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- At least one photo is required before saving a defect.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Corrosion without UT or minimum thickness produces a warning.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Crack without length or width produces a warning.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Deformation without dimension produces a warning.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">- Submission is blocked when a required surface is incomplete, a saved defect has no photo, or a saved defect has an invalid location.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">Drafts are persisted locally in the browser prototype. Every draft change marks the inspection as unsynced. For a production mobile app, this should move to durable mobile storage with a sync queue for evidence files and retryable upload state.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="075F5C"/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">Recommended Next Steps</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">1. Freeze grid calibration rules per tank and surface.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">2. Define the source of plate ID to X/Y mapping from drawings like TK 201.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">3. Replace mock photo entries with real native camera and offline file storage.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">4. Add a durable sync queue with retry state per evidence item.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">5. Add region selection for multi-cell defects.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">6. Import prior repairs, replacements, and historical defects as map overlays.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">7. Move from browser localStorage to a mobile-grade persistence layer such as SQLite, AsyncStorage, or IndexedDB in a Capacitor shell.</w:t></w:r></w:p>
+    <w:sectPr>
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="720" w:right="900" w:bottom="720" w:left="900" w:header="450" w:footer="450" w:gutter="0"/>
+      <w:cols w:space="720"/>
+      <w:docGrid w:linePitch="360"/>
+    </w:sectPr>
+  </w:body>
+</w:document>

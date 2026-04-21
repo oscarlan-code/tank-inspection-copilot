@@ -1,0 +1,33 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: Field capture
+        - heading "Tank Inspection Copilot" [level=1] [ref=e9]
+      - generic [ref=e10]: Unsynced
+    - generic [ref=e1611]:
+      - generic [ref=e1612]:
+        - paragraph [ref=e1613]: Workflow
+        - heading "Inspection Validation" [level=2] [ref=e1614]
+        - paragraph [ref=e1615]: Whole-inspection QA before submission.
+      - generic [ref=e1616]:
+        - paragraph [ref=e1617]: Validation
+        - paragraph [ref=e1619]: Shell surface is not complete.
+      - generic [ref=e1621]:
+        - generic [ref=e1622]:
+          - paragraph [ref=e1623]: Required surfaces complete
+          - paragraph [ref=e1624]: Needs review
+        - generic [ref=e1625]:
+          - paragraph [ref=e1626]: Invalid coordinates
+          - paragraph [ref=e1627]: None
+        - generic [ref=e1628]:
+          - paragraph [ref=e1629]: Photo requirement
+          - paragraph [ref=e1630]: Ready
+      - generic [ref=e1631]:
+        - button "Fix Issues" [ref=e1632] [cursor=pointer]
+        - button "Submit Inspection" [disabled] [ref=e1633]
+    - navigation [ref=e40]:
+      - button "Home" [ref=e41] [cursor=pointer]
+      - button "Drafts" [ref=e42] [cursor=pointer]
+      - button "QA" [ref=e43] [cursor=pointer]
+      - button "Settings" [ref=e44] [cursor=pointer]

@@ -1,0 +1,55 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: Field capture
+        - heading "Tank Inspection Copilot" [level=1] [ref=e9]
+      - generic [ref=e10]: Draft
+    - generic [ref=e45]:
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - paragraph [ref=e49]: SLNG Terminal
+            - heading "TK-201" [level=2] [ref=e50]
+          - generic [ref=e51]: internal
+        - paragraph [ref=e52]: "Inspector: Field Engineer"
+      - generic [ref=e53]:
+        - paragraph [ref=e54]: Workflow
+        - heading "Tank Overview" [level=2] [ref=e55]
+        - paragraph [ref=e56]: Choose the inspectable surface to capture.
+      - generic [ref=e57]:
+        - button "Bottom Floor plate matrix and annular band Not started" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]:
+            - paragraph [ref=e60]: Bottom
+            - paragraph [ref=e61]: Floor plate matrix and annular band
+          - generic [ref=e62]: Not started
+        - button "Shell Unwrapped cylinder elevation grid Not started" [ref=e63] [cursor=pointer]:
+          - generic [ref=e64]:
+            - paragraph [ref=e65]: Shell
+            - paragraph [ref=e66]: Unwrapped cylinder elevation grid
+          - generic [ref=e67]: Not started
+        - button "Roof Roof surface grid abstraction Not started" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]:
+            - paragraph [ref=e70]: Roof
+            - paragraph [ref=e71]: Roof surface grid abstraction
+          - generic [ref=e72]: Not started
+        - button "Annular ring Edge band defects and repairs Not started" [ref=e73] [cursor=pointer]:
+          - generic [ref=e74]:
+            - paragraph [ref=e75]: Annular ring
+            - paragraph [ref=e76]: Edge band defects and repairs
+          - generic [ref=e77]: Not started
+        - button "Nozzle area Localized nozzle zones Not started" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]:
+            - paragraph [ref=e80]: Nozzle area
+            - paragraph [ref=e81]: Localized nozzle zones
+          - generic [ref=e82]: Not started
+        - button "Weld zone Weld and heat affected zones Not started" [ref=e83] [cursor=pointer]:
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: Weld zone
+            - paragraph [ref=e86]: Weld and heat affected zones
+          - generic [ref=e87]: Not started
+    - navigation [ref=e40]:
+      - button "Home" [ref=e41] [cursor=pointer]
+      - button "Drafts" [ref=e42] [cursor=pointer]
+      - button "QA" [ref=e43] [cursor=pointer]
+      - button "Settings" [ref=e44] [cursor=pointer]
