@@ -7,6 +7,37 @@ This repo currently contains **two parallel UI tracks**:
 
 If you open this repo without that distinction, it is easy to get confused.
 
+## Quick Navigation
+
+Use these paths first:
+
+| What you want | File / folder |
+|---|---|
+| Current app entry point | [src/App.tsx](./src/App.tsx) |
+| Active V2 prototype | [src/v2/InspectionSetupPrototype.tsx](./src/v2/InspectionSetupPrototype.tsx) |
+| V1 gold-standard reference | [src/App.tsx](./src/App.tsx) |
+| Shared V2 styling | [src/styles.css](./src/styles.css) |
+| V2 design notes | [MVP_DESIGN.md](./MVP_DESIGN.md) |
+| V1 keep / simplify / drop decisions | [V1_CARRY_FORWARD_MATRIX.md](./V1_CARRY_FORWARD_MATRIX.md) |
+| Commercial decks and customer assets | [commercial-output/](./commercial-output/) |
+| Commercial asset guide | [commercial-output/README.md](./commercial-output/README.md) |
+
+## Local-Only Working Files
+
+Some folders and files are intentionally kept local and are not part of the main repo history:
+
+- `data/` = standards, sample reports, and customer reference material
+- `dist/` = local build output
+- `output/` = local screenshot / export output
+- `Tank_Inspection_Copilot_V2_Design_Progress_*.pptx` = local progress decks
+- `*.tsbuildinfo` = generated TypeScript build cache
+
+The goal is to keep `main` focused on:
+
+- product code
+- implementation/design docs
+- reusable commercial assets
+
 ## V1 vs V2
 
 | Version | Role | Main file | Status |
@@ -519,9 +550,9 @@ tank-inspection-coplilot/
 │                                     # current V2 prototype
 ├── public/
 │   └── laiq-logo.png                # V2 branding asset
+├── commercial-output/               # decks, one-pagers, demo HTML
 ├── MVP_DESIGN.md                    # V2 MVP design notes
 ├── V1_CARRY_FORWARD_MATRIX.md       # what to keep/simplify/drop from V1
-├── data/                            # standards + sample reports
 └── README.md
 ```
 

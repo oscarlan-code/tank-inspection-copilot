@@ -5,3 +5,6 @@ dist/
 .playwright-cli/
 output/
 PROGRESS_NEW.md
+*.tsbuildinfo
+data/
+Tank_Inspection_Copilot_V2_Design_Progress_*.pptx
