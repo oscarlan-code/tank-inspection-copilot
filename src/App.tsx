@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import InspectionSetupPrototype from "./v2/InspectionSetupPrototype";
 import type {
   AnnularConfig,
   DefectMeasurement,
@@ -23,6 +24,8 @@ import type {
   TankProfile,
   WeldLocation,
 } from "./types";
+
+const ENABLE_V2_DESIGN_PROTOTYPE = true;
 
 type Screen =
   | "home"
@@ -262,6 +265,10 @@ function courseSeamOrigin(i: number, c1: number, stepDeg: number, rule: SeamOffs
 }
 
 function App() {
+  if (ENABLE_V2_DESIGN_PROTOTYPE) {
+    return <InspectionSetupPrototype />;
+  }
+
   const [screen, setScreen] = useState<Screen>("home");
   const [session, setSession] = usePersistedSession();
   const [surface, setSurface] = useState<SurfaceType>("bottom");
