@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "0.1.0",
+  "packageId": "pkg-tk-5470-2026-05-12-001",
+  "inspection": {
+    "inspectionId": "insp-tk-5470-2026-05-12",
+    "client": "Petronas Carigali Sdn. Bhd.",
+    "site": "Kerteh, Terengganu",
+    "tankNumber": "5470",
+    "inspectionType": "internal_external",
+    "startedAt": "2026-05-12T09:00:00Z",
+    "completedAt": null,
+    "inspector": "Field Engineer",
+    "deviceId": "android-tablet-demo-01"
+  },
+  "tankMaster": {
+    "diameterM": 26.5,
+    "heightM": 10.0,
+    "roofType": "fixed_cone",
+    "shellCourseCount": 6,
+    "referenceMode": "tank_north",
+    "startReference": "N"
+  },
+  "shellLinePlan": {
+    "lineCount": 7,
+    "recommendedLineCount": 7,
+    "startReference": "N",
+    "rotationDirection": "clockwise",
+    "lines": [
+      { "lineId": "line-01", "label": "N", "azimuthDeg": 0 },
+      { "lineId": "line-02", "label": "NE", "azimuthDeg": 51.4 }
+    ]
+  },
+  "roofLayout": {
+    "template": "circular_plate",
+    "rowCount": 4,
+    "widestRowPlateCount": 8,
+    "ringCount": null,
+    "sectorCount": null,
+    "centerOpeningRatio": null,
+    "features": [
+      {
+        "featureId": "roof-feature-01",
+        "type": "manhole",
+        "label": "MH-1",
+        "placementMode": "plate_linked",
+        "plateId": "R2-P3",
+        "azimuthDeg": null,
+        "radiusRatio": null
+      }
+    ]
+  },
+  "nozzleRegistries": {
+    "shell": [
+      {
+        "nozzleId": "SN-01",
+        "surface": "shell",
+        "size": "8 in",
+        "placementMode": "explicit",
+        "course": 2,
+        "azimuthDeg": 92,
+        "plateId": null
+      }
+    ],
+    "roof": [
+      {
+        "nozzleId": "RN-01",
+        "surface": "roof",
+        "size": "6 in",
+        "placementMode": "sketch",
+        "course": null,
+        "azimuthDeg": 140,
+        "plateId": "R3-P5"
+      }
+    ]
+  },
+  "measurements": {
+    "shellUtRows": [
+      {
+        "rowId": "shell-ut-001",
+        "lineId": "line-01",
+        "course": 1,
+        "readingsMm": [6.31, 6.28, 6.25, 6.3, 6.27],
+        "note": null
+      }
+    ],
+    "roofUtRows": [
+      {
+        "rowId": "roof-ut-001",
+        "plateId": "R2-P3",
+        "readingsMm": [5.1, 5.0, 4.98, 5.02, 5.04],
+        "note": "Near manhole"
+      }
+    ],
+    "shellNozzleUtRows": [],
+    "roofNozzleUtRows": []
+  },
+  "findings": [
+    {
+      "findingId": "finding-001",
+      "surface": "shell",
+      "type": "crack",
+      "severity": "high",
+      "note": "Observed during shell UT",
+      "linkedMeasurementId": "shell-ut-001",
+      "locationSummary": "Line N / Course 1",
+      "attachmentIds": ["photo-001"]
+    }
+  ],
+  "attachments": [
+    {
+      "attachmentId": "photo-001",
+      "kind": "photo",
+      "relativePath": "photos/photo-001.jpg",
+      "caption": "Shell crack close-up"
+    }
+  ],
+  "mflImport": {
+    "contractor": "Third Party MFL Vendor",
+    "reportReference": "MFL-2026-5470",
+    "reportDate": "2026-05-10",
+    "severity": "medium",
+    "attachmentId": null
+  },
+  "reviewStatus": {
+    "status": "ready_for_upload",
+    "warnings": []
+  }
+}

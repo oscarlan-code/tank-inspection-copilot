@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://laiq.ai/schemas/tank-inspection/inspection-package.schema.json",
+  "title": "LAIQ Tank Inspection Package",
+  "description": "Canonical inspection package exported from the local-first field app and ingested by the connected reporting platform.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "inspection",
+    "tankMaster",
+    "shellLinePlan",
+    "measurements",
+    "findings",
+    "attachments",
+    "reviewStatus"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inspection": {
+      "$ref": "#/$defs/inspection"
+    },
+    "tankMaster": {
+      "$ref": "#/$defs/tankMaster"
+    },
+    "shellLinePlan": {
+      "$ref": "#/$defs/shellLinePlan"
+    },
+    "roofLayout": {
+      "$ref": "#/$defs/roofLayout"
+    },
+    "nozzleRegistries": {
+      "$ref": "#/$defs/nozzleRegistries"
+    },
+    "measurements": {
+      "$ref": "#/$defs/measurements"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attachment"
+      }
+    },
+    "mflImport": {
+      "$ref": "#/$defs/mflImport"
+    },
+    "reviewStatus": {
+      "$ref": "#/$defs/reviewStatus"
+    }
+  },
+  "$defs": {
+    "inspection": {
+      "type": "object",
+      "required": [
+        "inspectionId",
+        "client",
+        "site",
+        "tankNumber",
+        "inspectionType",
+        "startedAt",
+        "inspector"
+      ],
+      "properties": {
+        "inspectionId": { "type": "string" },
+        "client": { "type": "string" },
+        "site": { "type": "string" },
+        "tankNumber": { "type": "string" },
+        "inspectionType": { "type": "string" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": ["string", "null"], "format": "date-time" },
+        "inspector": { "type": "string" },
+        "deviceId": { "type": ["string", "null"] }
+      }
+    },
+    "tankMaster": {
+      "type": "object",
+      "required": [
+        "diameterM",
+        "heightM",
+        "roofType",
+        "shellCourseCount"
+      ],
+      "properties": {
+        "diameterM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "roofType": { "type": "string" },
+        "shellCourseCount": { "type": "integer", "minimum": 1 },
+        "referenceMode": { "type": "string" },
+        "startReference": { "type": ["string", "null"] }
+      }
+    },
+    "shellLinePlan": {
+      "type": "object",
+      "required": [
+        "lineCount",
+        "startReference",
+        "rotationDirection"
+      ],
+      "properties": {
+        "lineCount": { "type": "integer", "minimum": 1 },
+        "recommendedLineCount": { "type": "integer", "minimum": 1 },
+        "startReference": { "type": "string" },
+        "rotationDirection": {
+          "type": "string",
+          "enum": ["clockwise", "counterclockwise"]
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shellLine"
+          }
+        }
+      }
+    },
+    "shellLine": {
+      "type": "object",
+      "required": ["lineId", "label", "azimuthDeg"],
+      "properties": {
+        "lineId": { "type": "string" },
+        "label": { "type": "string" },
+        "azimuthDeg": { "type": "number", "minimum": 0, "maximum": 360 }
+      }
+    },
+    "roofLayout": {
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": [
+            "circular_plate",
+            "circular_center_opening",
+            "umbrella_radial"
+          ]
+        },
+        "rowCount": { "type": ["integer", "null"], "minimum": 1 },
+        "widestRowPlateCount": { "type": ["integer", "null"], "minimum": 1 },
+        "ringCount": { "type": ["integer", "null"], "minimum": 1 },
+        "sectorCount": { "type": ["integer", "null"], "minimum": 1 },
+        "centerOpeningRatio": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/roofFeature"
+          }
+        }
+      }
+    },
+    "roofFeature": {
+      "type": "object",
+      "required": ["featureId", "type", "placementMode"],
+      "properties": {
+        "featureId": { "type": "string" },
+        "type": { "type": "string" },
+        "label": { "type": ["string", "null"] },
+        "placementMode": {
+          "type": "string",
+          "enum": ["center", "plate_linked", "azimuth_radius"]
+        },
+        "plateId": { "type": ["string", "null"] },
+        "azimuthDeg": { "type": ["number", "null"], "minimum": 0, "maximum": 360 },
+        "radiusRatio": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "nozzleRegistries": {
+      "type": "object",
+      "properties": {
+        "shell": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nozzleDefinition" }
+        },
+        "roof": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nozzleDefinition" }
+        }
+      }
+    },
+    "nozzleDefinition": {
+      "type": "object",
+      "required": ["nozzleId", "surface", "size"],
+      "properties": {
+        "nozzleId": { "type": "string" },
+        "surface": { "type": "string", "enum": ["shell", "roof"] },
+        "size": { "type": "string" },
+        "placementMode": {
+          "type": ["string", "null"],
+          "enum": ["sketch", "explicit", null]
+        },
+        "course": { "type": ["integer", "null"], "minimum": 1 },
+        "azimuthDeg": { "type": ["number", "null"], "minimum": 0, "maximum": 360 },
+        "plateId": { "type": ["string", "null"] }
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "properties": {
+        "shellUtRows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/shellUtRow" }
+        },
+        "roofUtRows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/roofUtRow" }
+        },
+        "shellNozzleUtRows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nozzleUtRow" }
+        },
+        "roofNozzleUtRows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nozzleUtRow" }
+        }
+      }
+    },
+    "shellUtRow": {
+      "type": "object",
+      "required": ["rowId", "lineId", "course", "readingsMm"],
+      "properties": {
+        "rowId": { "type": "string" },
+        "lineId": { "type": "string" },
+        "course": { "type": "integer", "minimum": 1 },
+        "readingsMm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1
+        },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "roofUtRow": {
+      "type": "object",
+      "required": ["rowId", "plateId", "readingsMm"],
+      "properties": {
+        "rowId": { "type": "string" },
+        "plateId": { "type": "string" },
+        "readingsMm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1
+        },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "nozzleUtRow": {
+      "type": "object",
+      "required": ["rowId", "nozzleId", "readingsMm"],
+      "properties": {
+        "rowId": { "type": "string" },
+        "nozzleId": { "type": "string" },
+        "readingsMm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1
+        },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["findingId", "surface", "type", "severity"],
+      "properties": {
+        "findingId": { "type": "string" },
+        "surface": { "type": "string" },
+        "type": { "type": "string" },
+        "severity": { "type": "string" },
+        "note": { "type": ["string", "null"] },
+        "linkedMeasurementId": { "type": ["string", "null"] },
+        "locationSummary": { "type": ["string", "null"] },
+        "attachmentIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "required": ["attachmentId", "kind", "relativePath"],
+      "properties": {
+        "attachmentId": { "type": "string" },
+        "kind": { "type": "string", "enum": ["photo", "mfl_report", "other"] },
+        "relativePath": { "type": "string" },
+        "caption": { "type": ["string", "null"] }
+      }
+    },
+    "mflImport": {
+      "type": "object",
+      "properties": {
+        "contractor": { "type": ["string", "null"] },
+        "reportReference": { "type": ["string", "null"] },
+        "reportDate": { "type": ["string", "null"], "format": "date" },
+        "severity": { "type": ["string", "null"] },
+        "attachmentId": { "type": ["string", "null"] }
+      }
+    },
+    "reviewStatus": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["draft", "ready_for_upload", "uploaded", "reviewed"]
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

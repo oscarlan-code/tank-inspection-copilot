@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import InspectionSetupPrototype from "./v2/InspectionSetupPrototype";
+import InspectionSetupPrototype from "./concept/InspectionSetupPrototype";
 import type {
   AnnularConfig,
   DefectMeasurement,

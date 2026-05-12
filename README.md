@@ -13,14 +13,33 @@ Use these paths first:
 
 | What you want | File / folder |
 |---|---|
-| Current app entry point | [src/App.tsx](./src/App.tsx) |
-| Active V2 prototype | [src/v2/InspectionSetupPrototype.tsx](./src/v2/InspectionSetupPrototype.tsx) |
+| Current concept app entry point | [src/App.tsx](./src/App.tsx) |
+| Active V2 prototype | [src/concept/InspectionSetupPrototype.tsx](./src/concept/InspectionSetupPrototype.tsx) |
 | V1 gold-standard reference | [src/App.tsx](./src/App.tsx) |
 | Shared V2 styling | [src/styles.css](./src/styles.css) |
 | V2 design notes | [MVP_DESIGN.md](./MVP_DESIGN.md) |
 | V1 keep / simplify / drop decisions | [V1_CARRY_FORWARD_MATRIX.md](./V1_CARRY_FORWARD_MATRIX.md) |
+| Android product build lane | [apps/field-android/](./apps/field-android/) |
+| Report platform build lane | [apps/report-platform/](./apps/report-platform/) |
+| Canonical schema build lane | [packages/canonical-schema/](./packages/canonical-schema/) |
+| Weekly launch plan | [docs/WEEKLY_PRODUCT_LAUNCH_PLAN.md](./docs/WEEKLY_PRODUCT_LAUNCH_PLAN.md) |
 | Commercial decks and customer assets | [commercial-output/](./commercial-output/) |
 | Commercial asset guide | [commercial-output/README.md](./commercial-output/README.md) |
+
+## Repo Lanes
+
+This repo now has three distinct lanes:
+
+1. `Reference`
+   - `V1` inside [src/App.tsx](./src/App.tsx)
+   - use for shell mapping, orientation, and legacy interaction study
+2. `Concept`
+   - active web concept prototype in [src/concept/InspectionSetupPrototype.tsx](./src/concept/InspectionSetupPrototype.tsx)
+   - use for UI / UX iteration and customer walkthroughs
+3. `Product Build`
+   - Android field app in [apps/field-android/](./apps/field-android/)
+   - report platform in [apps/report-platform/](./apps/report-platform/)
+   - canonical schema in [packages/canonical-schema/](./packages/canonical-schema/)
 
 ## Local-Only Working Files
 
@@ -43,7 +62,7 @@ The goal is to keep `main` focused on:
 | Version | Role | Main file | Status |
 |---|---|---|---|
 | `V1` | Legacy reference / gold standard | [src/App.tsx](./src/App.tsx) | Keep for study and comparison |
-| `V2` | Current customer-facing design prototype | [src/v2/InspectionSetupPrototype.tsx](./src/v2/InspectionSetupPrototype.tsx) | Active design work |
+| `V2` | Current customer-facing design prototype | [src/concept/InspectionSetupPrototype.tsx](./src/concept/InspectionSetupPrototype.tsx) | Active design work |
 
 ### V1
 
@@ -151,6 +170,53 @@ Out of scope for Stage 1:
 4. Prefer **task-driven capture** over report-chapter editing.
 5. Support **estimated field capture** where practical, then allow **to-scale refinement** where reporting requires it.
 6. Keep the app **offline-friendly** and usable on rugged tablets.
+7. Treat field capture as **local-first / air-gapped**, then upload canonical data later for report generation.
+
+## Product Positioning
+
+The commercial product is split into two operating environments:
+
+1. `Local-first field application`
+   - Android is the primary production target
+   - all core inspection workflows run on-device without network dependency
+   - iOS is a demo lane unless and until it is promoted to full production scope
+2. `Connected reporting platform`
+   - canonical inspection package is uploaded after field work
+   - report generation, review, and archive happen online
+
+This means the tablet does the inspection, and the platform does the reporting.
+
+## Immediate Launch Plan
+
+The current target is a **first prototype launch by May 25, 2026**.
+
+Use the detailed weekly plan here:
+
+- [docs/WEEKLY_PRODUCT_LAUNCH_PLAN.md](./docs/WEEKLY_PRODUCT_LAUNCH_PLAN.md)
+
+### Week 1
+
+- freeze repo structure into `reference`, `concept`, and `product build` lanes
+- lock canonical inspection-package schema
+- lock Android local-first architecture
+- lock report-platform ingestion and preview scope
+
+### Week 2
+
+- stand up the first end-to-end prototype path
+- local field capture -> canonical package export -> upload -> report preview
+- keep iOS as a demo lane, not the primary robustness target
+
+### Prototype launch definition
+
+The first prototype is successful if the team can:
+
+1. create and reopen an inspection locally
+2. capture shell and roof UT in a product-build lane
+3. attach findings and photos locally
+4. export a canonical inspection package
+5. upload that package to the reporting platform
+6. generate a report preview from the uploaded package
 
 ## Target implementation architecture
 
@@ -173,6 +239,16 @@ The current prototype is useful for workflow validation, but the real app should
   - nozzle registries
   - findings
   - attachments
+
+### Product lanes
+
+- `apps/field-android/`
+  - real Android product build
+  - Kotlin + Jetpack Compose target
+- `apps/report-platform/`
+  - canonical upload, report generation, review, archive
+- `packages/canonical-schema/`
+  - versioned inspection-package contract shared by field and platform
 
 ### Core domain layer
 
@@ -531,7 +607,7 @@ For offline demo use, the safe assumption is:
 
 | Layer | Tech |
 |---|---|
-| UI | React 19 + TypeScript 5 |
+| UI concept app | React 19 + TypeScript 5 |
 | Build | Vite 6 |
 | Styling | Tailwind CSS + custom CSS in [src/styles.css](./src/styles.css) |
 | State | local component state + browser storage |
@@ -541,13 +617,21 @@ For offline demo use, the safe assumption is:
 
 ```text
 tank-inspection-coplilot/
+├── apps/
+│   ├── field-android/               # real Android product lane
+│   └── report-platform/             # connected reporting platform lane
+├── packages/
+│   └── canonical-schema/            # shared inspection-package contract
+├── docs/
+│   └── WEEKLY_PRODUCT_LAUNCH_PLAN.md
+│                                     # near-term launch and build plan
 ├── src/
-│   ├── App.tsx                       # V1 app + top-level V2 switch
+│   ├── App.tsx                      # V1 app + top-level V2 concept switch
+│   ├── concept/
+│   │   └── InspectionSetupPrototype.tsx
+│   │                                  # current V2 concept prototype
 │   ├── styles.css                   # shared styling
 │   ├── types.ts                     # legacy/shared types
-│   └── v2/
-│       └── InspectionSetupPrototype.tsx
-│                                     # current V2 prototype
 ├── public/
 │   └── laiq-logo.png                # V2 branding asset
 ├── commercial-output/               # decks, one-pagers, demo HTML
@@ -562,9 +646,11 @@ If you are reviewing this repo:
 
 1. Look at `V1` to understand the original reference behavior.
 2. Look at `V2` to see the current design direction.
-3. Check [src/App.tsx](./src/App.tsx) to see which one is active.
+3. Look at `apps/` and `packages/` to see the real product build lanes.
+4. Check [src/App.tsx](./src/App.tsx) to see which concept track is active.
 
 If you are editing this repo:
 
-1. Make current UI changes in `V2`.
+1. Make current UI / UX concept changes in `src/concept/`.
 2. Use `V1` for reference only unless there is a deliberate reason to touch it.
+3. Build the real product in `apps/` and `packages/`, not inside the concept prototype.
