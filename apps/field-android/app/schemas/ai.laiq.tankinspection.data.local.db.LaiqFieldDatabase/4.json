@@ -1,0 +1,280 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "0a7ce631e45d1eb53e8ce77385bf1dd9",
+    "entities": [
+      {
+        "tableName": "app_session",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `currentScreen` TEXT NOT NULL, `draftJson` TEXT NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`sessionId`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentScreen",
+            "columnName": "currentScreen",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draftJson",
+            "columnName": "draftJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "inspection_record",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `packageId` TEXT NOT NULL, `startedAtIso` TEXT NOT NULL, `client` TEXT NOT NULL, `site` TEXT NOT NULL, `tankNumber` TEXT NOT NULL, `inspector` TEXT NOT NULL, `roofType` TEXT NOT NULL, `referenceMode` TEXT NOT NULL, `startReference` TEXT NOT NULL, `rotationDirection` TEXT NOT NULL, `diameterM` REAL NOT NULL, `heightM` REAL NOT NULL, `shellCourseCount` INTEGER NOT NULL, `shellLineCountOverride` INTEGER, `reviewStatus` TEXT NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageId",
+            "columnName": "packageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtIso",
+            "columnName": "startedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "client",
+            "columnName": "client",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "site",
+            "columnName": "site",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tankNumber",
+            "columnName": "tankNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inspector",
+            "columnName": "inspector",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roofType",
+            "columnName": "roofType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceMode",
+            "columnName": "referenceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startReference",
+            "columnName": "startReference",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotationDirection",
+            "columnName": "rotationDirection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diameterM",
+            "columnName": "diameterM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heightM",
+            "columnName": "heightM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shellCourseCount",
+            "columnName": "shellCourseCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shellLineCountOverride",
+            "columnName": "shellLineCountOverride",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "reviewStatus",
+            "columnName": "reviewStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "export_bundle",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`exportId` TEXT NOT NULL, `inspectionId` TEXT NOT NULL, `packageId` TEXT NOT NULL, `schemaVersion` TEXT NOT NULL, `packageDirPath` TEXT NOT NULL, `zipFilePath` TEXT NOT NULL, `attachmentCount` INTEGER NOT NULL, `missingAttachmentCount` INTEGER NOT NULL, `status` TEXT NOT NULL, `exportedAtIso` TEXT NOT NULL, `uploadedAtIso` TEXT, PRIMARY KEY(`exportId`))",
+        "fields": [
+          {
+            "fieldPath": "exportId",
+            "columnName": "exportId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageId",
+            "columnName": "packageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageDirPath",
+            "columnName": "packageDirPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zipFilePath",
+            "columnName": "zipFilePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachmentCount",
+            "columnName": "attachmentCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "missingAttachmentCount",
+            "columnName": "missingAttachmentCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exportedAtIso",
+            "columnName": "exportedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadedAtIso",
+            "columnName": "uploadedAtIso",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "exportId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "app_config",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`configKey` TEXT NOT NULL, `configValue` TEXT NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`configKey`))",
+        "fields": [
+          {
+            "fieldPath": "configKey",
+            "columnName": "configKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "configValue",
+            "columnName": "configValue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "configKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0a7ce631e45d1eb53e8ce77385bf1dd9')"
+    ]
+  }
+}

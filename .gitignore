@@ -8,3 +8,7 @@ PROGRESS_NEW.md
 *.tsbuildinfo
 data/
 Tank_Inspection_Copilot_V2_Design_Progress_*.pptx
+apps/field-android/.gradle/
+apps/field-android/build/
+apps/field-android/app/build/
+apps/field-android/local.properties
