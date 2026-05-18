@@ -51,6 +51,7 @@ data class CanonicalInspectionPackage(
     val unitProfile: UnitProfile,
     val shellLinePlan: ShellLinePlan,
     val roofLayout: RoofLayout?,
+    val roofSurfaceLayouts: List<RoofSurfaceLayout> = emptyList(),
     val nozzleRegistries: NozzleRegistries? = null,
     val measurements: Measurements,
     val shellSettlementSurvey: ShellSettlementSurvey? = null,
@@ -76,6 +77,8 @@ data class TankMaster(
     val diameterM: Double,
     val heightM: Double,
     val roofType: String,
+    val fixedRoofType: String? = null,
+    val floatingRoofType: String? = null,
     val shellCourseCount: Int,
     val referenceMode: ReferenceMode,
     val startReference: String?,
@@ -83,6 +86,7 @@ data class TankMaster(
 
 data class UnitProfile(
     val thicknessUnit: MeasurementUnit,
+    val settlementUnit: MeasurementUnit,
     val nozzleSizeUnit: NozzleSizeUnit,
 )
 
@@ -114,8 +118,15 @@ data class RoofLayout(
     val features: List<RoofFeature> = emptyList(),
 )
 
+data class RoofSurfaceLayout(
+    val roofSurfaceId: String,
+    val surfaceKind: String,
+    val layout: RoofLayout,
+)
+
 data class RoofFeature(
     val featureId: String,
+    val roofSurfaceId: String? = null,
     val type: String,
     val label: String? = null,
     val placementMode: String? = null,
@@ -132,6 +143,7 @@ data class NozzleRegistries(
 data class NozzleDefinition(
     val nozzleId: String,
     val surface: String,
+    val roofSurfaceId: String? = null,
     val size: String,
     val hasReinforcementPad: Boolean = true,
     val placementMode: String? = null,
@@ -160,6 +172,7 @@ data class ShellUtRow(
 
 data class RoofUtRow(
     val rowId: String,
+    val roofSurfaceId: String? = null,
     val plateId: String,
     val readings: List<Double>,
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
@@ -169,6 +182,7 @@ data class RoofUtRow(
 data class NozzleUtRow(
     val rowId: String,
     val nozzleId: String,
+    val roofSurfaceId: String? = null,
     val bodyReadings: List<Double>,
     val reinforcementPadReading: Double? = null,
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,

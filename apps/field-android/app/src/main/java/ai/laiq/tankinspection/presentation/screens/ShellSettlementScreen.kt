@@ -48,7 +48,7 @@ fun ShellSettlementScreen(
     val committedSetup = draftState.committedSetupState()
     val committedScope = draftState.committedScopeBaseline()
     val savedSurvey = draftState.savedShellSettlementSurvey
-    val thicknessUnit = committedSetup.thicknessUnit.label()
+    val settlementUnit = committedSetup.settlementUnit.label()
     val stateOptions = measurementCaptureStateOptions()
     val canSave = draftState.shellSettlementDraft.stations.take(
         draftState.shellSettlementDraft.stationCount.toIntOrNull()?.coerceAtLeast(1) ?: 0,
@@ -72,7 +72,7 @@ fun ShellSettlementScreen(
                 subtitle = "Capture raw elevation readings around the shell perimeter. Arc length and API deflection values are calculated later.",
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LaiqStatChip("Thickness Unit", thicknessUnit, modifier = Modifier.weight(1f))
+                    LaiqStatChip("Settlement Unit", settlementUnit, modifier = Modifier.weight(1f))
                     LaiqStatChip("Stations", draftState.shellSettlementDraft.stationCount.ifBlank { "—" }, modifier = Modifier.weight(1f))
                     LaiqStatChip(
                         "Saved",
@@ -152,7 +152,7 @@ fun ShellSettlementScreen(
                                                 ),
                                             )
                                         },
-                                        label = { Text("Elevation ($thicknessUnit)") },
+                                        label = { Text("Elevation ($settlementUnit)") },
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),

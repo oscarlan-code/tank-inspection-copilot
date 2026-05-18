@@ -6,6 +6,8 @@ import ai.laiq.tankinspection.domain.model.ReferenceMode
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RotationDirection
 import ai.laiq.tankinspection.domain.usecase.ShellLinePlanner
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FIXED
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
 import ai.laiq.tankinspection.presentation.RoofLayoutDraftInput
 import ai.laiq.tankinspection.presentation.ScopeFormState
 import ai.laiq.tankinspection.presentation.SetupFormState
@@ -27,10 +29,13 @@ import ai.laiq.tankinspection.presentation.label
 import ai.laiq.tankinspection.presentation.normalizedReferenceMode
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
 import ai.laiq.tankinspection.presentation.resolvedStartReference
+import ai.laiq.tankinspection.presentation.roofSystemLabel
 import ai.laiq.tankinspection.presentation.roofReferenceLabel
-import ai.laiq.tankinspection.presentation.roofTemplateForRoofType
+import ai.laiq.tankinspection.presentation.roofTemplateForSurface
 import ai.laiq.tankinspection.presentation.startReferenceLabel
 import ai.laiq.tankinspection.presentation.usesMarkerReference
+import ai.laiq.tankinspection.presentation.hasFixedRoof
+import ai.laiq.tankinspection.presentation.hasFloatingRoof
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -46,14 +51,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
-private val roofTypeOptions = listOf(
-    "fixed_cone" to "Fixed Cone",
-    "fixed_dome" to "Fixed Dome",
+private val fixedRoofTypeOptions = listOf(
+    "none" to "None",
+    "cone" to "Cone",
+    "dome" to "Dome",
     "umbrella" to "Umbrella",
-    "external_floating" to "External Floating",
-    "internal_floating" to "Internal Floating",
-    "double_deck_floating" to "Double Deck Floating",
+    "geodesic" to "Geodesic",
     "other" to "Other",
+)
+
+private val floatingRoofTypeOptions = listOf(
+    "none" to "None",
+    "external" to "External",
+    "internal" to "Internal",
 )
 
 private val referenceModeOptions = listOf(
@@ -62,13 +72,15 @@ private val referenceModeOptions = listOf(
 )
 
 private val thicknessUnitOptions = MeasurementUnit.entries.map { unit -> unit.name to unit.label() }
+private val settlementUnitOptions = MeasurementUnit.entries.map { unit -> unit.name to unit.label() }
 private val nozzleSizeUnitOptions = NozzleSizeUnit.entries.map { unit -> unit.name to unit.label() }
 
 @Composable
 fun InspectionSetupScreen(
     state: SetupFormState,
     scopeState: ScopeFormState,
-    roofLayoutDraft: RoofLayoutDraftInput,
+    fixedRoofLayoutDraft: RoofLayoutDraftInput,
+    floatingRoofLayoutDraft: RoofLayoutDraftInput,
     lineCountOverride: String,
     shellCaptureStartLaneId: String,
     recommendedLineCount: Int?,
@@ -76,7 +88,8 @@ fun InspectionSetupScreen(
     hasPendingShellPlanningChanges: Boolean,
     onStateChange: (SetupFormState) -> Unit,
     onScopeStateChange: (ScopeFormState) -> Unit,
-    onRoofLayoutDraftChange: (RoofLayoutDraftInput) -> Unit,
+    onFixedRoofLayoutDraftChange: (RoofLayoutDraftInput) -> Unit,
+    onFloatingRoofLayoutDraftChange: (RoofLayoutDraftInput) -> Unit,
     onLineCountOverrideChange: (String) -> Unit,
     onShellCaptureStartLaneIdChange: (String) -> Unit,
     onContinue: () -> Unit,
@@ -113,20 +126,25 @@ fun InspectionSetupScreen(
     val displayedShellLines = shellLinePlan?.displayLinesForMap().orEmpty()
     val startLaneLabel = shellLinePlan?.lines?.firstOrNull { line -> line.lineId == shellLinePlan.captureStartLaneId }?.label
         ?: shellLinePlan?.lines?.firstOrNull()?.label
-    val allowedRoofTemplates = when (roofTemplateForRoofType(state.roofType)) {
-        RoofTemplate.UMBRELLA_RADIAL -> listOf(RoofTemplate.UMBRELLA_RADIAL)
-        RoofTemplate.CIRCULAR_PLATE,
-        RoofTemplate.CIRCULAR_CENTER_OPENING -> listOf(
-            RoofTemplate.CIRCULAR_PLATE,
-            RoofTemplate.CIRCULAR_CENTER_OPENING,
-        )
-    }
-    val normalizedRoofLayoutDraft = roofLayoutDraft.copy(
-        template = roofLayoutDraft.template.takeIf { template -> allowedRoofTemplates.contains(template) }
-            ?: allowedRoofTemplates.first(),
+    val allowedFixedRoofTemplates = allowedRoofTemplatesForSurface(ROOF_SURFACE_FIXED, state)
+    val normalizedFixedRoofLayoutDraft = fixedRoofLayoutDraft.copy(
+        template = fixedRoofLayoutDraft.template.takeIf { template -> allowedFixedRoofTemplates.contains(template) }
+            ?: allowedFixedRoofTemplates.first(),
     )
-    val roofLayoutPreview = buildRoofLayoutFromDraftOrNull(normalizedRoofLayoutDraft)
-    val roofLayoutValidationMessage = setupRoofLayoutValidationMessage(normalizedRoofLayoutDraft)
+    val fixedRoofLayoutPreview = buildRoofLayoutFromDraftOrNull(normalizedFixedRoofLayoutDraft)
+    val fixedRoofLayoutValidationMessage = setupRoofLayoutValidationMessage(normalizedFixedRoofLayoutDraft)
+    val allowedFloatingRoofTemplates = allowedRoofTemplatesForSurface(ROOF_SURFACE_FLOATING, state)
+    val normalizedFloatingRoofLayoutDraft = floatingRoofLayoutDraft.copy(
+        template = floatingRoofLayoutDraft.template.takeIf { template -> allowedFloatingRoofTemplates.contains(template) }
+            ?: allowedFloatingRoofTemplates.first(),
+        hasPontoonDeck = if (state.hasFloatingRoof()) {
+            floatingRoofLayoutDraft.hasPontoonDeck || state.floatingRoofType == "external"
+        } else {
+            false
+        },
+    )
+    val floatingRoofLayoutPreview = buildRoofLayoutFromDraftOrNull(normalizedFloatingRoofLayoutDraft)
+    val floatingRoofLayoutValidationMessage = setupRoofLayoutValidationMessage(normalizedFloatingRoofLayoutDraft)
     val roofReferenceLabel = scopeState.roofReferenceLabel()
     val roofReferenceAzimuth = scopeState.referenceAzimuthDeg()
 
@@ -235,6 +253,12 @@ fun InspectionSetupScreen(
                     value = state.thicknessUnit.name,
                     options = thicknessUnitOptions,
                     onSelected = { onStateChange(state.copy(thicknessUnit = MeasurementUnit.valueOf(it))) },
+                )
+                LaiqDropdownField(
+                    label = "Settlement Unit",
+                    value = state.settlementUnit.name,
+                    options = settlementUnitOptions,
+                    onSelected = { onStateChange(state.copy(settlementUnit = MeasurementUnit.valueOf(it))) },
                 )
                 LaiqDropdownField(
                     label = "Nozzle Size Unit",
@@ -398,81 +422,66 @@ fun InspectionSetupScreen(
 
         item {
             LaiqSectionCard(
-                title = "Roof Layout Baseline",
-                subtitle = "Set the roof type and plate-map basis here, then review the roof layout map directly below it.",
+                title = "Roof System",
+                subtitle = "Define whether this tank has a fixed roof, a floating roof, or both. Each selected roof surface gets its own locked baseline below.",
             ) {
                 LaiqDropdownField(
-                    label = "Roof Type",
-                    value = state.roofType,
-                    options = roofTypeOptions,
-                    onSelected = { onStateChange(state.copy(roofType = it)) },
+                    label = "Fixed Roof Type",
+                    value = state.fixedRoofType,
+                    options = fixedRoofTypeOptions,
+                    onSelected = { onStateChange(state.copy(fixedRoofType = it)) },
                 )
+                LaiqDropdownField(
+                    label = "Floating Roof Type",
+                    value = state.floatingRoofType,
+                    options = floatingRoofTypeOptions,
+                    onSelected = { onStateChange(state.copy(floatingRoofType = it)) },
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LaiqStatChip("Roof System", state.roofSystemLabel(), modifier = Modifier.weight(1f))
+                    LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
+                }
                 Text(
-                    "Define the roof plate map here with the same locked baseline as shell layout. After setup is committed, later screens can use this map but cannot edit it.",
+                    "Keep fixed-roof and floating-roof surfaces separate. Later roof tasks reuse the same measurement workflow, but they stay scoped to the selected roof surface.",
                     style = MaterialTheme.typography.bodySmall,
                     color = LaiqColors.MutedText,
                 )
-                LaiqOptionChips(
-                    selectedValue = normalizedRoofLayoutDraft.template.name,
-                    options = allowedRoofTemplates.map { template -> template.name to setupRoofTemplateLabel(template) },
-                    onSelect = { selected ->
-                        onRoofLayoutDraftChange(
-                            normalizedRoofLayoutDraft.copy(template = RoofTemplate.valueOf(selected)),
-                        )
-                    },
-                )
-                SetupRoofLayoutInputs(
-                    draft = normalizedRoofLayoutDraft,
-                    roofType = state.roofType,
-                    onDraftChange = onRoofLayoutDraftChange,
-                )
-                roofLayoutValidationMessage?.let { validationMessage ->
-                    Text(
-                        validationMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LaiqColors.AccentOrange,
-                    )
-                }
-                if (roofLayoutPreview == null || !roofLayoutPreview.isReadyForInspection()) {
-                    Text(
-                        "Complete the roof layout inputs above to preview the saved roof basis before continuing.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LaiqColors.MutedText,
-                    )
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        when (roofLayoutPreview.template) {
-                            RoofTemplate.UMBRELLA_RADIAL -> {
-                                LaiqStatChip("Rings", roofLayoutPreview.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
-                                LaiqStatChip("Sectors", roofLayoutPreview.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
-                            }
+            }
+        }
 
-                            else -> {
-                                LaiqStatChip("Rows", roofLayoutPreview.rowCount?.toString() ?: "—", modifier = Modifier.weight(1f))
-                                LaiqStatChip("Max Columns", roofLayoutPreview.widestRowPlateCount?.toString() ?: "—", modifier = Modifier.weight(1f))
-                            }
-                        }
-                        LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
-                    }
-                    RoofSurfaceMap(
-                        template = roofLayoutPreview.template,
-                        rowCount = roofLayoutPreview.rowCount ?: 0,
-                        widestRowPlateCount = roofLayoutPreview.widestRowPlateCount ?: 0,
-                        ringCount = roofLayoutPreview.ringCount ?: 0,
-                        sectorCount = roofLayoutPreview.sectorCount ?: 0,
-                        activePlateId = null,
-                        savedPlateIds = emptySet(),
-                        overlayPlateIds = emptySet(),
-                        centerFeatureCount = 0,
-                        hasAnnularRing = roofLayoutPreview.hasAnnularRing,
-                        annularSectionCount = roofLayoutPreview.annularSectionCount ?: 0,
-                        hasPontoonDeck = roofLayoutPreview.hasPontoonDeck,
-                        referenceLabel = roofReferenceLabel,
-                        referenceAzimuthDeg = roofReferenceAzimuth,
-                        rotationDirection = scopeState.rotationDirection,
-                        onSelectPlate = { _ -> Unit },
-                    )
-                }
+        if (state.hasFixedRoof()) {
+            item {
+                SetupRoofLayoutBaselineCard(
+                    title = "Fixed Roof Layout Baseline",
+                    subtitle = "Define the fixed-roof plate map here, then review the fixed-roof layout map directly below it.",
+                    draft = normalizedFixedRoofLayoutDraft,
+                    preview = fixedRoofLayoutPreview,
+                    validationMessage = fixedRoofLayoutValidationMessage,
+                    roofReferenceLabel = roofReferenceLabel,
+                    roofReferenceAzimuth = roofReferenceAzimuth,
+                    rotationDirection = scopeState.rotationDirection,
+                    allowedTemplates = allowedFixedRoofTemplates,
+                    surfaceKind = "fixed",
+                    onDraftChange = onFixedRoofLayoutDraftChange,
+                )
+            }
+        }
+
+        if (state.hasFloatingRoof()) {
+            item {
+                SetupRoofLayoutBaselineCard(
+                    title = "Floating Roof Layout Baseline",
+                    subtitle = "Define the floating-roof plate map here. Pontoons and floating-roof fittings are added later, but they stay on this locked floating-roof basis.",
+                    draft = normalizedFloatingRoofLayoutDraft,
+                    preview = floatingRoofLayoutPreview,
+                    validationMessage = floatingRoofLayoutValidationMessage,
+                    roofReferenceLabel = roofReferenceLabel,
+                    roofReferenceAzimuth = roofReferenceAzimuth,
+                    rotationDirection = scopeState.rotationDirection,
+                    allowedTemplates = allowedFloatingRoofTemplates,
+                    surfaceKind = "floating",
+                    onDraftChange = onFloatingRoofLayoutDraftChange,
+                )
             }
         }
 
@@ -513,13 +522,106 @@ private fun setupRoofLayoutValidationMessage(draft: RoofLayoutDraftInput): Strin
     }
 }
 
+private fun allowedRoofTemplatesForSurface(
+    roofSurfaceId: String,
+    setup: SetupFormState,
+): List<RoofTemplate> = when (roofTemplateForSurface(setup, roofSurfaceId)) {
+    RoofTemplate.UMBRELLA_RADIAL -> listOf(RoofTemplate.UMBRELLA_RADIAL)
+    RoofTemplate.CIRCULAR_PLATE,
+    RoofTemplate.CIRCULAR_CENTER_OPENING -> if (roofSurfaceId == ROOF_SURFACE_FLOATING) {
+        listOf(RoofTemplate.CIRCULAR_PLATE)
+    } else {
+        listOf(RoofTemplate.CIRCULAR_PLATE, RoofTemplate.CIRCULAR_CENTER_OPENING)
+    }
+}
+
+@Composable
+private fun SetupRoofLayoutBaselineCard(
+    title: String,
+    subtitle: String,
+    draft: RoofLayoutDraftInput,
+    preview: ai.laiq.tankinspection.domain.model.RoofLayout?,
+    validationMessage: String?,
+    roofReferenceLabel: String,
+    roofReferenceAzimuth: Double,
+    rotationDirection: RotationDirection,
+    allowedTemplates: List<RoofTemplate>,
+    surfaceKind: String,
+    onDraftChange: (RoofLayoutDraftInput) -> Unit,
+) {
+    LaiqSectionCard(
+        title = title,
+        subtitle = subtitle,
+    ) {
+        LaiqOptionChips(
+            selectedValue = draft.template.name,
+            options = allowedTemplates.map { template -> template.name to setupRoofTemplateLabel(template) },
+            onSelect = { selected ->
+                onDraftChange(draft.copy(template = RoofTemplate.valueOf(selected)))
+            },
+        )
+        SetupRoofLayoutInputs(
+            draft = draft,
+            surfaceKind = surfaceKind,
+            onDraftChange = onDraftChange,
+        )
+        validationMessage?.let { message ->
+            Text(
+                message,
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.AccentOrange,
+            )
+        }
+        if (preview == null || !preview.isReadyForInspection()) {
+            Text(
+                "Complete the layout inputs above to preview this roof surface before continuing.",
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                when (preview.template) {
+                    RoofTemplate.UMBRELLA_RADIAL -> {
+                        LaiqStatChip("Rings", preview.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                        LaiqStatChip("Sectors", preview.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                    }
+
+                    else -> {
+                        LaiqStatChip("Rows", preview.rowCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                        LaiqStatChip("Max Columns", preview.widestRowPlateCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                    }
+                }
+                LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
+            }
+            RoofSurfaceMap(
+                template = preview.template,
+                rowCount = preview.rowCount ?: 0,
+                widestRowPlateCount = preview.widestRowPlateCount ?: 0,
+                ringCount = preview.ringCount ?: 0,
+                sectorCount = preview.sectorCount ?: 0,
+                activePlateId = null,
+                savedPlateIds = emptySet(),
+                overlayPlateIds = emptySet(),
+                centerFeatureCount = 0,
+                hasAnnularRing = preview.hasAnnularRing,
+                annularSectionCount = preview.annularSectionCount ?: 0,
+                hasPontoonDeck = preview.hasPontoonDeck,
+                referenceLabel = roofReferenceLabel,
+                referenceAzimuthDeg = roofReferenceAzimuth,
+                rotationDirection = rotationDirection,
+                onSelectPlate = { _ -> Unit },
+            )
+        }
+    }
+}
+
 @Composable
 private fun SetupRoofLayoutInputs(
     draft: RoofLayoutDraftInput,
-    roofType: String,
+    surfaceKind: String,
     onDraftChange: (RoofLayoutDraftInput) -> Unit,
 ) {
-    val isFloatingRoof = roofType.contains("floating")
+    val isFloatingRoof = surfaceKind == "floating"
 
     when (draft.template) {
         RoofTemplate.CIRCULAR_PLATE,

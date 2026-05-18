@@ -5,16 +5,18 @@ import ai.laiq.tankinspection.domain.model.NozzleUtRow
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.NozzleUtDraftInput
 import ai.laiq.tankinspection.presentation.ShellNozzleDraftInput
+import ai.laiq.tankinspection.presentation.beginShellNozzleUtForNozzle
 import ai.laiq.tankinspection.presentation.beginFindingForMeasurement
 import ai.laiq.tankinspection.presentation.committedSetupState
 import ai.laiq.tankinspection.presentation.createCommittedShellLinePlanOrNull
 import ai.laiq.tankinspection.presentation.displayLinesForMap
-import ai.laiq.tankinspection.presentation.editShellNozzleUtRow
 import ai.laiq.tankinspection.presentation.findingsForMeasurement
 import ai.laiq.tankinspection.presentation.label
 import ai.laiq.tankinspection.presentation.measurementCaptureStateOptions
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqCountField
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
@@ -30,7 +32,7 @@ import ai.laiq.tankinspection.presentation.components.MeasurementStatsRow
 import ai.laiq.tankinspection.presentation.components.measurementStatsFromInput
 import ai.laiq.tankinspection.presentation.components.measurementStatsFromValues
 import ai.laiq.tankinspection.presentation.replaceShellNozzleRegistry
-import ai.laiq.tankinspection.presentation.removeShellNozzleUtRow
+import ai.laiq.tankinspection.presentation.removeShellNozzleUtForNozzle
 import ai.laiq.tankinspection.presentation.requiresNumericReadings
 import ai.laiq.tankinspection.presentation.saveShellNozzleUtDraft
 import androidx.compose.foundation.BorderStroke
@@ -48,10 +50,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -274,11 +278,14 @@ fun ShellNozzleUtScreen(
     var placementModeEnabled by rememberSaveable { mutableStateOf(false) }
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
     var pendingPlacementCourseOffset by rememberSaveable { mutableStateOf("") }
+    var showUtEditor by rememberSaveable { mutableStateOf(false) }
     val activeRegistryRow = registryDrafts.getOrNull(activeRegistryIndex)
     val registryReady = registryDrafts.isNotEmpty() && registryDrafts.all { row -> row.isReadyForSave() }
     val activeSizeSelection = activeRegistryRow?.let { row -> selectedNozzleSizeOption(row.size, nozzleSizeUnitType) }.orEmpty()
     val showingCustomSizeInput = activeRegistryRow != null && activeSizeSelection == customNozzleSizeOptionValue
     val pendingCourseOffsetValue = pendingPlacementCourseOffset.toFloatOrNull()?.coerceIn(0.08f, 0.92f)
+    val listState = rememberLazyListState()
+    var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
 
     fun syncPendingPlacementFromRow(row: ShellRegistryDraftRow?) {
         pendingPlacementAzimuth = row?.azimuthDeg.orEmpty()
@@ -298,15 +305,15 @@ fun ShellNozzleUtScreen(
         return true
     }
 
-    fun clearFinePlacementToCenter() {
+    fun undoFinePlacement() {
         val activeRow = activeRegistryRow ?: return
         val lineId = activeRow.linkedLineId(shellLinePlan) ?: return
         val lineAzimuth = shellLinePlan?.lines?.firstOrNull { it.lineId == lineId }?.azimuthDeg ?: return
-        pendingPlacementAzimuth = lineAzimuth.toInt().toString()
-        pendingPlacementCourseOffset = ""
-        registryDrafts = registryDrafts.updateShellRegistryRow(activeRegistryIndex) {
-            copy(azimuthDeg = lineAzimuth.toInt().toString(), courseOffsetRatio = "")
-        }
+        val savedAzimuth = activeRow.azimuthDeg.toDoubleOrNull()
+        val savedOffset = activeRow.courseOffsetRatio.toFloatOrNull()
+        pendingPlacementAzimuth = (savedAzimuth ?: lineAzimuth).toInt().toString()
+        pendingPlacementCourseOffset = "%.2f".format(savedOffset ?: 0.5f)
+        placementModeEnabled = activeRow.hasLocationLink()
     }
 
     fun nudgeShellPlacement(deltaAzimuthDeg: Double = 0.0, deltaCourseOffset: Float = 0f) {
@@ -334,7 +341,38 @@ fun ShellNozzleUtScreen(
         showRegistryEditor = true
     }
 
+    fun openRegistryEditorForNozzle(nozzleId: String) {
+        val existingRows = draftState.shellNozzles.toShellRegistryDraftRows()
+        registryDrafts = existingRows.ifEmpty { defaultShellRegistryDraftRows(1) }
+        registryCount = registryDrafts.size.toString()
+        activeRegistryIndex = existingRows.indexOfFirst { row -> row.nozzleId == nozzleId }.coerceAtLeast(0)
+        syncPendingPlacementFromRow(registryDrafts.getOrNull(activeRegistryIndex))
+        placementModeEnabled = false
+        showRegistryEditor = true
+        showUtEditor = false
+    }
+
+    LaunchedEffect(draftState.shellNozzleUtDraft.editingRowId) {
+        if (draftState.shellNozzleUtDraft.editingRowId != null) {
+            showUtEditor = true
+        }
+    }
+
+    LaunchedEffect(showRegistryEditor) {
+        if (showRegistryEditor) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
+    pendingDelete?.let { dialogState ->
+        LaiqDeleteConfirmDialog(
+            state = dialogState,
+            onDismiss = { pendingDelete = null },
+        )
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 16.dp,
@@ -547,8 +585,8 @@ fun ShellNozzleUtScreen(
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     LaiqSecondaryButton(
-                                        text = "Clear",
-                                        onClick = { clearFinePlacementToCenter() },
+                                        text = "Undo",
+                                        onClick = { undoFinePlacement() },
                                         enabled = activeRegistryRow.hasLocationLink(),
                                         modifier = Modifier.weight(1f),
                                     )
@@ -693,13 +731,21 @@ fun ShellNozzleUtScreen(
                         LaiqSecondaryButton(
                             text = "Delete All",
                             onClick = {
-                                onDraftStateChange(draftState.replaceShellNozzleRegistry(emptyList()))
-                                registryDrafts = defaultShellRegistryDraftRows(1)
-                                registryCount = "1"
-                                activeRegistryIndex = 0
-                                syncPendingPlacementFromRow(registryDrafts.firstOrNull())
-                                placementModeEnabled = false
-                                showRegistryEditor = false
+                                pendingDelete = LaiqDeleteDialogState(
+                                    title = "Delete All Shell Nozzles?",
+                                    message = "This will remove all registered shell nozzles, their UT rows, and related findings.",
+                                    confirmText = "Delete All",
+                                    onConfirm = {
+                                        onDraftStateChange(draftState.replaceShellNozzleRegistry(emptyList()))
+                                        registryDrafts = defaultShellRegistryDraftRows(1)
+                                        registryCount = "1"
+                                        activeRegistryIndex = 0
+                                        syncPendingPlacementFromRow(registryDrafts.firstOrNull())
+                                        placementModeEnabled = false
+                                        showRegistryEditor = false
+                                        showUtEditor = false
+                                    },
+                                )
                             },
                             modifier = Modifier.weight(1f),
                         )
@@ -710,242 +756,185 @@ fun ShellNozzleUtScreen(
 
         item {
             LaiqSectionCard(
-                title = "Registered Shell Nozzles",
-                subtitle = "Recent shell nozzle definitions saved on device.",
+                title = "Shell Nozzles",
+                subtitle = "Each registered nozzle keeps its registration, UT, and findings together on one card.",
             ) {
                 if (draftState.shellNozzles.isEmpty()) {
                     Text("No shell nozzles registered yet.", style = MaterialTheme.typography.bodySmall)
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         draftState.shellNozzles.forEach { nozzle ->
-                            NozzleDefinitionCard(
-                                nozzle = nozzle,
-                                locationSummary = formatShellGlobalLocation(
-                                    azimuthDeg = nozzle.azimuthDeg,
-                                    course = nozzle.course,
-                                    courseOffsetRatio = nozzle.courseOffsetRatio,
-                                    shellHeightM = shellHeightM,
-                                    courseCount = shellCourseCount,
-                                    referenceLabel = shellLinePlan?.startReference ?: "saved 0° reference",
-                                ),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            LaiqSectionCard(
-                title = "Shell Nozzle UT",
-                subtitle = "Select a registered nozzle, then save one UT row at a time.",
-            ) {
-                if (draftState.shellNozzles.isEmpty()) {
-                    Text("Register at least one shell nozzle first.", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    val selectedNozzleId = draftState.shellNozzleUtDraft.nozzleId
-                        .ifBlank { draftState.shellNozzles.firstOrNull()?.nozzleId.orEmpty() }
-                    val selectedNozzle = draftState.shellNozzles.firstOrNull { nozzle -> nozzle.nozzleId == selectedNozzleId }
-                    val selectedNozzleLocationLabel = selectedNozzle?.let { nozzle ->
-                        val selectedLineId = shellLinePlan?.nearestLineIdFor(nozzle.azimuthDeg)
-                        val selectedLineLabel = shellLinePlan?.lines?.firstOrNull { line -> line.lineId == selectedLineId }?.label
-                        val selectedCourse = nozzle.course
-                        if (selectedLineLabel != null && selectedCourse != null) {
-                            "${nozzle.nozzleId} · $selectedLineLabel · Strake $selectedCourse"
-                        } else {
-                            nozzle.nozzleId
-                        }
-                    }
-                    val selectedNozzleFindingCount = selectedNozzle?.let { nozzle ->
-                        draftState.findingsForMeasurement(
-                            surface = "shell_nozzle",
-                            linkedMeasurementId = nozzle.nozzleId,
-                            locationSummary = selectedNozzleLocationLabel.orEmpty(),
-                        ).size
-                    } ?: 0
-                    LaiqDropdownField(
-                        label = "Selected Shell Nozzle",
-                        value = selectedNozzleId,
-                        options = draftState.shellNozzles.map { it.nozzleId to "${it.nozzleId} · ${it.size}" },
-                        onSelected = { nozzleId ->
-                            onDraftStateChange(
-                                draftState.copy(shellNozzleUtDraft = draftState.shellNozzleUtDraft.copy(nozzleId = nozzleId)),
-                            )
-                        },
-                    )
-                    selectedNozzle?.let { nozzle ->
-                        val selectedLineId = shellLinePlan?.nearestLineIdFor(nozzle.azimuthDeg)
-                        val selectedLineLabel = shellLinePlan?.lines?.firstOrNull { line -> line.lineId == selectedLineId }?.label
-                        val selectedCourse = nozzle.course
-                        if (selectedLineLabel != null && selectedCourse != null) {
-                            LaiqLabeledValue(
-                                label = "Selected Nozzle Location",
-                                value = "${nozzle.nozzleId} · $selectedLineLabel · Strake $selectedCourse",
-                            )
-                        }
-                        formatShellGlobalLocation(
-                            azimuthDeg = nozzle.azimuthDeg,
-                            course = nozzle.course,
-                            courseOffsetRatio = nozzle.courseOffsetRatio,
-                            shellHeightM = shellHeightM,
-                            courseCount = shellCourseCount,
-                            referenceLabel = shellLinePlan?.startReference ?: "saved 0° reference",
-                        )?.let { globalLocation ->
-                            LaiqLabeledValue(
-                                label = "Global Location",
-                                value = globalLocation,
-                            )
-                        }
-                        if (shellLinePlan != null) {
-                            ShellSurfaceMap(
-                                lines = displayedLines.map { line ->
-                                    ShellMapLineVisual(
-                                        lineId = line.lineId,
-                                        label = line.label,
-                                        azimuthDeg = line.azimuthDeg.toInt(),
-                                    )
-                                },
-                                courseCount = draftState.committedSetupState().shellCourseCount.toIntOrNull() ?: 0,
-                                activeCell = if (selectedLineId != null && selectedCourse != null) {
-                                    selectedLineId to selectedCourse
-                                } else {
-                                    null
-                                },
-                                savedCells = emptySet(),
-                                overlayCells = draftState.shellNozzles.mapNotNull { registryNozzle ->
-                                    val course = registryNozzle.course ?: return@mapNotNull null
-                                    val lineId = shellLinePlan.nearestLineIdFor(registryNozzle.azimuthDeg) ?: return@mapNotNull null
-                                    lineId to course
-                                }.toSet(),
-                                markers = draftState.shellNozzles.mapNotNull { registeredNozzle ->
-                                    val lineId = shellLinePlan.nearestLineIdFor(registeredNozzle.azimuthDeg) ?: return@mapNotNull null
-                                    val course = registeredNozzle.course ?: return@mapNotNull null
-                                    val azimuth = registeredNozzle.azimuthDeg ?: return@mapNotNull null
-                                    ShellCellMarker(
-                                        markerId = registeredNozzle.nozzleId,
-                                        lineId = lineId,
-                                        course = course,
-                                        label = registeredNozzle.nozzleId,
-                                        xRatio = shellMarkerXRatio(shellLinePlan, lineId, azimuth),
-                                        yRatio = registeredNozzle.courseOffsetRatio?.toFloat()?.coerceIn(0.08f, 0.92f) ?: 0.5f,
-                                        active = registeredNozzle.nozzleId == nozzle.nozzleId,
-                                    )
-                                },
-                                scaleOriginLabel = shellLinePlan.startReference,
-                                anchorLaneId = shellLinePlan.lines.firstOrNull()?.lineId,
-                                captureStartLaneId = shellLinePlan.captureStartLaneId,
-                                onSelectCell = { _, _ -> },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        Text(
-                            "Thickness readings are captured in $thicknessUnit. Nozzle size uses $nozzleSizeUnit.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = LaiqColors.MutedText,
-                        )
-                    }
-                    LaiqDropdownField(
-                        label = "Capture State",
-                        value = draftState.shellNozzleUtDraft.captureState.name,
-                        options = measurementCaptureStateOptions(includeNotApplicable = true),
-                        onSelected = { selected ->
-                            onDraftStateChange(
-                                draftState.copy(
-                                    shellNozzleUtDraft = draftState.shellNozzleUtDraft.copy(
-                                        captureState = ai.laiq.tankinspection.domain.model.MeasurementCaptureState.valueOf(selected),
-                                    ),
-                                ),
-                            )
-                        },
-                    )
-                    NozzleReadingInputs(
-                        draft = draftState.shellNozzleUtDraft,
-                        readingLabels = shellNozzleReadingLabels,
-                        includeReinforcementPad = selectedNozzle?.hasReinforcementPad != false,
-                        unitLabel = thicknessUnit,
-                        onDraftChange = { updated ->
-                            onDraftStateChange(draftState.copy(shellNozzleUtDraft = updated))
-                        },
-                    )
-                    LaiqPrimaryButton(
-                        text = "Save Shell Nozzle UT",
-                        onClick = { onDraftStateChange(draftState.saveShellNozzleUtDraft()) },
-                    )
-                    selectedNozzle?.let { nozzle ->
-                        LaiqSecondaryButton(
-                            text = if (selectedNozzleFindingCount > 0) "Add Finding ($selectedNozzleFindingCount)" else "Add Finding",
-                            onClick = {
-                                onOpenFindings(
-                                    draftState.beginFindingForMeasurement(
-                                        surface = "shell_nozzle",
-                                        linkedMeasurementId = nozzle.nozzleId,
-                                        locationSummary = selectedNozzleLocationLabel.orEmpty(),
-                                    ),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            LaiqSectionCard(
-                title = "Saved Shell Nozzle Rows",
-                subtitle = "Recent shell nozzle UT entries captured locally.",
-            ) {
-                if (draftState.shellNozzleUtRows.isEmpty()) {
-                    Text("No shell nozzle UT rows saved yet.", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        draftState.shellNozzleUtRows.takeLast(8).reversed().forEach { row ->
-                            val nozzle = draftState.shellNozzles.firstOrNull { registered -> registered.nozzleId == row.nozzleId }
-                            val rowLocationLabel = nozzle?.let { registered ->
+                            val nozzleUtRow = draftState.shellNozzleUtRows.firstOrNull { row -> row.nozzleId == nozzle.nozzleId }
+                            val isEditingThisNozzle = showUtEditor && draftState.shellNozzleUtDraft.nozzleId == nozzle.nozzleId
+                            val includePad = nozzle.hasReinforcementPad
+                            val nozzleLocationLabel = nozzle.let { registered ->
                                 val lineId = shellLinePlan?.nearestLineIdFor(registered.azimuthDeg)
                                 val lineLabel = shellLinePlan?.lines?.firstOrNull { line -> line.lineId == lineId }?.label
                                 val course = registered.course
                                 if (lineLabel != null && course != null) {
-                                    "${row.nozzleId} · $lineLabel · Strake $course"
+                                    "${registered.nozzleId} · $lineLabel · Strake $course"
                                 } else {
-                                    row.nozzleId
+                                    registered.nozzleId
                                 }
-                            } ?: row.nozzleId
-                            val rowFindingCount = draftState.findingsForMeasurement(
+                            }
+                            val nozzleFindingCount = draftState.findingsForMeasurement(
                                 surface = "shell_nozzle",
-                                linkedMeasurementId = row.nozzleId,
-                                locationSummary = rowLocationLabel,
+                                linkedMeasurementId = nozzle.nozzleId,
+                                locationSummary = nozzleLocationLabel,
                             ).size
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                NozzleUtRowCard(
-                                    row = row,
-                                    readingLabels = shellNozzleReadingLabels,
-                                    includeReinforcementPad = nozzle?.hasReinforcementPad != false,
-                                    thicknessUnit = thicknessUnit,
+                                NozzleDefinitionCard(
+                                    nozzle = nozzle,
+                                    locationSummary = formatShellGlobalLocation(
+                                        azimuthDeg = nozzle.azimuthDeg,
+                                        course = nozzle.course,
+                                        courseOffsetRatio = nozzle.courseOffsetRatio,
+                                        shellHeightM = shellHeightM,
+                                        courseCount = shellCourseCount,
+                                        referenceLabel = shellLinePlan?.startReference ?: "saved 0° reference",
+                                    ),
                                 )
+                                if (nozzleUtRow == null) {
+                                    Text(
+                                        "No shell nozzle UT saved yet.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = LaiqColors.MutedText,
+                                    )
+                                } else {
+                                    NozzleUtRowCard(
+                                        row = nozzleUtRow,
+                                        readingLabels = shellNozzleReadingLabels,
+                                        includeReinforcementPad = includePad,
+                                        thicknessUnit = thicknessUnit,
+                                    )
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     LaiqSecondaryButton(
-                                        text = "Edit",
-                                        onClick = { onDraftStateChange(draftState.editShellNozzleUtRow(row.rowId)) },
+                                        text = "Edit Registration",
+                                        onClick = { openRegistryEditorForNozzle(nozzle.nozzleId) },
                                         modifier = Modifier.weight(1f),
                                     )
                                     LaiqSecondaryButton(
-                                        text = "Delete",
-                                        onClick = { onDraftStateChange(draftState.removeShellNozzleUtRow(row.rowId)) },
+                                        text = "Delete Nozzle",
+                                        onClick = {
+                                            pendingDelete = LaiqDeleteDialogState(
+                                                title = "Delete ${nozzle.nozzleId}?",
+                                                message = "This will remove the nozzle registration, its UT row, and related findings.",
+                                                onConfirm = {
+                                                    onDraftStateChange(
+                                                        draftState.replaceShellNozzleRegistry(
+                                                            draftState.shellNozzles.filterNot { registered -> registered.nozzleId == nozzle.nozzleId },
+                                                        ),
+                                                    )
+                                                    if (draftState.shellNozzleUtDraft.nozzleId == nozzle.nozzleId) {
+                                                        showUtEditor = false
+                                                    }
+                                                },
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    LaiqPrimaryButton(
+                                        text = if (nozzleUtRow == null) "Capture UT" else if (isEditingThisNozzle) "Resume UT" else "Edit UT",
+                                        onClick = {
+                                            showUtEditor = true
+                                            onDraftStateChange(draftState.beginShellNozzleUtForNozzle(nozzle.nozzleId))
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    LaiqSecondaryButton(
+                                        text = "Delete UT",
+                                        enabled = nozzleUtRow != null,
+                                        onClick = {
+                                            pendingDelete = LaiqDeleteDialogState(
+                                                title = "Delete ${nozzle.nozzleId} UT?",
+                                                message = "This will remove the saved shell nozzle UT for ${nozzle.nozzleId}.",
+                                                onConfirm = {
+                                                    onDraftStateChange(draftState.removeShellNozzleUtForNozzle(nozzle.nozzleId))
+                                                    if (draftState.shellNozzleUtDraft.nozzleId == nozzle.nozzleId) {
+                                                        showUtEditor = false
+                                                    }
+                                                },
+                                            )
+                                        },
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
                                 LaiqSecondaryButton(
-                                    text = if (rowFindingCount > 0) "Findings ($rowFindingCount)" else "Add Finding",
+                                    text = if (nozzleFindingCount > 0) "Findings ($nozzleFindingCount)" else "Add Finding",
                                     onClick = {
                                         onOpenFindings(
                                             draftState.beginFindingForMeasurement(
                                                 surface = "shell_nozzle",
-                                                linkedMeasurementId = row.nozzleId,
-                                                locationSummary = rowLocationLabel,
+                                                linkedMeasurementId = nozzle.nozzleId,
+                                                locationSummary = nozzleLocationLabel,
                                             ),
                                         )
                                     },
                                 )
+                                if (isEditingThisNozzle) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Color.White,
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                                        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            LaiqStatusBadge(
+                                                text = if (draftState.shellNozzleUtDraft.editingRowId != null) "Editing UT" else "New UT",
+                                                tone = LaiqColors.AccentOrange,
+                                            )
+                                            LaiqDropdownField(
+                                                label = "Capture State",
+                                                value = draftState.shellNozzleUtDraft.captureState.name,
+                                                options = measurementCaptureStateOptions(includeNotApplicable = true),
+                                                onSelected = { selected ->
+                                                    onDraftStateChange(
+                                                        draftState.copy(
+                                                            shellNozzleUtDraft = draftState.shellNozzleUtDraft.copy(
+                                                                captureState = ai.laiq.tankinspection.domain.model.MeasurementCaptureState.valueOf(selected),
+                                                            ),
+                                                        ),
+                                                    )
+                                                },
+                                            )
+                                            NozzleReadingInputs(
+                                                draft = draftState.shellNozzleUtDraft,
+                                                readingLabels = shellNozzleReadingLabels,
+                                                includeReinforcementPad = includePad,
+                                                unitLabel = thicknessUnit,
+                                                onDraftChange = { updated ->
+                                                    onDraftStateChange(draftState.copy(shellNozzleUtDraft = updated))
+                                                },
+                                            )
+                                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                LaiqPrimaryButton(
+                                                    text = "Save Shell Nozzle UT",
+                                                    onClick = {
+                                                        val updated = draftState.saveShellNozzleUtDraft()
+                                                        onDraftStateChange(updated)
+                                                        if (updated != draftState) {
+                                                            showUtEditor = false
+                                                        }
+                                                    },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                                LaiqSecondaryButton(
+                                                    text = "Hide UT",
+                                                    onClick = { showUtEditor = false },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

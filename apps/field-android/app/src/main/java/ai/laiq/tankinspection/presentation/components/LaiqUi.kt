@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,6 +58,13 @@ object LaiqColors {
     val MutedText = Color(0xFF66758C)
     val BodyText = Color(0xFF1E2C3F)
 }
+
+data class LaiqDeleteDialogState(
+    val title: String,
+    val message: String,
+    val confirmText: String = "Delete",
+    val onConfirm: () -> Unit,
+)
 
 @Composable
 fun LaiqFieldTheme(content: @Composable () -> Unit) {
@@ -152,6 +161,48 @@ fun LaiqSecondaryButton(
     ) {
         Text(text, color = LaiqColors.BrandTeal, fontWeight = FontWeight.Medium)
     }
+}
+
+@Composable
+fun LaiqDeleteConfirmDialog(
+    state: LaiqDeleteDialogState,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = state.title,
+                color = LaiqColors.BrandTeal,
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            Text(
+                text = state.message,
+                color = LaiqColors.BodyText,
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = LaiqColors.BrandTeal)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    state.onConfirm()
+                    onDismiss()
+                },
+            ) {
+                Text(
+                    text = state.confirmText,
+                    color = LaiqColors.BrandRed,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+    )
 }
 
 @Composable

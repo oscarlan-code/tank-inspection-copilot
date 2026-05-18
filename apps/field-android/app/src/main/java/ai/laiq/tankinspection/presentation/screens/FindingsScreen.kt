@@ -3,12 +3,16 @@ package ai.laiq.tankinspection.presentation.screens
 import ai.laiq.tankinspection.data.local.AttachmentFileStore
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.FindingDraftInput
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FIXED
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
 import ai.laiq.tankinspection.presentation.buildRoofLayoutOrNull
 import ai.laiq.tankinspection.presentation.committedSetupState
 import ai.laiq.tankinspection.presentation.committedScopeBaseline
 import ai.laiq.tankinspection.presentation.createCommittedShellLinePlanOrNull
 import ai.laiq.tankinspection.presentation.displayLinesForMap
 import ai.laiq.tankinspection.presentation.components.LaiqColors
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
@@ -46,12 +50,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,9 +79,11 @@ import kotlin.math.abs
 
 private val findingSurfaces = listOf(
     "shell" to "Shell",
-    "roof" to "Roof",
+    "roof_fixed" to "Fixed Roof",
+    "roof_floating" to "Floating Roof",
     "shell_nozzle" to "Shell Nozzle",
-    "roof_nozzle" to "Roof Nozzle",
+    "roof_nozzle_fixed" to "Fixed Roof Nozzle",
+    "roof_nozzle_floating" to "Floating Roof Nozzle",
 )
 private val findingTypes = listOf(
     "corrosion" to "Corrosion",
@@ -102,7 +110,8 @@ fun FindingsScreen(
     val scope = rememberCoroutineScope()
     val committedScope = draftState.committedScopeBaseline()
     val shellLinePlan = draftState.createCommittedShellLinePlanOrNull()
-    val roofLayout = draftState.buildRoofLayoutOrNull()
+    val findingRoofSurfaceId = roofSurfaceIdForFinding(draftState.findingDraft.surface)
+    val roofLayout = draftState.buildRoofLayoutOrNull(findingRoofSurfaceId)
     val roofReferenceLabel = committedScope.roofReferenceLabel()
     val roofReferenceAzimuth = committedScope.referenceAzimuthDeg()
     val displayedLines = shellLinePlan?.displayLinesForMap().orEmpty()
@@ -129,6 +138,8 @@ fun FindingsScreen(
     var annotationStrokes by remember(draftState.findingDraft.photoRelativePath) { mutableStateOf<List<List<Offset>>>(emptyList()) }
     var activeAnnotationStroke by remember(draftState.findingDraft.photoRelativePath) { mutableStateOf<List<Offset>>(emptyList()) }
     var annotationViewport by remember(draftState.findingDraft.photoRelativePath) { mutableStateOf(IntSize.Zero) }
+    var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
+    val listState = rememberLazyListState()
     val photoBitmap = remember(draftState.findingDraft.photoRelativePath) {
         attachmentStore.loadBitmap(draftState.findingDraft.photoRelativePath)
     }
@@ -149,7 +160,21 @@ fun FindingsScreen(
         }
     }
 
+    pendingDelete?.let { dialogState ->
+        LaiqDeleteConfirmDialog(
+            state = dialogState,
+            onDismiss = { pendingDelete = null },
+        )
+    }
+
+    LaunchedEffect(draftState.findingDraft.editingFindingId) {
+        if (draftState.findingDraft.editingFindingId != null) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 16.dp,
@@ -288,7 +313,9 @@ fun FindingsScreen(
                             hasAnnularRing = roofLayout.hasAnnularRing,
                             annularSectionCount = roofLayout.annularSectionCount ?: 0,
                             hasPontoonDeck = roofLayout.hasPontoonDeck,
-                            markers = draftState.roofFeatures.map { feature ->
+                            markers = draftState.roofFeatures.filter { feature ->
+                                (feature.roofSurfaceId ?: ROOF_SURFACE_FIXED) == findingRoofSurfaceId
+                            }.map { feature ->
                                 RoofMapMarker(
                                     markerId = feature.featureId,
                                     label = feature.label ?: roofFeatureTypeLabel(feature.type),
@@ -434,7 +461,13 @@ fun FindingsScreen(
                                 draftState = draftState,
                                 finding = finding,
                                 onEdit = { findingId -> onDraftStateChange(draftState.editFinding(findingId)) },
-                                onDelete = { findingId -> onDraftStateChange(draftState.removeFinding(findingId)) },
+                                onDelete = { findingId ->
+                                    pendingDelete = LaiqDeleteDialogState(
+                                        title = "Delete Finding?",
+                                        message = "This will permanently remove the finding and any attached photo or annotation.",
+                                        onConfirm = { onDraftStateChange(draftState.removeFinding(findingId)) },
+                                    )
+                                },
                             )
                         }
                     }
@@ -574,10 +607,14 @@ private fun findingLocationOptions(
             label = shellMeasurementLocationLabel(row, draftState.createCommittedShellLinePlanOrNull()),
         )
     }
-    "roof" -> draftState.roofUtRows.takeLast(8).reversed().map { row ->
+    "roof",
+    "roof_fixed",
+    "roof_floating" -> draftState.roofUtRows
+        .filter { row -> (row.roofSurfaceId ?: ROOF_SURFACE_FIXED) == roofSurfaceIdForFinding(surface) }
+        .takeLast(8).reversed().map { row ->
         FindingLocationOption(
             id = row.rowId,
-            label = "Plate ${row.plateId}",
+            label = "${roofSurfaceLabelForFinding(surface)} · Plate ${row.plateId}",
         )
     }
     "shell_nozzle" -> draftState.shellNozzles.takeLast(8).reversed().map { nozzle ->
@@ -586,10 +623,14 @@ private fun findingLocationOptions(
             label = shellNozzleLocationLabel(nozzle, draftState.createCommittedShellLinePlanOrNull()),
         )
     }
-    "roof_nozzle" -> draftState.roofNozzles.takeLast(8).reversed().map { nozzle ->
+    "roof_nozzle",
+    "roof_nozzle_fixed",
+    "roof_nozzle_floating" -> draftState.roofNozzles
+        .filter { nozzle -> (nozzle.roofSurfaceId ?: ROOF_SURFACE_FIXED) == roofSurfaceIdForFinding(surface) }
+        .takeLast(8).reversed().map { nozzle ->
         FindingLocationOption(
             id = nozzle.nozzleId,
-            label = roofNozzleLocationLabel(nozzle),
+            label = roofNozzleLocationLabel(nozzle, roofSurfaceLabelForFinding(surface)),
         )
     }
     else -> emptyList()
@@ -713,13 +754,20 @@ private fun resolveFindingVisualContext(
             }
         }
 
-        "roof" -> {
+        "roof",
+        "roof_fixed",
+        "roof_floating" -> {
             val row = draft.linkedMeasurementId.takeIf { it.isNotBlank() }?.let { measurementId ->
-                draftState.roofUtRows.firstOrNull { savedRow -> savedRow.rowId == measurementId }
+                draftState.roofUtRows.firstOrNull { savedRow ->
+                    savedRow.rowId == measurementId &&
+                        (savedRow.roofSurfaceId ?: ROOF_SURFACE_FIXED) == roofSurfaceIdForFinding(draft.surface)
+                }
             }
             val plateId = row?.plateId ?: parsePlateId(draft.locationSummary)
             FindingVisualContext(
-                summary = draft.locationSummary.ifBlank { plateId?.let { "Plate $it" }.orEmpty() }.ifBlank { null },
+                summary = draft.locationSummary.ifBlank {
+                    plateId?.let { "${roofSurfaceLabelForFinding(draft.surface)} · Plate $it" }.orEmpty()
+                }.ifBlank { null },
                 roofPlateId = plateId,
             )
         }
@@ -736,13 +784,20 @@ private fun resolveFindingVisualContext(
             )
         }
 
-        "roof_nozzle" -> {
+        "roof_nozzle",
+        "roof_nozzle_fixed",
+        "roof_nozzle_floating" -> {
             val nozzle = draft.linkedMeasurementId.takeIf { it.isNotBlank() }?.let { nozzleId ->
-                draftState.roofNozzles.firstOrNull { savedNozzle -> savedNozzle.nozzleId == nozzleId }
+                draftState.roofNozzles.firstOrNull { savedNozzle ->
+                    savedNozzle.nozzleId == nozzleId &&
+                        (savedNozzle.roofSurfaceId ?: ROOF_SURFACE_FIXED) == roofSurfaceIdForFinding(draft.surface)
+                }
             }
             val plateId = nozzle?.plateId ?: parsePlateId(draft.locationSummary)
             FindingVisualContext(
-                summary = draft.locationSummary.ifBlank { roofNozzleLocationLabel(nozzle) }.ifBlank { null },
+                summary = draft.locationSummary.ifBlank {
+                    roofNozzleLocationLabel(nozzle, roofSurfaceLabelForFinding(draft.surface))
+                }.ifBlank { null },
                 roofPlateId = plateId,
             )
         }
@@ -785,15 +840,30 @@ private fun shellNozzleLocationLabel(
 
 private fun roofNozzleLocationLabel(
     nozzle: ai.laiq.tankinspection.domain.model.NozzleDefinition?,
+    surfaceLabel: String? = null,
 ): String {
     nozzle ?: return ""
     return buildString {
+        surfaceLabel?.takeIf { it.isNotBlank() }?.let {
+            append(it)
+            append(" · ")
+        }
         append(nozzle.nozzleId)
         nozzle.plateId?.takeIf { it.isNotBlank() }?.let { plateId ->
             append(" · Plate ")
             append(plateId)
         }
     }
+}
+
+private fun roofSurfaceIdForFinding(surface: String): String = when (surface) {
+    "roof_floating", "roof_nozzle_floating" -> ROOF_SURFACE_FLOATING
+    else -> ROOF_SURFACE_FIXED
+}
+
+private fun roofSurfaceLabelForFinding(surface: String): String = when (roofSurfaceIdForFinding(surface)) {
+    ROOF_SURFACE_FLOATING -> "Floating Roof"
+    else -> "Fixed Roof"
 }
 
 private fun parsePlateId(locationSummary: String): String? {

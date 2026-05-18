@@ -8,6 +8,7 @@ import ai.laiq.tankinspection.presentation.buildRoofLinkTargetsForConfig
 import ai.laiq.tankinspection.presentation.buildRoofPlateCells
 import ai.laiq.tankinspection.presentation.canvasPointToRoofPolar
 import ai.laiq.tankinspection.presentation.nearestRoofPlateId
+import ai.laiq.tankinspection.presentation.roofPlateIdAtPolar
 import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -531,12 +532,31 @@ fun RoofSurfaceMap(
     val markerPoints = markers.mapNotNull { marker ->
         val point = when {
             marker.azimuthDeg != null && marker.radiusRatio != null -> {
-                val (xNorm, yNorm) = roofPolarToCanvasPoint(marker.azimuthDeg, marker.radiusRatio)
-                xNorm to yNorm
+                val resolvedPlateId = roofPlateIdAtPolar(
+                    template = template,
+                    rowCount = rowCount,
+                    widestRowPlateCount = widestRowPlateCount,
+                    ringCount = ringCount,
+                    sectorCount = sectorCount,
+                    referenceAzimuthDeg = referenceAzimuthDeg,
+                    rotationDirection = rotationDirection,
+                    hasAnnularRing = hasAnnularRing,
+                    annularSectionCount = annularSectionCount,
+                    azimuthDeg = marker.azimuthDeg,
+                    radiusRatio = marker.radiusRatio,
+                )
+                if (!marker.plateId.isNullOrBlank() && resolvedPlateId != marker.plateId) {
+                    linkTargets.firstOrNull { it.plateId == marker.plateId }?.let { cell ->
+                        cell.xNorm to cell.yNorm
+                    }
+                } else {
+                    val (xNorm, yNorm) = roofPolarToCanvasPoint(marker.azimuthDeg, marker.radiusRatio)
+                    xNorm to yNorm
+                }
             }
 
             !marker.plateId.isNullOrBlank() -> linkTargets.firstOrNull { it.plateId == marker.plateId }?.let { cell ->
-                cell.labelXNorm to cell.labelYNorm
+                cell.xNorm to cell.yNorm
             }
 
             else -> null
@@ -761,8 +781,9 @@ fun RoofSurfaceMap(
                                 },
                                 shape = RoundedCornerShape(4.dp),
                                 border = BorderStroke(
-                                    1.dp,
+                                    if (isActive) 2.dp else 1.dp,
                                     when {
+                                        isActive -> LaiqColors.BrandRed
                                         hasOverlay -> LaiqColors.AccentOrange
                                         isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
                                         else -> LaiqColors.PanelBorder

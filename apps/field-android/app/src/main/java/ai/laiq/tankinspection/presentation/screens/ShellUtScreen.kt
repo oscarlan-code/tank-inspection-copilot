@@ -12,6 +12,8 @@ import ai.laiq.tankinspection.presentation.displayLinesForMap
 import ai.laiq.tankinspection.presentation.removeShellUtRow
 import ai.laiq.tankinspection.presentation.requiresNumericReadings
 import ai.laiq.tankinspection.presentation.components.LaiqColors
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
@@ -39,6 +41,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -46,6 +49,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
@@ -82,8 +91,26 @@ fun ShellUtScreen(
             locationSummary = locationSummary,
         ).size
     } ?: 0
+    val listState = rememberLazyListState()
+    var showCaptureEditor by rememberSaveable { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
+
+    LaunchedEffect(draftState.shellUtDraft.editingRowId) {
+        if (draftState.shellUtDraft.editingRowId != null) {
+            showCaptureEditor = true
+            listState.animateScrollToItem(1)
+        }
+    }
+
+    pendingDelete?.let { dialogState ->
+        LaiqDeleteConfirmDialog(
+            state = dialogState,
+            onDismiss = { pendingDelete = null },
+        )
+    }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 16.dp,
@@ -176,37 +203,59 @@ fun ShellUtScreen(
         item {
             LaiqSectionCard(
                 title = "Capture Shell Row",
-                subtitle = "Select a shell layout cell, then enter one sampling row.",
+                subtitle = "Open the capture editor only when you want to add or edit one shell measurement row.",
             ) {
-                if (draftState.shellUtDraft.editingRowId != null) {
-                    Text(
-                        "Editing saved row ${draftState.shellUtDraft.editingRowId}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LaiqColors.AccentOrange,
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LaiqPrimaryButton(
+                        text = if (draftState.shellUtDraft.editingRowId != null) "Resume Edit" else "Open Capture",
+                        onClick = { showCaptureEditor = true },
+                        modifier = Modifier.weight(1f),
                     )
+                    if (showCaptureEditor) {
+                        LaiqSecondaryButton(
+                            text = "Hide Capture",
+                            onClick = { showCaptureEditor = false },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color.White,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, LaiqColors.PanelBorder),
-                ) {
-                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                        if (selectedLocationLabel == null) {
-                            Text(
-                                "Tap a shell layout cell first to lock the location.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = LaiqColors.MutedText,
-                            )
-                        } else {
-                            LaiqLabeledValue(
-                                label = "Selected Location",
-                                value = selectedLocationLabel,
-                            )
+                if (!showCaptureEditor) {
+                    Text(
+                        "Capture editor hidden. Review saved shell rows below, or open the editor when you need to add or edit one.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                } else {
+                    if (draftState.shellUtDraft.editingRowId != null) {
+                        Text(
+                            "Editing saved row ${draftState.shellUtDraft.editingRowId}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LaiqColors.AccentOrange,
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                            if (selectedLocationLabel == null) {
+                                Text(
+                                    "Tap a shell layout cell first to lock the location.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = LaiqColors.MutedText,
+                                )
+                            } else {
+                                LaiqLabeledValue(
+                                    label = "Selected Location",
+                                    value = selectedLocationLabel,
+                                )
+                            }
                         }
                     }
                 }
-                if (selectedLocationLabel != null) {
+                if (showCaptureEditor && selectedLocationLabel != null) {
                     LaiqDropdownField(
                         label = "Capture State",
                         value = draftState.shellUtDraft.captureState.name,
@@ -252,7 +301,13 @@ fun ShellUtScreen(
                     )
                     LaiqPrimaryButton(
                         text = if (draftState.shellUtDraft.editingRowId != null) "Update Shell UT Row" else "Save Shell UT Row",
-                        onClick = { onDraftStateChange(draftState.saveShellUtDraft()) },
+                        onClick = {
+                            val updated = draftState.saveShellUtDraft()
+                            onDraftStateChange(updated)
+                            if (updated != draftState) {
+                                showCaptureEditor = false
+                            }
+                        },
                     )
                     LaiqSecondaryButton(
                         text = if (selectedFindingCount > 0) "Add Finding ($selectedFindingCount)" else "Add Finding",
@@ -317,14 +372,23 @@ fun ShellUtScreen(
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                         OutlinedButton(
-                                            onClick = { onDraftStateChange(draftState.editShellUtRow(row.rowId)) },
+                                            onClick = {
+                                                showCaptureEditor = true
+                                                onDraftStateChange(draftState.editShellUtRow(row.rowId))
+                                            },
                                             shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                                             modifier = Modifier.weight(1f),
                                         ) {
                                             Text("Edit", color = LaiqColors.BrandTeal)
                                         }
                                         OutlinedButton(
-                                            onClick = { onDraftStateChange(draftState.removeShellUtRow(row.rowId)) },
+                                            onClick = {
+                                                pendingDelete = LaiqDeleteDialogState(
+                                                    title = "Delete Shell UT Row?",
+                                                    message = "This will permanently remove ${line?.label ?: row.lineId} · Strake ${row.course}.",
+                                                    onConfirm = { onDraftStateChange(draftState.removeShellUtRow(row.rowId)) },
+                                                )
+                                            },
                                             shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                                             modifier = Modifier.weight(1f),
                                         ) {

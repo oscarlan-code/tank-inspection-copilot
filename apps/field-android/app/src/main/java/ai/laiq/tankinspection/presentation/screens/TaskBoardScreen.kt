@@ -9,6 +9,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.presentation.components.LaiqStatusBadge
+import ai.laiq.tankinspection.presentation.roofSystemLabel
 import ai.laiq.tankinspection.presentation.visibleSelectedTasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,7 +66,7 @@ fun TaskBoardScreen(
                     LaiqLabeledValue("Tank", draftState.setup.tankNumber.ifBlank { "Not set" }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LaiqLabeledValue("Roof", draftState.setup.roofType, modifier = Modifier.weight(1f))
+                    LaiqLabeledValue("Roof", draftState.setup.roofSystemLabel(), modifier = Modifier.weight(1f))
                     LaiqLabeledValue("Review", reviewTaskStatus(FieldTask.REVIEW_EXPORT, draftState).label, modifier = Modifier.weight(1f))
                 }
             }

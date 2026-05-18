@@ -4,6 +4,7 @@ import ai.laiq.tankinspection.domain.model.ReferenceMode
 import ai.laiq.tankinspection.domain.model.RoofFeature
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RotationDirection
+import ai.laiq.tankinspection.domain.model.MeasurementUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -20,8 +21,11 @@ class FieldDraftStateCanonicalTest {
                 diameterM = "20",
                 heightM = "10",
                 shellCourseCount = "6",
-                roofType = "fixed_cone",
+                fixedRoofType = "cone",
+                floatingRoofType = "none",
                 inspector = "Field Engineer",
+                thicknessUnit = MeasurementUnit.INCH,
+                settlementUnit = MeasurementUnit.MM,
             ),
             scope = ScopeFormState(
                 referenceMode = ReferenceMode.TRUE_NORTH,
@@ -45,12 +49,12 @@ class FieldDraftStateCanonicalTest {
                     note = null,
                 ),
             ),
-            roofLayoutDraft = RoofLayoutDraftInput(
+            fixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "6",
                 widestRowPlateCount = "7",
             ),
-            savedRoofLayoutDraft = RoofLayoutDraftInput(
+            savedFixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "6",
                 widestRowPlateCount = "7",
@@ -58,6 +62,7 @@ class FieldDraftStateCanonicalTest {
             roofUtRows = listOf(
                 ai.laiq.tankinspection.domain.model.RoofUtRow(
                     rowId = "roof-ut-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     plateId = "R2-P3",
                     readings = listOf(5.1, 5.0, 4.98, 5.02, 5.04),
                     note = "Near manhole",
@@ -92,6 +97,7 @@ class FieldDraftStateCanonicalTest {
         assertEquals(20.0, pkg.tankMaster.diameterM, 0.0)
         assertEquals("True North", pkg.shellLinePlan.startReference)
         assertEquals(7, pkg.shellLinePlan.lineCount)
+        assertEquals(MeasurementUnit.MM, pkg.unitProfile.settlementUnit)
         assertEquals(1, pkg.measurements.shellUtRows.size)
         assertEquals(1, pkg.measurements.roofUtRows.size)
         assertNotNull(pkg.mflImport)
@@ -149,12 +155,12 @@ class FieldDraftStateCanonicalTest {
     @Test
     fun saveRoofLayoutDraft_clearsDependentRoofDataWhenLayoutChanges() {
         val state = FieldDraftState(
-            roofLayoutDraft = RoofLayoutDraftInput(
+            fixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "7",
                 widestRowPlateCount = "8",
             ),
-            savedRoofLayoutDraft = RoofLayoutDraftInput(
+            savedFixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "6",
                 widestRowPlateCount = "8",
@@ -162,6 +168,7 @@ class FieldDraftStateCanonicalTest {
             roofFeatures = listOf(
                 RoofFeature(
                     featureId = "roof-feature-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     type = "manhole",
                     label = "MH1",
                     placementMode = "plate_linked",
@@ -171,6 +178,7 @@ class FieldDraftStateCanonicalTest {
             roofUtRows = listOf(
                 ai.laiq.tankinspection.domain.model.RoofUtRow(
                     rowId = "roof-ut-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     plateId = "P-01",
                     readings = listOf(5.0),
                     note = null,
@@ -180,6 +188,7 @@ class FieldDraftStateCanonicalTest {
                 ai.laiq.tankinspection.domain.model.NozzleDefinition(
                     nozzleId = "RN-001",
                     surface = "roof",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     size = "6",
                     placementMode = "plate_linked",
                     plateId = "P-02",
@@ -189,6 +198,7 @@ class FieldDraftStateCanonicalTest {
                 ai.laiq.tankinspection.domain.model.NozzleUtRow(
                     rowId = "roof-nozzle-ut-001",
                     nozzleId = "RN-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     bodyReadings = listOf(4.8),
                     note = null,
                 ),
@@ -196,7 +206,7 @@ class FieldDraftStateCanonicalTest {
             findings = listOf(
                 ai.laiq.tankinspection.domain.model.FindingRecord(
                     findingId = "finding-001",
-                    surface = "roof",
+                    surface = roofFindingSurface(ROOF_SURFACE_FIXED),
                     type = "corrosion",
                     severity = "medium",
                     note = "Roof issue",
@@ -207,7 +217,7 @@ class FieldDraftStateCanonicalTest {
 
         val updated = state.saveRoofLayoutDraft()
 
-        assertEquals("7", updated.savedRoofLayoutDraft?.rowCount)
+        assertEquals("7", updated.savedFixedRoofLayoutDraft?.rowCount)
         assertTrue(updated.roofFeatures.isEmpty())
         assertTrue(updated.roofUtRows.isEmpty())
         assertTrue(updated.roofNozzles.isEmpty())
@@ -305,7 +315,8 @@ class FieldDraftStateCanonicalTest {
                     FieldTask.ROOF_NOZZLE_UT,
                 ),
             ),
-            savedReferenceBaselineKey = "20|10|6|fixed_cone|TRUE_NORTH|N|CLOCKWISE|MM|INCH",
+            savedReferenceBaselineKey = "20|10|6|cone|none|TRUE_NORTH|North|CLOCKWISE|MM|MM|INCH",
+            activeRoofSurfaceId = ROOF_SURFACE_FIXED,
             savedShellPlanKey = "TRUE_NORTH|North|CLOCKWISE|7|6",
             shellUtRows = listOf(
                 ai.laiq.tankinspection.domain.model.ShellUtRow(
@@ -316,12 +327,12 @@ class FieldDraftStateCanonicalTest {
                     note = null,
                 ),
             ),
-            roofLayoutDraft = RoofLayoutDraftInput(
+            fixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "6",
                 widestRowPlateCount = "7",
             ),
-            savedRoofLayoutDraft = RoofLayoutDraftInput(
+            savedFixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "6",
                 widestRowPlateCount = "7",
@@ -329,6 +340,7 @@ class FieldDraftStateCanonicalTest {
             roofFeatures = listOf(
                 RoofFeature(
                     featureId = "roof-feature-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     type = "manhole",
                     label = "MH1",
                     placementMode = "plate_linked",
@@ -338,6 +350,7 @@ class FieldDraftStateCanonicalTest {
             roofUtRows = listOf(
                 ai.laiq.tankinspection.domain.model.RoofUtRow(
                     rowId = "roof-ut-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     plateId = "1",
                     readings = listOf(4.9),
                     note = null,
@@ -365,6 +378,7 @@ class FieldDraftStateCanonicalTest {
                 ai.laiq.tankinspection.domain.model.NozzleDefinition(
                     nozzleId = "RN-001",
                     surface = "roof",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     size = "6",
                     placementMode = "plate_linked",
                     plateId = "1",
@@ -374,6 +388,7 @@ class FieldDraftStateCanonicalTest {
                 ai.laiq.tankinspection.domain.model.NozzleUtRow(
                     rowId = "roof-nozzle-ut-001",
                     nozzleId = "RN-001",
+                    roofSurfaceId = ROOF_SURFACE_FIXED,
                     bodyReadings = listOf(4.8),
                     note = null,
                 ),
@@ -381,7 +396,7 @@ class FieldDraftStateCanonicalTest {
             findings = listOf(
                 ai.laiq.tankinspection.domain.model.FindingRecord(
                     findingId = "finding-001",
-                    surface = "roof",
+                    surface = roofFindingSurface(ROOF_SURFACE_FIXED),
                     type = "corrosion",
                     severity = "medium",
                     note = "Roof issue",
@@ -391,7 +406,7 @@ class FieldDraftStateCanonicalTest {
         )
 
         val updated = baseState.copy(
-            setup = baseState.setup.copy(roofType = "umbrella"),
+            setup = baseState.setup.copy(fixedRoofType = "umbrella"),
             scope = baseState.scope.copy(
                 referenceMode = ReferenceMode.TANK_NORTH,
                 referenceRemark = "Stairway centerline",
@@ -406,10 +421,13 @@ class FieldDraftStateCanonicalTest {
         assertTrue(updated.roofNozzles.isEmpty())
         assertTrue(updated.roofNozzleUtRows.isEmpty())
         assertTrue(updated.findings.isEmpty())
-        assertEquals(RoofTemplate.UMBRELLA_RADIAL, updated.roofLayoutDraft.template)
-        assertEquals(null, updated.savedRoofLayoutDraft)
-        assertEquals("20|10|6|umbrella|TANK_NORTH|Stairway centerline|CLOCKWISE|MM|INCH", updated.savedReferenceBaselineKey)
-        assertEquals("umbrella", updated.savedSetupBaseline?.roofType)
+        assertEquals(RoofTemplate.UMBRELLA_RADIAL, updated.fixedRoofLayoutDraft.template)
+        assertEquals(null, updated.savedFixedRoofLayoutDraft)
+        assertEquals(
+            "20|10|6|umbrella|none|TANK_NORTH|Tank North / Site Marker: Stairway centerline|CLOCKWISE|MM|MM|INCH",
+            updated.savedReferenceBaselineKey,
+        )
+        assertEquals("umbrella", updated.savedSetupBaseline?.fixedRoofType)
         assertEquals("Stairway centerline", updated.savedScopeBaseline?.referenceRemark)
     }
 }

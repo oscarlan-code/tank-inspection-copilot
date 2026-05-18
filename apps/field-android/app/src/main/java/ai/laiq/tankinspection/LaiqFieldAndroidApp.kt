@@ -11,6 +11,8 @@ import ai.laiq.tankinspection.presentation.hasPendingShellPlanningChanges
 import ai.laiq.tankinspection.presentation.demoFieldDraftState
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.ProductScreen
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FIXED
+import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
 import ai.laiq.tankinspection.presentation.recommendedLineCount
 import ai.laiq.tankinspection.presentation.saveRoofLayoutDraft
 import ai.laiq.tankinspection.presentation.screens.FindingsScreen
@@ -27,7 +29,7 @@ import ai.laiq.tankinspection.presentation.screens.ShellSettlementScreen
 import ai.laiq.tankinspection.presentation.screens.ShellNozzleUtScreen
 import ai.laiq.tankinspection.presentation.screens.TaskBoardScreen
 import ai.laiq.tankinspection.presentation.StartReference
-import ai.laiq.tankinspection.presentation.syncTemplateToRoofType
+import ai.laiq.tankinspection.presentation.syncTemplateToSurface
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -116,7 +118,8 @@ fun LaiqFieldAndroidApp() {
                         InspectionSetupScreen(
                             state = draftState.setup,
                             scopeState = draftState.scope,
-                            roofLayoutDraft = draftState.roofLayoutDraft,
+                            fixedRoofLayoutDraft = draftState.fixedRoofLayoutDraft,
+                            floatingRoofLayoutDraft = draftState.floatingRoofLayoutDraft,
                             lineCountOverride = draftState.shellLineCountOverride,
                             shellCaptureStartLaneId = draftState.currentShellCaptureStartLaneId(),
                             recommendedLineCount = draftState.recommendedLineCount(),
@@ -125,14 +128,18 @@ fun LaiqFieldAndroidApp() {
                             onStateChange = { updatedSetup ->
                                 draftState = draftState.copy(
                                     setup = updatedSetup,
-                                    roofLayoutDraft = draftState.roofLayoutDraft.syncTemplateToRoofType(updatedSetup.roofType),
+                                    fixedRoofLayoutDraft = draftState.fixedRoofLayoutDraft.syncTemplateToSurface(updatedSetup, ROOF_SURFACE_FIXED),
+                                    floatingRoofLayoutDraft = draftState.floatingRoofLayoutDraft.syncTemplateToSurface(updatedSetup, ROOF_SURFACE_FLOATING),
                                 )
                             },
                             onScopeStateChange = {
                                 draftState = draftState.copy(scope = it.copy(startReference = StartReference.N))
                             },
-                            onRoofLayoutDraftChange = {
-                                draftState = draftState.copy(roofLayoutDraft = it)
+                            onFixedRoofLayoutDraftChange = {
+                                draftState = draftState.copy(fixedRoofLayoutDraft = it)
+                            },
+                            onFloatingRoofLayoutDraftChange = {
+                                draftState = draftState.copy(floatingRoofLayoutDraft = it)
                             },
                             onLineCountOverrideChange = {
                                 draftState = draftState.copy(shellLineCountOverride = it)
@@ -141,12 +148,14 @@ fun LaiqFieldAndroidApp() {
                                 draftState = draftState.copy(shellCaptureStartLaneId = it)
                             },
                             onContinue = {
-                                draftState = draftState.commitFundamentalInputs().saveRoofLayoutDraft()
+                                draftState = draftState.commitFundamentalInputs()
+                                    .saveRoofLayoutDraft(ROOF_SURFACE_FIXED)
+                                    .saveRoofLayoutDraft(ROOF_SURFACE_FLOATING)
                                 currentScreen = ProductScreen.Scope
                             },
                             onLoadDemo = {
                                 draftState = demoFieldDraftState()
-                                currentScreen = ProductScreen.TaskBoard
+                                currentScreen = ProductScreen.Setup
                             },
                             contentPadding = innerPadding,
                         )

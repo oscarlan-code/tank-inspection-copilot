@@ -37,6 +37,13 @@ fun ReviewScreen(
 ) {
     val packagePreview = draftState.toCanonicalPackage()
     val warnings = draftState.reviewWarnings()
+    val selectedTaskStatuses = visibleSelectedTasks(draftState.scope.selectedTasks).map { task ->
+        task to reviewTaskStatus(task, draftState)
+    }
+    val incompleteBlockingTasks = selectedTaskStatuses.filter { (_, status) ->
+        status.blocksExport && !status.isComplete
+    }
+    val exportReady = warnings.isEmpty() && incompleteBlockingTasks.isEmpty()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -59,8 +66,8 @@ fun ReviewScreen(
                     LaiqStatChip("Attachments", draftState.attachments.size.toString(), modifier = Modifier.weight(1f))
                 }
                 LaiqStatusBadge(
-                    text = if (warnings.isEmpty()) "Ready for export" else "Review required",
-                    tone = if (warnings.isEmpty()) LaiqColors.StatusReady else LaiqColors.StatusWarning,
+                    text = if (exportReady) "Ready for export" else "Review required",
+                    tone = if (exportReady) LaiqColors.StatusReady else LaiqColors.StatusWarning,
                 )
                 Text(
                     "Package ${packagePreview.packageId} · Schema ${packagePreview.schemaVersion}",
@@ -75,8 +82,8 @@ fun ReviewScreen(
                 subtitle = "Each selected task should have enough captured data before export.",
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    visibleSelectedTasks(draftState.scope.selectedTasks).forEach { task ->
-                        ReviewTaskRow(task = task, status = reviewTaskStatus(task, draftState))
+                    selectedTaskStatuses.forEach { (task, status) ->
+                        ReviewTaskRow(task = task, status = status)
                     }
                 }
             }
@@ -87,8 +94,23 @@ fun ReviewScreen(
                 title = "Warnings",
                 subtitle = "These are the current export blockers or review notes.",
             ) {
-                if (warnings.isEmpty()) {
+                if (warnings.isEmpty() && incompleteBlockingTasks.isEmpty()) {
                     Text("No warnings. The canonical package is ready to hand off.", style = MaterialTheme.typography.bodySmall)
+                } else if (warnings.isEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "No validation warnings, but some selected tasks are still incomplete.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LaiqColors.StatusWarning,
+                        )
+                        incompleteBlockingTasks.forEach { (task, status) ->
+                            Text(
+                                "• ${task.title}: ${status.label}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.StatusWarning,
+                            )
+                        }
+                    }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         warnings.forEach { warning ->
@@ -103,6 +125,7 @@ fun ReviewScreen(
             LaiqPrimaryButton(
                 text = "Continue to Export",
                 onClick = onContinueToExport,
+                enabled = exportReady,
             )
         }
 

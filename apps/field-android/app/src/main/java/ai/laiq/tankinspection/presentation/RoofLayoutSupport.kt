@@ -30,15 +30,30 @@ private const val mainRoofRadiusRatio = 0.42f
 private const val annularOuterRadiusRatio = 0.48f
 private const val maxRoofPlacementRadiusRatio = annularOuterRadiusRatio / mainRoofRadiusRatio
 
-val roofFeatureTypeOptions = listOf(
+private val sharedRoofFeatureTypeOptions = listOf(
     "manhole" to "Manhole",
     "vent" to "Vent",
     "gauge_hatch" to "Gauge Hatch",
     "platform" to "Platform",
+)
+
+private val fixedRoofFeatureTypeOptions = listOf(
     "stairway_termination" to "Stairway Termination",
+)
+
+private val floatingRoofFeatureTypeOptions = listOf(
     "sump" to "Sump",
     "roof_leg" to "Roof Leg",
+    "pontoon_fitting" to "Pontoon Fitting",
+    "seal_detail" to "Seal Detail",
 )
+
+val roofFeatureTypeOptions = sharedRoofFeatureTypeOptions + fixedRoofFeatureTypeOptions + floatingRoofFeatureTypeOptions
+
+fun roofFeatureTypeOptionsForSurface(surfaceKind: String): List<Pair<String, String>> = when (surfaceKind) {
+    "floating" -> sharedRoofFeatureTypeOptions + floatingRoofFeatureTypeOptions
+    else -> sharedRoofFeatureTypeOptions + fixedRoofFeatureTypeOptions
+}
 
 fun buildRoofPlateCells(layout: RoofLayout): List<RoofPlateCell> =
     buildRoofPlateCells(
@@ -110,6 +125,8 @@ private fun roofFeatureTypePrefix(type: String): String = when (type) {
     "center_opening" -> "CO"
     "sump" -> "SU"
     "roof_leg" -> "RL"
+    "pontoon_fitting" -> "PT"
+    "seal_detail" -> "SD"
     else -> type
         .split('_')
         .filter { it.isNotBlank() }
@@ -298,6 +315,52 @@ fun nearestRoofPlateId(
     azimuthDeg: Double,
     radiusRatio: Double,
 ): String? {
+    roofPlateIdAtPolar(
+        template = template,
+        rowCount = rowCount,
+        widestRowPlateCount = widestRowPlateCount,
+        ringCount = ringCount,
+        sectorCount = sectorCount,
+        referenceAzimuthDeg = referenceAzimuthDeg,
+        rotationDirection = rotationDirection,
+        hasAnnularRing = hasAnnularRing,
+        annularSectionCount = annularSectionCount,
+        azimuthDeg = azimuthDeg,
+        radiusRatio = radiusRatio,
+    )?.let { return it }
+    val linkTargets = buildRoofLinkTargetsForConfig(
+        template = template,
+        rowCount = rowCount,
+        widestRowPlateCount = widestRowPlateCount,
+        ringCount = ringCount,
+        sectorCount = sectorCount,
+        referenceAzimuthDeg = referenceAzimuthDeg,
+        rotationDirection = rotationDirection,
+        hasAnnularRing = hasAnnularRing,
+        annularSectionCount = annularSectionCount,
+    )
+    if (linkTargets.isEmpty()) return null
+    val (xNorm, yNorm) = roofPolarToCanvasPoint(azimuthDeg, radiusRatio)
+    return linkTargets.minByOrNull { cell ->
+        val dx = cell.xNorm - xNorm
+        val dy = cell.yNorm - yNorm
+        sqrt(dx * dx + dy * dy)
+    }?.plateId
+}
+
+fun roofPlateIdAtPolar(
+    template: RoofTemplate,
+    rowCount: Int,
+    widestRowPlateCount: Int,
+    ringCount: Int,
+    sectorCount: Int,
+    referenceAzimuthDeg: Double,
+    rotationDirection: RotationDirection,
+    hasAnnularRing: Boolean = false,
+    annularSectionCount: Int = 0,
+    azimuthDeg: Double,
+    radiusRatio: Double,
+): String? {
     if (hasAnnularRing && annularSectionCount > 0 && radiusRatio > 1.0) {
         val sectionStep = 360.0 / annularSectionCount.toDouble()
         val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1.0 else -1.0
@@ -329,10 +392,8 @@ fun nearestRoofPlateId(
     )
     if (plateCells.isEmpty()) return null
     val (xNorm, yNorm) = roofPolarToCanvasPoint(azimuthDeg, radiusRatio)
-    return plateCells.minByOrNull { cell ->
-        val dx = cell.xNorm - xNorm
-        val dy = cell.yNorm - yNorm
-        sqrt(dx * dx + dy * dy)
+    return plateCells.firstOrNull { cell ->
+        xNorm in cell.leftNorm..cell.rightNorm && yNorm in cell.topNorm..cell.bottomNorm
     }?.plateId
 }
 

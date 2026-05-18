@@ -71,9 +71,11 @@ data class SetupFormState(
     val diameterM: String = "",
     val heightM: String = "",
     val shellCourseCount: String = "",
-    val roofType: String = "fixed_cone",
+    val fixedRoofType: String = "cone",
+    val floatingRoofType: String = "none",
     val inspector: String = "Field Engineer",
     val thicknessUnit: MeasurementUnit = MeasurementUnit.MM,
+    val settlementUnit: MeasurementUnit = MeasurementUnit.MM,
     val nozzleSizeUnit: NozzleSizeUnit = NozzleSizeUnit.INCH,
 )
 
@@ -101,8 +103,11 @@ data class FieldDraftState(
     val shellUtRows: List<ShellUtRow> = emptyList(),
     val shellSettlementDraft: ShellSettlementDraftInput = ShellSettlementDraftInput(),
     val savedShellSettlementSurvey: ShellSettlementSurvey? = null,
-    val roofLayoutDraft: RoofLayoutDraftInput = RoofLayoutDraftInput(),
-    val savedRoofLayoutDraft: RoofLayoutDraftInput? = null,
+    val fixedRoofLayoutDraft: RoofLayoutDraftInput = RoofLayoutDraftInput(),
+    val savedFixedRoofLayoutDraft: RoofLayoutDraftInput? = null,
+    val floatingRoofLayoutDraft: RoofLayoutDraftInput = RoofLayoutDraftInput(hasPontoonDeck = true),
+    val savedFloatingRoofLayoutDraft: RoofLayoutDraftInput? = null,
+    val activeRoofSurfaceId: String = ROOF_SURFACE_FIXED,
     val roofFeatureDraft: RoofFeatureDraftInput = RoofFeatureDraftInput(),
     val roofFeatures: List<RoofFeature> = emptyList(),
     val roofUtDraft: RoofUtDraftInput = RoofUtDraftInput(),
@@ -156,6 +161,7 @@ data class RoofLayoutDraftInput(
 )
 
 data class RoofUtDraftInput(
+    val roofSurfaceId: String = ROOF_SURFACE_FIXED,
     val editingRowId: String? = null,
     val plateId: String = "",
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
@@ -164,6 +170,7 @@ data class RoofUtDraftInput(
 )
 
 data class RoofFeatureDraftInput(
+    val roofSurfaceId: String = ROOF_SURFACE_FIXED,
     val editingFeatureId: String? = null,
     val type: String = "manhole",
     val quantity: String = "1",
@@ -186,6 +193,7 @@ data class ShellNozzleDraftInput(
 )
 
 data class RoofNozzleDraftInput(
+    val roofSurfaceId: String = ROOF_SURFACE_FIXED,
     val nozzleId: String = "",
     val size: String = "",
     val plateId: String = "",
@@ -194,6 +202,7 @@ data class RoofNozzleDraftInput(
 )
 
 data class NozzleUtDraftInput(
+    val roofSurfaceId: String = "",
     val editingRowId: String? = null,
     val nozzleId: String = "",
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
@@ -225,6 +234,19 @@ data class MflImportDraftInput(
     val pdfCaption: String = "",
     val attachmentId: String? = null,
 )
+
+const val ROOF_SURFACE_FIXED = "fixed"
+const val ROOF_SURFACE_FLOATING = "floating"
+
+data class RoofSurfaceConfig(
+    val roofSurfaceId: String,
+    val surfaceKind: String,
+    val label: String,
+)
+
+fun roofFindingSurface(roofSurfaceId: String): String = "roof_$roofSurfaceId"
+
+fun roofNozzleFindingSurface(roofSurfaceId: String): String = "roof_nozzle_$roofSurfaceId"
 
 fun defaultFieldTasks(): Set<FieldTask> = linkedSetOf(
     FieldTask.ROOF_ELEMENTS,
@@ -335,13 +357,63 @@ fun ScopeFormState.roofReferenceLabel(): String =
 fun ScopeFormState.referenceAzimuthDeg(): Double =
     0.0
 
-fun roofTemplateForRoofType(roofType: String): RoofTemplate = when (roofType.trim()) {
+fun SetupFormState.hasFixedRoof(): Boolean =
+    fixedRoofType != "none"
+
+fun SetupFormState.hasFloatingRoof(): Boolean =
+    floatingRoofType != "none"
+
+fun SetupFormState.roofSystemLabel(): String = buildList {
+    if (hasFixedRoof()) {
+        add(
+            when (fixedRoofType) {
+                "cone" -> "Fixed Cone"
+                "dome" -> "Fixed Dome"
+                "umbrella" -> "Umbrella"
+                "geodesic" -> "Geodesic"
+                "other" -> "Fixed Other"
+                else -> "Fixed"
+            },
+        )
+    }
+    if (hasFloatingRoof()) {
+        add(
+            when (floatingRoofType) {
+                "external" -> "External Floating"
+                "internal" -> "Internal Floating"
+                else -> "Floating"
+            },
+        )
+    }
+}.joinToString(" + ").ifBlank { "No Roof Selected" }
+
+fun SetupFormState.availableRoofSurfaces(): List<RoofSurfaceConfig> = buildList {
+    if (hasFixedRoof()) {
+        add(RoofSurfaceConfig(ROOF_SURFACE_FIXED, "fixed", "Fixed Roof"))
+    }
+    if (hasFloatingRoof()) {
+        add(RoofSurfaceConfig(ROOF_SURFACE_FLOATING, "floating", "Floating Roof"))
+    }
+}
+
+fun roofTemplateForFixedRoofType(fixedRoofType: String): RoofTemplate = when (fixedRoofType.trim()) {
     "umbrella" -> RoofTemplate.UMBRELLA_RADIAL
     else -> RoofTemplate.CIRCULAR_PLATE
 }
 
-fun RoofLayoutDraftInput.syncTemplateToRoofType(roofType: String): RoofLayoutDraftInput {
-    val targetTemplate = roofTemplateForRoofType(roofType)
+fun roofTemplateForSurface(
+    setup: SetupFormState,
+    roofSurfaceId: String,
+): RoofTemplate = when (roofSurfaceId) {
+    ROOF_SURFACE_FLOATING -> RoofTemplate.CIRCULAR_PLATE
+    else -> roofTemplateForFixedRoofType(setup.fixedRoofType)
+}
+
+fun RoofLayoutDraftInput.syncTemplateToSurface(
+    setup: SetupFormState,
+    roofSurfaceId: String,
+): RoofLayoutDraftInput {
+    val targetTemplate = roofTemplateForSurface(setup, roofSurfaceId)
     if (template == targetTemplate) return this
     return when (targetTemplate) {
         RoofTemplate.UMBRELLA_RADIAL -> copy(
@@ -349,6 +421,7 @@ fun RoofLayoutDraftInput.syncTemplateToRoofType(roofType: String): RoofLayoutDra
             rowCount = "",
             widestRowPlateCount = "",
             centerOpeningRatio = "",
+            hasPontoonDeck = false,
         )
 
         RoofTemplate.CIRCULAR_PLATE,
@@ -357,6 +430,7 @@ fun RoofLayoutDraftInput.syncTemplateToRoofType(roofType: String): RoofLayoutDra
             ringCount = "",
             sectorCount = "",
             centerOpeningRatio = "",
+            hasPontoonDeck = roofSurfaceId == ROOF_SURFACE_FLOATING,
         )
     }
 }
@@ -366,6 +440,28 @@ fun FieldDraftState.committedSetupState(): SetupFormState =
 
 fun FieldDraftState.committedScopeBaseline(): ScopeFormState =
     savedScopeBaseline ?: scope
+
+fun FieldDraftState.normalizedActiveRoofSurfaceId(): String =
+    committedSetupState().availableRoofSurfaces().firstOrNull { surface ->
+        surface.roofSurfaceId == activeRoofSurfaceId
+    }?.roofSurfaceId ?: committedSetupState().availableRoofSurfaces().firstOrNull()?.roofSurfaceId ?: ROOF_SURFACE_FIXED
+
+fun FieldDraftState.activeRoofSurfaceConfig(): RoofSurfaceConfig? =
+    committedSetupState().availableRoofSurfaces().firstOrNull { surface ->
+        surface.roofSurfaceId == normalizedActiveRoofSurfaceId()
+    }
+
+fun FieldDraftState.roofLayoutDraftForSurface(roofSurfaceId: String): RoofLayoutDraftInput =
+    when (roofSurfaceId) {
+        ROOF_SURFACE_FLOATING -> floatingRoofLayoutDraft
+        else -> fixedRoofLayoutDraft
+    }
+
+fun FieldDraftState.savedRoofLayoutDraftForSurface(roofSurfaceId: String): RoofLayoutDraftInput? =
+    when (roofSurfaceId) {
+        ROOF_SURFACE_FLOATING -> savedFloatingRoofLayoutDraft
+        else -> savedFixedRoofLayoutDraft
+    }
 
 fun FieldDraftState.committedShellLineCountOverride(): String =
     if (savedReferenceBaselineKey.isNullOrBlank() && savedShellPlanKey.isNullOrBlank()) {
@@ -382,7 +478,9 @@ fun FieldDraftState.currentFundamentalBaselineKey(): String =
         append("|")
         append(setup.shellCourseCount.trim())
         append("|")
-        append(setup.roofType.trim())
+        append(setup.fixedRoofType.trim())
+        append("|")
+        append(setup.floatingRoofType.trim())
         append("|")
         append(scope.normalizedReferenceMode().name)
         append("|")
@@ -391,6 +489,8 @@ fun FieldDraftState.currentFundamentalBaselineKey(): String =
         append(scope.rotationDirection.name)
         append("|")
         append(setup.thicknessUnit.name)
+        append("|")
+        append(setup.settlementUnit.name)
         append("|")
         append(setup.nozzleSizeUnit.name)
     }
@@ -528,18 +628,24 @@ fun FieldDraftState.currentShellPlanKey(): String? {
 fun FieldDraftState.commitFundamentalInputs(): FieldDraftState {
     val nextReferenceKey = currentFundamentalBaselineKey()
     val nextShellPlanKey = currentShellPlanKey()
-    val nextRoofLayoutDraft = roofLayoutDraft.syncTemplateToRoofType(setup.roofType)
+    val nextFixedRoofLayoutDraft = fixedRoofLayoutDraft.syncTemplateToSurface(setup, ROOF_SURFACE_FIXED)
+    val nextFloatingRoofLayoutDraft = floatingRoofLayoutDraft.syncTemplateToSurface(setup, ROOF_SURFACE_FLOATING)
     val nextSetupBaseline = setup
     val nextScopeBaseline = scope.copy(startReference = StartReference.N)
     val nextShellLineOverride = shellLineCountOverride
     val nextShellCaptureStartLaneId = currentShellCaptureStartLaneId()
+    val nextActiveRoofSurfaceId = setup.availableRoofSurfaces().firstOrNull { surface ->
+        surface.roofSurfaceId == activeRoofSurfaceId
+    }?.roofSurfaceId ?: setup.availableRoofSurfaces().firstOrNull()?.roofSurfaceId ?: ROOF_SURFACE_FIXED
 
     if (!savedReferenceBaselineKey.isNullOrBlank() && savedReferenceBaselineKey != nextReferenceKey) {
         return clearShellInspectionData()
             .clearShellSettlementData()
             .invalidateRoofLayoutForReferenceChange()
             .copy(
-                roofLayoutDraft = nextRoofLayoutDraft,
+                fixedRoofLayoutDraft = nextFixedRoofLayoutDraft,
+                floatingRoofLayoutDraft = nextFloatingRoofLayoutDraft,
+                activeRoofSurfaceId = nextActiveRoofSurfaceId,
                 savedReferenceBaselineKey = nextReferenceKey,
                 savedSetupBaseline = nextSetupBaseline,
                 savedScopeBaseline = nextScopeBaseline,
@@ -560,7 +666,9 @@ fun FieldDraftState.commitFundamentalInputs(): FieldDraftState {
     }
 
     return nextState.copy(
-        roofLayoutDraft = nextRoofLayoutDraft,
+        fixedRoofLayoutDraft = nextFixedRoofLayoutDraft,
+        floatingRoofLayoutDraft = nextFloatingRoofLayoutDraft,
+        activeRoofSurfaceId = nextActiveRoofSurfaceId,
         savedReferenceBaselineKey = nextReferenceKey,
         savedSetupBaseline = nextSetupBaseline,
         savedScopeBaseline = nextScopeBaseline,
@@ -607,26 +715,37 @@ fun RoofLayout?.isReadyForInspection(): Boolean = when (this?.template) {
     null -> false
 }
 
-fun FieldDraftState.buildEditingRoofLayoutOrNull(): RoofLayout? =
-    buildRoofLayoutFromDraftOrNull(roofLayoutDraft)
+fun FieldDraftState.buildEditingRoofLayoutOrNull(
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): RoofLayout? =
+    buildRoofLayoutFromDraftOrNull(roofLayoutDraftForSurface(roofSurfaceId))
 
-fun FieldDraftState.buildRoofLayoutOrNull(): RoofLayout? =
-    buildRoofLayoutFromDraftOrNull(savedRoofLayoutDraft, roofFeatures)
+fun FieldDraftState.buildRoofLayoutOrNull(
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): RoofLayout? =
+    buildRoofLayoutFromDraftOrNull(
+        savedRoofLayoutDraftForSurface(roofSurfaceId),
+        roofFeatures.filter { feature -> feature.roofSurfaceId == roofSurfaceId },
+    )
 
-fun FieldDraftState.hasSavedRoofLayout(): Boolean = buildRoofLayoutOrNull().isReadyForInspection()
+fun FieldDraftState.hasSavedRoofLayout(roofSurfaceId: String = normalizedActiveRoofSurfaceId()): Boolean =
+    buildRoofLayoutOrNull(roofSurfaceId).isReadyForInspection()
 
-fun FieldDraftState.hasPendingRoofLayoutChanges(): Boolean {
-    val savedDraft = savedRoofLayoutDraft ?: return roofLayoutDraftRevision(roofLayoutDraft).isNotBlank()
-    return roofLayoutDraftRevision(roofLayoutDraft) != roofLayoutDraftRevision(savedDraft)
+fun FieldDraftState.hasPendingRoofLayoutChanges(roofSurfaceId: String = normalizedActiveRoofSurfaceId()): Boolean {
+    val draft = roofLayoutDraftForSurface(roofSurfaceId)
+    val savedDraft = savedRoofLayoutDraftForSurface(roofSurfaceId) ?: return roofLayoutDraftRevision(draft).isNotBlank()
+    return roofLayoutDraftRevision(draft) != roofLayoutDraftRevision(savedDraft)
 }
 
-fun FieldDraftState.saveRoofLayoutDraft(): FieldDraftState {
-    val normalizedDraft = roofLayoutDraft.syncTemplateToRoofType(committedSetupState().roofType)
+fun FieldDraftState.saveRoofLayoutDraft(
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
+    val normalizedDraft = roofLayoutDraftForSurface(roofSurfaceId).syncTemplateToSurface(committedSetupState(), roofSurfaceId)
     val nextLayout = buildRoofLayoutFromDraftOrNull(normalizedDraft) ?: return this
     if (!nextLayout.isReadyForInspection()) return this
 
     val currentLayoutKey = roofLayoutMaterialKey(normalizedDraft)
-    val savedLayoutKey = roofLayoutMaterialKey(savedRoofLayoutDraft)
+    val savedLayoutKey = roofLayoutMaterialKey(savedRoofLayoutDraftForSurface(roofSurfaceId))
 
     val nextState = if (savedLayoutKey == currentLayoutKey) {
         this
@@ -634,10 +753,17 @@ fun FieldDraftState.saveRoofLayoutDraft(): FieldDraftState {
         clearRoofInspectionData()
     }
 
-    return nextState.copy(
-        roofLayoutDraft = normalizedDraft,
-        savedRoofLayoutDraft = normalizedDraft,
-    )
+    return when (roofSurfaceId) {
+        ROOF_SURFACE_FLOATING -> nextState.copy(
+            floatingRoofLayoutDraft = normalizedDraft,
+            savedFloatingRoofLayoutDraft = normalizedDraft,
+        )
+
+        else -> nextState.copy(
+            fixedRoofLayoutDraft = normalizedDraft,
+            savedFixedRoofLayoutDraft = normalizedDraft,
+        )
+    }
 }
 
 fun FieldDraftState.saveShellUtDraft(): FieldDraftState {
@@ -771,7 +897,8 @@ fun FieldDraftState.saveShellSettlementSurveyDraft(): FieldDraftState {
 }
 
 fun FieldDraftState.saveRoofFeatureDraft(): FieldDraftState {
-    if (!hasSavedRoofLayout() || hasPendingRoofLayoutChanges()) return this
+    val roofSurfaceId = roofFeatureDraft.roofSurfaceId.ifBlank { normalizedActiveRoofSurfaceId() }
+    if (!hasSavedRoofLayout(roofSurfaceId) || hasPendingRoofLayoutChanges(roofSurfaceId)) return this
     val type = roofFeatureDraft.type.trim()
     if (type.isBlank()) return this
 
@@ -780,8 +907,8 @@ fun FieldDraftState.saveRoofFeatureDraft(): FieldDraftState {
     } else {
         roofFeatureDraft.quantity.toIntOrNull()?.takeIf { it > 0 } ?: return this
     }
-    val existingOfType = roofFeatures.filter { it.type == type }
-    val remainingFeatures = roofFeatures.filterNot { it.type == type }
+    val existingOfType = roofFeatures.filter { it.type == type && it.roofSurfaceId == roofSurfaceId }
+    val remainingFeatures = roofFeatures.filterNot { it.type == type && it.roofSurfaceId == roofSurfaceId }
     val existingByLabel = existingOfType.associateBy { it.label.orEmpty() }
     val linkedPlateIds = resizedRoofFeatureLinks(
         links = roofFeatureDraft.linkedPlateIds,
@@ -802,6 +929,7 @@ fun FieldDraftState.saveRoofFeatureDraft(): FieldDraftState {
         val linkedPlateId = linkedPlateIds[index - 1].ifBlank { null }
         RoofFeature(
             featureId = existingFeature?.featureId ?: "roof-feature-${nextSequence++.toString().padStart(3, '0')}",
+            roofSurfaceId = roofSurfaceId,
             type = type,
             label = generatedLabel,
             placementMode = when {
@@ -820,6 +948,7 @@ fun FieldDraftState.saveRoofFeatureDraft(): FieldDraftState {
     return copy(
         roofFeatures = remainingFeatures + nextFeatures,
         roofFeatureDraft = roofFeatureDraft.copy(
+            roofSurfaceId = roofSurfaceId,
             editingFeatureId = null,
             quantity = requestedCount.toString(),
             linkedPlateIds = if (roofFeatureUsesCenterPlacement(type)) listOf("") else linkedPlateIds,
@@ -836,14 +965,17 @@ fun FieldDraftState.saveRoofFeatureDraft(): FieldDraftState {
 
 fun FieldDraftState.editRoofFeature(featureId: String): FieldDraftState {
     val feature = roofFeatures.firstOrNull { it.featureId == featureId } ?: return this
-    return editRoofFeatureType(feature.type)
+    return editRoofFeatureType(feature.type, feature.roofSurfaceId ?: normalizedActiveRoofSurfaceId())
 }
 
 fun FieldDraftState.removeRoofFeature(featureId: String): FieldDraftState =
     copy(roofFeatures = roofFeatures.filterNot { it.featureId == featureId })
 
-fun FieldDraftState.selectRoofFeatureType(type: String): FieldDraftState {
-    val existingOfType = savedRoofFeaturesOfType(type)
+fun FieldDraftState.selectRoofFeatureType(
+    type: String,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
+    val existingOfType = savedRoofFeaturesOfType(type, roofSurfaceId)
     val requestedCount = when {
         roofFeatureUsesCenterPlacement(type) -> 1
         existingOfType.isNotEmpty() -> existingOfType.size
@@ -862,10 +994,11 @@ fun FieldDraftState.selectRoofFeatureType(type: String): FieldDraftState {
     val radiusRatios = if (roofFeatureUsesCenterPlacement(type)) {
         listOf("")
     } else {
-        resizedRoofFeatureValues(existingOfType.map { it.radiusRatio?.toString().orEmpty() }, requestedCount)
+        resizedRoofFeatureValues(existingOfType.map { it.radiusRatio?.let { value -> "%.2f".format(value) }.orEmpty() }, requestedCount)
     }
     return copy(
         roofFeatureDraft = RoofFeatureDraftInput(
+            roofSurfaceId = roofSurfaceId,
             type = type,
             quantity = requestedCount.toString(),
             linkedPlateIds = linkedPlateIds,
@@ -965,8 +1098,11 @@ fun FieldDraftState.clearRoofFeatureDraftPosition(index: Int): FieldDraftState {
     )
 }
 
-fun FieldDraftState.editRoofFeatureType(type: String): FieldDraftState {
-    val existingOfType = savedRoofFeaturesOfType(type)
+fun FieldDraftState.editRoofFeatureType(
+    type: String,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
+    val existingOfType = savedRoofFeaturesOfType(type, roofSurfaceId)
     val requestedCount = if (roofFeatureUsesCenterPlacement(type)) 1 else existingOfType.size.coerceAtLeast(1)
     val linkedPlateIds = if (roofFeatureUsesCenterPlacement(type)) {
         listOf("")
@@ -981,10 +1117,11 @@ fun FieldDraftState.editRoofFeatureType(type: String): FieldDraftState {
     val radiusRatios = if (roofFeatureUsesCenterPlacement(type)) {
         listOf("")
     } else {
-        resizedRoofFeatureValues(existingOfType.map { it.radiusRatio?.toString().orEmpty() }, requestedCount)
+        resizedRoofFeatureValues(existingOfType.map { it.radiusRatio?.let { value -> "%.2f".format(value) }.orEmpty() }, requestedCount)
     }
     return copy(
         roofFeatureDraft = RoofFeatureDraftInput(
+            roofSurfaceId = roofSurfaceId,
             type = type,
             quantity = requestedCount.toString(),
             linkedPlateIds = linkedPlateIds,
@@ -995,11 +1132,15 @@ fun FieldDraftState.editRoofFeatureType(type: String): FieldDraftState {
     )
 }
 
-fun FieldDraftState.removeRoofFeatureType(type: String): FieldDraftState =
+fun FieldDraftState.removeRoofFeatureType(
+    type: String,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState =
     copy(
-        roofFeatures = roofFeatures.filterNot { it.type == type },
-        roofFeatureDraft = if (roofFeatureDraft.type == type) {
+        roofFeatures = roofFeatures.filterNot { it.type == type && it.roofSurfaceId == roofSurfaceId },
+        roofFeatureDraft = if (roofFeatureDraft.type == type && roofFeatureDraft.roofSurfaceId == roofSurfaceId) {
             RoofFeatureDraftInput(
+                roofSurfaceId = roofSurfaceId,
                 type = type,
                 quantity = if (roofFeatureUsesCenterPlacement(type)) "1" else "1",
                 linkedPlateIds = listOf(""),
@@ -1027,15 +1168,17 @@ fun FieldDraftState.assignRoofFeaturePlate(featureId: String, plateId: String): 
     )
 
 fun FieldDraftState.saveRoofUtDraft(): FieldDraftState {
-    if (!hasSavedRoofLayout() || hasPendingRoofLayoutChanges()) return this
+    val roofSurfaceId = roofUtDraft.roofSurfaceId.ifBlank { normalizedActiveRoofSurfaceId() }
+    if (!hasSavedRoofLayout(roofSurfaceId) || hasPendingRoofLayoutChanges(roofSurfaceId)) return this
     val plateId = roofUtDraft.plateId.trim()
     val readings = roofUtDraft.readings.mapNotNull { it.toDoubleOrNull() }
     if (plateId.isBlank()) return this
     if (roofUtDraft.captureState.requiresNumericReadings() && readings.isEmpty()) return this
 
-    val rowId = roofUtDraft.editingRowId ?: "roof-ut-${(roofUtRows.size + 1).toString().padStart(3, '0')}"
+    val rowId = roofUtDraft.editingRowId ?: "${roofSurfaceId}-roof-ut-${(roofUtRows.count { it.roofSurfaceId == roofSurfaceId } + 1).toString().padStart(3, '0')}"
     val nextRow = RoofUtRow(
         rowId = rowId,
+        roofSurfaceId = roofSurfaceId,
         plateId = plateId,
         readings = readings,
         captureState = roofUtDraft.captureState,
@@ -1051,6 +1194,7 @@ fun FieldDraftState.saveRoofUtDraft(): FieldDraftState {
     return copy(
         roofUtRows = nextRows,
         roofUtDraft = roofUtDraft.copy(
+            roofSurfaceId = roofSurfaceId,
             editingRowId = null,
             plateId = "",
             captureState = MeasurementCaptureState.CAPTURED,
@@ -1064,6 +1208,7 @@ fun FieldDraftState.editRoofUtRow(rowId: String): FieldDraftState {
     val row = roofUtRows.firstOrNull { it.rowId == rowId } ?: return this
     return copy(
         roofUtDraft = RoofUtDraftInput(
+            roofSurfaceId = row.roofSurfaceId ?: normalizedActiveRoofSurfaceId(),
             editingRowId = row.rowId,
             plateId = row.plateId,
             captureState = row.captureState,
@@ -1108,13 +1253,20 @@ fun FieldDraftState.saveShellNozzleDraft(): FieldDraftState {
 
 fun FieldDraftState.replaceShellNozzleRegistry(nextNozzles: List<NozzleDefinition>): FieldDraftState {
     val normalizedNext = nextNozzles.sortedBy { nozzle -> nozzle.nozzleId }
-    val registryChanged = shellNozzles != normalizedNext
-    val baseState = if (registryChanged) {
-        withoutFindingsFor(
+    val currentById = shellNozzles.associateBy { nozzle -> nozzle.nozzleId }
+    val nextById = normalizedNext.associateBy { nozzle -> nozzle.nozzleId }
+    val changedNozzleIds = (currentById.keys + nextById.keys)
+        .filter { nozzleId -> currentById[nozzleId] != nextById[nozzleId] }
+        .toSet()
+    val editingChanged = shellNozzleUtDraft.nozzleId in changedNozzleIds ||
+        shellNozzleUtRows.any { row -> row.rowId == shellNozzleUtDraft.editingRowId && row.nozzleId in changedNozzleIds }
+    val baseState = if (changedNozzleIds.isNotEmpty()) {
+        withoutFindingsForMeasurementIds(
             surfaces = setOf("shell_nozzle"),
-            measurementPrefixes = setOf("shell-nozzle-ut-"),
+            linkedMeasurementIds = changedNozzleIds,
         ).copy(
-            shellNozzleUtRows = emptyList(),
+            shellNozzleUtRows = shellNozzleUtRows.filterNot { row -> row.nozzleId in changedNozzleIds },
+            shellNozzleUtDraft = if (editingChanged) NozzleUtDraftInput() else shellNozzleUtDraft,
         )
     } else {
         this
@@ -1135,9 +1287,10 @@ fun FieldDraftState.replaceShellNozzleRegistry(nextNozzles: List<NozzleDefinitio
 }
 
 fun FieldDraftState.saveRoofNozzleDraft(): FieldDraftState {
-    if (!hasSavedRoofLayout() || hasPendingRoofLayoutChanges()) return this
+    val roofSurfaceId = roofNozzleDraft.roofSurfaceId.ifBlank { normalizedActiveRoofSurfaceId() }
+    if (!hasSavedRoofLayout(roofSurfaceId) || hasPendingRoofLayoutChanges(roofSurfaceId)) return this
     val nozzleId = roofNozzleDraft.nozzleId.trim().ifBlank {
-        "RN-${(roofNozzles.size + 1).toString().padStart(3, '0')}"
+        "${roofSurfaceId.uppercase()}-RN-${(roofNozzles.count { it.roofSurfaceId == roofSurfaceId } + 1).toString().padStart(3, '0')}"
     }
     val size = roofNozzleDraft.size.trim()
     val plateId = roofNozzleDraft.plateId.trim().ifBlank { null }
@@ -1146,6 +1299,7 @@ fun FieldDraftState.saveRoofNozzleDraft(): FieldDraftState {
     val nextNozzle = NozzleDefinition(
         nozzleId = nozzleId,
         surface = "roof",
+        roofSurfaceId = roofSurfaceId,
         size = size,
         placementMode = "plate_linked",
         azimuthDeg = null,
@@ -1154,20 +1308,38 @@ fun FieldDraftState.saveRoofNozzleDraft(): FieldDraftState {
 
     return copy(
         roofNozzles = roofNozzles.filterNot { it.nozzleId == nozzleId } + nextNozzle,
-        roofNozzleDraft = RoofNozzleDraftInput(),
-        roofNozzleUtDraft = roofNozzleUtDraft.copy(nozzleId = nozzleId),
+        roofNozzleDraft = RoofNozzleDraftInput(roofSurfaceId = roofSurfaceId),
+        roofNozzleUtDraft = roofNozzleUtDraft.copy(nozzleId = nozzleId, roofSurfaceId = roofSurfaceId),
     )
 }
 
-fun FieldDraftState.replaceRoofNozzleRegistry(nextNozzles: List<NozzleDefinition>): FieldDraftState {
+fun FieldDraftState.replaceRoofNozzleRegistry(
+    nextNozzles: List<NozzleDefinition>,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
     val normalizedNext = nextNozzles.sortedBy { nozzle -> nozzle.nozzleId }
-    val registryChanged = roofNozzles != normalizedNext
-    val baseState = if (registryChanged) {
-        withoutFindingsFor(
-            surfaces = setOf("roof_nozzle"),
-            measurementPrefixes = setOf("roof-nozzle-ut-"),
+    val currentSurfaceNozzles = roofNozzles.filter { it.roofSurfaceId == roofSurfaceId }.sortedBy { it.nozzleId }
+    val currentById = currentSurfaceNozzles.associateBy { nozzle -> nozzle.nozzleId }
+    val nextById = normalizedNext.associateBy { nozzle -> nozzle.nozzleId }
+    val changedNozzleIds = (currentById.keys + nextById.keys)
+        .filter { nozzleId -> currentById[nozzleId] != nextById[nozzleId] }
+        .toSet()
+    val editingChanged = roofNozzleUtDraft.roofSurfaceId == roofSurfaceId &&
+        (roofNozzleUtDraft.nozzleId in changedNozzleIds ||
+            roofNozzleUtRows.any { row ->
+                row.rowId == roofNozzleUtDraft.editingRowId &&
+                    row.roofSurfaceId == roofSurfaceId &&
+                    row.nozzleId in changedNozzleIds
+            })
+    val baseState = if (changedNozzleIds.isNotEmpty()) {
+        withoutFindingsForMeasurementIds(
+            surfaces = setOf(roofNozzleFindingSurface(roofSurfaceId)),
+            linkedMeasurementIds = changedNozzleIds,
         ).copy(
-            roofNozzleUtRows = emptyList(),
+            roofNozzleUtRows = roofNozzleUtRows.filterNot { row ->
+                row.roofSurfaceId == roofSurfaceId && row.nozzleId in changedNozzleIds
+            },
+            roofNozzleUtDraft = if (editingChanged) NozzleUtDraftInput(roofSurfaceId = roofSurfaceId) else roofNozzleUtDraft,
         )
     } else {
         this
@@ -1177,12 +1349,12 @@ fun FieldDraftState.replaceRoofNozzleRegistry(nextNozzles: List<NozzleDefinition
         ?: normalizedNext.firstOrNull()?.nozzleId.orEmpty()
 
     return baseState.copy(
-        roofNozzles = normalizedNext,
-        roofNozzleDraft = RoofNozzleDraftInput(),
+        roofNozzles = baseState.roofNozzles.filterNot { it.roofSurfaceId == roofSurfaceId } + normalizedNext,
+        roofNozzleDraft = RoofNozzleDraftInput(roofSurfaceId = roofSurfaceId),
         roofNozzleUtDraft = if (normalizedNext.isEmpty()) {
-            NozzleUtDraftInput()
+            NozzleUtDraftInput(roofSurfaceId = roofSurfaceId)
         } else {
-            baseState.roofNozzleUtDraft.copy(nozzleId = nextSelectedNozzleId)
+            baseState.roofNozzleUtDraft.copy(nozzleId = nextSelectedNozzleId, roofSurfaceId = roofSurfaceId)
         },
     )
 }
@@ -1208,8 +1380,13 @@ fun FieldDraftState.saveShellNozzleUtDraft(): FieldDraftState {
         null
     }
 
+    val existingRowForNozzle = shellNozzleUtRows.firstOrNull { row -> row.nozzleId == nozzleId }
+    val targetRowId = shellNozzleUtDraft.editingRowId
+        ?: existingRowForNozzle?.rowId
+        ?: "shell-nozzle-ut-${(shellNozzleUtRows.size + 1).toString().padStart(3, '0')}"
+
     val nextRow = NozzleUtRow(
-        rowId = shellNozzleUtDraft.editingRowId ?: "shell-nozzle-ut-${(shellNozzleUtRows.size + 1).toString().padStart(3, '0')}",
+        rowId = targetRowId,
         nozzleId = nozzleId,
         bodyReadings = bodyReadings,
         reinforcementPadReading = reinforcementPadReading,
@@ -1217,10 +1394,13 @@ fun FieldDraftState.saveShellNozzleUtDraft(): FieldDraftState {
         note = shellNozzleUtDraft.note.ifBlank { null },
     )
 
-    val nextRows = if (shellNozzleUtDraft.editingRowId == null) {
-        shellNozzleUtRows + nextRow
-    } else {
-        shellNozzleUtRows.map { row -> if (row.rowId == shellNozzleUtDraft.editingRowId) nextRow else row }
+    val nextRows = when {
+        shellNozzleUtDraft.editingRowId != null ->
+            shellNozzleUtRows.map { row -> if (row.rowId == shellNozzleUtDraft.editingRowId) nextRow else row }
+        existingRowForNozzle != null ->
+            shellNozzleUtRows.map { row -> if (row.rowId == existingRowForNozzle.rowId) nextRow else row }
+        else ->
+            shellNozzleUtRows + nextRow
     }
 
     return copy(
@@ -1235,9 +1415,11 @@ fun FieldDraftState.saveShellNozzleUtDraft(): FieldDraftState {
 }
 
 fun FieldDraftState.saveRoofNozzleUtDraft(): FieldDraftState {
-    if (!hasSavedRoofLayout() || hasPendingRoofLayoutChanges()) return this
-    val nozzleId = roofNozzleUtDraft.nozzleId.ifBlank { roofNozzles.firstOrNull()?.nozzleId.orEmpty() }
-    val nozzleDefinition = roofNozzles.firstOrNull { nozzle -> nozzle.nozzleId == nozzleId }
+    val roofSurfaceId = roofNozzleUtDraft.roofSurfaceId.ifBlank { normalizedActiveRoofSurfaceId() }
+    if (!hasSavedRoofLayout(roofSurfaceId) || hasPendingRoofLayoutChanges(roofSurfaceId)) return this
+    val surfaceNozzles = roofNozzles.filter { nozzle -> nozzle.roofSurfaceId == roofSurfaceId }
+    val nozzleId = roofNozzleUtDraft.nozzleId.ifBlank { surfaceNozzles.firstOrNull()?.nozzleId.orEmpty() }
+    val nozzleDefinition = surfaceNozzles.firstOrNull { nozzle -> nozzle.nozzleId == nozzleId }
     val includesPad = nozzleDefinition?.hasReinforcementPad != false
     val expectedReadingCount = if (includesPad) 5 else 4
     val parsedReadings = roofNozzleUtDraft.readings.take(expectedReadingCount).map { reading -> reading.trim().toDoubleOrNull() }
@@ -1256,24 +1438,36 @@ fun FieldDraftState.saveRoofNozzleUtDraft(): FieldDraftState {
         null
     }
 
+    val existingRowForNozzle = roofNozzleUtRows.firstOrNull { row ->
+        row.nozzleId == nozzleId && row.roofSurfaceId == roofSurfaceId
+    }
+    val targetRowId = roofNozzleUtDraft.editingRowId
+        ?: existingRowForNozzle?.rowId
+        ?: "roof-nozzle-ut-${roofSurfaceId}-${(roofNozzleUtRows.count { it.roofSurfaceId == roofSurfaceId } + 1).toString().padStart(3, '0')}"
+
     val nextRow = NozzleUtRow(
-        rowId = roofNozzleUtDraft.editingRowId ?: "roof-nozzle-ut-${(roofNozzleUtRows.size + 1).toString().padStart(3, '0')}",
+        rowId = targetRowId,
         nozzleId = nozzleId,
+        roofSurfaceId = roofSurfaceId,
         bodyReadings = bodyReadings,
         reinforcementPadReading = reinforcementPadReading,
         captureState = roofNozzleUtDraft.captureState,
         note = roofNozzleUtDraft.note.ifBlank { null },
     )
 
-    val nextRows = if (roofNozzleUtDraft.editingRowId == null) {
-        roofNozzleUtRows + nextRow
-    } else {
-        roofNozzleUtRows.map { row -> if (row.rowId == roofNozzleUtDraft.editingRowId) nextRow else row }
+    val nextRows = when {
+        roofNozzleUtDraft.editingRowId != null ->
+            roofNozzleUtRows.map { row -> if (row.rowId == roofNozzleUtDraft.editingRowId) nextRow else row }
+        existingRowForNozzle != null ->
+            roofNozzleUtRows.map { row -> if (row.rowId == existingRowForNozzle.rowId) nextRow else row }
+        else ->
+            roofNozzleUtRows + nextRow
     }
 
     return copy(
         roofNozzleUtRows = nextRows,
         roofNozzleUtDraft = roofNozzleUtDraft.copy(
+            roofSurfaceId = roofSurfaceId,
             editingRowId = null,
             captureState = MeasurementCaptureState.CAPTURED,
             readings = List(5) { "" },
@@ -1305,6 +1499,32 @@ fun FieldDraftState.removeShellNozzleUtRow(rowId: String): FieldDraftState =
         shellNozzleUtDraft = if (shellNozzleUtDraft.editingRowId == rowId) NozzleUtDraftInput() else shellNozzleUtDraft,
     )
 
+fun FieldDraftState.beginShellNozzleUtForNozzle(nozzleId: String): FieldDraftState {
+    val existingRow = shellNozzleUtRows.firstOrNull { row -> row.nozzleId == nozzleId }
+    return if (existingRow != null) {
+        editShellNozzleUtRow(existingRow.rowId)
+    } else {
+        copy(
+            shellNozzleUtDraft = NozzleUtDraftInput(
+                nozzleId = nozzleId,
+                captureState = MeasurementCaptureState.CAPTURED,
+                readings = List(5) { "" },
+                note = "",
+            ),
+        )
+    }
+}
+
+fun FieldDraftState.removeShellNozzleUtForNozzle(nozzleId: String): FieldDraftState {
+    val remainingRows = shellNozzleUtRows.filterNot { row -> row.nozzleId == nozzleId }
+    val isEditingRemovedNozzle = shellNozzleUtDraft.nozzleId == nozzleId ||
+        shellNozzleUtRows.any { row -> row.nozzleId == nozzleId && row.rowId == shellNozzleUtDraft.editingRowId }
+    return copy(
+        shellNozzleUtRows = remainingRows,
+        shellNozzleUtDraft = if (isEditingRemovedNozzle) NozzleUtDraftInput() else shellNozzleUtDraft,
+    )
+}
+
 fun FieldDraftState.editRoofNozzleUtRow(rowId: String): FieldDraftState {
     val row = roofNozzleUtRows.firstOrNull { savedRow -> savedRow.rowId == rowId } ?: return this
     val readings = buildList {
@@ -1313,6 +1533,7 @@ fun FieldDraftState.editRoofNozzleUtRow(rowId: String): FieldDraftState {
     }
     return copy(
         roofNozzleUtDraft = NozzleUtDraftInput(
+            roofSurfaceId = row.roofSurfaceId.orEmpty(),
             editingRowId = row.rowId,
             nozzleId = row.nozzleId,
             captureState = row.captureState,
@@ -1327,6 +1548,43 @@ fun FieldDraftState.removeRoofNozzleUtRow(rowId: String): FieldDraftState =
         roofNozzleUtRows = roofNozzleUtRows.filterNot { row -> row.rowId == rowId },
         roofNozzleUtDraft = if (roofNozzleUtDraft.editingRowId == rowId) NozzleUtDraftInput() else roofNozzleUtDraft,
     )
+
+fun FieldDraftState.beginRoofNozzleUtForNozzle(
+    nozzleId: String,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
+    val existingRow = roofNozzleUtRows.firstOrNull { row ->
+        row.nozzleId == nozzleId && row.roofSurfaceId == roofSurfaceId
+    }
+    return if (existingRow != null) {
+        editRoofNozzleUtRow(existingRow.rowId)
+    } else {
+        copy(
+            roofNozzleUtDraft = NozzleUtDraftInput(
+                roofSurfaceId = roofSurfaceId,
+                nozzleId = nozzleId,
+                captureState = MeasurementCaptureState.CAPTURED,
+                readings = List(5) { "" },
+                note = "",
+            ),
+        )
+    }
+}
+
+fun FieldDraftState.removeRoofNozzleUtForNozzle(
+    nozzleId: String,
+    roofSurfaceId: String = normalizedActiveRoofSurfaceId(),
+): FieldDraftState {
+    val remainingRows = roofNozzleUtRows.filterNot { row ->
+        row.nozzleId == nozzleId && row.roofSurfaceId == roofSurfaceId
+    }
+    val isEditingRemovedNozzle = roofNozzleUtDraft.nozzleId == nozzleId &&
+        roofNozzleUtDraft.roofSurfaceId == roofSurfaceId
+    return copy(
+        roofNozzleUtRows = remainingRows,
+        roofNozzleUtDraft = if (isEditingRemovedNozzle) NozzleUtDraftInput() else roofNozzleUtDraft,
+    )
+}
 
 fun FieldDraftState.saveFindingDraft(): FieldDraftState {
     val note = findingDraft.note.trim()
@@ -1557,6 +1815,17 @@ fun FieldDraftState.buildMflImportOrNull(): MflImport? {
 fun FieldDraftState.buildShellSettlementSurveyOrNull(): ShellSettlementSurvey? =
     savedShellSettlementSurvey?.takeIf { survey -> survey.stations.isNotEmpty() }
 
+fun FieldDraftState.buildSavedRoofSurfaceLayouts(): List<ai.laiq.tankinspection.domain.model.RoofSurfaceLayout> =
+    committedSetupState().availableRoofSurfaces().mapNotNull { surface ->
+        buildRoofLayoutOrNull(surface.roofSurfaceId)?.takeIf { layout -> layout.isReadyForInspection() }?.let { layout ->
+            ai.laiq.tankinspection.domain.model.RoofSurfaceLayout(
+                roofSurfaceId = surface.roofSurfaceId,
+                surfaceKind = surface.surfaceKind,
+                layout = layout,
+            )
+        }
+    }
+
 fun FieldDraftState.toCanonicalPackage(): CanonicalInspectionPackage {
     val committedSetup = committedSetupState()
     val committedScope = committedScopeBaseline()
@@ -1592,17 +1861,21 @@ fun FieldDraftState.toCanonicalPackage(): CanonicalInspectionPackage {
         tankMaster = TankMaster(
             diameterM = diameterM,
             heightM = heightM,
-            roofType = committedSetup.roofType,
+            roofType = committedSetup.roofSystemLabel(),
+            fixedRoofType = committedSetup.fixedRoofType.takeIf { committedSetup.hasFixedRoof() },
+            floatingRoofType = committedSetup.floatingRoofType.takeIf { committedSetup.hasFloatingRoof() },
             shellCourseCount = shellCourseCount,
             referenceMode = committedScope.normalizedReferenceMode(),
             startReference = committedScope.startReferenceLabel(),
         ),
         unitProfile = UnitProfile(
             thicknessUnit = committedSetup.thicknessUnit,
+            settlementUnit = committedSetup.settlementUnit,
             nozzleSizeUnit = committedSetup.nozzleSizeUnit,
         ),
         shellLinePlan = shellLinePlan,
         roofLayout = buildRoofLayoutOrNull(),
+        roofSurfaceLayouts = buildSavedRoofSurfaceLayouts(),
         nozzleRegistries = NozzleRegistries(
             shell = shellNozzles,
             roof = roofNozzles,
@@ -1633,9 +1906,12 @@ private fun normalizeDegrees(raw: String): Double? {
     }
 }
 
-private fun FieldDraftState.savedRoofFeaturesOfType(type: String): List<RoofFeature> =
+private fun FieldDraftState.savedRoofFeaturesOfType(
+    type: String,
+    roofSurfaceId: String,
+): List<RoofFeature> =
     roofFeatures
-        .filter { feature -> feature.type == type }
+        .filter { feature -> feature.type == type && feature.roofSurfaceId == roofSurfaceId }
         .sortedBy { feature -> feature.label.orEmpty() }
 
 private fun resizedRoofFeatureLinks(
@@ -1689,22 +1965,23 @@ private fun FieldDraftState.clearShellSettlementData(): FieldDraftState =
 
 private fun FieldDraftState.clearRoofInspectionData(): FieldDraftState =
     withoutFindingsFor(
-        surfaces = setOf("roof", "roof_nozzle"),
+        surfaces = setOf("roof", "roof_nozzle", roofFindingSurface(ROOF_SURFACE_FIXED), roofFindingSurface(ROOF_SURFACE_FLOATING), roofNozzleFindingSurface(ROOF_SURFACE_FIXED), roofNozzleFindingSurface(ROOF_SURFACE_FLOATING)),
         measurementPrefixes = setOf("roof-ut-", "roof-nozzle-ut-"),
     ).copy(
-        roofFeatureDraft = RoofFeatureDraftInput(),
+        roofFeatureDraft = RoofFeatureDraftInput(roofSurfaceId = normalizedActiveRoofSurfaceId()),
         roofFeatures = emptyList(),
-        roofUtDraft = RoofUtDraftInput(),
+        roofUtDraft = RoofUtDraftInput(roofSurfaceId = normalizedActiveRoofSurfaceId()),
         roofUtRows = emptyList(),
-        roofNozzleDraft = RoofNozzleDraftInput(),
+        roofNozzleDraft = RoofNozzleDraftInput(roofSurfaceId = normalizedActiveRoofSurfaceId()),
         roofNozzles = emptyList(),
-        roofNozzleUtDraft = NozzleUtDraftInput(),
+        roofNozzleUtDraft = NozzleUtDraftInput(roofSurfaceId = normalizedActiveRoofSurfaceId()),
         roofNozzleUtRows = emptyList(),
     )
 
 private fun FieldDraftState.invalidateRoofLayoutForReferenceChange(): FieldDraftState =
     clearRoofInspectionData().copy(
-        savedRoofLayoutDraft = null,
+        savedFixedRoofLayoutDraft = null,
+        savedFloatingRoofLayoutDraft = null,
     )
 
 private fun FieldDraftState.withoutFindingsFor(
@@ -1719,6 +1996,31 @@ private fun FieldDraftState.withoutFindingsFor(
     val retainedAttachmentIds = remainingFindings.flatMap { finding -> finding.attachmentIds }.toSet() +
         listOfNotNull(mflImportDraft.attachmentId)
     val retainedDraft = if (findingDraft.surface in surfaces) FindingDraftInput() else findingDraft
+
+    return copy(
+        findingDraft = retainedDraft,
+        findings = remainingFindings,
+        attachments = attachments.filter { attachment -> attachment.attachmentId in retainedAttachmentIds },
+    )
+}
+
+private fun FieldDraftState.withoutFindingsForMeasurementIds(
+    surfaces: Set<String>,
+    linkedMeasurementIds: Set<String>,
+): FieldDraftState {
+    val remainingFindings = findings.filterNot { finding ->
+        finding.surface in surfaces && finding.linkedMeasurementId in linkedMeasurementIds
+    }
+    val retainedAttachmentIds = remainingFindings.flatMap { finding -> finding.attachmentIds }.toSet() +
+        listOfNotNull(mflImportDraft.attachmentId)
+    val retainedDraft = if (
+        findingDraft.surface in surfaces &&
+        findingDraft.linkedMeasurementId in linkedMeasurementIds
+    ) {
+        FindingDraftInput()
+    } else {
+        findingDraft
+    }
 
     return copy(
         findingDraft = retainedDraft,

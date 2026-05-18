@@ -3,16 +3,21 @@ package ai.laiq.tankinspection.presentation.screens
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.RoofLayoutDraftInput
+import ai.laiq.tankinspection.presentation.activeRoofSurfaceConfig
 import ai.laiq.tankinspection.presentation.assignRoofFeatureDraftPlate
 import ai.laiq.tankinspection.presentation.assignRoofFeatureDraftPosition
+import ai.laiq.tankinspection.presentation.availableRoofSurfaces
 import ai.laiq.tankinspection.presentation.buildRoofLayoutOrNull
 import ai.laiq.tankinspection.presentation.buildRoofLinkTargets
 import ai.laiq.tankinspection.presentation.canvasPointToRoofPolar
 import ai.laiq.tankinspection.presentation.circularPlateRowCounts
 import ai.laiq.tankinspection.presentation.clearRoofFeatureDraftPosition
 import ai.laiq.tankinspection.presentation.committedScopeBaseline
+import ai.laiq.tankinspection.presentation.committedSetupState
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqCountField
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqPlacementAdjustPad
@@ -26,12 +31,14 @@ import ai.laiq.tankinspection.presentation.editRoofFeatureType
 import ai.laiq.tankinspection.presentation.generatedRoofFeatureLabel
 import ai.laiq.tankinspection.presentation.hasSavedRoofLayout
 import ai.laiq.tankinspection.presentation.isReadyForInspection
+import ai.laiq.tankinspection.presentation.normalizedActiveRoofSurfaceId
 import ai.laiq.tankinspection.presentation.nearestRoofPlateId
 import ai.laiq.tankinspection.presentation.parseNormalizedDecimal
 import ai.laiq.tankinspection.presentation.parsePositiveWholeNumber
 import ai.laiq.tankinspection.presentation.roofFeatureTypeLabel
-import ai.laiq.tankinspection.presentation.roofFeatureTypeOptions
+import ai.laiq.tankinspection.presentation.roofFeatureTypeOptionsForSurface
 import ai.laiq.tankinspection.presentation.roofFeatureUsesCenterPlacement
+import ai.laiq.tankinspection.presentation.roofPlateIdAtPolar
 import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
 import ai.laiq.tankinspection.presentation.roofReferenceLabel
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
@@ -63,6 +70,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
@@ -80,8 +88,12 @@ fun RoofLayoutScreen(
     contentPadding: PaddingValues,
 ) {
     val committedScope = draftState.committedScopeBaseline()
-    val roofLayout = draftState.buildRoofLayoutOrNull()
-    val hasSavedLayout = draftState.hasSavedRoofLayout()
+    val roofSurfaceId = draftState.normalizedActiveRoofSurfaceId()
+    val roofSurfaceConfig = draftState.activeRoofSurfaceConfig()
+    val roofSurfaceOptions = draftState.committedSetupState().availableRoofSurfaces()
+    val roofLayout = draftState.buildRoofLayoutOrNull(roofSurfaceId)
+    val hasSavedLayout = draftState.hasSavedRoofLayout(roofSurfaceId)
+    val roofSurfaceKind = roofSurfaceConfig?.surfaceKind ?: "fixed"
     val roofReferenceLabel = committedScope.roofReferenceLabel()
     val roofReferenceAzimuth = committedScope.referenceAzimuthDeg()
     val roofReferenceRemark = committedScope.referenceRemark.trim().takeIf {
@@ -97,7 +109,8 @@ fun RoofLayoutScreen(
         .take(draftFeatureCount.coerceAtLeast(1))
     val draftFeatureRadii = (draftState.roofFeatureDraft.radiusRatios + List(maxOf(0, draftFeatureCount - draftState.roofFeatureDraft.radiusRatios.size)) { "" })
         .take(draftFeatureCount.coerceAtLeast(1))
-    val savedFeatureGroups = draftState.roofFeatures
+    val surfaceFeatures = draftState.roofFeatures.filter { feature -> feature.roofSurfaceId == roofSurfaceId }
+    val savedFeatureGroups = surfaceFeatures
         .groupBy { feature -> feature.type }
         .toList()
         .sortedBy { (type, _) -> roofFeatureTypeLabel(type) }
@@ -110,6 +123,7 @@ fun RoofLayoutScreen(
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
     var pendingPlacementRadius by rememberSaveable { mutableStateOf("") }
     var pendingPlacementPlateId by rememberSaveable { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
     if (activeFeatureIndex > maxOf(0, draftFeatureCount - 1)) {
         activeFeatureIndex = maxOf(0, draftFeatureCount - 1)
     }
@@ -119,6 +133,9 @@ fun RoofLayoutScreen(
     val activePlacementRadiusText = pendingPlacementRadius.ifBlank {
         draftFeatureRadii.getOrElse(activeFeatureIndex) { "" }
     }
+    val activePlacementRadiusDisplay = activePlacementRadiusText.toDoubleOrNull()?.let { value ->
+        "%.2f".format(value)
+    } ?: activePlacementRadiusText
     val canNudgePlacement = activePlacementAzimuthText.isNotBlank() && activePlacementRadiusText.isNotBlank()
     val maxPlacementRadiusRatio = if (roofLayout?.hasAnnularRing == true) {
         0.48 / 0.42
@@ -144,26 +161,61 @@ fun RoofLayoutScreen(
         pendingPlacementRadius = "%.2f".format(radiusRatio)
         pendingPlacementPlateId = selectedPlateId.orEmpty()
     }
-    fun initializePlacementFromLinkedPlate(): Boolean {
-        if (pendingPlacementAzimuth.isBlank() && pendingPlacementRadius.isBlank()) {
-            val savedAzimuth = draftFeatureAzimuths.getOrElse(activeFeatureIndex) { "" }
-            val savedRadius = draftFeatureRadii.getOrElse(activeFeatureIndex) { "" }
-            if (savedAzimuth.isNotBlank() && savedRadius.isNotBlank()) {
-                pendingPlacementAzimuth = savedAzimuth
-                pendingPlacementRadius = savedRadius
-                pendingPlacementPlateId = pendingPlacementPlateId.ifBlank {
-                    draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
-                }
-                return true
-            }
-        }
-        if (canNudgePlacement) return true
+    fun savedPlacementMatchesLinkedPlate(
+        linkedPlateId: String,
+        azimuthText: String,
+        radiusText: String,
+    ): Boolean {
         val linkedLayout = roofLayout ?: return false
+        val azimuthDeg = azimuthText.toDoubleOrNull() ?: return false
+        val radiusRatio = radiusText.toDoubleOrNull() ?: return false
+        val resolvedPlateId = roofPlateIdAtPolar(
+            template = linkedLayout.template,
+            rowCount = linkedLayout.rowCount ?: 0,
+            widestRowPlateCount = linkedLayout.widestRowPlateCount ?: 0,
+            ringCount = linkedLayout.ringCount ?: 0,
+            sectorCount = linkedLayout.sectorCount ?: 0,
+            referenceAzimuthDeg = roofReferenceAzimuth,
+            rotationDirection = committedScope.rotationDirection,
+            hasAnnularRing = linkedLayout.hasAnnularRing,
+            annularSectionCount = linkedLayout.annularSectionCount ?: 0,
+            azimuthDeg = azimuthDeg,
+            radiusRatio = radiusRatio,
+        )
+        return resolvedPlateId == linkedPlateId
+    }
+    fun initializePlacementFromLinkedPlate(): Boolean {
         val linkedPlateId = pendingPlacementPlateId.ifBlank {
             draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
         }.ifBlank { return false }
+        if (pendingPlacementAzimuth.isBlank() && pendingPlacementRadius.isBlank()) {
+            val savedAzimuth = draftFeatureAzimuths.getOrElse(activeFeatureIndex) { "" }
+            val savedRadius = draftFeatureRadii.getOrElse(activeFeatureIndex) { "" }
+            if (
+                savedAzimuth.isNotBlank() &&
+                savedRadius.isNotBlank() &&
+                savedPlacementMatchesLinkedPlate(linkedPlateId, savedAzimuth, savedRadius)
+            ) {
+                pendingPlacementAzimuth = savedAzimuth
+                pendingPlacementRadius = savedRadius
+                pendingPlacementPlateId = linkedPlateId
+                return true
+            }
+        }
+        if (
+            canNudgePlacement &&
+            savedPlacementMatchesLinkedPlate(
+                linkedPlateId,
+                activePlacementAzimuthText,
+                activePlacementRadiusText,
+            )
+        ) {
+            pendingPlacementPlateId = linkedPlateId
+            return true
+        }
+        val linkedLayout = roofLayout ?: return false
         val linkedCell = buildRoofLinkTargets(linkedLayout).firstOrNull { cell -> cell.plateId == linkedPlateId } ?: return false
-        val (derivedAzimuth, derivedRadius) = canvasPointToRoofPolar(linkedCell.labelXNorm, linkedCell.labelYNorm)
+        val (derivedAzimuth, derivedRadius) = canvasPointToRoofPolar(linkedCell.xNorm, linkedCell.yNorm)
         previewFeaturePlacement(derivedAzimuth, derivedRadius)
         return true
     }
@@ -177,19 +229,20 @@ fun RoofLayoutScreen(
         val (nextAzimuth, nextRadiusRaw) = canvasPointToRoofPolar(nextX, nextY)
         previewFeaturePlacement(nextAzimuth, nextRadiusRaw.coerceIn(0.0, maxPlacementRadiusRatio))
     }
+
+    fun undoFeaturePlacement() {
+        pendingPlacementPlateId = draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
+        pendingPlacementAzimuth = ""
+        pendingPlacementRadius = ""
+        placementModeEnabled = pendingPlacementPlateId.isNotBlank()
+        initializePlacementFromLinkedPlate()
+    }
     LaunchedEffect(showFeatureEditor, draftState.roofFeatureDraft.type, activeFeatureIndex, draftFeatureCount) {
         if (!showFeatureEditor || draftFeatureCount <= 0) return@LaunchedEffect
-        if (pendingPlacementAzimuth.isBlank() && pendingPlacementRadius.isBlank()) {
-            pendingPlacementPlateId = pendingPlacementPlateId.ifBlank {
-                draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
-            }
-            val savedAzimuth = draftFeatureAzimuths.getOrElse(activeFeatureIndex) { "" }
-            val savedRadius = draftFeatureRadii.getOrElse(activeFeatureIndex) { "" }
-            if (savedAzimuth.isNotBlank() && savedRadius.isNotBlank()) {
-                pendingPlacementAzimuth = savedAzimuth
-                pendingPlacementRadius = savedRadius
-            }
+        pendingPlacementPlateId = pendingPlacementPlateId.ifBlank {
+            draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
         }
+        initializePlacementFromLinkedPlate()
     }
     val draftMarkers = if (draftFeatureCount > 0) {
         (0 until draftFeatureCount).map { index ->
@@ -214,9 +267,7 @@ fun RoofLayoutScreen(
     } else {
         emptyList()
     }
-    val savedMarkers = draftState.roofFeatures
-        .filterNot { feature -> showFeatureEditor && feature.type == draftState.roofFeatureDraft.type }
-        .map { feature ->
+    val savedMarkers = surfaceFeatures.map { feature ->
         RoofMapMarker(
             markerId = feature.featureId,
             label = feature.label ?: roofFeatureTypeLabel(feature.type),
@@ -224,6 +275,16 @@ fun RoofLayoutScreen(
             azimuthDeg = feature.azimuthDeg,
             radiusRatio = feature.radiusRatio,
         )
+    }
+    val editorOverlayPlateIds = if (showFeatureEditor) {
+        draftFeatureLinks.filter { link -> link.isNotBlank() }.toSet()
+    } else {
+        surfaceFeatures.mapNotNull { feature -> feature.plateId }.toSet()
+    }
+    val editorMarkers = if (showFeatureEditor) {
+        draftMarkers
+    } else {
+        savedMarkers
     }
 
     if (!hasSavedLayout || roofLayout == null || !roofLayout.isReadyForInspection()) {
@@ -249,6 +310,13 @@ fun RoofLayoutScreen(
         return
     }
 
+    pendingDelete?.let { dialogState ->
+        LaiqDeleteConfirmDialog(
+            state = dialogState,
+            onDismiss = { pendingDelete = null },
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -264,6 +332,24 @@ fun RoofLayoutScreen(
                 title = "Committed Roof Layout",
                 subtitle = "This read-only roof plate map comes from Inspection Setup. Roof elements are placed on this committed basis and do not change the plate numbering later.",
             ) {
+                if (roofSurfaceOptions.size > 1) {
+                    LaiqDropdownField(
+                        label = "Roof Surface",
+                        value = roofSurfaceId,
+                        options = roofSurfaceOptions.map { surface -> surface.roofSurfaceId to surface.label },
+                        onSelected = { selectedSurfaceId ->
+                            onDraftStateChange(
+                                draftState.copy(
+                                    activeRoofSurfaceId = selectedSurfaceId,
+                                    roofFeatureDraft = draftState.roofFeatureDraft.copy(roofSurfaceId = selectedSurfaceId),
+                                    roofUtDraft = draftState.roofUtDraft.copy(roofSurfaceId = selectedSurfaceId),
+                                    roofNozzleDraft = draftState.roofNozzleDraft.copy(roofSurfaceId = selectedSurfaceId),
+                                    roofNozzleUtDraft = draftState.roofNozzleUtDraft.copy(roofSurfaceId = selectedSurfaceId),
+                                ),
+                            )
+                        },
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (roofLayout?.template) {
                         RoofTemplate.UMBRELLA_RADIAL -> {
@@ -324,8 +410,8 @@ fun RoofLayoutScreen(
                 subtitle = "Keep roof appurtenances and floating-roof elements on the same committed roof basis. Nozzles stay in their own registry because size, pad, and nozzle UT still belong to a nozzle workflow.",
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LaiqStatChip("Elements", draftState.roofFeatures.size.toString(), modifier = Modifier.weight(1f))
-                    LaiqStatChip("Types", draftState.roofFeatures.map { it.type }.toSet().size.toString(), modifier = Modifier.weight(1f))
+                    LaiqStatChip("Elements", surfaceFeatures.size.toString(), modifier = Modifier.weight(1f))
+                    LaiqStatChip("Types", surfaceFeatures.map { it.type }.toSet().size.toString(), modifier = Modifier.weight(1f))
                     LaiqStatChip(
                         "Overlays",
                         listOfNotNull(
@@ -369,12 +455,13 @@ fun RoofLayoutScreen(
                         color = LaiqColors.MutedText,
                     )
                 } else {
-                    RoofFeatureBatchInputs(
-                        draft = draftState.roofFeatureDraft,
-                        onTypeSelected = { type ->
-                            activeFeatureIndex = 0
-                            onDraftStateChange(draftState.selectRoofFeatureType(type))
-                        },
+                        RoofFeatureBatchInputs(
+                            draft = draftState.roofFeatureDraft,
+                            surfaceKind = roofSurfaceKind,
+                            onTypeSelected = { type ->
+                                activeFeatureIndex = 0
+                                onDraftStateChange(draftState.selectRoofFeatureType(type, roofSurfaceId))
+                            },
                         onCountChange = { count ->
                             activeFeatureIndex = 0
                             onDraftStateChange(draftState.updateRoofFeatureDraftCount(count))
@@ -476,15 +563,8 @@ fun RoofLayoutScreen(
                                     )
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                         LaiqSecondaryButton(
-                                            text = "Clear",
-                                            onClick = {
-                                                pendingPlacementAzimuth = ""
-                                                pendingPlacementRadius = ""
-                                                pendingPlacementPlateId = ""
-                                                onDraftStateChange(
-                                                    draftState.clearRoofFeatureDraftPosition(activeFeatureIndex),
-                                                )
-                                            },
+                                            text = "Undo",
+                                            onClick = { undoFeaturePlacement() },
                                             modifier = Modifier.weight(1f),
                                         )
                                         LaiqPrimaryButton(
@@ -524,12 +604,12 @@ fun RoofLayoutScreen(
                                     sectorCount = roofLayout.sectorCount ?: 0,
                                     activePlateId = pendingPlacementPlateId.ifBlank { draftFeatureLinks.getOrElse(activeFeatureIndex) { "" } },
                                     savedPlateIds = emptySet(),
-                                    overlayPlateIds = draftState.roofFeatures.mapNotNull { feature -> feature.plateId }.toSet(),
-                                    centerFeatureCount = draftState.roofFeatures.count { feature -> roofFeatureUsesCenterPlacement(feature.type) },
+                                    overlayPlateIds = editorOverlayPlateIds,
+                                    centerFeatureCount = surfaceFeatures.count { feature -> roofFeatureUsesCenterPlacement(feature.type) },
                                     hasAnnularRing = roofLayout.hasAnnularRing,
                                     annularSectionCount = roofLayout.annularSectionCount ?: 0,
                                     hasPontoonDeck = roofLayout.hasPontoonDeck,
-                                    markers = savedMarkers + draftMarkers.filterNot { marker -> marker.active },
+                                    markers = editorMarkers,
                                     referenceLabel = roofReferenceLabel,
                                     referenceAzimuthDeg = roofReferenceAzimuth,
                                     rotationDirection = committedScope.rotationDirection,
@@ -555,7 +635,7 @@ fun RoofLayoutScreen(
                                         value = activePlacementAzimuthText
                                             .takeIf { it.isNotBlank() }
                                             ?.let { azimuth ->
-                                                val radius = activePlacementRadiusText.ifBlank { "0.50" }
+                                                val radius = activePlacementRadiusDisplay.ifBlank { "0.50" }
                                                 "${azimuth}° / ${radius}R"
                                             }
                                             ?: "Select a plate first",
@@ -585,12 +665,20 @@ fun RoofLayoutScreen(
                         LaiqSecondaryButton(
                             text = "Delete This Type",
                             onClick = {
-                                onDraftStateChange(draftState.removeRoofFeatureType(draftState.roofFeatureDraft.type))
-                                placementModeEnabled = false
-                                pendingPlacementAzimuth = ""
-                                pendingPlacementRadius = ""
-                                pendingPlacementPlateId = ""
-                                showFeatureEditor = false
+                                val typeLabel = roofFeatureTypeLabel(draftState.roofFeatureDraft.type)
+                                val surfaceLabel = roofSurfaceConfig?.label ?: roofSurfaceKind.replaceFirstChar { it.uppercase() }
+                                pendingDelete = LaiqDeleteDialogState(
+                                    title = "Delete $typeLabel?",
+                                    message = "This will remove all saved $typeLabel items on $surfaceLabel and any related findings.",
+                                    onConfirm = {
+                                        onDraftStateChange(draftState.removeRoofFeatureType(draftState.roofFeatureDraft.type, roofSurfaceId))
+                                        placementModeEnabled = false
+                                        pendingPlacementAzimuth = ""
+                                        pendingPlacementRadius = ""
+                                        pendingPlacementPlateId = ""
+                                        showFeatureEditor = false
+                                    },
+                                )
                             },
                         )
                     }
@@ -625,7 +713,7 @@ fun RoofLayoutScreen(
                                             text = "Edit",
                                             onClick = {
                                                 activeFeatureIndex = 0
-                                                onDraftStateChange(draftState.editRoofFeatureType(type))
+                                                onDraftStateChange(draftState.editRoofFeatureType(type, roofSurfaceId))
                                                 placementModeEnabled = false
                                                 pendingPlacementAzimuth = ""
                                                 pendingPlacementRadius = ""
@@ -636,7 +724,17 @@ fun RoofLayoutScreen(
                                         )
                                         LaiqSecondaryButton(
                                             text = "Delete",
-                                            onClick = { onDraftStateChange(draftState.removeRoofFeatureType(type)) },
+                                            onClick = {
+                                                val typeLabel = roofFeatureTypeLabel(type)
+                                                val surfaceLabel = roofSurfaceConfig?.label ?: roofSurfaceKind.replaceFirstChar { it.uppercase() }
+                                                pendingDelete = LaiqDeleteDialogState(
+                                                    title = "Delete $typeLabel?",
+                                                    message = "This will remove all saved $typeLabel items on $surfaceLabel and any related findings.",
+                                                    onConfirm = {
+                                                        onDraftStateChange(draftState.removeRoofFeatureType(type, roofSurfaceId))
+                                                    },
+                                                )
+                                            },
                                             modifier = Modifier.weight(1f),
                                         )
                                     }
@@ -847,6 +945,7 @@ private fun normalizedDecimalInput(raw: String): String {
 @Composable
 private fun RoofFeatureBatchInputs(
     draft: ai.laiq.tankinspection.presentation.RoofFeatureDraftInput,
+    surfaceKind: String,
     onTypeSelected: (String) -> Unit,
     onCountChange: (String) -> Unit,
 ) {
@@ -854,7 +953,7 @@ private fun RoofFeatureBatchInputs(
         LaiqDropdownField(
             label = "Element Type",
             value = draft.type,
-            options = roofFeatureTypeOptions,
+            options = roofFeatureTypeOptionsForSurface(surfaceKind),
             onSelected = onTypeSelected,
         )
         if (roofFeatureUsesCenterPlacement(draft.type)) {
