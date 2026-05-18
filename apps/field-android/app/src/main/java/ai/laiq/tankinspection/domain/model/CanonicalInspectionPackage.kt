@@ -55,6 +55,8 @@ data class CanonicalInspectionPackage(
     val nozzleRegistries: NozzleRegistries? = null,
     val measurements: Measurements,
     val shellSettlementSurvey: ShellSettlementSurvey? = null,
+    val roundnessSurvey: RoundnessSurvey? = null,
+    val plumbnessSurvey: PlumbnessSurvey? = null,
     val findings: List<FindingRecord>,
     val attachments: List<AttachmentRecord>,
     val mflImport: MflImport? = null,
@@ -198,6 +200,40 @@ data class ShellSettlementStation(
     val stationId: String,
     val angleDeg: Double,
     val elevation: Double? = null,
+    val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
+    val note: String? = null,
+)
+
+data class RoundnessSurvey(
+    val surveys: List<RoundnessSurveyBand>,
+)
+
+data class RoundnessSurveyBand(
+    val surveyId: String,
+    val label: String,
+    val heightReference: String? = null,
+    val stationCount: Int,
+    val stations: List<RoundnessSurveyStation>,
+)
+
+data class RoundnessSurveyStation(
+    val stationId: String,
+    val angleDeg: Double,
+    val easting: Double? = null,
+    val northing: Double? = null,
+    val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
+    val note: String? = null,
+)
+
+data class PlumbnessSurvey(
+    val stationCount: Int,
+    val stations: List<PlumbnessSurveyStation>,
+)
+
+data class PlumbnessSurveyStation(
+    val stationId: String,
+    val angleDeg: Double,
+    val plumbness: Double? = null,
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
     val note: String? = null,
 )

@@ -12,7 +12,12 @@ import ai.laiq.tankinspection.domain.model.NozzleDefinition
 import ai.laiq.tankinspection.domain.model.NozzleSizeUnit
 import ai.laiq.tankinspection.domain.model.NozzleRegistries
 import ai.laiq.tankinspection.domain.model.NozzleUtRow
+import ai.laiq.tankinspection.domain.model.PlumbnessSurvey
+import ai.laiq.tankinspection.domain.model.PlumbnessSurveyStation
 import ai.laiq.tankinspection.domain.model.ReferenceMode
+import ai.laiq.tankinspection.domain.model.RoundnessSurvey
+import ai.laiq.tankinspection.domain.model.RoundnessSurveyBand
+import ai.laiq.tankinspection.domain.model.RoundnessSurveyStation
 import ai.laiq.tankinspection.domain.model.RoofFeature
 import ai.laiq.tankinspection.domain.model.ReviewState
 import ai.laiq.tankinspection.domain.model.ReviewStatus
@@ -36,6 +41,8 @@ enum class ProductScreen {
     RoofLayout,
     ShellUt,
     ShellSettlement,
+    RoundnessSurvey,
+    PlumbnessSurvey,
     RoofUt,
     ShellNozzleUt,
     RoofNozzleUt,
@@ -56,6 +63,8 @@ enum class FieldTask(val title: String, val subtitle: String) {
     ROOF_ELEMENTS("Roof Elements", "Roof appurtenance and floating-roof element placement"),
     SHELL_UT("Shell UT", "Crawler-lane shell thickness capture"),
     SHELL_SETTLEMENT("Shell Settlement", "Perimeter elevation survey capture"),
+    ROUNDNESS_SURVEY("Roundness Survey", "Shell circularity survey capture"),
+    PLUMBNESS_SURVEY("Plumbness Survey", "Shell vertical plumbness survey capture"),
     ROOF_UT("Roof UT", "Plate-based roof thickness capture"),
     SHELL_NOZZLE_UT("Shell Nozzles", "Shell nozzle registry and measurement"),
     ROOF_NOZZLE_UT("Roof Nozzles", "Roof nozzle registry and measurement"),
@@ -103,6 +112,10 @@ data class FieldDraftState(
     val shellUtRows: List<ShellUtRow> = emptyList(),
     val shellSettlementDraft: ShellSettlementDraftInput = ShellSettlementDraftInput(),
     val savedShellSettlementSurvey: ShellSettlementSurvey? = null,
+    val roundnessSurveyDraft: RoundnessSurveyDraftInput = RoundnessSurveyDraftInput(),
+    val savedRoundnessSurvey: RoundnessSurvey? = null,
+    val plumbnessSurveyDraft: PlumbnessSurveyDraftInput = PlumbnessSurveyDraftInput(),
+    val savedPlumbnessSurvey: PlumbnessSurvey? = null,
     val fixedRoofLayoutDraft: RoofLayoutDraftInput = RoofLayoutDraftInput(),
     val savedFixedRoofLayoutDraft: RoofLayoutDraftInput? = null,
     val floatingRoofLayoutDraft: RoofLayoutDraftInput = RoofLayoutDraftInput(hasPontoonDeck = true),
@@ -144,6 +157,36 @@ data class ShellSettlementStationDraftInput(
     val stationId: String,
     val angleDeg: Double,
     val elevation: String = "",
+    val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
+    val note: String = "",
+)
+
+data class RoundnessSurveyDraftInput(
+    val editingSurveyId: String? = null,
+    val surveyLabel: String = "Ring 1",
+    val heightReference: String = "1 ft above bottom projection plate",
+    val stationCount: String = "26",
+    val stations: List<RoundnessSurveyStationDraftInput> = defaultRoundnessSurveyStationDrafts(26),
+)
+
+data class RoundnessSurveyStationDraftInput(
+    val stationId: String,
+    val angleDeg: Double,
+    val easting: String = "",
+    val northing: String = "",
+    val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
+    val note: String = "",
+)
+
+data class PlumbnessSurveyDraftInput(
+    val stationCount: String = "26",
+    val stations: List<PlumbnessSurveyStationDraftInput> = defaultPlumbnessSurveyStationDrafts(26),
+)
+
+data class PlumbnessSurveyStationDraftInput(
+    val stationId: String,
+    val angleDeg: Double,
+    val plumbness: String = "",
     val captureState: MeasurementCaptureState = MeasurementCaptureState.CAPTURED,
     val note: String = "",
 )
@@ -252,6 +295,8 @@ fun defaultFieldTasks(): Set<FieldTask> = linkedSetOf(
     FieldTask.ROOF_ELEMENTS,
     FieldTask.SHELL_UT,
     FieldTask.SHELL_SETTLEMENT,
+    FieldTask.ROUNDNESS_SURVEY,
+    FieldTask.PLUMBNESS_SURVEY,
     FieldTask.ROOF_UT,
     FieldTask.SHELL_NOZZLE_UT,
     FieldTask.ROOF_NOZZLE_UT,
@@ -269,15 +314,50 @@ fun defaultShellSettlementStationDrafts(
     startAngleDeg: Double = StartReference.N.azimuthDeg,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
 ): List<ShellSettlementStationDraftInput> {
+    val stations = defaultSurveyStationAngles(stationCount, startAngleDeg, rotationDirection)
+    return stations.map { (stationId, angleDeg) ->
+        ShellSettlementStationDraftInput(
+            stationId = stationId,
+            angleDeg = angleDeg,
+        )
+    }
+}
+
+fun defaultRoundnessSurveyStationDrafts(
+    stationCount: Int,
+    startAngleDeg: Double = StartReference.N.azimuthDeg,
+    rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
+): List<RoundnessSurveyStationDraftInput> =
+    defaultSurveyStationAngles(stationCount, startAngleDeg, rotationDirection).map { (stationId, angleDeg) ->
+        RoundnessSurveyStationDraftInput(
+            stationId = stationId,
+            angleDeg = angleDeg,
+        )
+    }
+
+fun defaultPlumbnessSurveyStationDrafts(
+    stationCount: Int,
+    startAngleDeg: Double = StartReference.N.azimuthDeg,
+    rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
+): List<PlumbnessSurveyStationDraftInput> =
+    defaultSurveyStationAngles(stationCount, startAngleDeg, rotationDirection).map { (stationId, angleDeg) ->
+        PlumbnessSurveyStationDraftInput(
+            stationId = stationId,
+            angleDeg = angleDeg,
+        )
+    }
+
+private fun defaultSurveyStationAngles(
+    stationCount: Int,
+    startAngleDeg: Double,
+    rotationDirection: RotationDirection,
+): List<Pair<String, Double>> {
     val normalizedCount = stationCount.coerceAtLeast(1)
     val step = 360.0 / normalizedCount.toDouble()
     return List(normalizedCount) { index ->
         val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1 else -1
         val angle = (startAngleDeg + (index * step * directionFactor) + 360.0) % 360.0
-        ShellSettlementStationDraftInput(
-            stationId = "${index + 1}",
-            angleDeg = angle,
-        )
+        "${index + 1}" to angle
     }
 }
 
@@ -522,6 +602,12 @@ fun FieldDraftState.reviewWarnings(): List<String> {
     if (scope.selectedTasks.contains(FieldTask.SHELL_SETTLEMENT) && savedShellSettlementSurvey == null) {
         warnings += "Save the shell settlement survey before export."
     }
+    if (scope.selectedTasks.contains(FieldTask.ROUNDNESS_SURVEY) && savedRoundnessSurvey?.surveys.isNullOrEmpty()) {
+        warnings += "Save at least one roundness survey band before export."
+    }
+    if (scope.selectedTasks.contains(FieldTask.PLUMBNESS_SURVEY) && savedPlumbnessSurvey?.stations.isNullOrEmpty()) {
+        warnings += "Save the plumbness survey before export."
+    }
     if (scope.selectedTasks.contains(FieldTask.ROOF_UT) && roofUtRows.isEmpty()) {
         warnings += "Add at least one roof UT row."
     }
@@ -641,6 +727,8 @@ fun FieldDraftState.commitFundamentalInputs(): FieldDraftState {
     if (!savedReferenceBaselineKey.isNullOrBlank() && savedReferenceBaselineKey != nextReferenceKey) {
         return clearShellInspectionData()
             .clearShellSettlementData()
+            .clearRoundnessSurveyData()
+            .clearPlumbnessSurveyData()
             .invalidateRoofLayoutForReferenceChange()
             .copy(
                 fixedRoofLayoutDraft = nextFixedRoofLayoutDraft,
@@ -890,6 +978,231 @@ fun FieldDraftState.saveShellSettlementSurveyDraft(): FieldDraftState {
     if (hasInvalidCapturedStation) return this
     return copy(
         savedShellSettlementSurvey = ShellSettlementSurvey(
+            stationCount = parsedCount,
+            stations = stations,
+        ),
+    )
+}
+
+fun FieldDraftState.updateRoundnessSurveyHeader(
+    surveyLabel: String? = null,
+    heightReference: String? = null,
+): FieldDraftState =
+    copy(
+        roundnessSurveyDraft = roundnessSurveyDraft.copy(
+            surveyLabel = surveyLabel ?: roundnessSurveyDraft.surveyLabel,
+            heightReference = heightReference ?: roundnessSurveyDraft.heightReference,
+        ),
+    )
+
+fun FieldDraftState.updateRoundnessSurveyStationCount(countText: String): FieldDraftState {
+    val normalized = countText.filter { char -> char.isDigit() }
+    val parsedCount = normalized.toIntOrNull()?.coerceAtLeast(1)
+    val committedScope = committedScopeBaseline()
+    val templateStations = defaultRoundnessSurveyStationDrafts(
+        stationCount = parsedCount ?: roundnessSurveyDraft.stations.size.coerceAtLeast(1),
+        startAngleDeg = committedScope.referenceAzimuthDeg(),
+        rotationDirection = committedScope.rotationDirection,
+    )
+    val nextStations = templateStations.mapIndexed { index, template ->
+        val existing = roundnessSurveyDraft.stations.getOrNull(index)
+        template.copy(
+            easting = existing?.easting.orEmpty(),
+            northing = existing?.northing.orEmpty(),
+            captureState = existing?.captureState ?: MeasurementCaptureState.CAPTURED,
+            note = existing?.note.orEmpty(),
+        )
+    }
+    return copy(
+        roundnessSurveyDraft = roundnessSurveyDraft.copy(
+            stationCount = normalized,
+            stations = nextStations,
+        ),
+    )
+}
+
+fun FieldDraftState.updateRoundnessSurveyStation(
+    stationId: String,
+    easting: String? = null,
+    northing: String? = null,
+    captureState: MeasurementCaptureState? = null,
+    note: String? = null,
+): FieldDraftState =
+    copy(
+        roundnessSurveyDraft = roundnessSurveyDraft.copy(
+            stations = roundnessSurveyDraft.stations.map { station ->
+                if (station.stationId == stationId) {
+                    station.copy(
+                        easting = easting ?: station.easting,
+                        northing = northing ?: station.northing,
+                        captureState = captureState ?: station.captureState,
+                        note = note ?: station.note,
+                    )
+                } else {
+                    station
+                }
+            },
+        ),
+    )
+
+fun FieldDraftState.saveRoundnessSurveyDraft(): FieldDraftState {
+    val parsedCount = roundnessSurveyDraft.stationCount.toIntOrNull()?.takeIf { it > 0 } ?: return this
+    val stations = roundnessSurveyDraft.stations.take(parsedCount).map { station ->
+        RoundnessSurveyStation(
+            stationId = station.stationId,
+            angleDeg = station.angleDeg,
+            easting = station.easting.trim().toDoubleOrNull(),
+            northing = station.northing.trim().toDoubleOrNull(),
+            captureState = station.captureState,
+            note = station.note.ifBlank { null },
+        )
+    }
+    if (stations.isEmpty()) return this
+    val hasInvalidCapturedStation = stations.any { station ->
+        station.captureState.requiresNumericReadings() && (station.easting == null || station.northing == null)
+    }
+    if (hasInvalidCapturedStation) return this
+
+    val surveyId = roundnessSurveyDraft.editingSurveyId ?: "roundness-${((savedRoundnessSurvey?.surveys?.size ?: 0) + 1).toString().padStart(2, '0')}"
+    val nextBand = RoundnessSurveyBand(
+        surveyId = surveyId,
+        label = roundnessSurveyDraft.surveyLabel.ifBlank { "Ring ${((savedRoundnessSurvey?.surveys?.size ?: 0) + 1)}" },
+        heightReference = roundnessSurveyDraft.heightReference.ifBlank { null },
+        stationCount = parsedCount,
+        stations = stations,
+    )
+    val currentBands = savedRoundnessSurvey?.surveys.orEmpty()
+    val nextBands = if (roundnessSurveyDraft.editingSurveyId == null) {
+        currentBands + nextBand
+    } else {
+        currentBands.map { band -> if (band.surveyId == roundnessSurveyDraft.editingSurveyId) nextBand else band }
+    }
+
+    val committedScope = committedScopeBaseline()
+    return copy(
+        savedRoundnessSurvey = RoundnessSurvey(nextBands),
+        roundnessSurveyDraft = RoundnessSurveyDraftInput(
+            surveyLabel = "Ring ${nextBands.size + 1}",
+            heightReference = roundnessSurveyDraft.heightReference,
+            stationCount = roundnessSurveyDraft.stationCount,
+            stations = defaultRoundnessSurveyStationDrafts(
+                stationCount = parsedCount,
+                startAngleDeg = committedScope.referenceAzimuthDeg(),
+                rotationDirection = committedScope.rotationDirection,
+            ),
+        ),
+    )
+}
+
+fun FieldDraftState.editRoundnessSurveyBand(surveyId: String): FieldDraftState {
+    val band = savedRoundnessSurvey?.surveys?.firstOrNull { it.surveyId == surveyId } ?: return this
+    return copy(
+        roundnessSurveyDraft = RoundnessSurveyDraftInput(
+            editingSurveyId = band.surveyId,
+            surveyLabel = band.label,
+            heightReference = band.heightReference.orEmpty(),
+            stationCount = band.stationCount.toString(),
+            stations = band.stations.map { station ->
+                RoundnessSurveyStationDraftInput(
+                    stationId = station.stationId,
+                    angleDeg = station.angleDeg,
+                    easting = station.easting?.toString().orEmpty(),
+                    northing = station.northing?.toString().orEmpty(),
+                    captureState = station.captureState,
+                    note = station.note.orEmpty(),
+                )
+            },
+        ),
+    )
+}
+
+fun FieldDraftState.removeRoundnessSurveyBand(surveyId: String): FieldDraftState {
+    val remaining = savedRoundnessSurvey?.surveys.orEmpty().filterNot { it.surveyId == surveyId }
+    val nextSaved = remaining.takeIf { it.isNotEmpty() }?.let(::RoundnessSurvey)
+    val nextDraft = if (roundnessSurveyDraft.editingSurveyId == surveyId) {
+        val committedScope = committedScopeBaseline()
+        RoundnessSurveyDraftInput(
+            surveyLabel = "Ring ${(remaining.size + 1)}",
+            stations = defaultRoundnessSurveyStationDrafts(
+                stationCount = roundnessSurveyDraft.stationCount.toIntOrNull()?.coerceAtLeast(1) ?: 26,
+                startAngleDeg = committedScope.referenceAzimuthDeg(),
+                rotationDirection = committedScope.rotationDirection,
+            ),
+        )
+    } else {
+        roundnessSurveyDraft
+    }
+    return copy(
+        savedRoundnessSurvey = nextSaved,
+        roundnessSurveyDraft = nextDraft,
+    )
+}
+
+fun FieldDraftState.updatePlumbnessSurveyStationCount(countText: String): FieldDraftState {
+    val normalized = countText.filter { char -> char.isDigit() }
+    val parsedCount = normalized.toIntOrNull()?.coerceAtLeast(1)
+    val committedScope = committedScopeBaseline()
+    val templateStations = defaultPlumbnessSurveyStationDrafts(
+        stationCount = parsedCount ?: plumbnessSurveyDraft.stations.size.coerceAtLeast(1),
+        startAngleDeg = committedScope.referenceAzimuthDeg(),
+        rotationDirection = committedScope.rotationDirection,
+    )
+    val nextStations = templateStations.mapIndexed { index, template ->
+        val existing = plumbnessSurveyDraft.stations.getOrNull(index)
+        template.copy(
+            plumbness = existing?.plumbness.orEmpty(),
+            captureState = existing?.captureState ?: MeasurementCaptureState.CAPTURED,
+            note = existing?.note.orEmpty(),
+        )
+    }
+    return copy(
+        plumbnessSurveyDraft = plumbnessSurveyDraft.copy(
+            stationCount = normalized,
+            stations = nextStations,
+        ),
+    )
+}
+
+fun FieldDraftState.updatePlumbnessSurveyStation(
+    stationId: String,
+    plumbness: String? = null,
+    captureState: MeasurementCaptureState? = null,
+    note: String? = null,
+): FieldDraftState =
+    copy(
+        plumbnessSurveyDraft = plumbnessSurveyDraft.copy(
+            stations = plumbnessSurveyDraft.stations.map { station ->
+                if (station.stationId == stationId) {
+                    station.copy(
+                        plumbness = plumbness ?: station.plumbness,
+                        captureState = captureState ?: station.captureState,
+                        note = note ?: station.note,
+                    )
+                } else {
+                    station
+                }
+            },
+        ),
+    )
+
+fun FieldDraftState.savePlumbnessSurveyDraft(): FieldDraftState {
+    val parsedCount = plumbnessSurveyDraft.stationCount.toIntOrNull()?.takeIf { it > 0 } ?: return this
+    val stations = plumbnessSurveyDraft.stations.take(parsedCount).map { station ->
+        PlumbnessSurveyStation(
+            stationId = station.stationId,
+            angleDeg = station.angleDeg,
+            plumbness = station.plumbness.trim().toDoubleOrNull(),
+            captureState = station.captureState,
+            note = station.note.ifBlank { null },
+        )
+    }
+    if (stations.isEmpty()) return this
+    val hasInvalidCapturedStation = stations.any { station ->
+        station.captureState.requiresNumericReadings() && station.plumbness == null
+    }
+    if (hasInvalidCapturedStation) return this
+    return copy(
+        savedPlumbnessSurvey = PlumbnessSurvey(
             stationCount = parsedCount,
             stations = stations,
         ),
@@ -1815,6 +2128,12 @@ fun FieldDraftState.buildMflImportOrNull(): MflImport? {
 fun FieldDraftState.buildShellSettlementSurveyOrNull(): ShellSettlementSurvey? =
     savedShellSettlementSurvey?.takeIf { survey -> survey.stations.isNotEmpty() }
 
+fun FieldDraftState.buildRoundnessSurveyOrNull(): RoundnessSurvey? =
+    savedRoundnessSurvey?.takeIf { survey -> survey.surveys.isNotEmpty() }
+
+fun FieldDraftState.buildPlumbnessSurveyOrNull(): PlumbnessSurvey? =
+    savedPlumbnessSurvey?.takeIf { survey -> survey.stations.isNotEmpty() }
+
 fun FieldDraftState.buildSavedRoofSurfaceLayouts(): List<ai.laiq.tankinspection.domain.model.RoofSurfaceLayout> =
     committedSetupState().availableRoofSurfaces().mapNotNull { surface ->
         buildRoofLayoutOrNull(surface.roofSurfaceId)?.takeIf { layout -> layout.isReadyForInspection() }?.let { layout ->
@@ -1887,6 +2206,8 @@ fun FieldDraftState.toCanonicalPackage(): CanonicalInspectionPackage {
             roofNozzleUtRows = roofNozzleUtRows,
         ),
         shellSettlementSurvey = buildShellSettlementSurveyOrNull(),
+        roundnessSurvey = buildRoundnessSurveyOrNull(),
+        plumbnessSurvey = buildPlumbnessSurveyOrNull(),
         findings = findings,
         attachments = attachments,
         mflImport = buildMflImportOrNull(),
@@ -1961,6 +2282,31 @@ private fun FieldDraftState.clearShellSettlementData(): FieldDraftState =
             ),
         ),
         savedShellSettlementSurvey = null,
+    )
+
+private fun FieldDraftState.clearRoundnessSurveyData(): FieldDraftState =
+    copy(
+        roundnessSurveyDraft = RoundnessSurveyDraftInput(
+            stations = defaultRoundnessSurveyStationDrafts(
+                stationCount = roundnessSurveyDraft.stationCount.toIntOrNull()?.coerceAtLeast(1) ?: 26,
+                startAngleDeg = committedScopeBaseline().referenceAzimuthDeg(),
+                rotationDirection = committedScopeBaseline().rotationDirection,
+            ),
+        ),
+        savedRoundnessSurvey = null,
+    )
+
+private fun FieldDraftState.clearPlumbnessSurveyData(): FieldDraftState =
+    copy(
+        plumbnessSurveyDraft = PlumbnessSurveyDraftInput(
+            stationCount = plumbnessSurveyDraft.stationCount.ifBlank { "26" },
+            stations = defaultPlumbnessSurveyStationDrafts(
+                stationCount = plumbnessSurveyDraft.stationCount.toIntOrNull()?.coerceAtLeast(1) ?: 26,
+                startAngleDeg = committedScopeBaseline().referenceAzimuthDeg(),
+                rotationDirection = committedScopeBaseline().rotationDirection,
+            ),
+        ),
+        savedPlumbnessSurvey = null,
     )
 
 private fun FieldDraftState.clearRoofInspectionData(): FieldDraftState =

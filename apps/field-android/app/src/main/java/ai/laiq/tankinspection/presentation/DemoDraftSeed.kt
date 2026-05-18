@@ -6,7 +6,12 @@ import ai.laiq.tankinspection.domain.model.MeasurementUnit
 import ai.laiq.tankinspection.domain.model.NozzleDefinition
 import ai.laiq.tankinspection.domain.model.NozzleSizeUnit
 import ai.laiq.tankinspection.domain.model.NozzleUtRow
+import ai.laiq.tankinspection.domain.model.PlumbnessSurvey
+import ai.laiq.tankinspection.domain.model.PlumbnessSurveyStation
 import ai.laiq.tankinspection.domain.model.ReferenceMode
+import ai.laiq.tankinspection.domain.model.RoundnessSurvey
+import ai.laiq.tankinspection.domain.model.RoundnessSurveyBand
+import ai.laiq.tankinspection.domain.model.RoundnessSurveyStation
 import ai.laiq.tankinspection.domain.model.RoofFeature
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RoofUtRow
@@ -18,6 +23,8 @@ import ai.laiq.tankinspection.domain.model.ShellUtRow
 fun demoFieldDraftState(): FieldDraftState {
     val selectedTasks = defaultFieldTasks()
     val settlementStations = demoShellSettlementStations()
+    val roundnessSurvey = demoRoundnessSurvey()
+    val plumbnessSurvey = demoPlumbnessSurvey()
 
     return FieldDraftState(
         startedAtIso = "2026-05-15T08:00:00Z",
@@ -60,6 +67,26 @@ fun demoFieldDraftState(): FieldDraftState {
             stationCount = settlementStations.size,
             stations = settlementStations,
         ),
+        roundnessSurveyDraft = RoundnessSurveyDraftInput(
+            surveyLabel = "Ring 3",
+            heightReference = "Top of the 2nd shell course",
+            stationCount = "8",
+            stations = defaultRoundnessSurveyStationDrafts(8),
+        ),
+        savedRoundnessSurvey = roundnessSurvey,
+        plumbnessSurveyDraft = PlumbnessSurveyDraftInput(
+            stationCount = plumbnessSurvey.stationCount.toString(),
+            stations = plumbnessSurvey.stations.map { station ->
+                PlumbnessSurveyStationDraftInput(
+                    stationId = station.stationId,
+                    angleDeg = station.angleDeg,
+                    plumbness = station.plumbness?.toString().orEmpty(),
+                    captureState = station.captureState,
+                    note = station.note.orEmpty(),
+                )
+            },
+        ),
+        savedPlumbnessSurvey = plumbnessSurvey,
         floatingRoofLayoutDraft = floatingRoofDemoLayoutDraft,
         savedFloatingRoofLayoutDraft = floatingRoofDemoLayoutDraft,
         activeRoofSurfaceId = ROOF_SURFACE_FLOATING,
@@ -212,6 +239,63 @@ private fun demoShellSettlementStations(): List<ShellSettlementStation> =
         ShellSettlementStation("6", 225.0, 1252.0),
         ShellSettlementStation("7", 270.0, 1256.0),
         ShellSettlementStation("8", 315.0, 1259.0),
+    )
+
+private fun demoRoundnessSurvey(): RoundnessSurvey =
+    RoundnessSurvey(
+        surveys = listOf(
+            RoundnessSurveyBand(
+                surveyId = "roundness-01",
+                label = "Ring 1",
+                heightReference = "1 ft above bottom projection plate",
+                stationCount = 8,
+                stations = listOf(
+                    RoundnessSurveyStation("1", 0.0, -34.408, 6.945),
+                    RoundnessSurveyStation("2", 45.0, -36.186, -1.270),
+                    RoundnessSurveyStation("3", 90.0, -40.173, -9.523),
+                    RoundnessSurveyStation("4", 135.0, -45.969, -16.593),
+                    RoundnessSurveyStation("5", 180.0, -53.311, -22.124),
+                    RoundnessSurveyStation("6", 225.0, -61.760, -25.720),
+                    RoundnessSurveyStation("7", 270.0, -70.785, -27.229),
+                    RoundnessSurveyStation("8", 315.0, -79.914, -26.514),
+                ),
+            ),
+            RoundnessSurveyBand(
+                surveyId = "roundness-02",
+                label = "Ring 2",
+                heightReference = "Top of the 1st shell course",
+                stationCount = 8,
+                stations = listOf(
+                    RoundnessSurveyStation("1", 0.0, -34.375, 6.936),
+                    RoundnessSurveyStation("2", 45.0, -36.150, -1.272),
+                    RoundnessSurveyStation("3", 90.0, -40.154, -9.522),
+                    RoundnessSurveyStation("4", 135.0, -45.939, -16.582),
+                    RoundnessSurveyStation("5", 180.0, -53.287, -22.132),
+                    RoundnessSurveyStation("6", 225.0, -61.746, -25.722),
+                    RoundnessSurveyStation("7", 270.0, -70.779, -27.206),
+                    RoundnessSurveyStation("8", 315.0, -79.915, -26.487),
+                ),
+            ),
+        ),
+    )
+
+private fun demoPlumbnessSurvey(): PlumbnessSurvey =
+    PlumbnessSurvey(
+        stationCount = 12,
+        stations = listOf(
+            PlumbnessSurveyStation("1", 0.0, -34.13),
+            PlumbnessSurveyStation("2", 30.0, 39.20),
+            PlumbnessSurveyStation("3", 60.0, 55.52),
+            PlumbnessSurveyStation("4", 90.0, 56.69),
+            PlumbnessSurveyStation("5", 120.0, 39.33),
+            PlumbnessSurveyStation("6", 150.0, 65.83),
+            PlumbnessSurveyStation("7", 180.0, 38.33),
+            PlumbnessSurveyStation("8", 210.0, 27.46),
+            PlumbnessSurveyStation("9", 240.0, 2.11),
+            PlumbnessSurveyStation("10", 270.0, -20.34),
+            PlumbnessSurveyStation("11", 300.0, -43.71),
+            PlumbnessSurveyStation("12", 330.0, -36.39),
+        ),
     )
 
 private fun demoRoofFeatures(): List<RoofFeature> =

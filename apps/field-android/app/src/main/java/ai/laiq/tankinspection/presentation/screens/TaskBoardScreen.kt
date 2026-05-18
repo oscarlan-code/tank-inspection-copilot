@@ -33,6 +33,8 @@ fun TaskBoardScreen(
     onOpenRoofElements: () -> Unit,
     onOpenShellUt: () -> Unit,
     onOpenShellSettlement: () -> Unit,
+    onOpenRoundnessSurvey: () -> Unit,
+    onOpenPlumbnessSurvey: () -> Unit,
     onOpenRoofUt: () -> Unit,
     onOpenShellNozzleUt: () -> Unit,
     onOpenRoofNozzleUt: () -> Unit,
@@ -86,6 +88,8 @@ fun TaskBoardScreen(
                                 FieldTask.ROOF_ELEMENTS -> onOpenRoofElements
                                 FieldTask.SHELL_UT -> onOpenShellUt
                                 FieldTask.SHELL_SETTLEMENT -> onOpenShellSettlement
+                                FieldTask.ROUNDNESS_SURVEY -> onOpenRoundnessSurvey
+                                FieldTask.PLUMBNESS_SURVEY -> onOpenPlumbnessSurvey
                                 FieldTask.ROOF_UT -> onOpenRoofUt
                                 FieldTask.SHELL_NOZZLE_UT -> onOpenShellNozzleUt
                                 FieldTask.ROOF_NOZZLE_UT -> onOpenRoofNozzleUt

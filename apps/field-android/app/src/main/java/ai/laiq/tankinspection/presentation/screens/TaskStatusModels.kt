@@ -17,6 +17,8 @@ fun reviewTaskStatus(task: FieldTask, draftState: FieldDraftState): TaskStatus =
     FieldTask.ROOF_ELEMENTS -> statusFromCount(draftState.roofFeatures.size)
     FieldTask.SHELL_UT -> statusFromCount(draftState.shellUtRows.size)
     FieldTask.SHELL_SETTLEMENT -> statusFromCount(draftState.savedShellSettlementSurvey?.stations?.size ?: 0)
+    FieldTask.ROUNDNESS_SURVEY -> statusFromCount(draftState.savedRoundnessSurvey?.surveys?.size ?: 0)
+    FieldTask.PLUMBNESS_SURVEY -> statusFromCount(draftState.savedPlumbnessSurvey?.stations?.size ?: 0)
     FieldTask.ROOF_UT -> statusFromCount(draftState.roofUtRows.size)
     FieldTask.SHELL_NOZZLE_UT -> nozzleWorkflowStatus(
         registrationCount = draftState.shellNozzles.size,

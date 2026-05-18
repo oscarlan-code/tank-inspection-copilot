@@ -20,7 +20,9 @@ import ai.laiq.tankinspection.presentation.screens.ExportScreen
 import ai.laiq.tankinspection.presentation.screens.InspectionScopeScreen
 import ai.laiq.tankinspection.presentation.screens.InspectionSetupScreen
 import ai.laiq.tankinspection.presentation.screens.MflImportScreen
+import ai.laiq.tankinspection.presentation.screens.PlumbnessSurveyScreen
 import ai.laiq.tankinspection.presentation.screens.ReviewScreen
+import ai.laiq.tankinspection.presentation.screens.RoundnessSurveyScreen
 import ai.laiq.tankinspection.presentation.screens.RoofLayoutScreen
 import ai.laiq.tankinspection.presentation.screens.RoofUtScreen
 import ai.laiq.tankinspection.presentation.screens.RoofNozzleUtScreen
@@ -100,6 +102,8 @@ fun LaiqFieldAndroidApp() {
                                     ProductScreen.RoofLayout -> "Roof Elements"
                                     ProductScreen.ShellUt -> "Shell UT"
                                     ProductScreen.ShellSettlement -> "Shell Settlement"
+                                    ProductScreen.RoundnessSurvey -> "Roundness Survey"
+                                    ProductScreen.PlumbnessSurvey -> "Plumbness Survey"
                                     ProductScreen.RoofUt -> "Roof UT"
                                     ProductScreen.ShellNozzleUt -> "Shell Nozzles"
                                     ProductScreen.RoofNozzleUt -> "Roof Nozzles"
@@ -177,6 +181,8 @@ fun LaiqFieldAndroidApp() {
                             onOpenRoofElements = { currentScreen = ProductScreen.RoofLayout },
                             onOpenShellUt = { currentScreen = ProductScreen.ShellUt },
                             onOpenShellSettlement = { currentScreen = ProductScreen.ShellSettlement },
+                            onOpenRoundnessSurvey = { currentScreen = ProductScreen.RoundnessSurvey },
+                            onOpenPlumbnessSurvey = { currentScreen = ProductScreen.PlumbnessSurvey },
                             onOpenRoofUt = { currentScreen = ProductScreen.RoofUt },
                             onOpenShellNozzleUt = { currentScreen = ProductScreen.ShellNozzleUt },
                             onOpenRoofNozzleUt = { currentScreen = ProductScreen.RoofNozzleUt },
@@ -208,6 +214,24 @@ fun LaiqFieldAndroidApp() {
 
                     ProductScreen.ShellSettlement -> {
                         ShellSettlementScreen(
+                            draftState = draftState,
+                            onDraftStateChange = { draftState = it },
+                            onBack = { currentScreen = ProductScreen.TaskBoard },
+                            contentPadding = innerPadding,
+                        )
+                    }
+
+                    ProductScreen.RoundnessSurvey -> {
+                        RoundnessSurveyScreen(
+                            draftState = draftState,
+                            onDraftStateChange = { draftState = it },
+                            onBack = { currentScreen = ProductScreen.TaskBoard },
+                            contentPadding = innerPadding,
+                        )
+                    }
+
+                    ProductScreen.PlumbnessSurvey -> {
+                        PlumbnessSurveyScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
                             onBack = { currentScreen = ProductScreen.TaskBoard },
