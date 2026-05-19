@@ -155,6 +155,9 @@ class FieldDraftStateCanonicalTest {
     @Test
     fun saveRoofLayoutDraft_clearsDependentRoofDataWhenLayoutChanges() {
         val state = FieldDraftState(
+            setup = SetupFormState(
+                fixedRoofType = "dome",
+            ),
             fixedRoofLayoutDraft = RoofLayoutDraftInput(
                 template = RoofTemplate.CIRCULAR_PLATE,
                 rowCount = "7",

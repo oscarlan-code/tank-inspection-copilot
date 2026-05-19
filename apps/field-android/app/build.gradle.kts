@@ -22,6 +22,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "LAIQ Field Debug")
+        }
+
         release {
             isMinifyEnabled = false
             proguardFiles(

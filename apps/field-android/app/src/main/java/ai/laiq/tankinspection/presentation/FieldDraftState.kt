@@ -98,6 +98,8 @@ data class ScopeFormState(
 
 data class FieldDraftState(
     val startedAtIso: String = Instant.now().toString(),
+    val persistedInspectionId: String? = null,
+    val persistedPackageId: String? = null,
     val setup: SetupFormState = SetupFormState(),
     val scope: ScopeFormState = ScopeFormState(),
     val savedReferenceBaselineKey: String? = null,
@@ -477,6 +479,7 @@ fun SetupFormState.availableRoofSurfaces(): List<RoofSurfaceConfig> = buildList 
 }
 
 fun roofTemplateForFixedRoofType(fixedRoofType: String): RoofTemplate = when (fixedRoofType.trim()) {
+    "cone" -> RoofTemplate.CONE_RADIAL
     "umbrella" -> RoofTemplate.UMBRELLA_RADIAL
     else -> RoofTemplate.CIRCULAR_PLATE
 }
@@ -496,6 +499,15 @@ fun RoofLayoutDraftInput.syncTemplateToSurface(
     val targetTemplate = roofTemplateForSurface(setup, roofSurfaceId)
     if (template == targetTemplate) return this
     return when (targetTemplate) {
+        RoofTemplate.CONE_RADIAL -> copy(
+            template = targetTemplate,
+            rowCount = "",
+            widestRowPlateCount = "",
+            ringCount = "3",
+            centerOpeningRatio = "",
+            hasPontoonDeck = false,
+        )
+
         RoofTemplate.UMBRELLA_RADIAL -> copy(
             template = targetTemplate,
             rowCount = "",
@@ -799,6 +811,7 @@ fun buildRoofLayoutFromDraftOrNull(
 fun RoofLayout?.isReadyForInspection(): Boolean = when (this?.template) {
     RoofTemplate.CIRCULAR_PLATE,
     RoofTemplate.CIRCULAR_CENTER_OPENING -> rowCount != null && widestRowPlateCount != null
+    RoofTemplate.CONE_RADIAL -> ringCount != null && sectorCount != null
     RoofTemplate.UMBRELLA_RADIAL -> ringCount != null && sectorCount != null
     null -> false
 }
@@ -2165,9 +2178,9 @@ fun FieldDraftState.toCanonicalPackage(): CanonicalInspectionPackage {
 
     return CanonicalInspectionPackage(
         schemaVersion = "0.1.0",
-        packageId = "pkg-${committedSetup.tankNumber.ifBlank { "draft" }}-${startedAtIso.take(10)}",
+        packageId = currentPackageId(),
         inspection = InspectionMeta(
-            inspectionId = "insp-${committedSetup.tankNumber.ifBlank { "draft" }}-${startedAtIso.take(10)}",
+            inspectionId = currentInspectionId(),
             client = committedSetup.client,
             site = committedSetup.site,
             tankNumber = committedSetup.tankNumber,
@@ -2216,6 +2229,47 @@ fun FieldDraftState.toCanonicalPackage(): CanonicalInspectionPackage {
             warnings = warnings,
         ),
     )
+}
+
+fun FieldDraftState.currentInspectionId(): String =
+    persistedInspectionId ?: "insp-${stableInspectionInstanceKey()}"
+
+fun FieldDraftState.currentPackageId(): String =
+    persistedPackageId ?: "pkg-${stableInspectionInstanceKey()}"
+
+fun FieldDraftState.isMaterialInspectionDraft(): Boolean =
+    setup.client.isNotBlank() ||
+        setup.site.isNotBlank() ||
+        setup.tankNumber.isNotBlank() ||
+        shellUtRows.isNotEmpty() ||
+        roofUtRows.isNotEmpty() ||
+        shellNozzles.isNotEmpty() ||
+        roofNozzles.isNotEmpty() ||
+        shellNozzleUtRows.isNotEmpty() ||
+        roofNozzleUtRows.isNotEmpty() ||
+        roofFeatures.isNotEmpty() ||
+        findings.isNotEmpty() ||
+        attachments.isNotEmpty() ||
+        savedShellSettlementSurvey?.stations?.isNotEmpty() == true ||
+        savedRoundnessSurvey?.surveys?.isNotEmpty() == true ||
+        savedPlumbnessSurvey?.stations?.isNotEmpty() == true
+
+private fun FieldDraftState.stableInspectionInstanceKey(): String =
+    startedAtIso
+        .ifBlank { Instant.now().toString() }
+        .replace(":", "-")
+        .replace(".", "-")
+
+fun FieldDraftState.localInspectionStorageKey(): String {
+    val tankPart = setup.tankNumber
+        .trim()
+        .ifBlank { savedSetupBaseline?.tankNumber.orEmpty() }
+        .ifBlank { "draft" }
+        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+    val startedPart = startedAtIso
+        .replace(":", "-")
+        .replace(".", "-")
+    return "insp-local-$tankPart-$startedPart"
 }
 
 private fun normalizeDegrees(raw: String): Double? {
@@ -2398,6 +2452,14 @@ private fun roofLayoutMaterialKey(draft: RoofLayoutDraftInput?): String? {
             layout.rowCount,
             layout.widestRowPlateCount,
             layout.centerOpeningRatio,
+            layout.hasAnnularRing,
+            layout.annularSectionCount,
+            layout.hasPontoonDeck,
+        ).joinToString("|")
+        RoofTemplate.CONE_RADIAL -> listOf(
+            layout.template.name,
+            layout.ringCount,
+            layout.sectorCount,
             layout.hasAnnularRing,
             layout.annularSectionCount,
             layout.hasPontoonDeck,

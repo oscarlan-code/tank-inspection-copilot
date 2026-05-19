@@ -222,6 +222,15 @@ fun RoofNozzleUtScreen(
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
     var pendingPlacementRadius by rememberSaveable { mutableStateOf("") }
     var pendingPlacementPlateId by rememberSaveable { mutableStateOf("") }
+    var confirmedPlacementPlateIds by remember(roofSurfaceId, registryDrafts.map { it.nozzleId }.joinToString("|"), registryDrafts.size) {
+        mutableStateOf(registryDrafts.map { it.plateId })
+    }
+    var confirmedPlacementAzimuths by remember(roofSurfaceId, registryDrafts.map { it.nozzleId }.joinToString("|"), registryDrafts.size) {
+        mutableStateOf(registryDrafts.map { it.azimuthDeg })
+    }
+    var confirmedPlacementRadii by remember(roofSurfaceId, registryDrafts.map { it.nozzleId }.joinToString("|"), registryDrafts.size) {
+        mutableStateOf(registryDrafts.map { it.radiusRatio })
+    }
     val listState = rememberLazyListState()
     var showUtEditor by rememberSaveable { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
@@ -298,8 +307,18 @@ fun RoofNozzleUtScreen(
 
     fun undoPendingPlacement() {
         val activeRow = activeRegistryRow ?: return
-        syncPendingPlacementFromRow(activeRow)
-        placementModeEnabled = activeRow.hasPlateLink()
+        val restoredPlateId = confirmedPlacementPlateIds.getOrElse(activeRegistryIndex) { activeRow.plateId }
+        val restoredAzimuth = confirmedPlacementAzimuths.getOrElse(activeRegistryIndex) { activeRow.azimuthDeg }
+        val restoredRadius = confirmedPlacementRadii.getOrElse(activeRegistryIndex) { activeRow.radiusRatio }
+        registryDrafts = registryDrafts.updateRoofRegistryRow(activeRegistryIndex) {
+            copy(
+                plateId = restoredPlateId,
+                azimuthDeg = restoredAzimuth,
+                radiusRatio = restoredRadius,
+            )
+        }
+        syncPendingPlacementFromRow(registryDrafts.getOrNull(activeRegistryIndex))
+        placementModeEnabled = restoredPlateId.isNotBlank()
     }
 
     fun initializePlacementFromLinkedPlate(): Boolean {
@@ -574,6 +593,18 @@ fun RoofNozzleUtScreen(
                                             if (!initializePlacementFromLinkedPlate()) return@LaiqPrimaryButton
                                             val confirmedAzimuth = pendingPlacementAzimuth.toDoubleOrNull() ?: return@LaiqPrimaryButton
                                             val confirmedRadius = pendingPlacementRadius.toDoubleOrNull() ?: return@LaiqPrimaryButton
+                                            confirmedPlacementPlateIds = confirmedPlacementPlateIds.toMutableList().apply {
+                                                while (size <= activeRegistryIndex) add("")
+                                                this[activeRegistryIndex] = pendingPlacementPlateId
+                                            }
+                                            confirmedPlacementAzimuths = confirmedPlacementAzimuths.toMutableList().apply {
+                                                while (size <= activeRegistryIndex) add("")
+                                                this[activeRegistryIndex] = confirmedAzimuth.toInt().toString()
+                                            }
+                                            confirmedPlacementRadii = confirmedPlacementRadii.toMutableList().apply {
+                                                while (size <= activeRegistryIndex) add("")
+                                                this[activeRegistryIndex] = "%.2f".format(confirmedRadius)
+                                            }
                                             registryDrafts = registryDrafts.updateRoofRegistryRow(activeRegistryIndex) {
                                                 copy(
                                                     plateId = pendingPlacementPlateId,
@@ -1022,6 +1053,7 @@ private fun SketchRoofNozzleGuide(
                 }
             }
 
+            RoofTemplate.CONE_RADIAL,
             RoofTemplate.UMBRELLA_RADIAL -> {
                 val plateCells = ai.laiq.tankinspection.presentation.buildRoofPlateCells(
                     template = template,

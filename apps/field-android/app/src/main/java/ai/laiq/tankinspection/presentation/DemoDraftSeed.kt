@@ -20,16 +20,92 @@ import ai.laiq.tankinspection.domain.model.ShellSettlementStation
 import ai.laiq.tankinspection.domain.model.ShellSettlementSurvey
 import ai.laiq.tankinspection.domain.model.ShellUtRow
 
-fun demoFieldDraftState(): FieldDraftState {
-    val selectedTasks = defaultFieldTasks()
-    val settlementStations = demoShellSettlementStations()
-    val roundnessSurvey = demoRoundnessSurvey()
-    val plumbnessSurvey = demoPlumbnessSurvey()
+data class DemoInspectionScenario(
+    val id: String,
+    val label: String,
+    val description: String,
+)
 
-    return FieldDraftState(
-        startedAtIso = "2026-05-15T08:00:00Z",
-        setup = SetupFormState(
-            client = "Pacific Energy SWP Ltd",
+private const val demoScenarioPacificFloating = "pacific-floating"
+private const val demoScenarioTjsFixed = "tjs-465-fixed"
+private const val demoScenarioCoverageMixed = "coverage-mixed-roof"
+
+private val reportFaithfulPacificTasks = linkedSetOf(
+    FieldTask.ROOF_ELEMENTS,
+    FieldTask.SHELL_UT,
+    FieldTask.SHELL_SETTLEMENT,
+    FieldTask.ROOF_UT,
+    FieldTask.SHELL_NOZZLE_UT,
+    FieldTask.ROOF_NOZZLE_UT,
+    FieldTask.REVIEW_EXPORT,
+)
+
+private val reportFaithfulTjsTasks = linkedSetOf(
+    FieldTask.ROOF_ELEMENTS,
+    FieldTask.SHELL_UT,
+    FieldTask.ROOF_UT,
+    FieldTask.SHELL_NOZZLE_UT,
+    FieldTask.ROOF_NOZZLE_UT,
+    FieldTask.REVIEW_EXPORT,
+)
+
+private val demoInspectionScenarios = listOf(
+    DemoInspectionScenario(
+        id = demoScenarioPacificFloating,
+        label = "Pacific Energy TK-13",
+        description = "Report-faithful external floating roof sample based on IRS 24PE1-2 with shell settlement, roof/shell UT, nozzle UT, and floating-roof elements.",
+    ),
+    DemoInspectionScenario(
+        id = demoScenarioTjsFixed,
+        label = "TJS TK-465",
+        description = "Report-faithful fixed cone-roof sample based on IRS 16TJS4-1 with shell/roof UT, roof appurtenances, and shell/roof nozzle UT.",
+    ),
+    DemoInspectionScenario(
+        id = demoScenarioCoverageMixed,
+        label = "Full Coverage Sample",
+        description = "Mixed fixed-roof plus internal floating-roof sample that intentionally exercises surveys, floating-roof elements, both roof surfaces, and all major capture branches.",
+    ),
+)
+
+fun demoInspectionScenarioOptions(): List<Pair<String, String>> =
+    demoInspectionScenarios.map { scenario -> scenario.id to scenario.label }
+
+fun defaultDemoInspectionScenarioId(): String =
+    demoInspectionScenarios.first().id
+
+fun demoInspectionScenarioDescription(id: String): String =
+    demoInspectionScenarios.firstOrNull { scenario -> scenario.id == id }?.description
+        ?: demoInspectionScenarios.first().description
+
+fun loadDemoInspectionScenario(id: String): FieldDraftState = when (id) {
+    demoScenarioTjsFixed -> demoTjs465FieldDraftState()
+    demoScenarioCoverageMixed -> demoCoverageMixedFieldDraftState()
+    else -> demoPacificFloatingFieldDraftState()
+}
+
+fun demoFieldDraftState(): FieldDraftState = loadDemoInspectionScenario(defaultDemoInspectionScenarioId())
+
+private fun finalizeDemoState(state: FieldDraftState): FieldDraftState =
+    state.let {
+        it.copy(
+            savedReferenceBaselineKey = it.currentFundamentalBaselineKey(),
+            savedSetupBaseline = it.setup,
+            savedScopeBaseline = it.scope,
+            savedShellLineCountOverride = it.shellLineCountOverride,
+            savedShellCaptureStartLaneId = it.currentShellCaptureStartLaneId(),
+            savedShellPlanKey = it.currentShellPlanKey(),
+        )
+    }
+
+private fun demoPacificFloatingFieldDraftState(): FieldDraftState {
+    val selectedTasks = reportFaithfulPacificTasks
+    val settlementStations = demoShellSettlementStations()
+
+    return finalizeDemoState(
+        FieldDraftState(
+            startedAtIso = "2026-05-15T08:00:00Z",
+            setup = SetupFormState(
+                client = "Pacific Energy SWP Ltd",
             site = "Utulei Terminal, Pago Pago, American Samoa",
             tankNumber = "TK-13",
             diameterM = "24.384",
@@ -67,26 +143,6 @@ fun demoFieldDraftState(): FieldDraftState {
             stationCount = settlementStations.size,
             stations = settlementStations,
         ),
-        roundnessSurveyDraft = RoundnessSurveyDraftInput(
-            surveyLabel = "Ring 3",
-            heightReference = "Top of the 2nd shell course",
-            stationCount = "8",
-            stations = defaultRoundnessSurveyStationDrafts(8),
-        ),
-        savedRoundnessSurvey = roundnessSurvey,
-        plumbnessSurveyDraft = PlumbnessSurveyDraftInput(
-            stationCount = plumbnessSurvey.stationCount.toString(),
-            stations = plumbnessSurvey.stations.map { station ->
-                PlumbnessSurveyStationDraftInput(
-                    stationId = station.stationId,
-                    angleDeg = station.angleDeg,
-                    plumbness = station.plumbness?.toString().orEmpty(),
-                    captureState = station.captureState,
-                    note = station.note.orEmpty(),
-                )
-            },
-        ),
-        savedPlumbnessSurvey = plumbnessSurvey,
         floatingRoofLayoutDraft = floatingRoofDemoLayoutDraft,
         savedFloatingRoofLayoutDraft = floatingRoofDemoLayoutDraft,
         activeRoofSurfaceId = ROOF_SURFACE_FLOATING,
@@ -108,16 +164,8 @@ fun demoFieldDraftState(): FieldDraftState {
         findings = demoFindings(),
         attachments = demoAttachments(),
         mflImportDraft = MflImportDraftInput(),
-    ).let { state ->
-        state.copy(
-            savedReferenceBaselineKey = state.currentFundamentalBaselineKey(),
-            savedSetupBaseline = state.setup,
-            savedScopeBaseline = state.scope,
-            savedShellLineCountOverride = state.shellLineCountOverride,
-            savedShellCaptureStartLaneId = state.currentShellCaptureStartLaneId(),
-            savedShellPlanKey = state.currentShellPlanKey(),
         )
-    }
+    )
 }
 
 private val floatingRoofDemoLayoutDraft = RoofLayoutDraftInput(
@@ -129,25 +177,55 @@ private val floatingRoofDemoLayoutDraft = RoofLayoutDraftInput(
     hasPontoonDeck = true,
 )
 
+private val tjs465FixedRoofLayoutDraft = RoofLayoutDraftInput(
+    template = RoofTemplate.CONE_RADIAL,
+    ringCount = "3",
+    sectorCount = "20",
+)
+
+private val tjs465FloatingRoofLayoutDraft = RoofLayoutDraftInput(
+    template = RoofTemplate.CIRCULAR_PLATE,
+    rowCount = "4",
+    widestRowPlateCount = "10",
+    hasAnnularRing = true,
+    annularSectionCount = "12",
+    hasPontoonDeck = true,
+)
+
 private val floatingRoofDemoLinkTargets by lazy {
-    buildRoofLinkTargetsForConfig(
-        template = floatingRoofDemoLayoutDraft.template,
-        rowCount = floatingRoofDemoLayoutDraft.rowCount.toIntOrNull() ?: 0,
-        widestRowPlateCount = floatingRoofDemoLayoutDraft.widestRowPlateCount.toIntOrNull() ?: 0,
-        ringCount = floatingRoofDemoLayoutDraft.ringCount.toIntOrNull() ?: 0,
-        sectorCount = floatingRoofDemoLayoutDraft.sectorCount.toIntOrNull() ?: 0,
-        referenceAzimuthDeg = 0.0,
-        rotationDirection = RotationDirection.CLOCKWISE,
-        hasAnnularRing = floatingRoofDemoLayoutDraft.hasAnnularRing,
-        annularSectionCount = floatingRoofDemoLayoutDraft.annularSectionCount.toIntOrNull() ?: 0,
-    )
+    demoRoofLinkTargetsForDraft(floatingRoofDemoLayoutDraft)
 }
 
-private fun floatingRoofDemoPlacementForPlate(plateId: String): Pair<Double, Double> {
-    val cell = floatingRoofDemoLinkTargets.firstOrNull { target -> target.plateId == plateId }
+private fun demoRoofLinkTargetsForDraft(
+    layoutDraft: RoofLayoutDraftInput,
+    referenceAzimuthDeg: Double = 0.0,
+    rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
+) = buildRoofLinkTargetsForConfig(
+    template = layoutDraft.template,
+    rowCount = layoutDraft.rowCount.toIntOrNull() ?: 0,
+    widestRowPlateCount = layoutDraft.widestRowPlateCount.toIntOrNull() ?: 0,
+    ringCount = layoutDraft.ringCount.toIntOrNull() ?: 0,
+    sectorCount = layoutDraft.sectorCount.toIntOrNull() ?: 0,
+    referenceAzimuthDeg = referenceAzimuthDeg,
+    rotationDirection = rotationDirection,
+    hasAnnularRing = layoutDraft.hasAnnularRing,
+    annularSectionCount = layoutDraft.annularSectionCount.toIntOrNull() ?: 0,
+)
+
+private fun demoRoofPlacementForPlate(
+    layoutDraft: RoofLayoutDraftInput,
+    plateId: String,
+    referenceAzimuthDeg: Double = 0.0,
+    rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
+): Pair<Double, Double> {
+    val cell = demoRoofLinkTargetsForDraft(layoutDraft, referenceAzimuthDeg, rotationDirection)
+        .firstOrNull { target -> target.plateId == plateId }
         ?: error("Missing demo roof plate target for $plateId")
     return canvasPointToRoofPolar(cell.xNorm, cell.yNorm)
 }
+
+private fun floatingRoofDemoPlacementForPlate(plateId: String): Pair<Double, Double> =
+    demoRoofPlacementForPlate(floatingRoofDemoLayoutDraft, plateId)
 
 private fun demoRoofFeature(
     featureId: String,
@@ -168,6 +246,27 @@ private fun demoRoofFeature(
     )
 }
 
+private fun demoRoofFeatureForSurface(
+    featureId: String,
+    roofSurfaceId: String,
+    layoutDraft: RoofLayoutDraftInput,
+    type: String,
+    label: String,
+    plateId: String,
+): RoofFeature {
+    val (azimuthDeg, radiusRatio) = demoRoofPlacementForPlate(layoutDraft, plateId)
+    return RoofFeature(
+        featureId = featureId,
+        roofSurfaceId = roofSurfaceId,
+        type = type,
+        label = label,
+        placementMode = "plate_linked_positioned",
+        plateId = plateId,
+        azimuthDeg = azimuthDeg,
+        radiusRatio = radiusRatio,
+    )
+}
+
 private fun demoRoofNozzle(
     nozzleId: String,
     size: String,
@@ -179,6 +278,28 @@ private fun demoRoofNozzle(
         nozzleId = nozzleId,
         surface = "roof",
         roofSurfaceId = ROOF_SURFACE_FLOATING,
+        size = size,
+        hasReinforcementPad = hasReinforcementPad,
+        placementMode = "plate_linked_positioned",
+        azimuthDeg = azimuthDeg,
+        radiusRatio = radiusRatio,
+        plateId = plateId,
+    )
+}
+
+private fun demoRoofNozzleForSurface(
+    nozzleId: String,
+    roofSurfaceId: String,
+    layoutDraft: RoofLayoutDraftInput,
+    size: String,
+    plateId: String,
+    hasReinforcementPad: Boolean = true,
+): NozzleDefinition {
+    val (azimuthDeg, radiusRatio) = demoRoofPlacementForPlate(layoutDraft, plateId)
+    return NozzleDefinition(
+        nozzleId = nozzleId,
+        surface = "roof",
+        roofSurfaceId = roofSurfaceId,
         size = size,
         hasReinforcementPad = hasReinforcementPad,
         placementMode = "plate_linked_positioned",
@@ -513,6 +634,24 @@ private fun demoFindings(): List<FindingRecord> =
             locationSummary = "Floating roof nozzle RN-001 · Plate 11",
             attachmentIds = listOf("photo-018"),
         ),
+        FindingRecord(
+            findingId = "finding-006",
+            surface = "shell_element",
+            type = "coating_failure",
+            severity = "low",
+            note = "Coating breakdown on the shell ladder / handrail assembly. Use this as the shell-element example in the coverage sample.",
+            locationSummary = "Shell element · access ladder north side",
+            attachmentIds = listOf("photo-019"),
+        ),
+        FindingRecord(
+            findingId = "finding-007",
+            surface = "diked_area",
+            type = "housekeeping",
+            severity = "low",
+            note = "Diked area housekeeping issue with pooled water and surface debris near the tank pad.",
+            locationSummary = "Diked area · east drain corner",
+            attachmentIds = listOf("photo-020"),
+        ),
     )
 
 private fun demoAttachments(): List<AttachmentRecord> =
@@ -522,4 +661,399 @@ private fun demoAttachments(): List<AttachmentRecord> =
         AttachmentRecord("photo-016", "photo", "images/photo_16.jpg", "Demo floating-roof coating wear"),
         AttachmentRecord("photo-017", "photo", "images/photo_17.jpg", "Demo outer deck waviness"),
         AttachmentRecord("photo-018", "photo", "images/photo_18.jpg", "Demo floating-roof nozzle corrosion"),
+        AttachmentRecord("photo-019", "photo", "images/photo_19.jpg", "Demo shell ladder / handrail coating failure"),
+        AttachmentRecord("photo-020", "photo", "images/photo_20.jpg", "Demo diked area pooled water and debris"),
+    )
+
+private fun demoCoverageMixedFieldDraftState(): FieldDraftState {
+    val selectedTasks = defaultFieldTasks()
+    val roundnessSurvey = demoRoundnessSurvey()
+    val plumbnessSurvey = demoPlumbnessSurvey()
+
+    return finalizeDemoState(
+        FieldDraftState(
+            startedAtIso = "2026-05-16T08:00:00Z",
+            setup = SetupFormState(
+                client = "IRS Coverage Demo",
+                site = "Mixed Roof Verification Yard",
+                tankNumber = "COV-01",
+                diameterM = "28.65",
+                heightM = "14.20",
+                shellCourseCount = "4",
+                fixedRoofType = "cone",
+                floatingRoofType = "internal",
+                inspector = "Syed Abdul Rahman Balkhi / Mulyadi Bin Taib",
+                thicknessUnit = MeasurementUnit.MM,
+                settlementUnit = MeasurementUnit.MM,
+                nozzleSizeUnit = NozzleSizeUnit.INCH,
+            ),
+            scope = ScopeFormState(
+                referenceMode = ReferenceMode.TANK_NORTH,
+                referenceRemark = "Gauge pole centerline used as 0° reference",
+                rotationDirection = RotationDirection.CLOCKWISE,
+                selectedTasks = selectedTasks,
+            ),
+            shellLineCountOverride = "4",
+            shellCaptureStartLaneId = "line-01",
+            shellUtRows = demoShellUtRows(),
+            shellSettlementDraft = ShellSettlementDraftInput(
+                stationCount = "8",
+                stations = demoShellSettlementStations().map { station ->
+                    ShellSettlementStationDraftInput(
+                        stationId = station.stationId,
+                        angleDeg = station.angleDeg,
+                        elevation = station.elevation?.toString().orEmpty(),
+                        captureState = station.captureState,
+                        note = station.note.orEmpty(),
+                    )
+                },
+            ),
+            savedShellSettlementSurvey = ShellSettlementSurvey(
+                stationCount = 8,
+                stations = demoShellSettlementStations(),
+            ),
+            roundnessSurveyDraft = RoundnessSurveyDraftInput(
+                surveyLabel = "Ring 1",
+                heightReference = "1 ft above bottom projection plate",
+                stationCount = "8",
+                stations = defaultRoundnessSurveyStationDrafts(8),
+            ),
+            savedRoundnessSurvey = roundnessSurvey,
+            plumbnessSurveyDraft = PlumbnessSurveyDraftInput(
+                stationCount = plumbnessSurvey.stationCount.toString(),
+                stations = plumbnessSurvey.stations.map { station ->
+                    PlumbnessSurveyStationDraftInput(
+                        stationId = station.stationId,
+                        angleDeg = station.angleDeg,
+                        plumbness = station.plumbness?.toString().orEmpty(),
+                        captureState = station.captureState,
+                        note = station.note.orEmpty(),
+                    )
+                },
+            ),
+            savedPlumbnessSurvey = plumbnessSurvey,
+            fixedRoofLayoutDraft = tjs465FixedRoofLayoutDraft,
+            savedFixedRoofLayoutDraft = tjs465FixedRoofLayoutDraft,
+            floatingRoofLayoutDraft = tjs465FloatingRoofLayoutDraft,
+            savedFloatingRoofLayoutDraft = tjs465FloatingRoofLayoutDraft,
+            activeRoofSurfaceId = ROOF_SURFACE_FIXED,
+            roofFeatureDraft = RoofFeatureDraftInput(
+                roofSurfaceId = ROOF_SURFACE_FIXED,
+                type = "support_column",
+                quantity = "4",
+            ),
+            roofFeatures = demoTjs465RoofFeatures(),
+            roofUtDraft = RoofUtDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofUtRows = demoTjs465RoofUtRows(),
+            shellNozzles = demoShellNozzles(),
+            shellNozzleUtDraft = NozzleUtDraftInput(),
+            shellNozzleUtRows = demoShellNozzleUtRows(),
+            roofNozzleDraft = RoofNozzleDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofNozzles = demoTjs465RoofNozzles(),
+            roofNozzleUtDraft = NozzleUtDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofNozzleUtRows = demoTjs465RoofNozzleUtRows(),
+            findings = demoTjs465Findings(),
+            attachments = demoTjs465Attachments(),
+            mflImportDraft = MflImportDraftInput(),
+        ),
+    )
+}
+
+private fun demoTjs465FieldDraftState(): FieldDraftState =
+    finalizeDemoState(
+        FieldDraftState(
+            startedAtIso = "2026-05-16T08:00:00Z",
+            setup = SetupFormState(
+                client = "TJS Pte Ltd (Chemstationasia Group)",
+                site = "Vava'u Terminal, Tonga",
+                tankNumber = "465",
+                diameterM = "7.8",
+                heightM = "9.14",
+                shellCourseCount = "6",
+                fixedRoofType = "cone",
+                floatingRoofType = "none",
+                inspector = "Syed Abdul Rahman Balkhi / Mulyadi Bin Taib",
+                thicknessUnit = MeasurementUnit.MM,
+                settlementUnit = MeasurementUnit.MM,
+                nozzleSizeUnit = NozzleSizeUnit.INCH,
+            ),
+            scope = ScopeFormState(
+                referenceMode = ReferenceMode.TANK_NORTH,
+                referenceRemark = "Gauge pole centerline used as 0° reference",
+                rotationDirection = RotationDirection.CLOCKWISE,
+                selectedTasks = reportFaithfulTjsTasks,
+            ),
+            shellLineCountOverride = "4",
+            shellCaptureStartLaneId = "line-01",
+            shellUtRows = tjs465ShellUtRows(),
+            fixedRoofLayoutDraft = tjs465ReportFixedRoofLayoutDraft,
+            savedFixedRoofLayoutDraft = tjs465ReportFixedRoofLayoutDraft,
+            activeRoofSurfaceId = ROOF_SURFACE_FIXED,
+            roofFeatureDraft = RoofFeatureDraftInput(
+                roofSurfaceId = ROOF_SURFACE_FIXED,
+                type = "support_column",
+                quantity = "4",
+            ),
+            roofFeatures = demoTjs465RoofFeatures().filter { feature -> feature.roofSurfaceId == ROOF_SURFACE_FIXED },
+            roofUtDraft = RoofUtDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofUtRows = tjs465RoofUtRows(),
+            shellNozzles = tjs465ShellNozzles(),
+            shellNozzleUtDraft = NozzleUtDraftInput(),
+            shellNozzleUtRows = tjs465ShellNozzleUtRows(),
+            roofNozzleDraft = RoofNozzleDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofNozzles = tjs465RoofNozzles(),
+            roofNozzleUtDraft = NozzleUtDraftInput(roofSurfaceId = ROOF_SURFACE_FIXED),
+            roofNozzleUtRows = tjs465RoofNozzleUtRows(),
+            findings = tjs465Findings(),
+            attachments = tjs465Attachments(),
+            mflImportDraft = MflImportDraftInput(),
+        ),
+    )
+
+private val tjs465ReportFixedRoofLayoutDraft = RoofLayoutDraftInput(
+    template = RoofTemplate.CONE_RADIAL,
+    ringCount = "3",
+    sectorCount = "20",
+)
+
+private fun tjs465ShellUtRows(): List<ShellUtRow> =
+    listOf(
+        tjsShellUtRow("tjs-shell-ut-001", "line-01", 1, listOf(6.52, 6.48, 6.51, 6.43, 6.50)),
+        tjsShellUtRow("tjs-shell-ut-002", "line-02", 1, listOf(6.55, 6.54, 6.60, 6.61, 6.60)),
+        tjsShellUtRow("tjs-shell-ut-003", "line-03", 1, listOf(6.60, 6.64, 6.67, 6.69, 6.66)),
+        tjsShellUtRow("tjs-shell-ut-004", "line-04", 1, listOf(6.70, 6.72, 6.76, 6.75, 6.70)),
+        tjsShellUtRow("tjs-shell-ut-005", "line-01", 2, listOf(6.58, 6.31, 6.66, 6.60, 6.61)),
+        tjsShellUtRow("tjs-shell-ut-006", "line-02", 2, listOf(6.62, 6.66, 6.58, 6.66, 6.63)),
+        tjsShellUtRow("tjs-shell-ut-007", "line-03", 2, listOf(6.70, 6.85, 6.87, 6.55, 6.55)),
+        tjsShellUtRow("tjs-shell-ut-008", "line-04", 2, listOf(6.30, 6.28, 6.33, 6.36, 6.24)),
+        tjsShellUtRow("tjs-shell-ut-009", "line-01", 3, listOf(6.65, 6.54, 6.51, 6.51, 6.56)),
+        tjsShellUtRow("tjs-shell-ut-010", "line-02", 3, listOf(6.51, 6.54, 6.44, 6.45, 6.50)),
+        tjsShellUtRow("tjs-shell-ut-011", "line-03", 3, listOf(6.61, 6.37, 6.61, 6.66, 6.64)),
+        tjsShellUtRow("tjs-shell-ut-012", "line-04", 3, listOf(6.54, 6.54, 6.46, 6.58, 6.55)),
+        tjsShellUtRow("tjs-shell-ut-013", "line-01", 4, listOf(6.51, 6.51, 6.52, 6.50, 6.49)),
+        tjsShellUtRow("tjs-shell-ut-014", "line-02", 4, listOf(6.57, 6.54, 6.52, 6.51, 6.54)),
+        tjsShellUtRow("tjs-shell-ut-015", "line-03", 4, listOf(6.46, 6.48, 6.58, 6.57, 6.48)),
+        tjsShellUtRow("tjs-shell-ut-016", "line-04", 4, listOf(6.21, 6.27, 6.37, 6.35, 6.31)),
+        tjsShellUtRow("tjs-shell-ut-017", "line-01", 5, listOf(6.57, 6.60, 6.58, 6.56, 6.55)),
+        tjsShellUtRow("tjs-shell-ut-018", "line-02", 5, listOf(6.61, 6.60, 6.57, 6.39, 6.55)),
+        tjsShellUtRow("tjs-shell-ut-019", "line-03", 5, listOf(6.39, 6.42, 6.48, 6.43, 6.33)),
+        tjsShellUtRow("tjs-shell-ut-020", "line-04", 5, listOf(6.30, 6.34, 6.33, 6.28, 6.27)),
+        tjsShellUtRow("tjs-shell-ut-021", "line-01", 6, listOf(6.63, 6.60, 6.55, 6.56, 6.57)),
+        tjsShellUtRow("tjs-shell-ut-022", "line-02", 6, listOf(6.70, 6.68, 6.66, 6.70, 6.71)),
+        tjsShellUtRow("tjs-shell-ut-023", "line-03", 6, listOf(6.51, 6.60, 6.65, 6.73, 6.60)),
+        tjsShellUtRow("tjs-shell-ut-024", "line-04", 6, listOf(6.41, 6.41, 6.37, 6.48, 6.40)),
+    )
+
+private fun tjsShellUtRow(
+    rowId: String,
+    lineId: String,
+    course: Int,
+    readings: List<Double>,
+): ShellUtRow = ShellUtRow(
+    rowId = rowId,
+    lineId = lineId,
+    course = course,
+    readings = readings,
+    note = "IRS 16TJS4 TK-465 shell UT · ${lineId.replace("line-01", "N").replace("line-02", "E").replace("line-03", "S").replace("line-04", "W")} · Strake $course.",
+)
+
+private fun tjs465RoofUtRows(): List<RoofUtRow> =
+    listOf(
+        tjsRoofUtRow(1, listOf(4.55, 4.41, 4.63, 4.50, 4.49)),
+        tjsRoofUtRow(2, listOf(4.54, 4.17, 4.39, 4.46, 4.45)),
+        tjsRoofUtRow(3, listOf(4.45, 4.36, 4.35, 4.42, 4.49)),
+        tjsRoofUtRow(4, listOf(4.45, 4.26, 4.36, 4.46, 4.42)),
+        tjsRoofUtRow(5, listOf(4.50, 4.33, 4.53, 4.45, 4.46)),
+        tjsRoofUtRow(6, listOf(4.45, 4.35, 4.19, 4.28, 4.36)),
+        tjsRoofUtRow(7, listOf(4.29, 4.47, 4.55, 4.47, 4.36)),
+        tjsRoofUtRow(8, listOf(4.37, 4.50, 4.30, 4.43, 4.51)),
+        tjsRoofUtRow(9, listOf(4.47, 4.51, 4.45, 4.33, 4.38)),
+        tjsRoofUtRow(10, listOf(4.52, 4.37, 4.28, 4.43, 4.45)),
+        tjsRoofUtRow(11, listOf(4.60, 4.51, 4.52, 4.50, 4.47)),
+        tjsRoofUtRow(12, listOf(4.56, 4.57, 4.49, 4.41, 4.51)),
+        tjsRoofUtRow(13, listOf(4.53, 4.27, 4.29, 4.55, 4.46)),
+        tjsRoofUtRow(14, listOf(4.44, 4.38, 4.36, 4.52, 4.51)),
+        tjsRoofUtRow(15, listOf(4.37, 4.28, 4.25, 4.51, 4.37)),
+        tjsRoofUtRow(16, listOf(4.59, 4.55, 4.56, 4.32, 4.33)),
+        tjsRoofUtRow(17, listOf(4.35, 4.54, 4.54, 4.41, 4.43)),
+        tjsRoofUtRow(18, listOf(4.53, 4.31, 4.52, 4.33, 4.57)),
+        tjsRoofUtRow(19, listOf(4.45, 4.45, 4.30, 4.38, 4.35)),
+        tjsRoofUtRow(20, listOf(4.53, 4.30, 4.33, 4.42, 4.45)),
+        tjsRoofUtRow(21, listOf(9.39, 9.71, 9.56, 9.50, 9.41)),
+        tjsRoofUtRow(22, listOf(9.46, 9.36, 9.55, 9.54, 9.46)),
+        tjsRoofUtRow(23, listOf(9.50, 9.53, 9.61, 9.55, 9.56)),
+    )
+
+private fun tjsRoofUtRow(
+    plateNumber: Int,
+    readings: List<Double>,
+): RoofUtRow = RoofUtRow(
+    rowId = "tjs-roof-ut-${plateNumber.toString().padStart(3, '0')}",
+    roofSurfaceId = ROOF_SURFACE_FIXED,
+    plateId = plateNumber.toString(),
+    readings = readings,
+    note = "IRS 16TJS4 TK-465 fixed-roof plate UT.",
+)
+
+private fun tjs465ShellNozzles(): List<NozzleDefinition> =
+    listOf(
+        NozzleDefinition("S1", "shell", size = "Unknown", hasReinforcementPad = true, placementMode = "line_linked_positioned", course = 1, azimuthDeg = 0.0, courseOffsetRatio = 0.45),
+        NozzleDefinition("S2", "shell", size = "Unknown", hasReinforcementPad = true, placementMode = "line_linked_positioned", course = 2, azimuthDeg = 90.0, courseOffsetRatio = 0.52),
+        NozzleDefinition("S3", "shell", size = "Unknown", hasReinforcementPad = true, placementMode = "line_linked_positioned", course = 3, azimuthDeg = 180.0, courseOffsetRatio = 0.48),
+        NozzleDefinition("S4", "shell", size = "Unknown", hasReinforcementPad = true, placementMode = "line_linked_positioned", course = 4, azimuthDeg = 270.0, courseOffsetRatio = 0.50),
+    )
+
+private fun tjs465ShellNozzleUtRows(): List<NozzleUtRow> =
+    listOf(
+        NozzleUtRow("tjs-shell-nozzle-ut-001", "S1", bodyReadings = listOf(10.04, 10.01, 9.84, 10.04), reinforcementPadReading = 6.09, note = "IRS 16TJS4 TK-465 shell nozzle UT."),
+        NozzleUtRow("tjs-shell-nozzle-ut-002", "S2", bodyReadings = listOf(5.63, 5.34, 5.50, 5.46), reinforcementPadReading = 6.20, note = "IRS 16TJS4 TK-465 shell nozzle UT."),
+        NozzleUtRow("tjs-shell-nozzle-ut-003", "S3", bodyReadings = listOf(5.40, 5.50, 5.51, 5.42), reinforcementPadReading = 6.03, note = "IRS 16TJS4 TK-465 shell nozzle UT."),
+        NozzleUtRow("tjs-shell-nozzle-ut-004", "S4", bodyReadings = listOf(5.55, 5.36, 5.41, 5.39), reinforcementPadReading = 6.01, note = "IRS 16TJS4 TK-465 shell nozzle UT."),
+    )
+
+private fun tjs465RoofNozzles(): List<NozzleDefinition> =
+    listOf(
+        demoRoofNozzleForSurface("R1", ROOF_SURFACE_FIXED, tjs465ReportFixedRoofLayoutDraft, "Unknown", "1"),
+        demoRoofNozzleForSurface("R2", ROOF_SURFACE_FIXED, tjs465ReportFixedRoofLayoutDraft, "Unknown", "4"),
+        demoRoofNozzleForSurface("R3", ROOF_SURFACE_FIXED, tjs465ReportFixedRoofLayoutDraft, "Unknown", "6"),
+    )
+
+private fun tjs465RoofNozzleUtRows(): List<NozzleUtRow> =
+    listOf(
+        NozzleUtRow("tjs-roof-nozzle-ut-001", "R1", ROOF_SURFACE_FIXED, listOf(6.28, 6.05, 6.25, 6.17), reinforcementPadReading = 6.39, note = "IRS 16TJS4 TK-465 roof nozzle UT."),
+        NozzleUtRow("tjs-roof-nozzle-ut-002", "R2", ROOF_SURFACE_FIXED, listOf(6.70, 6.58, 6.61, 6.58), reinforcementPadReading = 9.45, note = "IRS 16TJS4 TK-465 roof nozzle UT."),
+        NozzleUtRow("tjs-roof-nozzle-ut-003", "R3", ROOF_SURFACE_FIXED, listOf(5.97, 6.12, 5.99, 6.03), reinforcementPadReading = 5.99, note = "IRS 16TJS4 TK-465 roof nozzle UT."),
+    )
+
+private fun tjs465Findings(): List<FindingRecord> =
+    listOf(
+        FindingRecord(
+            findingId = "tjs-finding-001",
+            surface = roofFindingSurface(ROOF_SURFACE_FIXED),
+            type = "coating_failure",
+            severity = "low",
+            note = "Coating wear visible around the fixed-roof manhole and adjacent support-column traffic path.",
+            linkedMeasurementId = "tjs-roof-ut-004",
+            locationSummary = "Fixed roof · Plate 4 / MH1 area",
+            attachmentIds = listOf("tjs-photo-001"),
+        ),
+        FindingRecord(
+            findingId = "tjs-finding-002",
+            surface = "shell_nozzle",
+            type = "weld_concern",
+            severity = "medium",
+            note = "Local corrosion and coating breakdown around shell nozzle S2.",
+            linkedMeasurementId = "tjs-shell-nozzle-ut-002",
+            locationSummary = "Shell nozzle S2 · east quadrant",
+            attachmentIds = listOf("tjs-photo-002"),
+        ),
+        FindingRecord(
+            findingId = "tjs-finding-003",
+            surface = roofNozzleFindingSurface(ROOF_SURFACE_FIXED),
+            type = "corrosion",
+            severity = "medium",
+            note = "Local corrosion around the roof nozzle collar and nearby reinforcement pad.",
+            linkedMeasurementId = "tjs-roof-nozzle-ut-002",
+            locationSummary = "Fixed roof nozzle R2",
+            attachmentIds = listOf("tjs-photo-003"),
+        ),
+    )
+
+private fun tjs465Attachments(): List<AttachmentRecord> =
+    listOf(
+        AttachmentRecord("tjs-photo-001", "photo", "images/tjs_465_photo_01.jpg", "TK-465 fixed-roof manhole coating wear"),
+        AttachmentRecord("tjs-photo-002", "photo", "images/tjs_465_photo_02.jpg", "TK-465 shell nozzle corrosion"),
+        AttachmentRecord("tjs-photo-003", "photo", "images/tjs_465_photo_03.jpg", "TK-465 roof nozzle corrosion"),
+    )
+
+private fun demoTjs465RoofFeatures(): List<RoofFeature> =
+    listOf(
+        demoRoofFeatureForSurface("tjs-fixed-feature-001", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "manhole", "MH1", "1"),
+        demoRoofFeatureForSurface("tjs-fixed-feature-002", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "stairway_termination", "ST1", "1"),
+        demoRoofFeatureForSurface("tjs-fixed-feature-003", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "stairway_termination", "ST2", "6"),
+        demoRoofFeatureForSurface("tjs-fixed-feature-004", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "stairway_termination", "ST3", "16"),
+        demoRoofFeatureForSurface("tjs-fixed-feature-005", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "roof_ladder", "LD1", "11"),
+        demoRoofFeatureForSurface("tjs-floating-feature-001", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "seal_detail", "SD1", "24"),
+        demoRoofFeatureForSurface("tjs-floating-feature-002", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "seal_shoe", "SS1", "AR4"),
+        demoRoofFeatureForSurface("tjs-floating-feature-003", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "drain_hose", "DH1", "21"),
+        demoRoofFeatureForSurface("tjs-floating-feature-004", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "guide_pole", "GP1", "15"),
+        demoRoofFeatureForSurface("tjs-floating-feature-005", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "anti_rotation_cable", "AC1", "18"),
+        demoRoofFeatureForSurface("tjs-floating-feature-006", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "roof_leg", "RL1", "4"),
+        demoRoofFeatureForSurface("tjs-floating-feature-007", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "roof_leg", "RL2", "8"),
+        demoRoofFeatureForSurface("tjs-floating-feature-008", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "roof_leg", "RL3", "33"),
+        demoRoofFeatureForSurface("tjs-floating-feature-009", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "roof_leg", "RL4", "30"),
+        demoRoofFeatureForSurface("tjs-floating-feature-010", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "rolling_ladder", "RD1", "28"),
+        demoRoofFeatureForSurface("tjs-floating-feature-011", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "pontoon_manhole", "PMH1", "36"),
+        demoRoofFeatureForSurface("tjs-floating-feature-012", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "pontoon_fitting", "PT1", "AR9"),
+    )
+
+private fun demoTjs465RoofUtRows(): List<RoofUtRow> =
+    listOf(
+        RoofUtRow("tjs-fixed-roof-ut-001", ROOF_SURFACE_FIXED, "4", listOf(4.82, 4.80, 4.85, 4.83, 4.84), note = "Fixed roof plate UT near the main roof manhole."),
+        RoofUtRow("tjs-fixed-roof-ut-002", ROOF_SURFACE_FIXED, "16", listOf(4.91, 4.88, 4.90, 4.89, 4.86), note = "Fixed roof plate UT around the support-column grid."),
+        RoofUtRow("tjs-fixed-roof-ut-003", ROOF_SURFACE_FIXED, "21", listOf(4.78, 4.81, 4.79, 4.82, 4.80), note = "Fixed roof plate UT near the center transition plate."),
+        RoofUtRow("tjs-floating-roof-ut-001", ROOF_SURFACE_FLOATING, "15", listOf(5.03, 5.01, 5.00, 5.04, 5.02), note = "Internal floating roof center-deck plate UT near the guide pole."),
+        RoofUtRow("tjs-floating-roof-ut-002", ROOF_SURFACE_FLOATING, "24", listOf(4.92, 4.90, 4.91, 4.88, 4.89), note = "Internal floating roof deck plate UT near the primary seal detail."),
+        RoofUtRow("tjs-floating-roof-ut-003", ROOF_SURFACE_FLOATING, "36", listOf(4.86, 4.88, 4.84, 4.87, 4.85), note = "Internal floating roof plate UT near the pontoon manhole."),
+    )
+
+private fun demoTjs465RoofNozzles(): List<NozzleDefinition> =
+    listOf(
+        demoRoofNozzleForSurface("FRN-001", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "10\"", "4"),
+        demoRoofNozzleForSurface("FRN-002", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "6\"", "22"),
+        demoRoofNozzleForSurface("FRN-003", ROOF_SURFACE_FIXED, tjs465FixedRoofLayoutDraft, "4\"", "6", hasReinforcementPad = false),
+        demoRoofNozzleForSurface("IRN-001", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "8\"", "12"),
+        demoRoofNozzleForSurface("IRN-002", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "4\"", "27", hasReinforcementPad = false),
+        demoRoofNozzleForSurface("IRN-003", ROOF_SURFACE_FLOATING, tjs465FloatingRoofLayoutDraft, "6\"", "31"),
+    )
+
+private fun demoTjs465RoofNozzleUtRows(): List<NozzleUtRow> =
+    listOf(
+        NozzleUtRow("tjs-fixed-roof-nozzle-ut-001", "FRN-001", ROOF_SURFACE_FIXED, listOf(8.22, 8.18, 8.19, 8.21), reinforcementPadReading = 8.33, note = "Fixed roof nozzle UT at the 10-inch vent nozzle."),
+        NozzleUtRow("tjs-fixed-roof-nozzle-ut-002", "FRN-002", ROOF_SURFACE_FIXED, listOf(6.41, 6.38, 6.39, 6.40), reinforcementPadReading = 6.55, note = "Fixed roof nozzle UT around the ladder-side branch nozzle."),
+        NozzleUtRow("tjs-fixed-roof-nozzle-ut-003", "FRN-003", ROOF_SURFACE_FIXED, listOf(4.76, 4.74, 4.73, 4.75), reinforcementPadReading = null, note = "Fixed roof nozzle UT. No Pad."),
+        NozzleUtRow("tjs-floating-roof-nozzle-ut-001", "IRN-001", ROOF_SURFACE_FLOATING, listOf(7.16, 7.13, 7.14, 7.12), reinforcementPadReading = 7.28, note = "Internal floating roof nozzle UT near the guide pole well."),
+        NozzleUtRow("tjs-floating-roof-nozzle-ut-002", "IRN-002", ROOF_SURFACE_FLOATING, listOf(4.28, 4.26, 4.27, 4.24), reinforcementPadReading = null, note = "Internal floating roof nozzle UT. No Pad."),
+        NozzleUtRow("tjs-floating-roof-nozzle-ut-003", "IRN-003", ROOF_SURFACE_FLOATING, listOf(5.94, 5.91, 5.93, 5.90), reinforcementPadReading = 6.08, note = "Internal floating roof nozzle UT near the pontoon deck access."),
+    )
+
+private fun demoTjs465Findings(): List<FindingRecord> =
+    listOf(
+        FindingRecord(
+            findingId = "tjs-finding-001",
+            surface = roofFindingSurface(ROOF_SURFACE_FIXED),
+            type = "coating_failure",
+            severity = "low",
+            note = "Coating wear visible around the fixed-roof manhole and adjacent support-column traffic path.",
+            linkedMeasurementId = "tjs-fixed-roof-ut-001",
+            locationSummary = "Fixed roof · Plate 4 / MH1 area",
+            attachmentIds = listOf("tjs-photo-001"),
+        ),
+        FindingRecord(
+            findingId = "tjs-finding-002",
+            surface = roofFindingSurface(ROOF_SURFACE_FLOATING),
+            type = "deformation",
+            severity = "medium",
+            note = "Seal detail shows waviness and local seal-shoe wear near the drain hose path.",
+            linkedMeasurementId = "tjs-floating-roof-ut-002",
+            locationSummary = "Internal floating roof · Plate 24 / seal detail zone",
+            attachmentIds = listOf("tjs-photo-002"),
+        ),
+        FindingRecord(
+            findingId = "tjs-finding-003",
+            surface = roofNozzleFindingSurface(ROOF_SURFACE_FLOATING),
+            type = "corrosion",
+            severity = "medium",
+            note = "Local corrosion around the floating-roof nozzle collar and attachment bolts.",
+            linkedMeasurementId = "tjs-floating-roof-nozzle-ut-003",
+            locationSummary = "Internal floating roof nozzle IRN-003 · Plate 31",
+            attachmentIds = listOf("tjs-photo-003"),
+        ),
+    )
+
+private fun demoTjs465Attachments(): List<AttachmentRecord> =
+    demoAttachments() + listOf(
+        AttachmentRecord("tjs-photo-001", "photo", "images/tjs_465_photo_01.jpg", "Demo fixed-roof manhole coating wear"),
+        AttachmentRecord("tjs-photo-002", "photo", "images/tjs_465_photo_02.jpg", "Demo internal floating-roof seal-detail wear"),
+        AttachmentRecord("tjs-photo-003", "photo", "images/tjs_465_photo_03.jpg", "Demo internal floating-roof nozzle corrosion"),
     )

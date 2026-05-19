@@ -1,185 +1,449 @@
 # Field Android App
 
-This folder is the real product lane for the **local-first Android tablet application**.
+This is the active product lane for the Android field capture app.
 
-## Product role
+If you are moving from Codex CLI to VS Code, this file is the handoff document for:
+- what the app does now
+- how to run it locally
+- which files matter most
+- which sample datasets are available
+- what is still missing
 
-- primary field runtime
-- air-gapped / no live network dependency during inspection
-- local capture, validation, attachment storage, and package export
+## Open In VS Code
 
-## Target stack
+Open this folder as the workspace root:
 
-- Kotlin
-- Jetpack Compose
-- local database
-- local file / photo storage
-- canonical package export
+- `tank-inspection-coplilot-app/apps/field-android`
 
-## Current product scope
+Recommended VS Code setup:
+- Android Studio or Android SDK already installed locally
+- Kotlin extension support
+- Gradle for Java extension
+- JDK 17 selected for Gradle
 
-This Android lane is now the working **measurement capture engine** for the tank inspection flow.
+Local environment already used successfully on this machine:
+- JDK 17
+- Android SDK under `/Users/oscar/Library/Android/sdk`
 
-Current in-app scope:
+## Build And Run
 
-1. inspection identity + setup fundamentals
-2. shell layout baseline
-3. roof layout baseline
-4. roof elements registry
-5. shell UT
-6. roof UT
-7. shell nozzle registry + UT
-8. roof nozzle registry + UT
-9. findings + photos + annotation
-10. shell settlement survey
-11. bottom MFL PDF handoff
-12. canonical package export
+From this folder:
 
-## Non-goals for the first prototype
+```bash
+cd /Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-android
+JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.19/libexec/openjdk.jdk/Contents/Home ./gradlew :app:compileDebugKotlin
+JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.19/libexec/openjdk.jdk/Contents/Home ./gradlew assembleDebug
+```
 
-- full enterprise sync
-- full iOS parity
-- advanced reliability analytics
-- service network workflows
+Install to the running emulator:
 
-## Required interfaces
+```bash
+/Users/oscar/Library/Android/sdk/platform-tools/adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+/Users/oscar/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell am force-stop ai.laiq.tankinspection
+/Users/oscar/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell am start -n ai.laiq.tankinspection/.MainActivity
+```
 
-This app must align to:
+If you need to start the emulator:
 
-- `packages/canonical-schema/inspection-package.schema.json`
-- `/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-report/apps/report-platform/requirements/CANONICAL_INPUT_REQUIREMENTS.md`
+```bash
+/Users/oscar/Library/Android/sdk/emulator/emulator -avd <YOUR_AVD_NAME>
+```
 
-## Report handoff rules
+## Product Scope
 
-The report lane currently expects the app lane to:
+This app is a measurement-first field capture tool for vertical storage tank inspection.
 
-- keep exporting the current `0.1.0` canonical package fields
-- export canonical domain data only, never prototype screen-local state
-- treat `mflImport` as metadata plus attachment only
-- attach the third-party MFL PDF as:
-  - `attachments[].kind = "mfl_report"`
-  - `mflImport.attachmentId` pointing to that attachment
+Current implemented capture scope:
+- inspection setup baseline
+- shell layout baseline and preview
+- roof layout baseline and preview
+- shell UT
+- shell settlement
+- roundness survey
+- plumbness survey
+- roof UT
+- shell nozzle registration + UT
+- roof nozzle registration + UT
+- roof elements registration / placement
+- findings with photo + annotation
+- review and export
+- MFL handoff metadata only
 
-Near-term structured additions expected by the report lane:
+Current intentional non-goals:
+- full report-writing metadata
+- floor / detailed MFL capture workflows
+- engineering calculations as primary field tasks
+- enterprise sync workflows
 
-- report header / document control
-- general tank information
-- recommendations
-- checklist items
-- thickness calculation inputs
-- settlement survey data
-- richer attachment metadata
+## Current Status
 
-## Build rule
+Status as of `May 19, 2026`:
+- active implementation lane is still `apps/field-android`
+- `:app:compileDebugKotlin`, `testDebugUnitTest`, and `assembleDebug` are passing
+- the latest debug APK was installed and smoke-tested on `emulator-5554`
+- structured local recovery is now the primary restore path
+- the setup screen `Saved Inspections` flow now filters out non-restorable records and successfully reopens the active inspection into `Task Board`
 
-Do not copy prototype screen state from `src/concept/`.
+Current feature footprint:
+- `11` operational modules
+- `15` app screens
+- `17` top-level canonical package sections
 
-Rebuild against the canonical product model.
+Current real-data sample footprint for `TJS TK-465`:
+- `54` measurement rows
+- `263` UT reading values
+- `24` shell UT rows
+- `23` roof UT rows
+- `4` shell nozzle UT rows
+- `3` roof nozzle UT rows
+- `7` nozzle registrations
+- `5` roof elements
+- `3` findings
+- `3` attachments
 
-## Current implemented flow
+Current status judgment:
+- stable enough for continued internal QA and stakeholder demo
+- not yet production-stable
 
-This lane currently includes:
+Current known live issue from emulator QA:
+- Android system `Back` from task screens exits to the launcher instead of stepping back through the in-app workflow
 
-- Gradle Android project scaffold
-- Jetpack Compose app shell
-- production-oriented Kotlin domain model
-- Room-backed local session autosave / reload
-- canonical export package generation + export ledger
-- one-time import path from the legacy JSON session file
-- LAIQ mobile UI system across the field flow
+## Current Setup Model
 
-Implemented field workflow:
+The setup flow locks a baseline before downstream capture.
 
+Current setup includes:
+- client
+- site
+- tank number
+- inspector
+- diameter
+- height
+- shell course count
+- thickness unit
+- settlement unit
+- nozzle size unit
+- 0-degree reference model
+- shell crawler lane count
+- shell start capture lane
+- fixed roof type
+- floating roof type
+- fixed roof layout baseline when fixed roof exists
+- floating roof layout baseline when floating roof exists
+
+Important rule:
+- if setup baseline changes and is re-saved later, dependent downstream data is cleared
+
+## Roof Model
+
+The roof model is no longer a single flat roof type.
+
+Setup now splits roof into:
+- `Fixed Roof Type`
+- `Floating Roof Type`
+
+This allows:
+- fixed roof only
+- external floating roof only
+- fixed roof + internal floating roof
+
+The app derives one or two roof surfaces:
+- `fixed`
+- `floating`
+
+Downstream roof workflows are scoped by roof surface:
+- roof UT
+- roof nozzles
+- roof elements
+- findings
+
+### Roof layout types
+
+Fixed roof can currently use:
+- `Cone / Radial`
+- `Umbrella / Radial`
+- `Circular Plate`
+- `Circular + Center Opening`
+
+Floating roof currently uses:
+- `Circular Plate`
+
+### Current meaning of roof layout inputs
+
+`Cone / Radial`
+- `Outer Sector Count`
+- `Center Plate Count`
+- optional `Annular Ring`
+
+`Umbrella / Radial`
+- `Ring Count`
+- `Sector Count`
+- optional `Annular Ring`
+
+`Circular Plate`
+- `Roof Plate Rows`
+- `Columns In Widest Row`
+- optional `Annular Ring`
+
+`Circular + Center Opening`
+- `Roof Plate Rows`
+- `Columns In Widest Row`
+- `Center Opening Ratio`
+- optional `Annular Ring`
+
+## Main Screens / Tasks
+
+Current primary screens:
 - `Inspection Setup`
-  - client / site / tank / inspector / date
-  - thickness unit + nozzle size unit
-  - shell geometry + shell course count
-  - shell crawler lane recommendation + override
-  - saved shell start reference + start capture lane
-  - roof type + roof layout baseline
-  - shell and roof preview maps in setup
+- `Inspection Scope`
 - `Task Board`
-  - separate field modules for:
-    - roof elements
-    - shell UT
-    - roof UT
-    - shell nozzles
-    - roof nozzles
-    - shell settlement
-    - findings
-    - export
-- `Shell UT`
-  - crawler lane / strake selection
-  - min / avg / max
-  - measurement exception states
-  - findings linked from measurement points
-- `Roof UT`
-  - committed plate map
-  - circular / center-opening / umbrella support
-  - min / avg / max
-  - findings linked from measurement points
 - `Roof Elements`
-  - separate task from UT / nozzles
-  - plate-linked registration
-  - annular ring support
-  - visual position estimate with map adjustment
-- `Shell / Roof Nozzles`
-  - registration separated from UT
-  - count + size + reinforcement-pad capture
-  - plate/cell linking
-  - visual position estimate with map adjustment
-  - global location summary for downstream reporting
-- `Findings`
-  - measurement-linked findings
-  - photo capture
-  - photo annotation
-  - edit / delete
+- `Shell UT`
 - `Shell Settlement`
-  - separate raw-capture module
-- `Export`
-  - canonical package directory + zip export
-  - share-sheet handoff
-  - configurable upload endpoint
-  - recent export history
+- `Roundness Survey`
+- `Plumbness Survey`
+- `Roof UT`
+- `Shell Nozzles`
+- `Roof Nozzles`
+- `Findings`
+- `Review & Export`
 
-Important workflow rules already enforced:
+## Current Nozzle Workflow
 
-- setup baseline changes clear downstream capture
-- roof layout is defined in setup and treated as locked downstream
-- shell and roof references stay aligned to the saved `0°` baseline
-- nozzle / element placement keeps both structural link and visual estimate
+Shell and roof nozzles are handled as unified nozzle cards.
 
-Room schema output is tracked at:
+Each nozzle card groups:
+- registration
+- UT
+- findings
 
-- `apps/field-android/app/schemas/ai.laiq.tankinspection.data.local.db.LaiqFieldDatabase/1.json`
-- `apps/field-android/app/schemas/ai.laiq.tankinspection.data.local.db.LaiqFieldDatabase/2.json`
-- `apps/field-android/app/schemas/ai.laiq.tankinspection.data.local.db.LaiqFieldDatabase/3.json`
-- `apps/field-android/app/schemas/ai.laiq.tankinspection.data.local.db.LaiqFieldDatabase/4.json`
+Expected behavior:
+- `Edit Registration`
+- `Capture UT` or `Edit UT`
+- `Delete Nozzle`
+- `Delete UT`
+- `Add Finding`
 
-## Local build status
+Location workflow:
+- choose coarse location from dropdown or map
+- fine-adjust with the arrow pad
+- `Undo` returns to the last confirmed location, or the default linked cell/plate center
 
-This lane now has:
+## Current Findings Model
 
-- Homebrew JDK 17 available locally
-- Android SDK 34 installed under `/Users/oscar/Library/Android/sdk`
-- Gradle wrapper generated in this folder
-- first successful debug build produced at:
-  - `apps/field-android/app/build/outputs/apk/debug/app-debug.apk`
+Findings are not a standalone free-floating task anymore.
 
-Build command:
+They are linked from:
+- shell UT rows
+- roof UT rows
+- shell nozzle cards
+- roof nozzle cards
+- roof elements
 
-- `cd apps/field-android && export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home && export PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH && ./gradlew assembleDebug`
+Current finding content:
+- severity
+- defect type
+- note
+- photo
+- annotation / sketch
 
-Test command:
+## Sample Data Sets
 
-- `cd apps/field-android && export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home && export PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH && ./gradlew testDebugUnitTest`
+The setup screen now has:
+- `Sample Data Set`
+- `Load Sample Data`
+- `Start New Inspection`
 
-## Current gaps
+Current sample datasets:
 
-Still planned after this version:
+### 1. Pacific Energy TK-13
+Purpose:
+- report-faithful external floating roof scenario
 
-1. more robust custom roof layout editing / drawing import path
-2. broader report-facing metadata and narrative sections
-3. richer attachment metadata required by the report lane
-4. more report-generation inputs such as document control and tank history
-5. full report-platform ingestion contract instead of the simple upload endpoint
+Used to exercise:
+- shell UT
+- shell settlement
+- floating roof layout
+- floating roof elements
+- shell nozzles
+- roof nozzles
+- findings
+
+### 2. TJS TK-465
+Purpose:
+- report-faithful fixed cone roof scenario
+
+Used to exercise:
+- fixed roof cone/radial layout
+- shell UT
+- fixed roof UT
+- shell nozzles
+- roof nozzles
+- fixed-roof elements
+
+Important note:
+- this sample should be treated as `fixed roof`
+- earlier experimental mixed/floating versions of TJS were not report-faithful
+
+### 3. Full Coverage Sample
+Purpose:
+- app coverage sample, not tied strictly to one report
+
+Used to exercise:
+- fixed roof + floating roof together
+- roof elements on both surfaces
+- shell settlement
+- roundness
+- plumbness
+- cross-surface nozzle and finding flows
+
+## Key Source Files
+
+If you continue in VS Code, start here.
+
+### App shell
+- [app/src/main/java/ai/laiq/tankinspection/LaiqFieldAndroidApp.kt](./app/src/main/java/ai/laiq/tankinspection/LaiqFieldAndroidApp.kt)
+
+### Main state model
+- [app/src/main/java/ai/laiq/tankinspection/presentation/FieldDraftState.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/FieldDraftState.kt)
+
+### Roof layout / geometry logic
+- [app/src/main/java/ai/laiq/tankinspection/presentation/RoofLayoutSupport.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/RoofLayoutSupport.kt)
+
+### Shared map rendering
+- [app/src/main/java/ai/laiq/tankinspection/presentation/components/InspectionMaps.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/components/InspectionMaps.kt)
+
+### Setup screen
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/InspectionSetupScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/InspectionSetupScreen.kt)
+
+### Roof elements
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofLayoutScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofLayoutScreen.kt)
+
+### Shell nozzles
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/ShellNozzleUtScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/ShellNozzleUtScreen.kt)
+
+### Roof nozzles
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofNozzleUtScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofNozzleUtScreen.kt)
+
+### Shell UT
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/ShellUtScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/ShellUtScreen.kt)
+
+### Roof UT
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofUtScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/RoofUtScreen.kt)
+
+### Findings
+- [app/src/main/java/ai/laiq/tankinspection/presentation/screens/FindingsScreen.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/screens/FindingsScreen.kt)
+
+### Demo / sample data
+- [app/src/main/java/ai/laiq/tankinspection/presentation/DemoDraftSeed.kt](./app/src/main/java/ai/laiq/tankinspection/presentation/DemoDraftSeed.kt)
+
+### Canonical export model
+- [app/src/main/java/ai/laiq/tankinspection/domain/model/CanonicalInspectionPackage.kt](./app/src/main/java/ai/laiq/tankinspection/domain/model/CanonicalInspectionPackage.kt)
+
+## Current Known Gaps
+
+These are the main known gaps after the current state.
+
+### Structured modules not added yet
+- no dedicated `Shell Elements` task yet
+- no dedicated `Diked Area` task yet
+
+Right now those can only be represented indirectly through findings/sample data, not as first-class modules.
+
+### Report-complete metadata still missing
+- document control
+- report/admin metadata
+- general tank information beyond the capture baseline
+- checklist sections
+- engineering calculations
+
+### Floor / MFL still deferred
+- no full floor capture workflow
+- no detailed MFL interpretation workflow in-app
+
+### Floating roof layout fidelity
+- floating roof works for current capture needs
+- but imported/as-built layout support is still not implemented
+
+## Local Storage Refinement
+
+This is no longer just a future note. The storage-hardening work has started, but it is still in a transitional stage.
+
+Current local persistence model:
+- the app now restores from structured Room tables first
+- the serialized `draftJson` session is kept as a compatibility fallback
+- the app now keeps an active-inspection pointer plus a local inspection list
+- export/upload is still package-first, but upload attempts are now durably tracked per bundle
+
+Current storage-hardening status:
+- explicit Room migrations now replace destructive fallback for schema `1 -> 10`
+- startup recovery now rebuilds the inspection from structured Room tables before falling back to `draftJson`
+- stable package/inspection IDs are now based on the inspection instance start time, not tank number plus date
+- `inspection_record` persists inspection-level summary rows
+- `inspection_task_snapshot` persists per-task scope, status, and counts
+- `inspection_attachment` indexes attachments by inspection, type, linked record, file size, and file existence
+- new captured photos and imported MFL PDFs are stored under inspection-scoped folders instead of one shared flat photo bucket
+- `inspection_baseline` now mirrors the committed setup/scope baseline, shell planning baseline, roof layout baseline state, MFL metadata, and review readiness
+- `inspection_component` now mirrors roof elements plus shell/roof nozzle registries
+- `inspection_measurement` now mirrors shell UT, roof UT, shell nozzle UT, roof nozzle UT, shell settlement, roundness, and plumbness rows/stations
+- `inspection_finding` now mirrors findings with linked measurement context and attachment counts
+- the setup screen now shows a `Saved Inspections` list so an existing local inspection can be reopened directly on-device
+- `export_bundle` now tracks zip existence/size, upload attempt count, last attempt time, and the last upload error
+
+What this means right now:
+- the app no longer depends on the large serialized draft blob as the primary recovery source
+- nearly the full inspection shape is now both queryable and restorable from Room
+- the device can now hold and reopen multiple inspections more safely
+- this is the bridge needed before full multi-inspection admin UX, sync queues, and eventual source-of-truth table migration
+
+Next hardening steps:
+1. expand the local inspection list into richer admin/detail/recovery views
+2. decide which tables become the new source of truth first, likely setup/scope baseline and one measurement module
+3. add orphan photo cleanup, retention rules, and attachment integrity checks for large photo volumes
+4. promote export/upload tracking from durable status records into a real retry/resume job queue
+5. add a repository/service layer between UI state and database writes
+
+What is still not done:
+- the UI can reopen inspections, but it is not yet a full inspection-management experience
+- export/upload is tracked durably, but it is not yet a robust background job queue
+- the serialized draft still exists as a compatibility fallback while the multi-inspection model is not finished
+
+## Current QA Notes
+
+High-risk areas to re-test after edits:
+- reopening hidden capture editors
+- roof element / roof nozzle marker reopening on the correct plate
+- shell nozzle registry vs UT card behavior
+- sample reload vs stale persisted state
+- delete confirmation flows
+- setup baseline reset behavior
+- Android back-navigation from task screens
+
+Latest smoke-pass result on `May 19, 2026`:
+- `Saved Inspections` only showed the restorable `TJS TK-465` record
+- `Open Current` reopened into `Task Board`
+- `Open Shell UT` restored the expected seeded counts:
+  - `Saved Rows = 24`
+  - `Lanes = 4`
+  - `Recommended = 4`
+
+## Recommended Manual Review Flow
+
+### Pass 1: sample review
+1. open `Inspection Setup`
+2. load each sample dataset
+3. confirm the setup cards and preview maps
+4. continue to task board
+5. open each task and verify seeded data
+
+### Pass 2: fresh workflow
+1. tap `Start New Inspection`
+2. create one example in each module
+3. verify create / edit / delete / findings
+
+## Branch / Working Context
+
+Recent active work has been on:
+- `feat/field-android`
+
+If you continue in VS Code, this branch is the current implementation lane.

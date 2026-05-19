@@ -278,6 +278,12 @@ fun ShellNozzleUtScreen(
     var placementModeEnabled by rememberSaveable { mutableStateOf(false) }
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
     var pendingPlacementCourseOffset by rememberSaveable { mutableStateOf("") }
+    var confirmedPlacementAzimuths by remember(registryDrafts.map { it.nozzleId }.joinToString("|"), registryDrafts.size) {
+        mutableStateOf(registryDrafts.map { it.azimuthDeg })
+    }
+    var confirmedPlacementOffsets by remember(registryDrafts.map { it.nozzleId }.joinToString("|"), registryDrafts.size) {
+        mutableStateOf(registryDrafts.map { it.courseOffsetRatio })
+    }
     var showUtEditor by rememberSaveable { mutableStateOf(false) }
     val activeRegistryRow = registryDrafts.getOrNull(activeRegistryIndex)
     val registryReady = registryDrafts.isNotEmpty() && registryDrafts.all { row -> row.isReadyForSave() }
@@ -309,8 +315,14 @@ fun ShellNozzleUtScreen(
         val activeRow = activeRegistryRow ?: return
         val lineId = activeRow.linkedLineId(shellLinePlan) ?: return
         val lineAzimuth = shellLinePlan?.lines?.firstOrNull { it.lineId == lineId }?.azimuthDeg ?: return
-        val savedAzimuth = activeRow.azimuthDeg.toDoubleOrNull()
-        val savedOffset = activeRow.courseOffsetRatio.toFloatOrNull()
+        val savedAzimuth = confirmedPlacementAzimuths.getOrElse(activeRegistryIndex) { activeRow.azimuthDeg }.toDoubleOrNull()
+        val savedOffset = confirmedPlacementOffsets.getOrElse(activeRegistryIndex) { activeRow.courseOffsetRatio }.toFloatOrNull()
+        registryDrafts = registryDrafts.updateShellRegistryRow(activeRegistryIndex) {
+            copy(
+                azimuthDeg = (savedAzimuth ?: lineAzimuth).toInt().toString(),
+                courseOffsetRatio = "%.2f".format(savedOffset ?: 0.5f),
+            )
+        }
         pendingPlacementAzimuth = (savedAzimuth ?: lineAzimuth).toInt().toString()
         pendingPlacementCourseOffset = "%.2f".format(savedOffset ?: 0.5f)
         placementModeEnabled = activeRow.hasLocationLink()
@@ -595,6 +607,14 @@ fun ShellNozzleUtScreen(
                                         enabled = activeRegistryRow.hasLocationLink(),
                                         onClick = {
                                             if (!initializePlacementFromLinkedCell()) return@LaiqPrimaryButton
+                                            confirmedPlacementAzimuths = confirmedPlacementAzimuths.toMutableList().apply {
+                                                while (size <= activeRegistryIndex) add("")
+                                                this[activeRegistryIndex] = pendingPlacementAzimuth.ifBlank { activeRegistryRow.azimuthDeg }
+                                            }
+                                            confirmedPlacementOffsets = confirmedPlacementOffsets.toMutableList().apply {
+                                                while (size <= activeRegistryIndex) add("")
+                                                this[activeRegistryIndex] = (pendingPlacementCourseOffset.toFloatOrNull() ?: 0.5f).let { "%.2f".format(it) }
+                                            }
                                             registryDrafts = registryDrafts.updateShellRegistryRow(activeRegistryIndex) {
                                                 copy(
                                                     azimuthDeg = pendingPlacementAzimuth.ifBlank { azimuthDeg },

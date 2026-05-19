@@ -123,6 +123,15 @@ fun RoofLayoutScreen(
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
     var pendingPlacementRadius by rememberSaveable { mutableStateOf("") }
     var pendingPlacementPlateId by rememberSaveable { mutableStateOf("") }
+    var confirmedPlacementPlateIds by remember(draftState.roofFeatureDraft.type, roofSurfaceId, draftFeatureCount) {
+        mutableStateOf(draftFeatureLinks)
+    }
+    var confirmedPlacementAzimuths by remember(draftState.roofFeatureDraft.type, roofSurfaceId, draftFeatureCount) {
+        mutableStateOf(draftFeatureAzimuths)
+    }
+    var confirmedPlacementRadii by remember(draftState.roofFeatureDraft.type, roofSurfaceId, draftFeatureCount) {
+        mutableStateOf(draftFeatureRadii)
+    }
     var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
     if (activeFeatureIndex > maxOf(0, draftFeatureCount - 1)) {
         activeFeatureIndex = maxOf(0, draftFeatureCount - 1)
@@ -231,10 +240,25 @@ fun RoofLayoutScreen(
     }
 
     fun undoFeaturePlacement() {
-        pendingPlacementPlateId = draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
-        pendingPlacementAzimuth = ""
-        pendingPlacementRadius = ""
-        placementModeEnabled = pendingPlacementPlateId.isNotBlank()
+        val restoredPlateId = confirmedPlacementPlateIds.getOrElse(activeFeatureIndex) { "" }
+        val restoredAzimuth = confirmedPlacementAzimuths.getOrElse(activeFeatureIndex) { "" }
+        val restoredRadius = confirmedPlacementRadii.getOrElse(activeFeatureIndex) { "" }
+        pendingPlacementPlateId = restoredPlateId
+        pendingPlacementAzimuth = restoredAzimuth
+        pendingPlacementRadius = restoredRadius
+        var restoredState = draftState.assignRoofFeatureDraftPlate(activeFeatureIndex, restoredPlateId)
+        restoredState = if (restoredAzimuth.isNotBlank() && restoredRadius.isNotBlank()) {
+            restoredState.assignRoofFeatureDraftPosition(
+                index = activeFeatureIndex,
+                azimuthDeg = restoredAzimuth.toDoubleOrNull() ?: 0.0,
+                radiusRatio = restoredRadius.toDoubleOrNull() ?: 0.0,
+                plateId = restoredPlateId.ifBlank { null },
+            )
+        } else {
+            restoredState.clearRoofFeatureDraftPosition(activeFeatureIndex)
+        }
+        onDraftStateChange(restoredState)
+        placementModeEnabled = restoredPlateId.isNotBlank()
         initializePlacementFromLinkedPlate()
     }
     LaunchedEffect(showFeatureEditor, draftState.roofFeatureDraft.type, activeFeatureIndex, draftFeatureCount) {
@@ -355,6 +379,11 @@ fun RoofLayoutScreen(
                         RoofTemplate.UMBRELLA_RADIAL -> {
                             LaiqStatChip("Rings", roofLayout.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
                             LaiqStatChip("Sectors", roofLayout.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                        }
+
+                        RoofTemplate.CONE_RADIAL -> {
+                            LaiqStatChip("Sectors", roofLayout.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                            LaiqStatChip("Center Plates", roofLayout.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
                         }
 
                         else -> {
@@ -569,15 +598,27 @@ fun RoofLayoutScreen(
                                         )
                                         LaiqPrimaryButton(
                                             text = "Confirm",
-                                            onClick = {
-                                                if (!initializePlacementFromLinkedPlate()) return@LaiqPrimaryButton
-                                                val azimuthDeg = pendingPlacementAzimuth.toDoubleOrNull() ?: return@LaiqPrimaryButton
-                                                val radiusRatio = pendingPlacementRadius.toDoubleOrNull() ?: return@LaiqPrimaryButton
-                                                onDraftStateChange(
-                                                    draftState.assignRoofFeatureDraftPosition(
-                                                        index = activeFeatureIndex,
-                                                        azimuthDeg = azimuthDeg,
-                                                        radiusRatio = radiusRatio,
+                                        onClick = {
+                                            if (!initializePlacementFromLinkedPlate()) return@LaiqPrimaryButton
+                                            val azimuthDeg = pendingPlacementAzimuth.toDoubleOrNull() ?: return@LaiqPrimaryButton
+                                            val radiusRatio = pendingPlacementRadius.toDoubleOrNull() ?: return@LaiqPrimaryButton
+                                            confirmedPlacementPlateIds = confirmedPlacementPlateIds.toMutableList().apply {
+                                                while (size <= activeFeatureIndex) add("")
+                                                this[activeFeatureIndex] = pendingPlacementPlateId
+                                            }
+                                            confirmedPlacementAzimuths = confirmedPlacementAzimuths.toMutableList().apply {
+                                                while (size <= activeFeatureIndex) add("")
+                                                this[activeFeatureIndex] = pendingPlacementAzimuth
+                                            }
+                                            confirmedPlacementRadii = confirmedPlacementRadii.toMutableList().apply {
+                                                while (size <= activeFeatureIndex) add("")
+                                                this[activeFeatureIndex] = pendingPlacementRadius
+                                            }
+                                            onDraftStateChange(
+                                                draftState.assignRoofFeatureDraftPosition(
+                                                    index = activeFeatureIndex,
+                                                    azimuthDeg = azimuthDeg,
+                                                    radiusRatio = radiusRatio,
                                                         plateId = pendingPlacementPlateId.ifBlank { null },
                                                     ),
                                                 )
@@ -775,9 +816,20 @@ private fun roofLayoutSaveValidationMessage(draft: RoofLayoutDraftInput): String
         }
     }
 
+    RoofTemplate.CONE_RADIAL -> {
+        when {
+            parsePositiveWholeNumber(draft.sectorCount) == null -> "Enter outer sector count greater than 0 to save the layout."
+            parsePositiveWholeNumber(draft.ringCount)?.let { it in 1..3 } != true ->
+                "Enter center plate count from 1 to 3 to save the layout."
+            draft.hasAnnularRing && parsePositiveWholeNumber(draft.annularSectionCount) == null ->
+                "Enter annular ring sections greater than 0 to save the layout."
+            else -> null
+        }
+    }
+
     RoofTemplate.UMBRELLA_RADIAL -> {
         when {
-            parsePositiveWholeNumber(draft.ringCount) == null -> "Enter ring count greater than 0 to save the layout."
+            parsePositiveWholeNumber(draft.ringCount) == null -> "Enter center plate count greater than 0 to save the layout."
             parsePositiveWholeNumber(draft.sectorCount) == null -> "Enter sector count greater than 0 to save the layout."
             draft.hasAnnularRing && parsePositiveWholeNumber(draft.annularSectionCount) == null ->
                 "Enter annular ring sections greater than 0 to save the layout."
@@ -836,6 +888,28 @@ private fun RoofLayoutInputs(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
                 }
+            }
+
+            RoofTemplate.CONE_RADIAL -> {
+                LaiqCountField(
+                    label = "Outer Sector Count",
+                    value = draft.sectorCount,
+                    onValueChange = { onDraftChange(draft.copy(sectorCount = normalizedIntegerInput(it))) },
+                    min = 0,
+                    max = 40,
+                )
+                LaiqCountField(
+                    label = "Center Plate Count",
+                    value = draft.ringCount,
+                    onValueChange = { onDraftChange(draft.copy(ringCount = normalizedIntegerInput(it))) },
+                    min = 1,
+                    max = 3,
+                )
+                Text(
+                    "Cone / radial roofs use numbered outer sectors plus a configurable center cluster of 1 to 3 plates.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
             }
 
             RoofTemplate.UMBRELLA_RADIAL -> {
@@ -921,6 +995,7 @@ private fun RoofLayoutInputs(
 private fun templateLabel(template: RoofTemplate): String = when (template) {
     RoofTemplate.CIRCULAR_PLATE -> "Circular Plate"
     RoofTemplate.CIRCULAR_CENTER_OPENING -> "Circular + Center Opening"
+    RoofTemplate.CONE_RADIAL -> "Cone / Radial"
     RoofTemplate.UMBRELLA_RADIAL -> "Umbrella / Radial"
 }
 

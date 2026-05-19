@@ -44,6 +44,8 @@ fun reviewTaskStatus(task: FieldTask, draftState: FieldDraftState): TaskStatus =
 fun exportTone(status: String): Color = when (status) {
     "uploaded" -> LaiqColors.StatusReady
     "shared" -> LaiqColors.StatusInfo
+    "uploading" -> LaiqColors.StatusInfo
+    "upload_failed" -> LaiqColors.StatusWarning
     else -> LaiqColors.StatusDraft
 }
 

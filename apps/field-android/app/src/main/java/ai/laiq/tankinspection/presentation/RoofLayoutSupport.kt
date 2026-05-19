@@ -29,16 +29,22 @@ data class RoofPlateCell(
 private const val mainRoofRadiusRatio = 0.42f
 private const val annularOuterRadiusRatio = 0.48f
 private const val maxRoofPlacementRadiusRatio = annularOuterRadiusRatio / mainRoofRadiusRatio
+private const val coneRadialTransitionRadiusRatio = 0.14f
+private const val coneRadialCenterRadiusRatio = 0.07f
 
 private val sharedRoofFeatureTypeOptions = listOf(
     "manhole" to "Manhole",
     "vent" to "Vent",
     "gauge_hatch" to "Gauge Hatch",
     "platform" to "Platform",
+    "gauge_well" to "Gauge Well",
+    "vacuum_breaker" to "Vacuum Breaker",
 )
 
 private val fixedRoofFeatureTypeOptions = listOf(
     "stairway_termination" to "Stairway Termination",
+    "support_column" to "Support Column",
+    "roof_ladder" to "Roof Ladder",
 )
 
 private val floatingRoofFeatureTypeOptions = listOf(
@@ -46,6 +52,12 @@ private val floatingRoofFeatureTypeOptions = listOf(
     "roof_leg" to "Roof Leg",
     "pontoon_fitting" to "Pontoon Fitting",
     "seal_detail" to "Seal Detail",
+    "rolling_ladder" to "Rolling Ladder",
+    "drain_hose" to "Drain Hose",
+    "guide_pole" to "Guide Pole / Well",
+    "anti_rotation_cable" to "Anti-Rotation Cable",
+    "pontoon_manhole" to "Pontoon Manhole",
+    "seal_shoe" to "Seal Shoe",
 )
 
 val roofFeatureTypeOptions = sharedRoofFeatureTypeOptions + fixedRoofFeatureTypeOptions + floatingRoofFeatureTypeOptions
@@ -90,12 +102,120 @@ fun buildRoofPlateCells(
 ): List<RoofPlateCell> = when (template) {
     RoofTemplate.CIRCULAR_PLATE,
     RoofTemplate.CIRCULAR_CENTER_OPENING -> circularRoofPlateCells(rowCount, widestRowPlateCount)
+    RoofTemplate.CONE_RADIAL -> coneRadialRoofPlateCells(
+        centerPlateCount = ringCount,
+        sectorCount = sectorCount,
+        referenceAzimuthDeg = referenceAzimuthDeg,
+        rotationDirection = rotationDirection,
+    )
     RoofTemplate.UMBRELLA_RADIAL -> umbrellaRoofPlateCells(
         ringCount = ringCount,
         sectorCount = sectorCount,
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
     )
+}
+
+private fun coneRadialRoofPlateCells(
+    centerPlateCount: Int,
+    sectorCount: Int,
+    referenceAzimuthDeg: Double,
+    rotationDirection: RotationDirection,
+): List<RoofPlateCell> {
+    val sectors = sectorCount.coerceAtLeast(1)
+    val centerPlates = centerPlateCount.coerceIn(1, 3)
+    val cells = mutableListOf<RoofPlateCell>()
+    val sectorStep = 360.0 / sectors.toDouble()
+    val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1.0 else -1.0
+    val outerLabelRadius = mainRoofRadiusRatio * ((1.0f + coneRadialTransitionRadiusRatio) / 2f)
+    for (sectorIndex in 0 until sectors) {
+        val plateNumber = sectorIndex + 1
+        val azimuthDeg = normalizeAzimuth(referenceAzimuthDeg + directionFactor * sectorStep * (sectorIndex + 0.5))
+        val angle = azimuthToCanvasRadians(azimuthDeg)
+        val xNorm = 0.5f + (cos(angle).toFloat() * outerLabelRadius)
+        val yNorm = 0.5f + (sin(angle).toFloat() * outerLabelRadius)
+        cells += RoofPlateCell(
+            plateId = plateNumber.toString(),
+            mapLabel = plateNumber.toString(),
+            selectionLabel = "Plate $plateNumber",
+            rowNumber = 1,
+            xNorm = xNorm,
+            yNorm = yNorm,
+            labelXNorm = xNorm,
+            labelYNorm = yNorm,
+            leftNorm = xNorm - 0.03f,
+            rightNorm = xNorm + 0.03f,
+            topNorm = yNorm - 0.02f,
+            bottomNorm = yNorm + 0.02f,
+        )
+    }
+    val ringLabelRadius = mainRoofRadiusRatio * ((coneRadialTransitionRadiusRatio + coneRadialCenterRadiusRatio) / 2f)
+    if (centerPlates == 1) {
+        val centerPlateId = (sectors + 1).toString()
+        cells += RoofPlateCell(
+            plateId = centerPlateId,
+            mapLabel = centerPlateId,
+            selectionLabel = "Plate $centerPlateId",
+            rowNumber = 2,
+            xNorm = 0.5f,
+            yNorm = 0.5f,
+            labelXNorm = 0.5f,
+            labelYNorm = 0.5f,
+            leftNorm = 0.47f,
+            rightNorm = 0.53f,
+            topNorm = 0.47f,
+            bottomNorm = 0.53f,
+        )
+    } else {
+        val upperRingPlateId = (sectors + 1).toString()
+        val lowerRingPlateId = (sectors + 2).toString()
+        cells += RoofPlateCell(
+            plateId = upperRingPlateId,
+            mapLabel = upperRingPlateId,
+            selectionLabel = "Plate $upperRingPlateId",
+            rowNumber = 2,
+            xNorm = 0.5f,
+            yNorm = 0.5f - ringLabelRadius,
+            labelXNorm = 0.5f,
+            labelYNorm = 0.5f - ringLabelRadius,
+            leftNorm = 0.45f,
+            rightNorm = 0.55f,
+            topNorm = 0.34f,
+            bottomNorm = 0.50f,
+        )
+        cells += RoofPlateCell(
+            plateId = lowerRingPlateId,
+            mapLabel = lowerRingPlateId,
+            selectionLabel = "Plate $lowerRingPlateId",
+            rowNumber = 2,
+            xNorm = 0.5f,
+            yNorm = 0.5f + ringLabelRadius,
+            labelXNorm = 0.5f,
+            labelYNorm = 0.5f + ringLabelRadius,
+            leftNorm = 0.45f,
+            rightNorm = 0.55f,
+            topNorm = 0.50f,
+            bottomNorm = 0.66f,
+        )
+        if (centerPlates == 3) {
+            val centerPlateId = (sectors + 3).toString()
+            cells += RoofPlateCell(
+                plateId = centerPlateId,
+                mapLabel = centerPlateId,
+                selectionLabel = "Plate $centerPlateId",
+                rowNumber = 3,
+                xNorm = 0.5f,
+                yNorm = 0.5f,
+                labelXNorm = 0.5f,
+                labelYNorm = 0.5f,
+                leftNorm = 0.47f,
+                rightNorm = 0.53f,
+                topNorm = 0.47f,
+                bottomNorm = 0.53f,
+            )
+        }
+    }
+    return cells
 }
 
 fun circularPlateRowCounts(rowCount: Int, widestRowPlateCount: Int): List<Int> {
@@ -121,12 +241,22 @@ private fun roofFeatureTypePrefix(type: String): String = when (type) {
     "vent" -> "V"
     "gauge_hatch" -> "GH"
     "platform" -> "PF"
+    "gauge_well" -> "GW"
+    "vacuum_breaker" -> "VB"
     "stairway_termination" -> "ST"
+    "support_column" -> "SC"
+    "roof_ladder" -> "LD"
     "center_opening" -> "CO"
     "sump" -> "SU"
     "roof_leg" -> "RL"
     "pontoon_fitting" -> "PT"
     "seal_detail" -> "SD"
+    "rolling_ladder" -> "RD"
+    "drain_hose" -> "DH"
+    "guide_pole" -> "GP"
+    "anti_rotation_cable" -> "AC"
+    "pontoon_manhole" -> "PMH"
+    "seal_shoe" -> "SS"
     else -> type
         .split('_')
         .filter { it.isNotBlank() }
@@ -378,6 +508,33 @@ fun roofPlateIdAtPolar(
         val relativeAzimuth = normalizeAzimuth((azimuthDeg - referenceAzimuthDeg) * directionFactor)
         val sectorIndex = floor(relativeAzimuth / sectionStep).toInt().coerceIn(0, sectors - 1)
         return ((ringIndex * sectors) + sectorIndex + 1).toString()
+    }
+    if (template == RoofTemplate.CONE_RADIAL) {
+        val sectors = sectorCount.coerceAtLeast(1)
+        val centerPlates = ringCount.coerceIn(1, 3)
+        val normalizedRadius = radiusRatio.coerceIn(0.0, 1.0)
+        if (centerPlates == 1) {
+            if (normalizedRadius < coneRadialTransitionRadiusRatio.toDouble()) {
+                return (sectors + 1).toString()
+            }
+        } else {
+            if (centerPlates == 3 && normalizedRadius <= coneRadialCenterRadiusRatio.toDouble()) {
+                return (sectors + 3).toString()
+            }
+            if (normalizedRadius < coneRadialTransitionRadiusRatio.toDouble()) {
+            val angle = azimuthToCanvasRadians(azimuthDeg)
+            return if (sin(angle) < 0.0) {
+                (sectors + 1).toString()
+            } else {
+                (sectors + 2).toString()
+            }
+        }
+        }
+        val sectionStep = 360.0 / sectors.toDouble()
+        val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1.0 else -1.0
+        val relativeAzimuth = normalizeAzimuth((azimuthDeg - referenceAzimuthDeg) * directionFactor)
+        val sectorIndex = floor(relativeAzimuth / sectionStep).toInt().coerceIn(0, sectors - 1)
+        return (sectorIndex + 1).toString()
     }
     val plateCells = buildRoofLinkTargetsForConfig(
         template = template,

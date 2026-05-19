@@ -14,6 +14,7 @@ enum class RotationDirection {
 enum class RoofTemplate {
     CIRCULAR_PLATE,
     CIRCULAR_CENTER_OPENING,
+    CONE_RADIAL,
     UMBRELLA_RADIAL,
 }
 

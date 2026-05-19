@@ -1,5 +1,6 @@
 package ai.laiq.tankinspection.presentation.screens
 
+import ai.laiq.tankinspection.data.local.db.InspectionRecordEntity
 import ai.laiq.tankinspection.domain.model.MeasurementUnit
 import ai.laiq.tankinspection.domain.model.NozzleSizeUnit
 import ai.laiq.tankinspection.domain.model.ReferenceMode
@@ -37,17 +38,22 @@ import ai.laiq.tankinspection.presentation.usesMarkerReference
 import ai.laiq.tankinspection.presentation.hasFixedRoof
 import ai.laiq.tankinspection.presentation.hasFloatingRoof
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -93,7 +99,16 @@ fun InspectionSetupScreen(
     onLineCountOverrideChange: (String) -> Unit,
     onShellCaptureStartLaneIdChange: (String) -> Unit,
     onContinue: () -> Unit,
-    onLoadDemo: () -> Unit,
+    sampleScenarioOptions: List<Pair<String, String>>,
+    selectedSampleScenarioId: String,
+    selectedSampleScenarioDescription: String,
+    onSelectedSampleScenarioChange: (String) -> Unit,
+    onLoadSampleData: () -> Unit,
+    onStartNewInspection: () -> Unit,
+    localInspections: List<InspectionRecordEntity>,
+    activeInspectionId: String?,
+    savedInspectionNotice: String?,
+    onOpenInspection: (String) -> Unit,
     contentPadding: PaddingValues,
 ) {
     val normalizedReferenceMode = scopeState.normalizedReferenceMode()
@@ -171,10 +186,51 @@ fun InspectionSetupScreen(
                     "Complete the tank identity and geometry first. Shell crawler lanes and the roof plate map are both derived from this locked baseline.",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                LaiqSecondaryButton(
-                    text = "Load Demo Inspection",
-                    onClick = onLoadDemo,
+                LaiqDropdownField(
+                    label = "Sample Data Set",
+                    value = selectedSampleScenarioId,
+                    options = sampleScenarioOptions,
+                    onSelected = onSelectedSampleScenarioChange,
                 )
+                Text(
+                    selectedSampleScenarioDescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
+                LaiqSecondaryButton(
+                    text = "Load Sample Data",
+                    onClick = onLoadSampleData,
+                )
+                LaiqSecondaryButton(
+                    text = "Start New Inspection",
+                    onClick = onStartNewInspection,
+                )
+            }
+        }
+
+        if (localInspections.isNotEmpty()) {
+            item {
+                LaiqSectionCard(
+                    title = "Saved Inspections",
+                    subtitle = "Continue a restorable local inspection stored on this device.",
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (!savedInspectionNotice.isNullOrBlank()) {
+                            Text(
+                                text = savedInspectionNotice,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.StatusWarning,
+                            )
+                        }
+                        localInspections.forEach { inspection ->
+                            LocalInspectionCard(
+                                inspection = inspection,
+                                isActive = inspection.inspectionId == activeInspectionId,
+                                onOpen = { onOpenInspection(inspection.inspectionId) },
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -494,6 +550,57 @@ fun InspectionSetupScreen(
     }
 }
 
+@Composable
+private fun LocalInspectionCard(
+    inspection: InspectionRecordEntity,
+    isActive: Boolean,
+    onOpen: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, if (isActive) LaiqColors.BrandTeal else LaiqColors.PanelBorder),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LaiqStatChip(
+                    "Tank",
+                    inspection.tankNumber.ifBlank { "Draft" },
+                    modifier = Modifier.weight(1f),
+                )
+                LaiqStatChip(
+                    "Status",
+                    inspection.reviewStatus.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                    tone = if (inspection.reviewStatus == "ready_for_upload") LaiqColors.BrandTeal else LaiqColors.AccentOrange,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                "${inspection.client.ifBlank { "Unknown client" }} · ${inspection.site.ifBlank { "Unknown site" }}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "${inspection.roofType} · Updated ${inspection.updatedAtIso}",
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LaiqSecondaryButton(
+                    text = if (isActive) "Open Current" else "Open Inspection",
+                    onClick = onOpen,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
 private fun setupRoofLayoutValidationMessage(draft: RoofLayoutDraftInput): String? = when (draft.template) {
     RoofTemplate.CIRCULAR_PLATE -> when {
         setupParsePositiveWholeNumber(draft.rowCount) == null -> "Enter roof plate rows greater than 0."
@@ -513,8 +620,17 @@ private fun setupRoofLayoutValidationMessage(draft: RoofLayoutDraftInput): Strin
         else -> null
     }
 
+    RoofTemplate.CONE_RADIAL -> when {
+        setupParsePositiveWholeNumber(draft.sectorCount) == null -> "Enter outer sector count greater than 0."
+        setupParsePositiveWholeNumber(draft.ringCount)?.let { it in 1..3 } != true ->
+            "Enter center plate count from 1 to 3."
+        draft.hasAnnularRing && setupParsePositiveWholeNumber(draft.annularSectionCount) == null ->
+            "Enter annular ring sections greater than 0."
+        else -> null
+    }
+
     RoofTemplate.UMBRELLA_RADIAL -> when {
-        setupParsePositiveWholeNumber(draft.ringCount) == null -> "Enter ring count greater than 0."
+        setupParsePositiveWholeNumber(draft.ringCount) == null -> "Enter center plate count greater than 0."
         setupParsePositiveWholeNumber(draft.sectorCount) == null -> "Enter sector count greater than 0."
         draft.hasAnnularRing && setupParsePositiveWholeNumber(draft.annularSectionCount) == null ->
             "Enter annular ring sections greater than 0."
@@ -526,6 +642,7 @@ private fun allowedRoofTemplatesForSurface(
     roofSurfaceId: String,
     setup: SetupFormState,
 ): List<RoofTemplate> = when (roofTemplateForSurface(setup, roofSurfaceId)) {
+    RoofTemplate.CONE_RADIAL -> listOf(RoofTemplate.CONE_RADIAL)
     RoofTemplate.UMBRELLA_RADIAL -> listOf(RoofTemplate.UMBRELLA_RADIAL)
     RoofTemplate.CIRCULAR_PLATE,
     RoofTemplate.CIRCULAR_CENTER_OPENING -> if (roofSurfaceId == ROOF_SURFACE_FLOATING) {
@@ -581,6 +698,11 @@ private fun SetupRoofLayoutBaselineCard(
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (preview.template) {
+                    RoofTemplate.CONE_RADIAL -> {
+                        LaiqStatChip("Sectors", preview.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                        LaiqStatChip("Center Plates", preview.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                    }
+
                     RoofTemplate.UMBRELLA_RADIAL -> {
                         LaiqStatChip("Rings", preview.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
                         LaiqStatChip("Sectors", preview.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
@@ -653,6 +775,28 @@ private fun SetupRoofLayoutInputs(
             }
         }
 
+        RoofTemplate.CONE_RADIAL -> {
+            LaiqCountField(
+                label = "Outer Sector Count",
+                value = draft.sectorCount,
+                onValueChange = { onDraftChange(draft.copy(sectorCount = setupNormalizedIntegerInput(it))) },
+                min = 0,
+                max = 40,
+            )
+            LaiqCountField(
+                label = "Center Plate Count",
+                value = draft.ringCount,
+                onValueChange = { onDraftChange(draft.copy(ringCount = setupNormalizedIntegerInput(it))) },
+                min = 1,
+                max = 3,
+            )
+            Text(
+                "Cone / radial roofs use numbered outer sectors plus a configurable center cluster of 1 to 3 plates.",
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+        }
+
         RoofTemplate.UMBRELLA_RADIAL -> {
             LaiqCountField(
                 label = "Ring Count",
@@ -706,6 +850,7 @@ private fun SetupRoofLayoutInputs(
 private fun setupRoofTemplateLabel(template: RoofTemplate): String = when (template) {
     RoofTemplate.CIRCULAR_PLATE -> "Circular Plate"
     RoofTemplate.CIRCULAR_CENTER_OPENING -> "Circular + Center Opening"
+    RoofTemplate.CONE_RADIAL -> "Cone / Radial"
     RoofTemplate.UMBRELLA_RADIAL -> "Umbrella / Radial"
 }
 

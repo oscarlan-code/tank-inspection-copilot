@@ -68,6 +68,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
+private enum class SavedRoofRowsDisplayMode {
+    RECENT,
+    ALL,
+    HIDDEN,
+}
+
 @Composable
 fun RoofUtScreen(
     draftState: FieldDraftState,
@@ -92,6 +98,15 @@ fun RoofUtScreen(
     val surfaceRoofUtRows = draftState.roofUtRows.filter { row -> row.roofSurfaceId == roofSurfaceId }
     val listState = rememberLazyListState()
     var showCaptureEditor by rememberSaveable { mutableStateOf(false) }
+    var savedRowsDisplayModeName by rememberSaveable(roofSurfaceId) {
+        mutableStateOf(SavedRoofRowsDisplayMode.RECENT.name)
+    }
+    val savedRowsDisplayMode = SavedRoofRowsDisplayMode.valueOf(savedRowsDisplayModeName)
+    val visibleRoofUtRows = when (savedRowsDisplayMode) {
+        SavedRoofRowsDisplayMode.ALL -> surfaceRoofUtRows.reversed()
+        SavedRoofRowsDisplayMode.HIDDEN -> emptyList()
+        SavedRoofRowsDisplayMode.RECENT -> surfaceRoofUtRows.takeLast(8).reversed()
+    }
 
     LaunchedEffect(draftState.roofUtDraft.editingRowId) {
         if (draftState.roofUtDraft.editingRowId != null) {
@@ -188,6 +203,11 @@ fun RoofUtScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (roofLayout.template) {
+                        ai.laiq.tankinspection.domain.model.RoofTemplate.CONE_RADIAL -> {
+                            LaiqStatChip("Sectors", roofLayout.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                            LaiqStatChip("Center Plates", roofLayout.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
+                        }
+
                         ai.laiq.tankinspection.domain.model.RoofTemplate.UMBRELLA_RADIAL -> {
                             LaiqStatChip("Rings", roofLayout.ringCount?.toString() ?: "—", modifier = Modifier.weight(1f))
                             LaiqStatChip("Sectors", roofLayout.sectorCount?.toString() ?: "—", modifier = Modifier.weight(1f))
@@ -365,13 +385,81 @@ fun RoofUtScreen(
         item {
             LaiqSectionCard(
                 title = "Saved Roof Rows",
-                subtitle = "Recent roof UT entries stored locally.",
+                subtitle = when {
+                    surfaceRoofUtRows.isEmpty() -> "No roof UT rows saved yet."
+                    savedRowsDisplayMode == SavedRoofRowsDisplayMode.HIDDEN ->
+                        "${surfaceRoofUtRows.size} roof UT entries are saved locally."
+                    savedRowsDisplayMode == SavedRoofRowsDisplayMode.ALL ->
+                        "Showing all ${surfaceRoofUtRows.size} roof UT entries stored locally."
+                    surfaceRoofUtRows.size > 8 ->
+                        "Showing the 8 most recent roof UT entries stored locally."
+                    else -> "Showing all ${surfaceRoofUtRows.size} roof UT entries stored locally."
+                },
             ) {
                 if (surfaceRoofUtRows.isEmpty()) {
                     Text("No roof UT rows saved yet.", style = MaterialTheme.typography.bodySmall)
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        surfaceRoofUtRows.takeLast(8).reversed().forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            when (savedRowsDisplayMode) {
+                                SavedRoofRowsDisplayMode.HIDDEN -> {
+                                    if (surfaceRoofUtRows.size > 8) {
+                                        LaiqSecondaryButton(
+                                            text = "Show Recent",
+                                            onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.RECENT.name },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        LaiqSecondaryButton(
+                                            text = "Show All (${surfaceRoofUtRows.size})",
+                                            onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.ALL.name },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    } else {
+                                        LaiqSecondaryButton(
+                                            text = "Show Rows",
+                                            onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.ALL.name },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                }
+
+                                SavedRoofRowsDisplayMode.ALL -> {
+                                    LaiqSecondaryButton(
+                                        text = "Show Recent",
+                                        onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.RECENT.name },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    LaiqSecondaryButton(
+                                        text = "Hide",
+                                        onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.HIDDEN.name },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+
+                                SavedRoofRowsDisplayMode.RECENT -> {
+                                    if (surfaceRoofUtRows.size > 8) {
+                                        LaiqSecondaryButton(
+                                            text = "Show All (${surfaceRoofUtRows.size})",
+                                            onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.ALL.name },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                    LaiqSecondaryButton(
+                                        text = "Hide",
+                                        onClick = { savedRowsDisplayModeName = SavedRoofRowsDisplayMode.HIDDEN.name },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                        if (savedRowsDisplayMode == SavedRoofRowsDisplayMode.HIDDEN) {
+                            Text(
+                                "Saved roof rows are hidden. Use the buttons above to show the recent entries or the full saved set.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.MutedText,
+                            )
+                        }
+                        visibleRoofUtRows.forEach { row ->
                             val rowFindingCount = draftState.findingsForMeasurement(
                                 surface = roofFindingSurface(roofSurfaceId),
                                 linkedMeasurementId = row.rowId,

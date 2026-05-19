@@ -160,6 +160,8 @@ fun ExportScreen(
                                             return@launch
                                         }
                                         activeUploadExportId = export.exportId
+                                        appSessionStore.markUploadStarted(export.exportId)
+                                        recentExports = appSessionStore.recentExports()
                                         val result = uploader.uploadZip(
                                             endpointUrl = endpoint,
                                             zipFile = File(export.zipFilePath),
@@ -171,6 +173,11 @@ fun ExportScreen(
                                             recentExports = appSessionStore.recentExports()
                                             uploadMessage = "Uploaded ${export.packageId} (${result.responseCode ?: 200})."
                                         } else {
+                                            appSessionStore.markUploadFailed(
+                                                export.exportId,
+                                                result.responseBody.ifBlank { "Upload failed." },
+                                            )
+                                            recentExports = appSessionStore.recentExports()
                                             uploadMessage = "Upload failed: ${result.responseBody}"
                                         }
                                         activeUploadExportId = null
@@ -221,9 +228,25 @@ private fun ExportBundleCard(
             Text(export.exportedAtIso, style = MaterialTheme.typography.bodySmall, color = LaiqColors.MutedText)
             Text("ZIP: ${export.zipFilePath}", style = MaterialTheme.typography.bodySmall)
             Text(
+                "ZIP size ${export.zipByteSize} bytes · Exists ${if (export.zipExists) "yes" else "no"}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
                 "Attachments ${export.attachmentCount} · Missing ${export.missingAttachmentCount}",
                 style = MaterialTheme.typography.bodySmall,
             )
+            Text(
+                "Upload attempts ${export.uploadAttemptCount}" +
+                    (export.lastAttemptedAtIso?.let { " · Last try $it" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            if (!export.lastError.isNullOrBlank()) {
+                Text(
+                    "Last error: ${export.lastError}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.AccentOrange,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 LaiqSecondaryButton(
                     text = if (export.status == "shared") "Share Again" else "Share",

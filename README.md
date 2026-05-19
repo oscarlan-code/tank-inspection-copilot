@@ -5,6 +5,9 @@ This repo now centers on the **Android field app** for structured tank-inspectio
 The current production lane is:
 - [apps/field-android/](./apps/field-android/)
 
+Detailed Android handoff / continuation notes:
+- [apps/field-android/README.md](./apps/field-android/README.md)
+
 Supporting lanes still exist, but they are secondary:
 - legacy web reference / concept work under [src/](./src/)
 - report platform under [apps/report-platform/](./apps/report-platform/)
@@ -20,6 +23,8 @@ Current capture scope:
 - roof layout baseline
 - shell UT
 - shell settlement survey
+- roundness survey
+- plumbness survey
 - roof UT
 - shell nozzle registration + UT
 - roof nozzle registration + UT
@@ -33,6 +38,55 @@ Current product direction:
 - report-writing metadata later
 - local-first / offline-friendly Android workflow
 - canonical package export after field work
+
+## Current Status
+
+Status as of `May 19, 2026`:
+- Android field app is the active delivery lane
+- `:app:compileDebugKotlin`, `testDebugUnitTest`, and `assembleDebug` are passing
+- the latest debug APK has been installed and smoke-tested on `emulator-5554`
+- local storage recovery now restores from structured Room tables first
+- the saved-inspection reopen flow is working and now filters out non-restorable legacy records
+
+Current product size:
+- `11` operational field/reporting modules
+- `15` app screens
+- `17` top-level canonical package sections
+
+Current TJS `TK-465` demo coverage:
+- `54` measurement rows total
+- `263` UT reading values
+- `24` shell UT rows
+- `23` roof UT rows
+- `7` nozzles
+- `5` roof elements
+- `3` findings
+- `3` attachments
+
+Current open usability issue:
+- Android system `Back` from task screens currently exits to the launcher instead of returning to the previous in-app screen
+
+## Planned Production Hardening
+
+The Android field app is still in a transitional local-storage phase.
+
+Current status:
+- the app now restores from structured Room tables first, with the serialized draft kept only as a compatibility fallback
+- Room migrations now cover schema `1 -> 10`
+- inspection/package IDs are now stable per inspection instance, avoiding same-day same-tank collisions
+- the setup screen now exposes a local saved-inspection reopen flow
+- the app now mirrors most of the inspection structure into on-device tables, including:
+  - inspection summary
+  - task snapshots
+  - attachment index
+  - committed baseline metadata
+  - components like roof elements and nozzle registries
+  - measurements across shell/roof/nozzle/survey modules
+  - findings
+- export bundle records now also track upload attempts and last failure state
+
+So the storage rebuild has started, but it is not finished yet. The detailed Android storage-hardening notes live in:
+- [apps/field-android/README.md](./apps/field-android/README.md)
 
 ## Setup Model
 
@@ -99,20 +153,27 @@ The Android field workflow is organized around these tasks:
 - `Findings`
 - `Review & Export`
 
-## Demo Data
+## Sample Data
 
-The app includes a built-in demo inspection seed.
+The app includes built-in sample inspection datasets.
 
 Behavior:
-- use `Load Demo Inspection` from `Inspection Setup`
-- demo data loads **in place** and stays on the setup screen
-- the demo is intended for UI / flow review, not as a canonical sample report
+- use `Load Sample Data` from `Inspection Setup`
+- sample data loads **in place** and stays on the setup screen
+- use `Start New Inspection` to reset back to a blank setup
 
-The current demo aligns to the newer measurement-first Android workflow and includes:
+Current datasets:
+- `Pacific Energy TK-13`
+- `TJS TK-465`
+- `Full Coverage Sample`
+
+The current samples align to the newer measurement-first Android workflow and include:
 - shell baseline
 - roof baseline
 - shell UT
 - shell settlement
+- roundness
+- plumbness
 - roof UT
 - shell nozzles
 - roof nozzles
@@ -123,8 +184,8 @@ The current demo aligns to the newer measurement-first Android workflow and incl
 
 Recommended manual review pattern:
 
-1. Demo review
-- load the demo inspection
+1. Sample review
+- load a sample dataset
 - review saved cards, edit flows, hidden capture forms, and review/export state
 
 2. Clean workflow review
@@ -138,6 +199,7 @@ High-risk areas:
 - shell nozzle registry vs UT flow
 - findings linked to measurement context
 - review/export readiness vs task completion
+- Android back-navigation from task screens
 
 ## Build And Run
 
@@ -183,8 +245,6 @@ Install to a running emulator:
 Deferred from the field app for now:
 - full report-writing/admin metadata
 - floor / MFL manual mapping
-- roundness survey
-- plumbness survey
 - broader enterprise workflow automation
 
 These can be added later if they become part of the field capture requirement rather than report assembly only.

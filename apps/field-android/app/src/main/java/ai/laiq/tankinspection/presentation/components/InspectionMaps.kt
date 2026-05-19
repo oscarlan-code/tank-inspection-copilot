@@ -526,6 +526,7 @@ fun RoofSurfaceMap(
         annularSectionCount = annularSectionCount,
     )
     val isCircularTemplate = template == RoofTemplate.CIRCULAR_PLATE || template == RoofTemplate.CIRCULAR_CENTER_OPENING
+    val isConeRadialTemplate = template == RoofTemplate.CONE_RADIAL
     val showCenterOpening = template == RoofTemplate.CIRCULAR_CENTER_OPENING || centerFeatureCount > 0
     val displayPlateCells = plateCells
     val annularLinkTargets = linkTargets.filter { target -> target.plateId.startsWith("AR") }
@@ -656,6 +657,106 @@ fun RoofSurfaceMap(
                         when (template) {
                             RoofTemplate.CIRCULAR_PLATE,
                             RoofTemplate.CIRCULAR_CENTER_OPENING -> Unit
+                            RoofTemplate.CONE_RADIAL -> {
+                                val sectors = sectorCount.coerceAtLeast(1)
+                                val centerPlates = ringCount.coerceIn(1, 3)
+                                val sectorStep = 360.0 / sectors.toDouble()
+                                val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1.0 else -1.0
+                                val transitionOuterRadius = radius * 0.33f
+                                val centerPlateRadius = if (centerPlates == 1) {
+                                    transitionOuterRadius
+                                } else {
+                                    radius * 0.17f
+                                }
+                                drawCircle(
+                                    color = strokeColor,
+                                    radius = transitionOuterRadius,
+                                    center = center,
+                                    style = Stroke(width = 2f),
+                                )
+                                if (centerPlates == 3) {
+                                    drawCircle(
+                                        color = strokeColor,
+                                        radius = centerPlateRadius,
+                                        center = center,
+                                        style = Stroke(width = 2f),
+                                    )
+                                }
+                                for (sector in 0 until sectors) {
+                                    val angle = azimuthToCanvasRadians(referenceAzimuthDeg + directionFactor * sector * sectorStep)
+                                    val cosValue = cos(angle).toFloat()
+                                    val sinValue = sin(angle).toFloat()
+                                    drawLine(
+                                        color = strokeColor,
+                                        start = Offset(
+                                            x = center.x + (cosValue * transitionOuterRadius),
+                                            y = center.y + (sinValue * transitionOuterRadius),
+                                        ),
+                                        end = Offset(
+                                            x = center.x + (cosValue * radius),
+                                            y = center.y + (sinValue * radius),
+                                        ),
+                                        strokeWidth = 2f,
+                                    )
+                                }
+                                when (activePlateId?.toIntOrNull()) {
+                                    null -> Unit
+                                    sectors + 1 -> if (centerPlates == 1) {
+                                        drawCircle(
+                                            color = LaiqColors.BrandRed,
+                                            radius = transitionOuterRadius,
+                                            center = center,
+                                            style = Stroke(width = 4f),
+                                        )
+                                    } else {
+                                        drawRoofRingSectorOutline(
+                                            center = center,
+                                            innerRadius = if (centerPlates == 3) centerPlateRadius else 0f,
+                                            outerRadius = transitionOuterRadius,
+                                            centerAngleDeg = -90f,
+                                            sweepDeg = 180f,
+                                            color = LaiqColors.BrandRed,
+                                        )
+                                    }
+                                    sectors + 2 -> if (centerPlates == 2 || centerPlates == 3) {
+                                        drawRoofRingSectorOutline(
+                                            center = center,
+                                            innerRadius = if (centerPlates == 3) centerPlateRadius else 0f,
+                                            outerRadius = transitionOuterRadius,
+                                            centerAngleDeg = 90f,
+                                            sweepDeg = 180f,
+                                            color = LaiqColors.BrandRed,
+                                        )
+                                    } else {
+                                        Unit
+                                    }
+                                    sectors + 3 -> if (centerPlates == 3) {
+                                        drawCircle(
+                                            color = LaiqColors.BrandRed,
+                                            radius = centerPlateRadius,
+                                            center = center,
+                                            style = Stroke(width = 4f),
+                                        )
+                                    } else {
+                                        Unit
+                                    }
+                                    else -> {
+                                        val activeNumber = activePlateId.toIntOrNull()?.takeIf { it in 1..sectors } ?: return@Canvas
+                                        val centerAzimuth = normalizeDegreesForMap(
+                                            referenceAzimuthDeg + directionFactor * sectorStep * (activeNumber - 0.5),
+                                        )
+                                        val centerAngleDeg = Math.toDegrees(azimuthToCanvasRadians(centerAzimuth)).toFloat()
+                                        drawRoofRingSectorOutline(
+                                            center = center,
+                                            innerRadius = transitionOuterRadius,
+                                            outerRadius = radius,
+                                            centerAngleDeg = centerAngleDeg,
+                                            sweepDeg = sectorStep.toFloat(),
+                                            color = LaiqColors.BrandRed,
+                                        )
+                                    }
+                                }
+                            }
                             RoofTemplate.UMBRELLA_RADIAL -> {
                             val rings = ringCount.coerceAtLeast(1)
                             val sectors = sectorCount.coerceAtLeast(1)
@@ -1052,6 +1153,12 @@ private fun publishRoofMapPosition(
         yNorm = (clamped.y / containerSize.height).coerceIn(0f, 1f),
     )
     onSelectPosition(azimuth, radiusRatio)
+}
+
+private fun normalizeDegreesForMap(value: Double): Double {
+    var result = value % 360.0
+    if (result < 0.0) result += 360.0
+    return result
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoofRingSectorOutline(

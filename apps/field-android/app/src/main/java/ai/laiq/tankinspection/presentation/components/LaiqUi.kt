@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -320,14 +321,12 @@ fun LaiqCountField(
     val normalizedMax = max.coerceAtLeast(normalizedMin)
     val normalizedValue = value.toIntOrNull()
     var manualEntryMode by rememberSaveable(label) { mutableStateOf(false) }
+    var manualFieldFocused by rememberSaveable(label) { mutableStateOf(false) }
 
-    LaunchedEffect(value, normalizedMin, normalizedMax) {
-        if (!manualEntryMode) return@LaunchedEffect
-        val parsed = value.toIntOrNull()
-        if (value.isNotBlank() && parsed != null && parsed in normalizedMin..normalizedMax) {
-            // Keep manual mode active so values like 25 can be typed without the field collapsing after "2".
-            return@LaunchedEffect
-        }
+    LaunchedEffect(value, normalizedMin, normalizedMax, manualFieldFocused) {
+        if (manualFieldFocused) return@LaunchedEffect
+        val parsed = normalizedValue
+        manualEntryMode = value.isBlank() || parsed == null || parsed !in normalizedMin..normalizedMax
     }
 
     val usesOther = manualEntryMode || value.isBlank() || normalizedValue == null || normalizedValue !in normalizedMin..normalizedMax
@@ -357,7 +356,17 @@ fun LaiqCountField(
                 label = { Text("Other $label") },
                 shape = RoundedCornerShape(18.dp),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        manualFieldFocused = focusState.isFocused
+                        if (!focusState.isFocused) {
+                            val parsed = value.toIntOrNull()
+                            if (parsed != null && parsed in normalizedMin..normalizedMax) {
+                                manualEntryMode = false
+                            }
+                        }
+                    },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             )

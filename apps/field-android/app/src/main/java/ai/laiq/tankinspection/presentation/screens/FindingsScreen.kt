@@ -25,6 +25,7 @@ import ai.laiq.tankinspection.presentation.components.RoofMapMarker
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
 import ai.laiq.tankinspection.presentation.editFinding
 import ai.laiq.tankinspection.presentation.findingsForMeasurement
+import ai.laiq.tankinspection.presentation.localInspectionStorageKey
 import ai.laiq.tankinspection.presentation.removeFinding
 import ai.laiq.tankinspection.presentation.roofFeatureTypeLabel
 import ai.laiq.tankinspection.presentation.roofReferenceLabel
@@ -143,6 +144,9 @@ fun FindingsScreen(
     val photoBitmap = remember(draftState.findingDraft.photoRelativePath) {
         attachmentStore.loadBitmap(draftState.findingDraft.photoRelativePath)
     }
+    val inspectionStorageKey = remember(draftState.startedAtIso, draftState.setup.tankNumber, draftState.savedSetupBaseline?.tankNumber) {
+        draftState.localInspectionStorageKey()
+    }
     val hasAnnotationStrokes = annotationStrokes.isNotEmpty() || activeAnnotationStroke.isNotEmpty()
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview(),
@@ -150,7 +154,7 @@ fun FindingsScreen(
         if (bitmap == null) return@rememberLauncherForActivityResult
         scope.launch {
             val relativePath = withContext(Dispatchers.IO) {
-                attachmentStore.saveFindingPhoto(bitmap)
+                attachmentStore.saveFindingPhoto(inspectionStorageKey, bitmap)
             }
             onDraftStateChange(
                 draftState.copy(
@@ -416,7 +420,7 @@ fun FindingsScreen(
                                         renderAnnotatedBitmap(photoBitmap, allStrokes, annotationViewport)
                                     }
                                     val relativePath = withContext(Dispatchers.IO) {
-                                        attachmentStore.saveAnnotatedFindingPhoto(annotatedBitmap)
+                                        attachmentStore.saveAnnotatedFindingPhoto(inspectionStorageKey, annotatedBitmap)
                                     }
                                     annotationStrokes = emptyList()
                                     activeAnnotationStroke = emptyList()

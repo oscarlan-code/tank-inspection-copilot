@@ -4,12 +4,18 @@ import ai.laiq.tankinspection.data.local.AppSessionStore
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.data.local.SavedAppSession
+import ai.laiq.tankinspection.data.local.db.InspectionRecordEntity
 import ai.laiq.tankinspection.presentation.commitFundamentalInputs
+import ai.laiq.tankinspection.presentation.currentInspectionId
 import ai.laiq.tankinspection.presentation.currentShellCaptureStartLaneId
+import ai.laiq.tankinspection.presentation.defaultDemoInspectionScenarioId
+import ai.laiq.tankinspection.presentation.demoInspectionScenarioDescription
+import ai.laiq.tankinspection.presentation.demoInspectionScenarioOptions
 import ai.laiq.tankinspection.presentation.hasPendingFundamentalChanges
 import ai.laiq.tankinspection.presentation.hasPendingShellPlanningChanges
-import ai.laiq.tankinspection.presentation.demoFieldDraftState
 import ai.laiq.tankinspection.presentation.FieldDraftState
+import ai.laiq.tankinspection.presentation.isMaterialInspectionDraft
+import ai.laiq.tankinspection.presentation.loadDemoInspectionScenario
 import ai.laiq.tankinspection.presentation.ProductScreen
 import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FIXED
 import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
@@ -45,9 +51,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +66,12 @@ fun LaiqFieldAndroidApp() {
     var draftState by remember { mutableStateOf(FieldDraftState()) }
     var findingsReturnScreen by remember { mutableStateOf(ProductScreen.TaskBoard) }
     var hasLoadedSession by remember { mutableStateOf(false) }
+    var selectedDemoScenarioId by remember { mutableStateOf(defaultDemoInspectionScenarioId()) }
+    var localInspections by remember { mutableStateOf<List<InspectionRecordEntity>>(emptyList()) }
+    var inspectionListRefreshKey by remember { mutableStateOf(0) }
+    var savedInspectionNotice by remember { mutableStateOf<String?>(null) }
+    val demoScenarioOptions = remember { demoInspectionScenarioOptions() }
+    val coroutineScope = rememberCoroutineScope()
 
     fun openFindings(nextDraftState: FieldDraftState, returnScreen: ProductScreen) {
         draftState = nextDraftState
@@ -71,6 +85,7 @@ fun LaiqFieldAndroidApp() {
             currentScreen = savedSession.currentScreen
             draftState = savedSession.draftState
         }
+        localInspections = appSessionStore.listInspections()
         hasLoadedSession = true
     }
 
@@ -82,6 +97,13 @@ fun LaiqFieldAndroidApp() {
                 draftState = draftState,
             ),
         )
+    }
+
+    LaunchedEffect(currentScreen, inspectionListRefreshKey, hasLoadedSession) {
+        if (!hasLoadedSession) return@LaunchedEffect
+        if (currentScreen == ProductScreen.Setup) {
+            localInspections = appSessionStore.listInspections()
+        }
     }
 
     LaiqFieldTheme {
@@ -152,14 +174,44 @@ fun LaiqFieldAndroidApp() {
                                 draftState = draftState.copy(shellCaptureStartLaneId = it)
                             },
                             onContinue = {
+                                savedInspectionNotice = null
                                 draftState = draftState.commitFundamentalInputs()
                                     .saveRoofLayoutDraft(ROOF_SURFACE_FIXED)
                                     .saveRoofLayoutDraft(ROOF_SURFACE_FLOATING)
                                 currentScreen = ProductScreen.Scope
                             },
-                            onLoadDemo = {
-                                draftState = demoFieldDraftState()
+                            sampleScenarioOptions = demoScenarioOptions,
+                            selectedSampleScenarioId = selectedDemoScenarioId,
+                            selectedSampleScenarioDescription = demoInspectionScenarioDescription(selectedDemoScenarioId),
+                            onSelectedSampleScenarioChange = { selectedDemoScenarioId = it },
+                            onLoadSampleData = {
+                                savedInspectionNotice = null
+                                draftState = loadDemoInspectionScenario(selectedDemoScenarioId)
                                 currentScreen = ProductScreen.Setup
+                                inspectionListRefreshKey++
+                            },
+                            onStartNewInspection = {
+                                savedInspectionNotice = null
+                                draftState = FieldDraftState()
+                                currentScreen = ProductScreen.Setup
+                                inspectionListRefreshKey++
+                            },
+                            localInspections = localInspections,
+                            activeInspectionId = draftState.currentInspectionId().takeIf { draftState.isMaterialInspectionDraft() },
+                            savedInspectionNotice = savedInspectionNotice,
+                            onOpenInspection = { inspectionId ->
+                                coroutineScope.launch {
+                                    val savedInspection = appSessionStore.loadInspection(inspectionId)
+                                    if (savedInspection != null) {
+                                        savedInspectionNotice = null
+                                        draftState = savedInspection.draftState
+                                        currentScreen = savedInspection.currentScreen
+                                        inspectionListRefreshKey++
+                                    } else {
+                                        savedInspectionNotice =
+                                            "This saved inspection is no longer restorable from local structured storage."
+                                    }
+                                }
                             },
                             contentPadding = innerPadding,
                         )

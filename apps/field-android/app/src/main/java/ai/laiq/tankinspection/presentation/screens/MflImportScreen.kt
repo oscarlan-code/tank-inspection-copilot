@@ -3,6 +3,7 @@ package ai.laiq.tankinspection.presentation.screens
 import ai.laiq.tankinspection.data.local.AttachmentFileStore
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.MflImportDraftInput
+import ai.laiq.tankinspection.presentation.localInspectionStorageKey
 import ai.laiq.tankinspection.presentation.saveMflImportDraft
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,13 +43,16 @@ fun MflImportScreen(
     val context = LocalContext.current
     val attachmentStore = remember(context) { AttachmentFileStore(context.filesDir) }
     val scope = rememberCoroutineScope()
+    val inspectionStorageKey = remember(draftState.startedAtIso, draftState.setup.tankNumber, draftState.savedSetupBaseline?.tankNumber) {
+        draftState.localInspectionStorageKey()
+    }
     val pdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             val imported = withContext(Dispatchers.IO) {
-                attachmentStore.importMflPdf(context, uri)
+                attachmentStore.importMflPdf(context, inspectionStorageKey, uri)
             }
             onDraftStateChange(
                 draftState.copy(
