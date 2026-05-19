@@ -6,9 +6,26 @@ dist/
 output/
 PROGRESS_NEW.md
 *.tsbuildinfo
-data/
+/data/
 Tank_Inspection_Copilot_V2_Design_Progress_*.pptx
 apps/field-android/.gradle/
+apps/field-android/.gradle-local/
 apps/field-android/build/
 apps/field-android/app/build/
 apps/field-android/local.properties
+
+# Local recovery and QA artifacts
+.git.icloud-placeholder
+Sample Reports/
+tmp-*
+
+# Local-only commercial working files
+commercial-output/2026-05-18/
+commercial-output/2026-05-19/
+commercial-output/generated_assets/
+commercial-output/STAKEHOLDER_UPDATE_CHECKPOINT.md
+commercial-output/Tank_Inspection_Copilot_Stakeholder_Update_May_2026.pptx
+commercial-output/build_product_demo_deck.py
+commercial-output/build_product_demo_gifs.py
+commercial-output/build_product_demo_gifs_real.py
+commercial-output/build_stakeholder_update_deck.py

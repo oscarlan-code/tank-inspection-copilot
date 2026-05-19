@@ -7,6 +7,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.selectableFieldTasks
+import ai.laiq.tankinspection.testing.AppReviewTags
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -34,7 +36,9 @@ fun InspectionScopeScreen(
     contentPadding: PaddingValues,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(AppReviewTags.Scope.Root),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -105,7 +109,13 @@ fun InspectionScopeScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaiqSecondaryButton("Back", onBack, modifier = Modifier.weight(1f))
-                LaiqPrimaryButton("Continue", onContinue, modifier = Modifier.weight(1f))
+                LaiqPrimaryButton(
+                    "Continue",
+                    onContinue,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(AppReviewTags.Scope.Continue),
+                )
             }
         }
     }

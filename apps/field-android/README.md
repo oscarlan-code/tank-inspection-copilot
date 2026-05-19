@@ -49,6 +49,31 @@ If you need to start the emulator:
 /Users/oscar/Library/Android/sdk/emulator/emulator -avd <YOUR_AVD_NAME>
 ```
 
+## Reviewer Automation
+
+The app reviewer is repo-native automation, not a Codex-only skill.
+
+Files that define it:
+- `.github/workflows/android-review.yml`
+- `scripts/review-app.sh`
+- `app/src/androidTest/java/ai/laiq/tankinspection/AppSmokeReviewTest.kt`
+- `app/src/main/java/ai/laiq/tankinspection/testing/AppReviewTags.kt`
+
+How it works:
+- local review entry point is `./scripts/review-app.sh`
+- CI runs the same flow in GitHub Actions
+- `JVM Review` runs compile + unit tests
+- `UI Smoke Review` boots an Android emulator, runs the smoke test, and uploads `logcat` artifacts
+
+Current status:
+- `./scripts/review-app.sh` now passes locally against the recovered Android module
+- the smoke test covers `Load Sample Data -> Open Current -> Open Shell UT`
+- reviewer artifacts are written under `build/reviewer/`
+
+Workspace note:
+- keep the active checkout outside iCloud-managed folders when possible
+- iCloud file eviction can turn `.git` and Kotlin source files into `dataless` placeholders and break both `git` and Gradle unexpectedly
+
 ## Product Scope
 
 This app is a measurement-first field capture tool for vertical storage tank inspection.

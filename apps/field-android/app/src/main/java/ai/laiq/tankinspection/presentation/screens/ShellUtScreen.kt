@@ -29,6 +29,7 @@ import ai.laiq.tankinspection.presentation.components.measurementStatsFromInput
 import ai.laiq.tankinspection.presentation.components.measurementStatsFromValues
 import ai.laiq.tankinspection.presentation.createCommittedShellLinePlanOrNull
 import ai.laiq.tankinspection.presentation.saveShellUtDraft
+import ai.laiq.tankinspection.testing.AppReviewTags
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -111,7 +113,9 @@ fun ShellUtScreen(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(AppReviewTags.ShellUt.Root),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -138,9 +142,28 @@ fun ShellUtScreen(
                 subtitle = "Lane-first shell capture. Numbering stays fixed, while the visible workflow starts from the selected crawler lane.",
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LaiqStatChip("Recommended", shellLinePlan.recommendedLineCount.toString(), modifier = Modifier.weight(1f))
-                    LaiqStatChip("Lanes", shellLinePlan.lineCount.toString(), modifier = Modifier.weight(1f))
-                    LaiqStatChip("Saved Rows", draftState.shellUtRows.size.toString(), tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
+                    LaiqStatChip(
+                        "Recommended",
+                        shellLinePlan.recommendedLineCount.toString(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(AppReviewTags.ShellUt.RecommendedCount),
+                    )
+                    LaiqStatChip(
+                        "Lanes",
+                        shellLinePlan.lineCount.toString(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(AppReviewTags.ShellUt.LaneCount),
+                    )
+                    LaiqStatChip(
+                        "Saved Rows",
+                        draftState.shellUtRows.size.toString(),
+                        tone = LaiqColors.AccentOrange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(AppReviewTags.ShellUt.SavedRowCount),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LaiqStatChip("Lane 1 Anchor", shellLinePlan.startReference, modifier = Modifier.weight(1f))

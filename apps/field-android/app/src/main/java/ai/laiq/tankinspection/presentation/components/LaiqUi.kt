@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Shape
@@ -214,7 +215,7 @@ fun LaiqStatChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics(mergeDescendants = true) {},
         color = Color.White,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, LaiqColors.PanelBorder),

@@ -35,6 +35,7 @@ import ai.laiq.tankinspection.presentation.roofReferenceLabel
 import ai.laiq.tankinspection.presentation.roofTemplateForSurface
 import ai.laiq.tankinspection.presentation.startReferenceLabel
 import ai.laiq.tankinspection.presentation.usesMarkerReference
+import ai.laiq.tankinspection.testing.AppReviewTags
 import ai.laiq.tankinspection.presentation.hasFixedRoof
 import ai.laiq.tankinspection.presentation.hasFloatingRoof
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -164,7 +166,9 @@ fun InspectionSetupScreen(
     val roofReferenceAzimuth = scopeState.referenceAzimuthDeg()
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(AppReviewTags.Setup.Root),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -200,10 +204,12 @@ fun InspectionSetupScreen(
                 LaiqSecondaryButton(
                     text = "Load Sample Data",
                     onClick = onLoadSampleData,
+                    modifier = Modifier.testTag(AppReviewTags.Setup.LoadSampleData),
                 )
                 LaiqSecondaryButton(
                     text = "Start New Inspection",
                     onClick = onStartNewInspection,
+                    modifier = Modifier.testTag(AppReviewTags.Setup.StartNewInspection),
                 )
             }
         }
@@ -213,6 +219,7 @@ fun InspectionSetupScreen(
                 LaiqSectionCard(
                     title = "Saved Inspections",
                     subtitle = "Continue a restorable local inspection stored on this device.",
+                    modifier = Modifier.testTag(AppReviewTags.Setup.SavedInspections),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (!savedInspectionNotice.isNullOrBlank()) {
@@ -545,6 +552,7 @@ fun InspectionSetupScreen(
             LaiqPrimaryButton(
                 text = "Continue to Task Scope",
                 onClick = onContinue,
+                modifier = Modifier.testTag(AppReviewTags.Setup.ContinueToScope),
             )
         }
     }
@@ -594,7 +602,15 @@ private fun LocalInspectionCard(
                 LaiqSecondaryButton(
                     text = if (isActive) "Open Current" else "Open Inspection",
                     onClick = onOpen,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(
+                            if (isActive) {
+                                AppReviewTags.Setup.OpenCurrentInspection
+                            } else {
+                                "setup_open_inspection_${inspection.inspectionId}"
+                            },
+                        ),
                 )
             }
         }

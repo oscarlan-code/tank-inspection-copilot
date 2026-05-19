@@ -97,6 +97,9 @@ fun LaiqFieldAndroidApp() {
                 draftState = draftState,
             ),
         )
+        if (currentScreen == ProductScreen.Setup) {
+            localInspections = appSessionStore.listInspections()
+        }
     }
 
     LaunchedEffect(currentScreen, inspectionListRefreshKey, hasLoadedSession) {

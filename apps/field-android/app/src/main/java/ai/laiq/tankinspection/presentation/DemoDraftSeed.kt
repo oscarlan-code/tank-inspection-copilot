@@ -71,7 +71,7 @@ fun demoInspectionScenarioOptions(): List<Pair<String, String>> =
     demoInspectionScenarios.map { scenario -> scenario.id to scenario.label }
 
 fun defaultDemoInspectionScenarioId(): String =
-    demoInspectionScenarios.first().id
+    demoScenarioTjsFixed
 
 fun demoInspectionScenarioDescription(id: String): String =
     demoInspectionScenarios.firstOrNull { scenario -> scenario.id == id }?.description

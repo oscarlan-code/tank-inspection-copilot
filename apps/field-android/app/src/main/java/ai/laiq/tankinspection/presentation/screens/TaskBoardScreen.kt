@@ -10,6 +10,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.presentation.components.LaiqStatusBadge
 import ai.laiq.tankinspection.presentation.roofSystemLabel
+import ai.laiq.tankinspection.testing.AppReviewTags
 import ai.laiq.tankinspection.presentation.visibleSelectedTasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -44,7 +46,9 @@ fun TaskBoardScreen(
     contentPadding: PaddingValues,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(AppReviewTags.TaskBoard.Root),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -138,7 +142,15 @@ private fun TaskBoardRow(
                 LaiqStatusBadge(status.label, status.tone)
             }
             if (onOpen != null) {
-                LaiqPrimaryButton("Open ${task.title}", onOpen)
+                LaiqPrimaryButton(
+                    "Open ${task.title}",
+                    onOpen,
+                    modifier = if (task == FieldTask.SHELL_UT) {
+                        Modifier.testTag(AppReviewTags.TaskBoard.OpenShellUt)
+                    } else {
+                        Modifier
+                    },
+                )
             }
         }
     }
