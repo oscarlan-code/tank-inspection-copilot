@@ -1,6 +1,16 @@
 import Foundation
 
+private final class DemoResourceBundleLocator {}
+
 public enum DemoSeedLoader {
+    public static func defaultBundle() -> Bundle {
+        #if SWIFT_PACKAGE
+        return .module
+        #else
+        return Bundle(for: DemoResourceBundleLocator.self)
+        #endif
+    }
+
     public static func loadScenarios(bundle: Bundle) throws -> [DemoInspectionScenario] {
         guard let url = bundle.url(forResource: "demo_scenarios", withExtension: "json") else {
             throw CocoaError(.fileNoSuchFile)
@@ -10,7 +20,7 @@ public enum DemoSeedLoader {
     }
 
     public static func loadScenarios() throws -> [DemoInspectionScenario] {
-        try loadScenarios(bundle: .module)
+        try loadScenarios(bundle: defaultBundle())
     }
 }
 
@@ -28,7 +38,7 @@ public final class DemoSessionStore {
     }
 
     public static func bootstrap() throws -> DemoSessionStore {
-        try bootstrap(bundle: .module)
+        try bootstrap(bundle: DemoSeedLoader.defaultBundle())
     }
 
     @discardableResult

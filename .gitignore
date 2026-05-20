@@ -14,6 +14,10 @@ apps/field-android/build/
 apps/field-android/app/build/
 apps/field-ios-demo/.build/
 apps/field-android/local.properties
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
 
 # Local recovery and QA artifacts
 .git.icloud-placeholder

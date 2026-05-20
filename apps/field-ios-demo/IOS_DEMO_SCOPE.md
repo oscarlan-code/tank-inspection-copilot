@@ -53,10 +53,15 @@ Use iOS-native behavior for:
 - modal confirmation patterns
 - file picker / share sheet when implemented later
 
-## Recommended First Xcode Milestone
+## Current Xcode Milestone
 
-1. Create a SwiftUI app target.
-2. Add the `FieldIOSDemoCore` package target.
-3. Wire `Load Sample Data`.
-4. Ship the four core screens above.
-5. Add shell UT detail next if the demo needs one deeper capture screen.
+Completed:
+1. Native SwiftUI app target created on its own branch.
+2. Shared `FieldIOSDemoCore` wired into the app and test bundle.
+3. `Load Sample Data` wired through the shared demo seed loader.
+4. The four core demo screens build and test successfully.
+
+Next:
+1. Add one deeper capture screen, likely `Shell UT`, if the demo needs more realism.
+2. Add lightweight local persistence for reopen-demo behavior across app restarts.
+3. Add export/share polish once the client demo flow is confirmed.

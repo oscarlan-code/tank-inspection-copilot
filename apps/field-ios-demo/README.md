@@ -11,11 +11,12 @@ Base Android branch:
 This folder contains two layers:
 - `Sources/FieldIOSDemoCore`: a testable Swift package core with demo seeds, draft models, and guardrail logic
 - `Scaffold/`: SwiftUI source files for the first iOS demo shell
+- `FieldIOSDemo.xcodeproj`: a generated Xcode project for the native demo app
 
 Why this shape:
-- full iOS app builds require Xcode, and this machine currently only has Command Line Tools active
 - the core package can still be verified locally with `swift test`
-- the SwiftUI scaffold can be opened in Xcode later and attached to a real app target
+- the SwiftUI scaffold stays lightweight while sharing product rules with the core module
+- the Xcode project is generated from `project.yml`, so the branch stays easy to rebuild and maintain
 
 ## Demo Goal
 
@@ -42,9 +43,23 @@ cd /Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios
 swift test
 ```
 
-## Next Xcode Step
+Build the iOS demo app target:
 
-When Xcode is available, create a native SwiftUI app target and wire in:
+```bash
+cd /Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo
+xcodebuild -project FieldIOSDemo.xcodeproj -scheme FieldIOSDemo -destination 'generic/platform=iOS Simulator' build
+```
+
+Run the Xcode test bundle on a simulator:
+
+```bash
+cd /Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo
+xcodebuild -project FieldIOSDemo.xcodeproj -scheme FieldIOSDemo -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
+
+## Project Shape
+
+The native app target already wires:
 - `Scaffold/FieldIOSDemoApp.swift`
 - `Scaffold/FieldDemoViewModel.swift`
 - `Scaffold/InspectionSetupView.swift`
@@ -52,4 +67,4 @@ When Xcode is available, create a native SwiftUI app target and wire in:
 - `Scaffold/TaskBoardView.swift`
 - `Scaffold/ReviewExportView.swift`
 
-The app target should depend on the `FieldIOSDemoCore` package target.
+`FieldIOSDemo` depends on the shared `FieldIOSDemoCore` framework target, and the project can be regenerated from `project.yml` with `xcodegen generate` if needed.
