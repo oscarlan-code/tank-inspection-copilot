@@ -12,6 +12,7 @@ import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
 import ai.laiq.tankinspection.presentation.RoofLayoutDraftInput
 import ai.laiq.tankinspection.presentation.ScopeFormState
 import ai.laiq.tankinspection.presentation.SetupFormState
+import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.buildRoofLayoutFromDraftOrNull
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqCountField
@@ -35,6 +36,7 @@ import ai.laiq.tankinspection.presentation.roofReferenceLabel
 import ai.laiq.tankinspection.presentation.roofTemplateForSurface
 import ai.laiq.tankinspection.presentation.startReferenceLabel
 import ai.laiq.tankinspection.presentation.usesMarkerReference
+import ai.laiq.tankinspection.presentation.validationErrors
 import ai.laiq.tankinspection.testing.AppReviewTags
 import ai.laiq.tankinspection.presentation.hasFixedRoof
 import ai.laiq.tankinspection.presentation.hasFloatingRoof
@@ -164,6 +166,7 @@ fun InspectionSetupScreen(
     val floatingRoofLayoutValidationMessage = setupRoofLayoutValidationMessage(normalizedFloatingRoofLayoutDraft)
     val roofReferenceLabel = scopeState.roofReferenceLabel()
     val roofReferenceAzimuth = scopeState.referenceAzimuthDeg()
+    val validationErrors = FieldDraftState(setup = state, scope = scopeState).validationErrors()
 
     LazyColumn(
         modifier = Modifier
@@ -549,9 +552,29 @@ fun InspectionSetupScreen(
         }
 
         item {
+            if (validationErrors.isNotEmpty()) {
+                LaiqSectionCard(
+                    title = "Required Before Continue",
+                    subtitle = "Complete the baseline fields below before moving into task capture.",
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        validationErrors.forEach { error ->
+                            Text(
+                                "• $error",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.StatusWarning,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
             LaiqPrimaryButton(
                 text = "Continue to Task Scope",
                 onClick = onContinue,
+                enabled = validationErrors.isEmpty(),
                 modifier = Modifier.testTag(AppReviewTags.Setup.ContinueToScope),
             )
         }

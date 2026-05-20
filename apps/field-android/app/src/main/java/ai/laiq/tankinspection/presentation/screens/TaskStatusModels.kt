@@ -33,11 +33,12 @@ fun reviewTaskStatus(task: FieldTask, draftState: FieldDraftState): TaskStatus =
     } else {
         TaskStatus("Recorded", LaiqColors.StatusReady, isComplete = true, blocksExport = false)
     }
-    FieldTask.MFL_IMPORT -> if (!draftState.mflImportDraft.attachmentId.isNullOrBlank()) {
-        TaskStatus("Attached", LaiqColors.StatusReady, isComplete = true)
-    } else {
-        TaskStatus("Required", LaiqColors.StatusWarning)
-    }
+    FieldTask.MFL_IMPORT -> TaskStatus(
+        label = "Deferred",
+        tone = LaiqColors.StatusDraft,
+        isComplete = true,
+        blocksExport = false,
+    )
     FieldTask.REVIEW_EXPORT -> exportReviewStatus(draftState)
 }
 

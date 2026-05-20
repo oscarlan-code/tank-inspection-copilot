@@ -66,6 +66,7 @@ fun MflImportScreen(
         }
     }
     val mflAttachments = draftState.attachments.filter { it.kind == "mfl_report" }
+    val canSaveMflHandoff = draftState.mflImportDraft.pdfRelativePath.isNotBlank()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -113,6 +114,7 @@ fun MflImportScreen(
 
                     Button(
                         onClick = { onDraftStateChange(draftState.saveMflImportDraft()) },
+                        enabled = canSaveMflHandoff,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Save MFL Handoff")
@@ -226,9 +228,10 @@ private fun MflImportInputs(
         }
         OutlinedTextField(
             value = draft.pdfRelativePath,
-            onValueChange = { onDraftChange(draft.copy(pdfRelativePath = it)) },
-            label = { Text("PDF relative path") },
+            onValueChange = {},
+            label = { Text("Imported PDF path") },
             singleLine = true,
+            readOnly = true,
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(

@@ -306,10 +306,19 @@ fun defaultFieldTasks(): Set<FieldTask> = linkedSetOf(
 )
 
 fun selectableFieldTasks(): List<FieldTask> =
-    FieldTask.entries.filterNot { task -> task == FieldTask.FINDINGS }
+    FieldTask.entries.filterNot { task ->
+        task == FieldTask.FINDINGS || task == FieldTask.REVIEW_EXPORT || task == FieldTask.MFL_IMPORT
+    }
 
 fun visibleSelectedTasks(selectedTasks: Set<FieldTask>): List<FieldTask> =
-    selectedTasks.filterNot { task -> task == FieldTask.FINDINGS }
+    buildList {
+        addAll(
+            selectedTasks.filterNot { task ->
+                task == FieldTask.FINDINGS || task == FieldTask.REVIEW_EXPORT || task == FieldTask.MFL_IMPORT
+            },
+        )
+        add(FieldTask.REVIEW_EXPORT)
+    }
 
 fun defaultShellSettlementStationDrafts(
     stationCount: Int,
@@ -403,7 +412,12 @@ fun FieldDraftState.validationErrors(): List<String> {
     if (scope.usesMarkerReference() && scope.referenceRemark.isBlank()) {
         errors += "Enter the tank north / site marker remark."
     }
-    if (scope.selectedTasks.isEmpty()) errors += "Select at least one active task."
+    if (scope.selectedTasks.none { task ->
+            task != FieldTask.FINDINGS && task != FieldTask.REVIEW_EXPORT && task != FieldTask.MFL_IMPORT
+        }
+    ) {
+        errors += "Select at least one active task."
+    }
     return errors
 }
 
@@ -629,10 +643,6 @@ fun FieldDraftState.reviewWarnings(): List<String> {
     if (scope.selectedTasks.contains(FieldTask.ROOF_NOZZLE_UT) && roofNozzles.isEmpty()) {
         warnings += "Register at least one roof nozzle."
     }
-    if (scope.selectedTasks.contains(FieldTask.MFL_IMPORT) && mflImportDraft.attachmentId.isNullOrBlank()) {
-        warnings += "Attach the third-party MFL PDF before export."
-    }
-
     return warnings.distinct()
 }
 
@@ -2091,6 +2101,15 @@ private fun generatedFindingAttachmentCaption(finding: FindingRecord): String =
         finding.locationSummary?.takeIf { it.isNotBlank() },
         finding.type.replace('_', ' ').replaceFirstChar { char -> char.uppercase() },
     ).joinToString(" - ").ifBlank { "Finding Photo" }
+
+fun FieldDraftState.hasSavedMflAttachment(): Boolean {
+    val attachmentId = mflImportDraft.attachmentId ?: return false
+    return attachments.any { attachment ->
+        attachment.attachmentId == attachmentId &&
+            attachment.kind == "mfl_report" &&
+            attachment.relativePath.isNotBlank()
+    }
+}
 
 fun FieldDraftState.saveMflImportDraft(): FieldDraftState {
     val nextAttachmentId = mflImportDraft.attachmentId ?: if (mflImportDraft.pdfRelativePath.isNotBlank()) {

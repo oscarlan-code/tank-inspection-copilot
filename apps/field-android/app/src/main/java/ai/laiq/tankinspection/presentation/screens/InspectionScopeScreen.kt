@@ -35,6 +35,10 @@ fun InspectionScopeScreen(
     onContinue: () -> Unit,
     contentPadding: PaddingValues,
 ) {
+    val hasActiveCaptureTask = state.selectedTasks.any { task ->
+        task != FieldTask.FINDINGS && task != FieldTask.REVIEW_EXPORT && task != FieldTask.MFL_IMPORT
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -102,6 +106,13 @@ fun InspectionScopeScreen(
                             }
                         }
                     }
+                    if (!hasActiveCaptureTask) {
+                        Text(
+                            "Select at least one active task before continuing.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LaiqColors.StatusWarning,
+                        )
+                    }
                 }
             }
         }
@@ -112,6 +123,7 @@ fun InspectionScopeScreen(
                 LaiqPrimaryButton(
                     "Continue",
                     onContinue,
+                    enabled = hasActiveCaptureTask,
                     modifier = Modifier
                         .weight(1f)
                         .testTag(AppReviewTags.Scope.Continue),

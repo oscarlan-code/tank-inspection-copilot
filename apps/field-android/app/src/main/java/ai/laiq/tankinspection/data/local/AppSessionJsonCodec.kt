@@ -590,15 +590,19 @@ object AppSessionJsonCodec {
             FieldTask.SHELL_NOZZLE_UT,
             FieldTask.ROOF_NOZZLE_UT,
             FieldTask.FINDINGS,
-            FieldTask.MFL_IMPORT,
             FieldTask.REVIEW_EXPORT,
         )
-        return buildSet {
+        val decoded = buildSet {
             repeat(jsonArray.length()) { index ->
                 val raw = jsonArray.optString(index)
-                runCatching { add(enumValueOf<FieldTask>(raw)) }
+                runCatching {
+                    enumValueOf<FieldTask>(raw)
+                        .takeUnless { task -> task == FieldTask.MFL_IMPORT }
+                        ?.let(::add)
+                }
             }
         }
+        return decoded + FieldTask.REVIEW_EXPORT
     }
 
     private fun decodeReferenceMode(raw: String): ReferenceMode = when (raw) {

@@ -6,6 +6,7 @@ import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RotationDirection
 import ai.laiq.tankinspection.domain.model.MeasurementUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -106,7 +107,7 @@ class FieldDraftStateCanonicalTest {
     }
 
     @Test
-    fun reviewWarnings_flagMissingMflAttachmentForSelectedTask() {
+    fun reviewWarnings_doNotBlockOnDeferredMflTask() {
         val state = FieldDraftState(
             setup = SetupFormState(
                 client = "Petronas",
@@ -128,7 +129,7 @@ class FieldDraftStateCanonicalTest {
 
         val warnings = state.reviewWarnings()
 
-        assertTrue(warnings.any { it.contains("third-party MFL PDF", ignoreCase = true) })
+        assertFalse(warnings.any { it.contains("third-party MFL PDF", ignoreCase = true) })
     }
 
     @Test

@@ -2,6 +2,8 @@ package ai.laiq.tankinspection
 
 import ai.laiq.tankinspection.data.local.AppSessionStore
 import ai.laiq.tankinspection.presentation.components.LaiqColors
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
+import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.data.local.SavedAppSession
 import ai.laiq.tankinspection.data.local.db.InspectionRecordEntity
@@ -21,6 +23,7 @@ import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FIXED
 import ai.laiq.tankinspection.presentation.ROOF_SURFACE_FLOATING
 import ai.laiq.tankinspection.presentation.recommendedLineCount
 import ai.laiq.tankinspection.presentation.saveRoofLayoutDraft
+import ai.laiq.tankinspection.presentation.validationErrors
 import ai.laiq.tankinspection.presentation.screens.FindingsScreen
 import ai.laiq.tankinspection.presentation.screens.ExportScreen
 import ai.laiq.tankinspection.presentation.screens.InspectionScopeScreen
@@ -70,6 +73,7 @@ fun LaiqFieldAndroidApp() {
     var localInspections by remember { mutableStateOf<List<InspectionRecordEntity>>(emptyList()) }
     var inspectionListRefreshKey by remember { mutableStateOf(0) }
     var savedInspectionNotice by remember { mutableStateOf<String?>(null) }
+    var pendingSetupContinue by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
     val demoScenarioOptions = remember { demoInspectionScenarioOptions() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -79,10 +83,22 @@ fun LaiqFieldAndroidApp() {
         currentScreen = ProductScreen.Findings
     }
 
+    fun continueFromSetup() {
+        savedInspectionNotice = null
+        draftState = draftState.commitFundamentalInputs()
+            .saveRoofLayoutDraft(ROOF_SURFACE_FIXED)
+            .saveRoofLayoutDraft(ROOF_SURFACE_FLOATING)
+        currentScreen = ProductScreen.Scope
+    }
+
     LaunchedEffect(appSessionStore) {
         val savedSession = appSessionStore.load()
         if (savedSession != null) {
-            currentScreen = savedSession.currentScreen
+            currentScreen = if (savedSession.currentScreen == ProductScreen.MflImport) {
+                ProductScreen.TaskBoard
+            } else {
+                savedSession.currentScreen
+            }
             draftState = savedSession.draftState
         }
         localInspections = appSessionStore.listInspections()
@@ -111,6 +127,12 @@ fun LaiqFieldAndroidApp() {
 
     LaiqFieldTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
+            pendingSetupContinue?.let { dialogState ->
+                LaiqDeleteConfirmDialog(
+                    state = dialogState,
+                    onDismiss = { pendingSetupContinue = null },
+                )
+            }
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -177,11 +199,27 @@ fun LaiqFieldAndroidApp() {
                                 draftState = draftState.copy(shellCaptureStartLaneId = it)
                             },
                             onContinue = {
-                                savedInspectionNotice = null
-                                draftState = draftState.commitFundamentalInputs()
-                                    .saveRoofLayoutDraft(ROOF_SURFACE_FIXED)
-                                    .saveRoofLayoutDraft(ROOF_SURFACE_FLOATING)
-                                currentScreen = ProductScreen.Scope
+                                val validationErrors = draftState.validationErrors()
+                                if (validationErrors.isEmpty()) {
+                                    val destructiveMessage = when {
+                                        draftState.hasPendingFundamentalChanges() ->
+                                            "This change will clear roof layout, shell and roof measurements, nozzle data, and findings so capture can restart from the new foundation."
+                                        draftState.hasPendingShellPlanningChanges() ->
+                                            "This change will clear shell-side measurements, shell nozzle data, and related findings."
+                                        else -> null
+                                    }
+
+                                    if (destructiveMessage != null) {
+                                        pendingSetupContinue = LaiqDeleteDialogState(
+                                            title = "Reset downstream capture?",
+                                            message = destructiveMessage,
+                                            confirmText = "Continue",
+                                            onConfirm = { continueFromSetup() },
+                                        )
+                                    } else {
+                                        continueFromSetup()
+                                    }
+                                }
                             },
                             sampleScenarioOptions = demoScenarioOptions,
                             selectedSampleScenarioId = selectedDemoScenarioId,

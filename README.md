@@ -31,11 +31,10 @@ Current capture scope:
 - roof elements registration / placement
 - linked findings with photo + annotation
 - review and export
-- MFL import handoff metadata
 
 Current product direction:
 - field capture first
-- report-writing metadata later
+- report-writing metadata later, including deferred MFL handling
 - local-first / offline-friendly Android workflow
 - canonical package export after field work
 

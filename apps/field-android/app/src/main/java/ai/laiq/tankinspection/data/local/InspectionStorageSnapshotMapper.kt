@@ -6,6 +6,7 @@ import ai.laiq.tankinspection.data.local.db.InspectionTaskSnapshotEntity
 import ai.laiq.tankinspection.domain.model.CanonicalInspectionPackage
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.FieldTask
+import ai.laiq.tankinspection.presentation.hasSavedMflAttachment
 import ai.laiq.tankinspection.presentation.reviewWarnings
 import ai.laiq.tankinspection.presentation.roofSystemLabel
 import java.io.File
@@ -155,23 +156,13 @@ private fun FieldDraftState.taskSnapshotStatus(task: FieldTask): PersistedTaskSt
             referenceCount = attachments.size,
         )
     }
-    FieldTask.MFL_IMPORT -> if (!mflImportDraft.attachmentId.isNullOrBlank()) {
-        PersistedTaskStatus(
-            statusCode = "attached",
-            statusLabel = "Attached",
-            isComplete = true,
-            blocksExport = true,
-            entryCount = 1,
-        )
-    } else {
-        PersistedTaskStatus(
-            statusCode = "required",
-            statusLabel = "Required",
-            isComplete = false,
-            blocksExport = true,
-            entryCount = 0,
-        )
-    }
+    FieldTask.MFL_IMPORT -> PersistedTaskStatus(
+        statusCode = if (hasSavedMflAttachment()) "deferred_attached" else "deferred",
+        statusLabel = "Deferred",
+        isComplete = true,
+        blocksExport = false,
+        entryCount = if (hasSavedMflAttachment()) 1 else 0,
+    )
     FieldTask.REVIEW_EXPORT -> reviewExportStatus()
 }
 

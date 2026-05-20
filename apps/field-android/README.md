@@ -92,11 +92,11 @@ Current implemented capture scope:
 - roof elements registration / placement
 - findings with photo + annotation
 - review and export
-- MFL handoff metadata only
 
 Current intentional non-goals:
 - full report-writing metadata
 - floor / detailed MFL capture workflows
+- in-app MFL handoff capture
 - engineering calculations as primary field tasks
 - enterprise sync workflows
 
