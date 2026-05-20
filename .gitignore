@@ -12,6 +12,7 @@ apps/field-android/.gradle/
 apps/field-android/.gradle-local/
 apps/field-android/build/
 apps/field-android/app/build/
+apps/field-ios-demo/.build/
 apps/field-android/local.properties
 
 # Local recovery and QA artifacts
