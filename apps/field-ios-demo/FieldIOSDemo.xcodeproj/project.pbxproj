@@ -17,11 +17,14 @@
 		776522410CFF1393A73400D0 /* TaskBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C43513A2B9D1E990E51E123A /* TaskBoardView.swift */; };
 		7975A0D3033A5B702D8B24D3 /* FieldIOSDemoCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD762A4079A7E839D616A068 /* FieldIOSDemoCoreTests.swift */; };
 		7F3E254DAECC2DE680A37A2D /* FieldIOSDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D852B7EB25078F346B6C28 /* FieldIOSDemoApp.swift */; };
+		8E2B7167F55B8A2E8BD9FBB1 /* InspectionMapViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6E1E6398E87AA3ADE1E3E1 /* InspectionMapViews.swift */; };
 		BBA8720BA430E4DE6D56C901 /* DemoSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB7A9A66757DFA8981A70E6 /* DemoSessionStore.swift */; };
 		C4FE23486027E19DFB60EEAB /* FieldDemoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E60DEEF655F452864C0805 /* FieldDemoViewModel.swift */; };
+		C90B9500FD2FC8761041971A /* TaskWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1EE7F8DAEE535DBE7B9092 /* TaskWorkspaceView.swift */; };
 		CF08114164153D5A2A17CA52 /* InspectionSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B7CA83F8E87BD6875039C4 /* InspectionSetupView.swift */; };
 		E3F1A3B9CDA17C14A241FD2F /* TaskScopeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE654180F992E8AF70E9BCE /* TaskScopeView.swift */; };
 		EFDFE57F3C0513C04DFBA724 /* FieldIOSDemoCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 847DBE6E8FCA97DFB0F2E100 /* FieldIOSDemoCore.framework */; };
+		F8DB1FAB658B3D45A8A1704D /* FieldScaffoldComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99B979C3533157BB011C209 /* FieldScaffoldComponents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,15 +74,18 @@
 		4DE654180F992E8AF70E9BCE /* TaskScopeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScopeView.swift; sourceTree = "<group>"; };
 		5355B47F14BC7249A737A519 /* LaiqTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaiqTheme.swift; sourceTree = "<group>"; };
 		53AAB7DE63EC577855BEEE50 /* FieldIOSDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FieldIOSDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F1EE7F8DAEE535DBE7B9092 /* TaskWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskWorkspaceView.swift; sourceTree = "<group>"; };
 		7A7CD93355D722483CD92F00 /* InspectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionModels.swift; sourceTree = "<group>"; };
 		847DBE6E8FCA97DFB0F2E100 /* FieldIOSDemoCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FieldIOSDemoCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AB7A9A66757DFA8981A70E6 /* DemoSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoSessionStore.swift; sourceTree = "<group>"; };
+		8E6E1E6398E87AA3ADE1E3E1 /* InspectionMapViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionMapViews.swift; sourceTree = "<group>"; };
 		A3FD81F99B5BCF551562AADD /* demo_scenarios.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = demo_scenarios.json; sourceTree = "<group>"; };
 		A5A2FC6304286F926A1F2002 /* ReviewExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewExportView.swift; sourceTree = "<group>"; };
 		C43513A2B9D1E990E51E123A /* TaskBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBoardView.swift; sourceTree = "<group>"; };
 		D3D852B7EB25078F346B6C28 /* FieldIOSDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldIOSDemoApp.swift; sourceTree = "<group>"; };
 		DC6D36B07CF4F2A7DD17D67A /* FieldIOSDemoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FieldIOSDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3B7CA83F8E87BD6875039C4 /* InspectionSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionSetupView.swift; sourceTree = "<group>"; };
+		F99B979C3533157BB011C209 /* FieldScaffoldComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldScaffoldComponents.swift; sourceTree = "<group>"; };
 		FD762A4079A7E839D616A068 /* FieldIOSDemoCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldIOSDemoCoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -162,11 +168,14 @@
 			children = (
 				25E60DEEF655F452864C0805 /* FieldDemoViewModel.swift */,
 				D3D852B7EB25078F346B6C28 /* FieldIOSDemoApp.swift */,
+				F99B979C3533157BB011C209 /* FieldScaffoldComponents.swift */,
+				8E6E1E6398E87AA3ADE1E3E1 /* InspectionMapViews.swift */,
 				F3B7CA83F8E87BD6875039C4 /* InspectionSetupView.swift */,
 				5355B47F14BC7249A737A519 /* LaiqTheme.swift */,
 				A5A2FC6304286F926A1F2002 /* ReviewExportView.swift */,
 				C43513A2B9D1E990E51E123A /* TaskBoardView.swift */,
 				4DE654180F992E8AF70E9BCE /* TaskScopeView.swift */,
+				5F1EE7F8DAEE535DBE7B9092 /* TaskWorkspaceView.swift */,
 			);
 			path = Scaffold;
 			sourceTree = "<group>";
@@ -311,11 +320,14 @@
 			files = (
 				C4FE23486027E19DFB60EEAB /* FieldDemoViewModel.swift in Sources */,
 				7F3E254DAECC2DE680A37A2D /* FieldIOSDemoApp.swift in Sources */,
+				F8DB1FAB658B3D45A8A1704D /* FieldScaffoldComponents.swift in Sources */,
+				8E2B7167F55B8A2E8BD9FBB1 /* InspectionMapViews.swift in Sources */,
 				CF08114164153D5A2A17CA52 /* InspectionSetupView.swift in Sources */,
 				2C56B2C10CACBF4860EF8D16 /* LaiqTheme.swift in Sources */,
 				678A4240E91A5E2EE868EBC5 /* ReviewExportView.swift in Sources */,
 				776522410CFF1393A73400D0 /* TaskBoardView.swift in Sources */,
 				E3F1A3B9CDA17C14A241FD2F /* TaskScopeView.swift in Sources */,
+				C90B9500FD2FC8761041971A /* TaskWorkspaceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

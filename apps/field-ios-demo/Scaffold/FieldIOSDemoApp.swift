@@ -24,8 +24,12 @@ struct FieldRootView: View {
                 TaskScopeView(viewModel: viewModel)
             case .taskBoard:
                 TaskBoardView(viewModel: viewModel)
+            case let .task(task):
+                TaskWorkspaceView(viewModel: viewModel, task: task)
             case .review:
                 ReviewExportView(viewModel: viewModel)
+            case .exportHandoff:
+                ExportHandoffView(viewModel: viewModel)
             }
         }
         .tint(LaiqTheme.brandTeal)

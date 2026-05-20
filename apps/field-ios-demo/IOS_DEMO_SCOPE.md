@@ -11,28 +11,34 @@ Screens:
 - `Task Scope`
 - `Task Board`
 - `Review & Export`
+- `Export Handoff`
+- generic per-task workspace screens
 
 UX behaviors:
 - `Load Sample Data`
 - `Start New Inspection`
-- reopen current draft in-memory
+- reopen current draft from lightweight local persistence
 - setup validation before continue
 - enforce at least one active capture task
 - always keep `Review & Export` visible
-- show task readiness cards using seeded counts
+- preserve task data when a task is deselected
+- show task readiness cards using Android-style presence checks
+- keep a simple row-level active capture context inside each task
 
 Data:
 - shared scenario IDs matching Android
 - setup baseline
 - selected capture tasks
-- task summary counts
+- task snapshots
+- row-level capture entries
 - findings summary counts
 - review warnings
 
 ## Deferred From V1 Demo
 
-- production-grade local persistence
-- camera / photo capture
+- production-grade persistence and recovery depth equal to Android
+- real camera / photo capture workflow
+- full finding-record editing
 - file share / export implementation
 - floor capture workflow
 - MFL capture workflow
@@ -46,6 +52,9 @@ Use Android as the product reference for:
 - sample scenario names
 - setup validation rules
 - review/export guardrails
+- visible task flow quality
+- map/detail richness
+- task-specific capture depth
 
 Use iOS-native behavior for:
 - navigation chrome
@@ -59,9 +68,12 @@ Completed:
 1. Native SwiftUI app target created on its own branch.
 2. Shared `FieldIOSDemoCore` wired into the app and test bundle.
 3. `Load Sample Data` wired through the shared demo seed loader.
-4. The four core demo screens build and test successfully.
+4. Lightweight local session persistence now keeps the current draft and screen across relaunches.
+5. Review now continues into an explicit export-handoff screen.
+6. The app builds, tests, and launches on simulator.
 
 Next:
-1. Add one deeper capture screen, likely `Shell UT`, if the demo needs more realism.
-2. Add lightweight local persistence for reopen-demo behavior across app restarts.
-3. Add export/share polish once the client demo flow is confirmed.
+1. Replace generic task workspaces with true Android-like task screens, starting with `Shell UT`.
+2. Upgrade findings from counters to real linked records.
+3. Deepen the shell and roof maps so they match Android inspection detail more closely.
+4. Add real export/share behavior once the visible capture flow is credible.

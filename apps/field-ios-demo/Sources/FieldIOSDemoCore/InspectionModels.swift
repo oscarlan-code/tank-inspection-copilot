@@ -108,22 +108,97 @@ public struct InspectionScope: Codable, Equatable, Sendable {
     }
 }
 
+public struct TaskCaptureEntry: Codable, Equatable, Sendable, Identifiable {
+    public var id: String
+    public var label: String
+    public var findingCount: Int
+    public var attachmentCount: Int
+
+    public init(
+        id: String,
+        label: String,
+        findingCount: Int = 0,
+        attachmentCount: Int = 0
+    ) {
+        self.id = id
+        self.label = label
+        self.findingCount = findingCount
+        self.attachmentCount = attachmentCount
+    }
+}
+
 public struct TaskSnapshot: Codable, Equatable, Sendable {
     public var task: InspectionTask
     public var status: InspectionTaskStatus
     public var entryCount: Int
     public var blocksExport: Bool
+    public var entries: [TaskCaptureEntry]
+    public var activeEntryId: String?
+
+    public var linkedFindingCount: Int {
+        entries.reduce(0) { partial, entry in
+            partial + entry.findingCount
+        }
+    }
+
+    public var linkedAttachmentCount: Int {
+        entries.reduce(0) { partial, entry in
+            partial + entry.attachmentCount
+        }
+    }
+
+    public var activeEntry: TaskCaptureEntry? {
+        guard let activeEntryId else { return entries.last }
+        return entries.first(where: { $0.id == activeEntryId }) ?? entries.last
+    }
 
     public init(
         task: InspectionTask,
         status: InspectionTaskStatus,
         entryCount: Int,
-        blocksExport: Bool = true
+        blocksExport: Bool = true,
+        entries: [TaskCaptureEntry] = [],
+        activeEntryId: String? = nil
     ) {
+        let resolvedEntries = entries.isEmpty
+            ? defaultCaptureEntries(for: task, count: entryCount)
+            : entries
         self.task = task
         self.status = status
-        self.entryCount = entryCount
+        self.entryCount = resolvedEntries.isEmpty ? entryCount : resolvedEntries.count
         self.blocksExport = blocksExport
+        self.entries = resolvedEntries
+        self.activeEntryId = resolvedEntries.isEmpty ? nil : (activeEntryId ?? resolvedEntries.last?.id)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case task
+        case status
+        case entryCount
+        case blocksExport
+        case entries
+        case activeEntryId
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let task = try container.decode(InspectionTask.self, forKey: .task)
+        let status = try container.decodeIfPresent(InspectionTaskStatus.self, forKey: .status) ?? .notStarted
+        let entryCount = try container.decodeIfPresent(Int.self, forKey: .entryCount) ?? 0
+        let blocksExport = try container.decodeIfPresent(Bool.self, forKey: .blocksExport) ?? true
+        let decodedEntries = try container.decodeIfPresent([TaskCaptureEntry].self, forKey: .entries) ?? []
+        let activeEntryId = try container.decodeIfPresent(String.self, forKey: .activeEntryId)
+
+        let resolvedEntries = decodedEntries.isEmpty
+            ? defaultCaptureEntries(for: task, count: entryCount)
+            : decodedEntries
+
+        self.task = task
+        self.status = status
+        self.entryCount = resolvedEntries.isEmpty ? entryCount : resolvedEntries.count
+        self.blocksExport = blocksExport
+        self.entries = resolvedEntries
+        self.activeEntryId = resolvedEntries.isEmpty ? nil : (activeEntryId ?? resolvedEntries.last?.id)
     }
 }
 
@@ -140,10 +215,19 @@ public struct FindingSummary: Codable, Equatable, Sendable {
 public struct ReviewSummary: Codable, Equatable, Sendable {
     public var warningCount: Int
     public var readyForExport: Bool
+    public var lastPreparedPackageId: String?
+    public var lastPreparedAtIso: String?
 
-    public init(warningCount: Int = 0, readyForExport: Bool = false) {
+    public init(
+        warningCount: Int = 0,
+        readyForExport: Bool = false,
+        lastPreparedPackageId: String? = nil,
+        lastPreparedAtIso: String? = nil
+    ) {
         self.warningCount = warningCount
         self.readyForExport = readyForExport
+        self.lastPreparedPackageId = lastPreparedPackageId
+        self.lastPreparedAtIso = lastPreparedAtIso
     }
 }
 
@@ -242,6 +326,40 @@ public func validationErrors(for draft: InspectionDraft) -> [String] {
     return errors
 }
 
+public func reviewWarnings(for draft: InspectionDraft) -> [String] {
+    var warnings = validationErrors(for: draft)
+
+    if draft.scope.selectedTasks.contains(.roofElements) && taskSnapshot(for: .roofElements, in: draft).entryCount == 0 {
+        warnings.append("Register at least one roof element.")
+    }
+    if draft.scope.selectedTasks.contains(.shellUT) && taskSnapshot(for: .shellUT, in: draft).entryCount == 0 {
+        warnings.append("Add at least one shell UT row.")
+    }
+    if draft.scope.selectedTasks.contains(.shellSettlement) && taskSnapshot(for: .shellSettlement, in: draft).entryCount == 0 {
+        warnings.append("Add at least one shell settlement station.")
+    }
+    if draft.scope.selectedTasks.contains(.roundnessSurvey) && taskSnapshot(for: .roundnessSurvey, in: draft).entryCount == 0 {
+        warnings.append("Add at least one roundness survey band.")
+    }
+    if draft.scope.selectedTasks.contains(.plumbnessSurvey) && taskSnapshot(for: .plumbnessSurvey, in: draft).entryCount == 0 {
+        warnings.append("Add at least one plumbness survey station.")
+    }
+    if draft.scope.selectedTasks.contains(.roofUT) && taskSnapshot(for: .roofUT, in: draft).entryCount == 0 {
+        warnings.append("Add at least one roof UT row.")
+    }
+    if draft.scope.selectedTasks.contains(.shellNozzleUT) && taskSnapshot(for: .shellNozzleUT, in: draft).entryCount == 0 {
+        warnings.append("Register at least one shell nozzle.")
+    }
+    if draft.scope.selectedTasks.contains(.roofNozzleUT) && taskSnapshot(for: .roofNozzleUT, in: draft).entryCount == 0 {
+        warnings.append("Register at least one roof nozzle.")
+    }
+
+    var seen = Set<String>()
+    return warnings.filter { warning in
+        seen.insert(warning).inserted
+    }
+}
+
 public func taskSnapshot(for task: InspectionTask, in draft: InspectionDraft) -> TaskSnapshot {
     if task == .reviewExport {
         return TaskSnapshot(
@@ -263,4 +381,39 @@ public func taskSnapshot(for task: InspectionTask, in draft: InspectionDraft) ->
 
     return draft.taskSnapshots.first(where: { $0.task == task })
         ?? TaskSnapshot(task: task, status: .notStarted, entryCount: 0)
+}
+
+private func defaultCaptureEntries(for task: InspectionTask, count: Int) -> [TaskCaptureEntry] {
+    guard task.isCaptureTask, count > 0 else { return [] }
+    return (1...count).map { index in
+        TaskCaptureEntry(
+            id: "\(task.rawValue)-entry-\(index)",
+            label: captureEntryLabel(for: task, ordinal: index)
+        )
+    }
+}
+
+public func captureEntryLabel(for task: InspectionTask, ordinal: Int) -> String {
+    switch task {
+    case .roofElements:
+        return "Roof Element \(ordinal)"
+    case .shellUT:
+        return "Shell Row \(ordinal)"
+    case .shellSettlement:
+        return "Settlement Station \(ordinal)"
+    case .roundnessSurvey:
+        return "Roundness Band \(ordinal)"
+    case .plumbnessSurvey:
+        return "Plumbness Station \(ordinal)"
+    case .roofUT:
+        return "Roof Row \(ordinal)"
+    case .shellNozzleUT:
+        return "Shell Nozzle \(ordinal)"
+    case .roofNozzleUT:
+        return "Roof Nozzle \(ordinal)"
+    case .findings:
+        return "Finding \(ordinal)"
+    case .reviewExport:
+        return "Review Item \(ordinal)"
+    }
 }
