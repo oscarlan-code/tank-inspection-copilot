@@ -1,0 +1,580 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.xctest/Contents/MacOS/FieldIOSDemoPackageTests",
+      "packagePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo",
+      "productName" : "FieldIOSDemoPackageTests"
+    }
+  ],
+  "copyCommands" : {
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemo_FieldIOSDemoCore.bundle/demo_scenarios.json" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/Resources/demo_scenarios.json"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemo_FieldIOSDemoCore.bundle/demo_scenarios.json"
+        }
+      ]
+    }
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.FieldIOSDemoCore-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/sources",
+      "importPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/DemoSessionStore.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/InspectionModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DerivedSources/resource_bundle_accessor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<FieldIOSDemoCore-arm64-apple-macosx15.0-debug.module-resources>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "FieldIOSDemoCore",
+      "moduleOutputPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCore.swiftmodule",
+      "objects" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DemoSessionStore.swift.o",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/InspectionModels.swift.o",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/resource_bundle_accessor.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/FieldIOSDemoCore-Swift.h",
+        "-swift-version",
+        "6",
+        "-F",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "field_ios_demo"
+      ],
+      "outputFileMapPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DemoSessionStore.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/InspectionModels.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/resource_bundle_accessor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCore.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/DemoSessionStore.swift",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/InspectionModels.swift",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DerivedSources/resource_bundle_accessor.swift"
+      ],
+      "tempsPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.FieldIOSDemoCoreTests-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/sources",
+      "importPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Tests/FieldIOSDemoCoreTests/FieldIOSDemoCoreTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCore.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "FieldIOSDemoCoreTests",
+      "moduleOutputPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCoreTests.swiftmodule",
+      "objects" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/FieldIOSDemoCoreTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "6",
+        "-F",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "field_ios_demo"
+      ],
+      "outputFileMapPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/FieldIOSDemoCoreTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCoreTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Tests/FieldIOSDemoCoreTests/FieldIOSDemoCoreTests.swift"
+      ],
+      "tempsPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.FieldIOSDemoPackageTests-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/sources",
+      "importPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoCoreTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "FieldIOSDemoPackageTests",
+      "moduleOutputPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/FieldIOSDemoPackageTests-Swift.h",
+        "-F",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "field_ios_demo"
+      ],
+      "outputFileMapPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules/FieldIOSDemoPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "FieldIOSDemoCore" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "FieldIOSDemoCore",
+      "-package-name",
+      "field_ios_demo",
+      "-incremental",
+      "-c",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/DemoSessionStore.swift",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/InspectionModels.swift",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DerivedSources/resource_bundle_accessor.swift",
+      "-I",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/FieldIOSDemoCore-Swift.h",
+      "-swift-version",
+      "6",
+      "-F",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "field_ios_demo",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ],
+    "FieldIOSDemoCoreTests" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "FieldIOSDemoCoreTests",
+      "-package-name",
+      "field_ios_demo",
+      "-incremental",
+      "-c",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Tests/FieldIOSDemoCoreTests/FieldIOSDemoCoreTests.swift",
+      "-I",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-F",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "field_ios_demo",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ],
+    "FieldIOSDemoPackageTests" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "FieldIOSDemoPackageTests",
+      "-package-name",
+      "field_ios_demo",
+      "-incremental",
+      "-c",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/FieldIOSDemoPackageTests-Swift.h",
+      "-F",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "field_ios_demo",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "FieldIOSDemoCore" : [
+
+    ],
+    "FieldIOSDemoCoreTests" : [
+      "FieldIOSDemoCore"
+    ],
+    "FieldIOSDemoPackageTests" : [
+      "FieldIOSDemoCoreTests",
+      "FieldIOSDemoCore"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "traitConfiguration" : {
+    "enableAllTraits" : false
+  },
+  "writeCommands" : {
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/DemoSessionStore.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Sources/FieldIOSDemoCore/InspectionModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DerivedSources/resource_bundle_accessor.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/sources"
+    },
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/Tests/FieldIOSDemoCoreTests/FieldIOSDemoCoreTests.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/sources"
+    },
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/sources"
+    },
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/DemoSessionStore.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/InspectionModels.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCore.build/resource_bundle_accessor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoCoreTests.build/FieldIOSDemoCoreTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.build/runner.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/FieldIOSDemoPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/oscar/Documents/oscar-code/tank-inspection-coplilot-app/apps/field-ios-demo/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+    }
+  }
+}

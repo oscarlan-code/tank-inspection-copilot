@@ -8,6 +8,9 @@ The current production lane is:
 Detailed Android handoff / continuation notes:
 - [apps/field-android/README.md](./apps/field-android/README.md)
 
+Experimental iOS demo scaffold on this branch:
+- [apps/field-ios-demo/](./apps/field-ios-demo/)
+
 Supporting lanes still exist, but they are secondary:
 - legacy web reference / concept work under [src/](./src/)
 - report platform under [apps/report-platform/](./apps/report-platform/)
