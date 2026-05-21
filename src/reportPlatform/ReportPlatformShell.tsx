@@ -2,16 +2,13 @@ import { useMemo, useState } from "react";
 import LayoutCanvas from "./LayoutCanvas";
 import "./reportPlatform.css";
 import {
-  checklistItems as initialChecklistItems,
-  packageAssets,
-  reportSections,
-  roofMarkers,
-  shellMarkers,
-  standardsLibrary,
+  createDefaultWorkspace,
+  createWorkspaceFromPackage,
+  parseCanonicalPackageFile,
   type ChecklistItem,
-  type ReportSection,
+  type ReportWorkspace,
   type SectionMode,
-} from "./mockWorkspace";
+} from "./workspace";
 
 type Message = {
   id: string;
@@ -27,29 +24,36 @@ const initialMessages: Message[] = [
   },
 ];
 
+const initialWorkspace = createDefaultWorkspace();
+
 export default function ReportPlatformShell() {
-  const [sections, setSections] = useState(reportSections);
-  const [selectedSectionId, setSelectedSectionId] = useState(reportSections[0].id);
+  const [workspace, setWorkspace] = useState<ReportWorkspace>(initialWorkspace);
+  const [selectedSectionId, setSelectedSectionId] = useState(initialWorkspace.sections[0].id);
   const [activeMode, setActiveMode] = useState<SectionMode>("preview");
-  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(initialChecklistItems);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(initialWorkspace.checklist);
   const [confirmedSections, setConfirmedSections] = useState<Record<string, boolean>>({});
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
+  const [uploadState, setUploadState] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [uploadMessage, setUploadMessage] = useState(
+    "Using the seeded demo package until you load a canonical JSON export from the Android app.",
+  );
 
   const selectedSection = useMemo(
-    () => sections.find((section) => section.id === selectedSectionId) ?? sections[0],
-    [sections, selectedSectionId],
+    () => workspace.sections.find((section) => section.id === selectedSectionId) ?? workspace.sections[0],
+    [workspace.sections, selectedSectionId],
   );
 
   const completionCount = Object.values(confirmedSections).filter(Boolean).length;
 
-  const layoutMarkers = selectedSection.layoutScene === "roof" ? roofMarkers : shellMarkers;
+  const layoutMarkers = selectedSection.layoutScene === "roof" ? workspace.layoutScenes.roof : workspace.layoutScenes.shell;
 
   const checklistCompletion = checklistItems.filter((item) => item.answer !== "").length;
 
   const updateSectionDraft = (nextDraft: string) => {
-    setSections((current) =>
-      current.map((section) =>
+    setWorkspace((current) => ({
+      ...current,
+      sections: current.sections.map((section) =>
         section.id === selectedSection.id
           ? {
               ...section,
@@ -57,7 +61,7 @@ export default function ReportPlatformShell() {
             }
           : section,
       ),
-    );
+    }));
   };
 
   const confirmCurrentSection = () => {
@@ -76,11 +80,41 @@ export default function ReportPlatformShell() {
   };
 
   const goToNextSection = () => {
-    const index = sections.findIndex((section) => section.id === selectedSection.id);
-    const next = sections[index + 1];
+    const index = workspace.sections.findIndex((section) => section.id === selectedSection.id);
+    const next = workspace.sections[index + 1];
     if (!next) return;
     setSelectedSectionId(next.id);
     setActiveMode(next.modes[0]);
+  };
+
+  const loadCanonicalPackage = async (file: File) => {
+    setUploadState("loading");
+    setUploadMessage(`Loading ${file.name}...`);
+    try {
+      const pkg = await parseCanonicalPackageFile(file);
+      const nextWorkspace = createWorkspaceFromPackage(pkg, file.name);
+      setWorkspace(nextWorkspace);
+      setChecklistItems(nextWorkspace.checklist);
+      setConfirmedSections({});
+      setSelectedSectionId(nextWorkspace.sections[0].id);
+      setActiveMode(nextWorkspace.sections[0].modes[0]);
+      const { validation } = nextWorkspace.workspaceMeta;
+      const warningCount = validation.warnings.length;
+      setUploadState("loaded");
+      setUploadMessage(
+        warningCount > 0
+          ? `${file.name} loaded with ${warningCount} validation warning${warningCount === 1 ? "" : "s"}.`
+          : `${file.name} loaded and validated against the current canonical contract.`,
+      );
+      appendAssistant(
+        `Loaded ${file.name}. The workspace is now hydrated from the uploaded package and scoped to inspection job ${nextWorkspace.workspaceMeta.inspectionJobId}.`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown upload error";
+      setUploadState("error");
+      setUploadMessage(message);
+      appendAssistant(`Upload blocked: ${message}`);
+    }
   };
 
   const runAiAction = (action: "refine" | "tighten" | "format" | "missing") => {
@@ -145,19 +179,53 @@ export default function ReportPlatformShell() {
           <p>Canonical package, template sections, and evidence navigation.</p>
         </div>
 
+        <div className="rp-upload-card">
+          <div className="rp-card-title">Canonical Package Intake</div>
+          <div className="rp-upload-copy">
+            <strong className="rp-upload-title">Load Android export JSON</strong>
+            <p>Use a canonical `inspection-package.json` export now. ZIP intake can come in the next platform pass.</p>
+          </div>
+          <label className="rp-primary-button rp-button-inline rp-upload-trigger">
+            {uploadState === "loading" ? "Loading..." : "Upload Canonical JSON"}
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void loadCanonicalPackage(file);
+                }
+                event.target.value = "";
+              }}
+            />
+          </label>
+          <div className={`rp-upload-state is-${uploadState}`}>{uploadMessage}</div>
+        </div>
+
         <div className="rp-explorer-group">
           <div className="rp-group-title">Package</div>
           <ul className="rp-tree-list">
-            {packageAssets.map((asset) => (
+            {workspace.packageAssets.map((asset) => (
               <li key={asset}>{asset}</li>
             ))}
           </ul>
         </div>
 
         <div className="rp-explorer-group">
+          <div className="rp-group-title">Workspace</div>
+          <ul className="rp-tree-list">
+            <li>Tenant: {workspace.workspaceMeta.tenantId}</li>
+            <li>Client: {workspace.workspaceMeta.clientAccountId}</li>
+            <li>Site: {workspace.workspaceMeta.siteId}</li>
+            <li>Tank: {workspace.workspaceMeta.tankId}</li>
+            <li>Job: {workspace.workspaceMeta.inspectionJobId}</li>
+          </ul>
+        </div>
+
+        <div className="rp-explorer-group">
           <div className="rp-group-title">Report Template</div>
           <div className="rp-section-list">
-            {sections.map((section) => {
+            {workspace.sections.map((section) => {
               const selected = section.id === selectedSection.id;
               return (
                 <button
@@ -179,10 +247,22 @@ export default function ReportPlatformShell() {
         <div className="rp-explorer-group">
           <div className="rp-group-title">Reference Library</div>
           <ul className="rp-tree-list">
-            {standardsLibrary.map((item) => (
+            {workspace.standardsLibrary.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
+        </div>
+
+        <div className="rp-progress-card rp-progress-card-single">
+          <div>
+            <span className="rp-metric-label">Validation</span>
+            <strong>{workspace.workspaceMeta.validation.valid ? "Pass" : "Blocked"}</strong>
+            <p className="rp-inline-note">
+              {workspace.workspaceMeta.validation.errors[0] ??
+                workspace.workspaceMeta.validation.warnings[0] ??
+                "No canonical validation issues."}
+            </p>
+          </div>
         </div>
 
         <div className="rp-progress-card">
@@ -232,6 +312,16 @@ export default function ReportPlatformShell() {
             <div className="rp-preview-grid">
               <div className="rp-work-card">
                 <div className="rp-card-title">Editable Section Workspace</div>
+                {workspace.workspaceMeta.validation.warnings.length > 0 ? (
+                  <div className="rp-warning-box">
+                    <strong>Carry-over package warnings</strong>
+                    <ul>
+                      {workspace.workspaceMeta.validation.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 <textarea
                   className="rp-editor"
                   value={selectedSection.draft}
@@ -316,7 +406,9 @@ export default function ReportPlatformShell() {
         <div className="rp-panel-head">
           <div className="rp-inline-eyebrow">AI Rail</div>
           <h3>{selectedSection.title}</h3>
-          <p>The assistant is scoped to the current section and should refine only this section unless asked otherwise.</p>
+          <p>
+            The assistant is scoped to the current section and should refine only this section unless asked otherwise.
+          </p>
         </div>
 
         <div className="rp-ai-actions">

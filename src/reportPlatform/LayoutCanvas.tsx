@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { LayoutMarker, LayoutSceneKind } from "./mockWorkspace";
+import type { LayoutMarker, LayoutSceneKind } from "./workspace";
 
 type LayoutCanvasProps = {
   scene: LayoutSceneKind;
