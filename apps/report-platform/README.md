@@ -73,3 +73,21 @@ The report platform owns:
 6. archive, review, and later search/history
 
 It should not depend on Android UI state or app-local draft internals.
+
+## Current scaffold location
+
+The first interactive web shell for this lane is currently mounted from the repo's root React/Vite app under:
+
+- `src/reportPlatform/`
+
+This includes the first pass of:
+
+- VS Code-style workspace shell
+- left report/package explorer
+- center section workspace with preview, checklist, and layout modes
+- right AI interaction rail
+- shell/roof 2D layout placeholder renderer
+
+The planning and product requirements remain under:
+
+- `apps/report-platform/`
