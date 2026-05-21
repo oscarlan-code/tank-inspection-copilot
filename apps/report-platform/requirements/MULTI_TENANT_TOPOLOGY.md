@@ -138,8 +138,18 @@ Can:
 
 - manage users inside the tenant
 - assign inspection jobs
+- manage inspectors
+- manage reviewers
+- manage client viewer accounts
 - control client-sharing configuration
 - view all tenant workspaces and reports
+
+Tenant admin should be able to manage `client_viewer` access for their own tenant, including:
+
+- inviting client viewers
+- disabling client viewers
+- assigning view scope by client / site / tank / report
+- controlling whether the client sees only final approved outputs or selected shared views
 
 ### Reviewer
 
@@ -218,6 +228,46 @@ Visible to:
 - internal users with access
 
 This separation is important. A client should not automatically see everything in an internal drafting workspace.
+
+## Administrative power vs approval power
+
+The platform should distinguish between:
+
+1. `access management power`
+2. `technical/report approval power`
+
+These are related, but they are not the same responsibility.
+
+### Access management power
+
+Usually held by:
+
+- `platform_admin`
+- `tenant_admin`
+
+This includes:
+
+- creating and disabling users
+- assigning roles
+- assigning workspace or client visibility
+- controlling client viewer access grants
+
+### Technical/report approval power
+
+Usually held by:
+
+- `reviewer`
+- and optionally `tenant_admin` if the tenant is small and combines roles
+
+This includes:
+
+- approving calculations
+- approving narrative and recommendations
+- marking a report version ready for client sharing
+
+Recommended rule:
+
+The system should allow the same person to hold both powers in small teams, but the platform model should keep them conceptually separate.
 
 ## Data ownership rules
 
