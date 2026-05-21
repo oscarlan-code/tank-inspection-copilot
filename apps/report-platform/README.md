@@ -47,6 +47,9 @@ This lane now has pre-implementation planning documents under `requirements/`:
 - `REPORT_SECTION_MAPPING.md`
 - `CALCULATION_REQUIREMENTS.md`
 - `CANONICAL_GAP_ANALYSIS.md`
+- `TECHNICAL_ARCHITECTURE.md`
+- `UX_WORKSPACE_PRINCIPLES.md`
+- `LAYOUT_RENDERING_STRATEGY.md`
 
 These docs define how the web report generator should:
 
