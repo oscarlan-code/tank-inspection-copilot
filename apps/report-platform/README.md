@@ -92,3 +92,56 @@ This includes the first pass of:
 The planning and product requirements remain under:
 
 - `apps/report-platform/`
+
+## Current implementation status
+
+The report platform is now beyond planning and into early implementation.
+
+Implemented now:
+
+- canonical package upload, parse, validate, and workspace hydration
+- VS Code-style section workspace shell
+- section-plan checklist before editing
+- section-by-section editing workflow
+- shell and roof layout rendering workspaces
+- per-section Codex skill and prompt profiles
+- dev-only Codex worker wiring behind the UI
+- separate reviewer loops for:
+  - one-off section refine
+  - thumbs up / thumbs down quality feedback
+  - durable section-logic improvement
+
+Current important behavior:
+
+- Codex works on one active section at a time only
+- selecting a section does **not** start generation
+- `Generate Draft` is the first generation trigger
+- `Refine Draft` changes only the current draft
+- `Thumbs Up` / `Thumbs Down` store future quality memory
+- `Improve Logic` stores durable section-generation rules separately from thumbs memory
+
+## Current limitations
+
+- the Codex worker is still dev-only and mounted through the Vite dev server
+- real `codex exec` calls can still time out in this local environment
+- when Codex times out, the UI falls back to local draft builders instead of hanging
+- the editor is still a plain text-area editor, not a full rich report editor yet
+- sample-report alignment is strongest for the early core sections and still needs section-by-section hardening across the full template
+
+## Current focus
+
+The current focus is:
+
+1. tighten section-by-section prompt logic against the real sample report
+2. improve Codex runtime reliability
+3. keep the feedback loops separate and governed correctly
+4. preserve the exact sample-report structure while improving draft quality
+
+## Next pickup
+
+Recommended next steps for the next session:
+
+1. continue reviewing generated output section by section against the real report
+2. improve the Codex worker reliability so fallback is used less often
+3. replace the plain text box with a richer report editor / preview pair
+4. persist workspace edits and section state beyond the in-memory dev shell

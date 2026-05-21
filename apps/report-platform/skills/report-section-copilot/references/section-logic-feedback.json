@@ -1,0 +1,14 @@
+{
+  "scope-of-inspection": [
+    {
+      "capturedAtIso": "2026-05-21T13:37:09.924Z",
+      "approvalState": "active_dev",
+      "sectionId": "scope-of-inspection",
+      "sectionTitle": "Scope of Inspection",
+      "draft": "",
+      "userComment": "When captured data is available for Section 01, include the number of roof plates measured and the readings-per-plate coverage rather than using only generic method language.",
+      "confirmedRule": "For Section 01, whenever the package includes roof UT coverage, explicitly state the number of roof plates measured and the readings-per-plate coverage in the scope checklist, provided those counts are supported by captured data.",
+      "governanceNote": "In the future multi-tenant product, this type of durable logic change must be approved by a platform admin before activation."
+    }
+  ]
+}
