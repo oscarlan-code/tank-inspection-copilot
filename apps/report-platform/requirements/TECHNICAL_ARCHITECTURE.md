@@ -118,11 +118,30 @@ The LLM should not receive raw standards dumps or be asked to invent missing fac
 
 Responsibilities:
 
-- chat-led workspace UI
+- VS Code-style workspace shell
+- left structured explorer
+- center preview / layout surface
+- right AI interaction rail
 - checklist/forms UI
 - layout map rendering
-- section preview
 - final HTML/PDF rendering
+
+Recommended shell model:
+
+- left panel: structured package/report/template explorer
+- center panel: tabbed work surface with preview and layout modes
+- right panel: assistant rail
+- optional bottom panel: calculations, citations, logs
+
+The shell should be `section-context aware`.
+
+That means one active section selection should drive:
+
+- center panel content
+- right-panel AI context
+- evidence focus
+- checklist mode
+- layout mode where relevant
 
 ## Retrieval strategy
 
@@ -205,8 +224,25 @@ Suggested top-level areas:
 - `layoutScenes`
 - `draftSections`
 - `sectionStatus`
+- `selectedSection`
+- `sectionEditorState`
+- `sectionConfirmations`
 - `evidenceRegistry`
 - `auditTrail`
+
+### Suggested section editor concepts
+
+The workspace should support section-level editing concepts such as:
+
+- `selectedSectionId`
+- `activeCenterMode`
+- `editableDraft`
+- `checklistProgress`
+- `layoutViewState`
+- `aiRefinementHistory`
+- `sectionConfirmedAt`
+
+This will make the UI feel focused and predictable instead of loose and chat-only.
 
 ## Suggested implementation sequence
 
@@ -222,6 +258,7 @@ Suggested top-level areas:
 - checklist form
 - report metadata form
 - assumptions form
+- section confirmation model
 
 ### Phase 3. Calculations
 
@@ -235,6 +272,14 @@ Suggested top-level areas:
 - roof renderer
 - finding markers
 - preview/export snapshots
+
+### Phase 4.5. Workspace shell polish
+
+- VS Code-style panel layout
+- center preview/layout switching
+- linked explorer, preview, and AI actions
+- section-aware center editing
+- section-aware AI refinement
 
 ### Phase 5. LLM drafting
 

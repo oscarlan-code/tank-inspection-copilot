@@ -4,6 +4,13 @@ The report platform needs a dedicated layout-rendering subsystem.
 
 The Android app exports location context and geometry clues, but the web platform should render richer, larger, and more controllable technical layouts for report use.
 
+The sample IRS reports are the visual benchmark:
+
+- clean 2D engineering linework
+- crisp labels
+- simple but informative icons
+- printable report-ready diagrams
+
 ## Why a dedicated renderer is needed
 
 The report platform must do more than show static points.
@@ -79,6 +86,8 @@ Render the scene for:
 - report preview
 - export snapshots
 
+Within the main app, this renderer should live in the `center work surface`, alongside report preview mode.
+
 ## Recommended third-party tool choice
 
 ### V1 recommendation
@@ -95,6 +104,7 @@ Why this is the best starting point:
 - engineering layouts usually benefit from crisp linework and text
 - exported SVG can flow more cleanly into HTML/PDF report output
 - `d3-zoom` works with SVG and supports direct manipulation, scale limits, translate limits, touch, and programmatic transforms
+- the layout needs CAD-like clarity, but not full CAD complexity
 
 Official references:
 
@@ -141,6 +151,9 @@ The first renderer should support:
 - marker hover details
 - click-through to linked findings and rows
 - export current clean view
+- optional split view with report preview
+- reset / fit view
+- measurement or finding focus mode
 
 ## Recommended scene variants
 
@@ -167,6 +180,34 @@ The renderer should support at least these views:
 ### Floor view later
 
 Keep the subsystem extensible for future floor workflows even though floor UT and MFL are deferred for now.
+
+## Icon and detail system
+
+The renderer should use a consistent icon system for:
+
+- shell nozzles
+- roof nozzles
+- roof features
+- findings by severity
+- selected measurements
+- linked evidence
+
+Icons should be accurate enough for technical use, but visually simple enough to stay readable at report scale.
+
+## User-controlled presentation
+
+The renderer should let the user make the drawing easier to understand without turning it into a complicated CAD editor.
+
+This means supporting:
+
+- show / hide labels
+- show / hide finding markers
+- show / hide nozzle markers
+- severity filtering
+- selected-item emphasis
+- exported snapshot framing
+
+This does not mean supporting arbitrary drawing or freeform shape editing in v1.
 
 ## Customization controls
 
