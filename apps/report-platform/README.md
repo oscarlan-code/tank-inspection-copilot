@@ -50,6 +50,7 @@ This lane now has pre-implementation planning documents under `requirements/`:
 - `TECHNICAL_ARCHITECTURE.md`
 - `UX_WORKSPACE_PRINCIPLES.md`
 - `LAYOUT_RENDERING_STRATEGY.md`
+- `MULTI_TENANT_TOPOLOGY.md`
 
 These docs define how the web report generator should:
 
