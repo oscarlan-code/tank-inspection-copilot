@@ -19,6 +19,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqCountField
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
+import ai.laiq.tankinspection.presentation.components.LaiqLegendEntry
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqPlacementAdjustPad
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
@@ -40,7 +41,8 @@ import ai.laiq.tankinspection.presentation.roofFeatureTypeOptionsForSurface
 import ai.laiq.tankinspection.presentation.roofFeatureUsesCenterPlacement
 import ai.laiq.tankinspection.presentation.roofPlateIdAtPolar
 import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
-import ai.laiq.tankinspection.presentation.roofReferenceLabel
+import ai.laiq.tankinspection.presentation.roofReferenceExplanation
+import ai.laiq.tankinspection.presentation.roofReferenceSummaryLabel
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
 import ai.laiq.tankinspection.presentation.removeRoofFeatureType
 import ai.laiq.tankinspection.presentation.saveRoofFeatureDraft
@@ -94,11 +96,9 @@ fun RoofLayoutScreen(
     val roofLayout = draftState.buildRoofLayoutOrNull(roofSurfaceId)
     val hasSavedLayout = draftState.hasSavedRoofLayout(roofSurfaceId)
     val roofSurfaceKind = roofSurfaceConfig?.surfaceKind ?: "fixed"
-    val roofReferenceLabel = committedScope.roofReferenceLabel()
+    val roofReferenceLabel = committedScope.roofReferenceSummaryLabel()
     val roofReferenceAzimuth = committedScope.referenceAzimuthDeg()
-    val roofReferenceRemark = committedScope.referenceRemark.trim().takeIf {
-        committedScope.usesMarkerReference() && it.isNotBlank()
-    }
+    val roofReferenceRemark = committedScope.roofReferenceExplanation()
     val draftFeatureCount = when {
         roofFeatureUsesCenterPlacement(draftState.roofFeatureDraft.type) -> 1
         else -> draftState.roofFeatureDraft.quantity.toIntOrNull()?.takeIf { it > 0 } ?: 0
@@ -118,6 +118,9 @@ fun RoofLayoutScreen(
         buildRoofLinkTargets(layout).map { cell -> cell.plateId to cell.selectionLabel }
     }.orEmpty()
     var showFeatureEditor by rememberSaveable { mutableStateOf(false) }
+    var selectedFeatureLegendType by rememberSaveable(roofSurfaceId) {
+        mutableStateOf(savedFeatureGroups.firstOrNull()?.first.orEmpty())
+    }
     var activeFeatureIndex by rememberSaveable { mutableIntStateOf(0) }
     var placementModeEnabled by rememberSaveable { mutableStateOf(false) }
     var pendingPlacementAzimuth by rememberSaveable { mutableStateOf("") }
@@ -135,6 +138,15 @@ fun RoofLayoutScreen(
     var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
     if (activeFeatureIndex > maxOf(0, draftFeatureCount - 1)) {
         activeFeatureIndex = maxOf(0, draftFeatureCount - 1)
+    }
+    LaunchedEffect(savedFeatureGroups, showFeatureEditor, draftState.roofFeatureDraft.type) {
+        val availableTypes = savedFeatureGroups.map { (type, _) -> type }.toMutableSet()
+        if (showFeatureEditor && draftState.roofFeatureDraft.type.isNotBlank()) {
+            availableTypes += draftState.roofFeatureDraft.type
+            selectedFeatureLegendType = draftState.roofFeatureDraft.type
+        } else if (selectedFeatureLegendType.isBlank() || selectedFeatureLegendType !in availableTypes) {
+            selectedFeatureLegendType = availableTypes.firstOrNull().orEmpty()
+        }
     }
     val activePlacementAzimuthText = pendingPlacementAzimuth.ifBlank {
         draftFeatureAzimuths.getOrElse(activeFeatureIndex) { "" }
@@ -291,25 +303,81 @@ fun RoofLayoutScreen(
     } else {
         emptyList()
     }
-    val savedMarkers = surfaceFeatures.map { feature ->
-        RoofMapMarker(
-            markerId = feature.featureId,
-            label = feature.label ?: roofFeatureTypeLabel(feature.type),
-            plateId = feature.plateId,
-            azimuthDeg = feature.azimuthDeg,
-            radiusRatio = feature.radiusRatio,
-        )
+    val selectedDraftPlateId = pendingPlacementPlateId.ifBlank {
+        draftFeatureLinks.getOrElse(activeFeatureIndex) { "" }
     }
     val editorOverlayPlateIds = if (showFeatureEditor) {
-        draftFeatureLinks.filter { link -> link.isNotBlank() }.toSet()
+        setOf(selectedDraftPlateId).filter { link -> link.isNotBlank() }.toSet()
     } else {
-        surfaceFeatures.mapNotNull { feature -> feature.plateId }.toSet()
+        emptySet()
     }
     val editorMarkers = if (showFeatureEditor) {
-        draftMarkers
+        draftMarkers.filter { marker ->
+            marker.active && (
+                !marker.plateId.isNullOrBlank() ||
+                    (marker.azimuthDeg != null && marker.radiusRatio != null)
+                )
+        }
     } else {
-        savedMarkers
+        emptyList()
     }
+    val featureLegendEntries = buildList {
+        savedFeatureGroups.forEach { (type, features) ->
+            add(
+                LaiqLegendEntry(
+                    key = type,
+                    label = roofFeatureTypeLabel(type),
+                    detail = null,
+                    count = features.size,
+                ),
+            )
+        }
+        if (
+            showFeatureEditor &&
+            draftState.roofFeatureDraft.type.isNotBlank() &&
+            savedFeatureGroups.none { (type, _) -> type == draftState.roofFeatureDraft.type }
+        ) {
+            add(
+                LaiqLegendEntry(
+                    key = draftState.roofFeatureDraft.type,
+                    label = roofFeatureTypeLabel(draftState.roofFeatureDraft.type),
+                    detail = "Current draft selection",
+                    count = draftFeatureCount.takeIf { it > 0 },
+                ),
+            )
+        }
+    }.sortedBy { entry -> entry.label }
+    val topLegendMarkers = when {
+        showFeatureEditor && selectedFeatureLegendType == draftState.roofFeatureDraft.type ->
+            draftMarkers.filter { marker ->
+                !marker.plateId.isNullOrBlank() || (marker.azimuthDeg != null && marker.radiusRatio != null)
+            }
+
+        selectedFeatureLegendType.isNotBlank() ->
+            surfaceFeatures.filter { feature -> feature.type == selectedFeatureLegendType }.map { feature ->
+                RoofMapMarker(
+                    markerId = feature.featureId,
+                    label = feature.label ?: roofFeatureTypeLabel(feature.type),
+                    plateId = feature.plateId,
+                    azimuthDeg = feature.azimuthDeg,
+                    radiusRatio = feature.radiusRatio,
+                )
+            }
+
+        else -> emptyList()
+    }
+    val topLegendPlateIds = topLegendMarkers.mapNotNull { marker -> marker.plateId?.takeIf { it.isNotBlank() } }.toSet()
+    val selectedFeatureLegendEntry = featureLegendEntries.firstOrNull { entry -> entry.key == selectedFeatureLegendType }
+    val featureLegendOptions = featureLegendEntries.map { entry ->
+        entry.key to buildString {
+            append(entry.label)
+            entry.count?.let { count -> append(" ($count)") }
+        }
+    }
+    val selectedFeatureLabels = topLegendMarkers
+        .map { marker -> marker.label }
+        .distinct()
+        .joinToString(", ")
 
     if (!hasSavedLayout || roofLayout == null || !roofLayout.isReadyForInspection()) {
         LazyColumn(
@@ -399,7 +467,22 @@ fun RoofLayoutScreen(
                 }
                 roofReferenceRemark?.let { remark ->
                     Text(
-                        "Tank north marker: $remark",
+                        remark,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                }
+                if (featureLegendOptions.isNotEmpty()) {
+                    LaiqDropdownField(
+                        label = "Element Type",
+                        value = selectedFeatureLegendEntry?.label ?: featureLegendOptions.first().second,
+                        options = featureLegendOptions,
+                        onSelected = { selectedFeatureLegendType = it },
+                    )
+                }
+                if (selectedFeatureLabels.isNotBlank()) {
+                    Text(
+                        text = "Selected items: $selectedFeatureLabels",
                         style = MaterialTheme.typography.bodySmall,
                         color = LaiqColors.MutedText,
                     )
@@ -410,14 +493,16 @@ fun RoofLayoutScreen(
                     widestRowPlateCount = roofLayout.widestRowPlateCount ?: 0,
                     ringCount = roofLayout.ringCount ?: 0,
                     sectorCount = roofLayout.sectorCount ?: 0,
-                    activePlateId = "",
+                    activePlateId = if (topLegendPlateIds.size == 1) topLegendPlateIds.first() else "",
                     savedPlateIds = emptySet(),
-                    overlayPlateIds = emptySet(),
+                    overlayPlateIds = topLegendPlateIds,
                     centerFeatureCount = 0,
                     hasAnnularRing = roofLayout.hasAnnularRing,
                     annularSectionCount = roofLayout.annularSectionCount ?: 0,
                     hasPontoonDeck = roofLayout.hasPontoonDeck,
-                    markers = savedMarkers + draftMarkers.filterNot { marker -> marker.active },
+                    markers = topLegendMarkers,
+                    showMarkerLabels = false,
+                    showMarkerCallouts = topLegendMarkers.isNotEmpty(),
                     referenceLabel = roofReferenceLabel,
                     referenceAzimuthDeg = roofReferenceAzimuth,
                     rotationDirection = committedScope.rotationDirection,
@@ -651,6 +736,7 @@ fun RoofLayoutScreen(
                                     annularSectionCount = roofLayout.annularSectionCount ?: 0,
                                     hasPontoonDeck = roofLayout.hasPontoonDeck,
                                     markers = editorMarkers,
+                                    showMarkerLabels = false,
                                     referenceLabel = roofReferenceLabel,
                                     referenceAzimuthDeg = roofReferenceAzimuth,
                                     rotationDirection = committedScope.rotationDirection,
@@ -670,7 +756,10 @@ fun RoofLayoutScreen(
                                     },
                                     modifier = Modifier.weight(1f),
                                 )
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Column(
+                                    modifier = Modifier.width(156.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
                                     LaiqLabeledValue(
                                         label = "Estimated Position",
                                         value = activePlacementAzimuthText

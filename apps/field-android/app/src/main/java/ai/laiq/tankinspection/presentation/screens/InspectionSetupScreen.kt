@@ -31,8 +31,9 @@ import ai.laiq.tankinspection.presentation.label
 import ai.laiq.tankinspection.presentation.normalizedReferenceMode
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
 import ai.laiq.tankinspection.presentation.resolvedStartReference
+import ai.laiq.tankinspection.presentation.roofReferenceExplanation
 import ai.laiq.tankinspection.presentation.roofSystemLabel
-import ai.laiq.tankinspection.presentation.roofReferenceLabel
+import ai.laiq.tankinspection.presentation.roofReferenceSummaryLabel
 import ai.laiq.tankinspection.presentation.roofTemplateForSurface
 import ai.laiq.tankinspection.presentation.startReferenceLabel
 import ai.laiq.tankinspection.presentation.usesMarkerReference
@@ -164,8 +165,9 @@ fun InspectionSetupScreen(
     )
     val floatingRoofLayoutPreview = buildRoofLayoutFromDraftOrNull(normalizedFloatingRoofLayoutDraft)
     val floatingRoofLayoutValidationMessage = setupRoofLayoutValidationMessage(normalizedFloatingRoofLayoutDraft)
-    val roofReferenceLabel = scopeState.roofReferenceLabel()
+    val roofReferenceLabel = scopeState.roofReferenceSummaryLabel()
     val roofReferenceAzimuth = scopeState.referenceAzimuthDeg()
+    val roofReferenceRemark = scopeState.roofReferenceExplanation()
     val validationErrors = FieldDraftState(setup = state, scope = scopeState).validationErrors()
 
     LazyColumn(
@@ -507,6 +509,13 @@ fun InspectionSetupScreen(
                     LaiqStatChip("Roof System", state.roofSystemLabel(), modifier = Modifier.weight(1f))
                     LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
                 }
+                roofReferenceRemark?.let { remark ->
+                    Text(
+                        remark,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                }
                 Text(
                     "Keep fixed-roof and floating-roof surfaces separate. Later roof tasks reuse the same measurement workflow, but they stay scoped to the selected roof surface.",
                     style = MaterialTheme.typography.bodySmall,
@@ -524,6 +533,7 @@ fun InspectionSetupScreen(
                     preview = fixedRoofLayoutPreview,
                     validationMessage = fixedRoofLayoutValidationMessage,
                     roofReferenceLabel = roofReferenceLabel,
+                    roofReferenceRemark = roofReferenceRemark,
                     roofReferenceAzimuth = roofReferenceAzimuth,
                     rotationDirection = scopeState.rotationDirection,
                     allowedTemplates = allowedFixedRoofTemplates,
@@ -542,6 +552,7 @@ fun InspectionSetupScreen(
                     preview = floatingRoofLayoutPreview,
                     validationMessage = floatingRoofLayoutValidationMessage,
                     roofReferenceLabel = roofReferenceLabel,
+                    roofReferenceRemark = roofReferenceRemark,
                     roofReferenceAzimuth = roofReferenceAzimuth,
                     rotationDirection = scopeState.rotationDirection,
                     allowedTemplates = allowedFloatingRoofTemplates,
@@ -699,6 +710,7 @@ private fun SetupRoofLayoutBaselineCard(
     preview: ai.laiq.tankinspection.domain.model.RoofLayout?,
     validationMessage: String?,
     roofReferenceLabel: String,
+    roofReferenceRemark: String?,
     roofReferenceAzimuth: Double,
     rotationDirection: RotationDirection,
     allowedTemplates: List<RoofTemplate>,
@@ -753,6 +765,13 @@ private fun SetupRoofLayoutBaselineCard(
                     }
                 }
                 LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
+            }
+            roofReferenceRemark?.let { remark ->
+                Text(
+                    remark,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
             }
             RoofSurfaceMap(
                 template = preview.template,

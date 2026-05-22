@@ -20,6 +20,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqCountField
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
+import ai.laiq.tankinspection.presentation.components.LaiqLegendEntry
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqPlacementAdjustPad
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
@@ -43,7 +44,7 @@ import ai.laiq.tankinspection.presentation.removeRoofNozzleUtForNozzle
 import ai.laiq.tankinspection.presentation.roofFeatureTypeLabel
 import ai.laiq.tankinspection.presentation.roofNozzleFindingSurface
 import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
-import ai.laiq.tankinspection.presentation.roofReferenceLabel
+import ai.laiq.tankinspection.presentation.roofReferenceSummaryLabel
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
 import ai.laiq.tankinspection.presentation.requiresNumericReadings
 import ai.laiq.tankinspection.presentation.saveRoofNozzleUtDraft
@@ -56,6 +57,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -151,6 +153,41 @@ private fun roofRegistryNozzleId(index: Int): String =
     "RN-${(index + 1).toString().padStart(3, '0')}"
 
 @Composable
+private fun RoofNozzleLegendStatus(
+    editingRoofNozzle: RoofRegistryDraftRow?,
+    pendingPlacementAzimuth: String,
+    pendingPlacementRadius: String,
+    onNudgeUp: () -> Unit,
+    onNudgeDown: () -> Unit,
+    onNudgeLeft: () -> Unit,
+    onNudgeRight: () -> Unit,
+    placementEnabled: Boolean,
+) {
+    LaiqLabeledValue(
+        label = "Estimated Position",
+        value = when {
+            editingRoofNozzle?.hasPlateLink() == true -> {
+                val displayRadius = pendingPlacementRadius
+                    .ifBlank { editingRoofNozzle.radiusRatio.ifBlank { "0.50" } }
+                    .toDoubleOrNull()
+                    ?.let { value -> "%.2f".format(value) }
+                    ?: pendingPlacementRadius.ifBlank { editingRoofNozzle.radiusRatio.ifBlank { "0.50" } }
+                "${pendingPlacementAzimuth.ifBlank { editingRoofNozzle.azimuthDeg.ifBlank { "—" } }}° / ${displayRadius}R"
+            }
+
+            else -> "Select a plate first"
+        },
+    )
+    LaiqPlacementAdjustPad(
+        enabled = placementEnabled,
+        onUp = onNudgeUp,
+        onDown = onNudgeDown,
+        onLeft = onNudgeLeft,
+        onRight = onNudgeRight,
+    )
+}
+
+@Composable
 fun RoofNozzleUtScreen(
     draftState: FieldDraftState,
     onDraftStateChange: (FieldDraftState) -> Unit,
@@ -172,7 +209,6 @@ fun RoofNozzleUtScreen(
     val hasPendingChanges = draftState.hasPendingRoofLayoutChanges(roofSurfaceId)
     val surfaceRoofNozzles = draftState.roofNozzles.filter { nozzle -> nozzle.roofSurfaceId == roofSurfaceId }
     val surfaceRoofNozzleUtRows = draftState.roofNozzleUtRows.filter { row -> row.roofSurfaceId == roofSurfaceId }
-    val surfaceFeatures = draftState.roofFeatures.filter { feature -> feature.roofSurfaceId == roofSurfaceId }
 
     if (!hasSavedLayout || hasPendingChanges || roofLayout == null) {
         LazyColumn(
@@ -212,7 +248,7 @@ fun RoofNozzleUtScreen(
         annularSectionCount = roofLayout.annularSectionCount ?: 0,
     )
     val plateOptions = listOf("" to "Select Plate") + roofLinkTargets.map { cell -> cell.plateId to cell.selectionLabel }
-    val roofReferenceLabel = committedScope.roofReferenceLabel()
+    val roofReferenceLabel = committedScope.roofReferenceSummaryLabel()
     val roofReferenceAzimuth = committedScope.referenceAzimuthDeg()
     var showRegistryEditor by rememberSaveable { mutableStateOf(false) }
     var registryCount by remember(roofSurfaceId, surfaceRoofNozzles) { mutableStateOf(surfaceRoofNozzles.size.takeIf { it > 0 }?.toString() ?: "1") }
@@ -234,6 +270,9 @@ fun RoofNozzleUtScreen(
     val listState = rememberLazyListState()
     var showUtEditor by rememberSaveable { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
+    var selectedOverviewNozzleId by rememberSaveable(roofSurfaceId, surfaceRoofNozzles.map { it.nozzleId }.joinToString("|")) {
+        mutableStateOf(surfaceRoofNozzles.firstOrNull()?.nozzleId.orEmpty())
+    }
     val activeRegistryRow = registryDrafts.getOrNull(activeRegistryIndex)
     val registryReady = registryDrafts.isNotEmpty() && registryDrafts.all { row -> row.isReadyForSave() }
     val activeSizeSelection = activeRegistryRow?.let { row -> selectedNozzleSizeOption(row.size, nozzleSizeUnitType) }.orEmpty()
@@ -373,6 +412,36 @@ fun RoofNozzleUtScreen(
         }
     }
 
+    LaunchedEffect(roofSurfaceId, surfaceRoofNozzles.map { nozzle -> nozzle.nozzleId }) {
+        if (surfaceRoofNozzles.none { nozzle -> nozzle.nozzleId == selectedOverviewNozzleId }) {
+            selectedOverviewNozzleId = surfaceRoofNozzles.firstOrNull()?.nozzleId.orEmpty()
+        }
+    }
+
+    val selectedOverviewNozzle = surfaceRoofNozzles.firstOrNull { nozzle -> nozzle.nozzleId == selectedOverviewNozzleId }
+        ?: surfaceRoofNozzles.firstOrNull()
+    val selectedOverviewRoofMarker = selectedOverviewNozzle?.let { nozzle ->
+        RoofMapMarker(
+            markerId = nozzle.nozzleId,
+            label = nozzle.nozzleId,
+            plateId = nozzle.plateId,
+            azimuthDeg = nozzle.azimuthDeg,
+            radiusRatio = nozzle.radiusRatio,
+            active = true,
+        )
+    }
+    val selectedOverviewPlateIds = selectedOverviewNozzle?.plateId?.takeIf { it.isNotBlank() }?.let(::setOf) ?: emptySet()
+    val selectedOverviewPositionSummary = selectedOverviewNozzle?.let { nozzle ->
+        buildString {
+            nozzle.plateId?.takeIf { it.isNotBlank() }?.let { plateId ->
+                append("Linked plate: $plateId")
+            } ?: append("No plate linked yet")
+            if (nozzle.azimuthDeg != null && nozzle.radiusRatio != null) {
+                append(" · ${nozzle.azimuthDeg.toInt()}° / ${"%.2f".format(nozzle.radiusRatio)}R")
+            }
+        }
+    }
+
     pendingDelete?.let { dialogState ->
         LaiqDeleteConfirmDialog(
             state = dialogState,
@@ -431,6 +500,44 @@ fun RoofNozzleUtScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                }
+                if (!showRegistryEditor && surfaceRoofNozzles.isNotEmpty()) {
+                    LaiqDropdownField(
+                        label = "Roof Nozzle",
+                        value = selectedOverviewNozzle?.nozzleId.orEmpty(),
+                        options = surfaceRoofNozzles.map { nozzle -> nozzle.nozzleId to nozzle.nozzleId },
+                        onSelected = { nozzleId -> selectedOverviewNozzleId = nozzleId },
+                    )
+                    selectedOverviewPositionSummary?.let { summary ->
+                        Text(
+                            text = summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LaiqColors.MutedText,
+                        )
+                    }
+                    RoofSurfaceMap(
+                        template = roofLayout.template,
+                        rowCount = roofLayout.rowCount ?: 0,
+                        widestRowPlateCount = roofLayout.widestRowPlateCount ?: 0,
+                        ringCount = roofLayout.ringCount ?: 0,
+                        sectorCount = roofLayout.sectorCount ?: 0,
+                        activePlateId = selectedOverviewNozzle?.plateId.orEmpty(),
+                        savedPlateIds = emptySet(),
+                        overlayPlateIds = selectedOverviewPlateIds,
+                        centerFeatureCount = 0,
+                        hasAnnularRing = roofLayout.hasAnnularRing,
+                        annularSectionCount = roofLayout.annularSectionCount ?: 0,
+                        hasPontoonDeck = roofLayout.hasPontoonDeck,
+                        markers = listOfNotNull(selectedOverviewRoofMarker),
+                        showMarkerLabels = false,
+                        showMarkerCallouts = selectedOverviewRoofMarker != null,
+                        referenceLabel = roofReferenceLabel,
+                        referenceAzimuthDeg = roofReferenceAzimuth,
+                        rotationDirection = committedScope.rotationDirection,
+                        onSelectPosition = null,
+                        onSelectPlate = {},
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 if (!showRegistryEditor) {
                     Text(
@@ -632,7 +739,7 @@ fun RoofNozzleUtScreen(
                         val previewRadius = if (index == activeRegistryIndex) pendingPlacementRadius.toDoubleOrNull() else null
                         val previewPlateId = if (index == activeRegistryIndex) pendingPlacementPlateId.ifBlank { null } else null
                         RoofMapMarker(
-                            markerId = "draft-roof-nozzle-$index",
+                            markerId = row.nozzleId,
                             label = row.nozzleId,
                             plateId = previewPlateId ?: row.plateId.ifBlank { null },
                             azimuthDeg = previewAzimuth ?: row.azimuthDeg.toDoubleOrNull(),
@@ -640,11 +747,42 @@ fun RoofNozzleUtScreen(
                             active = index == activeRegistryIndex,
                         )
                     }
-                    androidx.compose.foundation.layout.Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        val editingRoofNozzle = activeRegistryRow
+                    val roofLegendEntries = registryDrafts.map { row ->
+                        LaiqLegendEntry(
+                            key = row.nozzleId,
+                            label = row.nozzleId,
+                            detail = row.plateId.takeIf { it.isNotBlank() }?.let { plateId -> "Plate $plateId" }
+                                ?: "No plate linked yet",
+                        )
+                    }
+                    val roofLegendOptions = roofLegendEntries.map { entry ->
+                        entry.key to entry.label
+                    }
+                    val selectedNozzleMarkers = activeRegistryRow?.let { activeRow ->
+                        draftNozzleMarkers.filter { marker -> marker.markerId == activeRow.nozzleId }
+                    }.orEmpty()
+                    val editingRoofNozzle = activeRegistryRow
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (roofLegendOptions.isNotEmpty()) {
+                            LaiqDropdownField(
+                                label = "Roof Nozzle",
+                                value = editingRoofNozzle?.nozzleId.orEmpty(),
+                                options = roofLegendOptions,
+                                onSelected = { nozzleId ->
+                                    activeRegistryIndex = registryDrafts.indexOfFirst { row -> row.nozzleId == nozzleId }.coerceAtLeast(0)
+                                    syncPendingPlacementFromRow(registryDrafts.getOrNull(activeRegistryIndex))
+                                    placementModeEnabled = false
+                                },
+                            )
+                        }
+                        editingRoofNozzle?.let { row ->
+                            Text(
+                                text = row.plateId.takeIf { it.isNotBlank() }?.let { plateId -> "Linked plate: $plateId" }
+                                    ?: "No plate linked yet",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.MutedText,
+                            )
+                        }
                         RoofSurfaceMap(
                             template = roofLayout.template,
                             rowCount = roofLayout.rowCount ?: 0,
@@ -653,20 +791,14 @@ fun RoofNozzleUtScreen(
                             sectorCount = roofLayout.sectorCount ?: 0,
                             activePlateId = editingRoofNozzle?.plateId.orEmpty(),
                             savedPlateIds = emptySet(),
-                            overlayPlateIds = registryDrafts.mapNotNull { row -> row.plateId.takeIf { it.isNotBlank() } }.toSet(),
+                            overlayPlateIds = editingRoofNozzle?.plateId?.takeIf { it.isNotBlank() }?.let(::setOf) ?: emptySet(),
                             centerFeatureCount = 0,
                             hasAnnularRing = roofLayout.hasAnnularRing,
                             annularSectionCount = roofLayout.annularSectionCount ?: 0,
                             hasPontoonDeck = roofLayout.hasPontoonDeck,
-                            markers = surfaceFeatures.map { feature ->
-                                RoofMapMarker(
-                                    markerId = feature.featureId,
-                                    label = feature.label ?: roofFeatureTypeLabel(feature.type),
-                                    plateId = feature.plateId,
-                                    azimuthDeg = feature.azimuthDeg,
-                                    radiusRatio = feature.radiusRatio,
-                                )
-                            } + draftNozzleMarkers.filterNot { marker -> marker.active },
+                            markers = selectedNozzleMarkers,
+                            showMarkerLabels = false,
+                            showMarkerCallouts = selectedNozzleMarkers.isNotEmpty(),
                             referenceLabel = roofReferenceLabel,
                             referenceAzimuthDeg = roofReferenceAzimuth,
                             rotationDirection = committedScope.rotationDirection,
@@ -684,31 +816,18 @@ fun RoofNozzleUtScreen(
                             onSelectPosition = { azimuthDeg, radiusRatio ->
                                 previewNozzlePlacement(azimuthDeg, radiusRatio)
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            LaiqLabeledValue(
-                                label = "Estimated Position",
-                                value = when {
-                                    editingRoofNozzle?.hasPlateLink() == true -> {
-                                        val displayRadius = pendingPlacementRadius
-                                            .ifBlank { editingRoofNozzle.radiusRatio.ifBlank { "0.50" } }
-                                            .toDoubleOrNull()
-                                            ?.let { value -> "%.2f".format(value) }
-                                            ?: pendingPlacementRadius.ifBlank { editingRoofNozzle.radiusRatio.ifBlank { "0.50" } }
-                                        "${pendingPlacementAzimuth.ifBlank { editingRoofNozzle.azimuthDeg.ifBlank { "—" } }}° / ${displayRadius}R"
-                                    }
-                                    else -> "Select a plate first"
-                                },
-                            )
-                            LaiqPlacementAdjustPad(
-                                enabled = editingRoofNozzle?.hasPlateLink() == true && initializePlacementFromLinkedPlate(),
-                                onUp = { nudgeNozzlePlacement(0f, -0.02f) },
-                                onDown = { nudgeNozzlePlacement(0f, 0.02f) },
-                                onLeft = { nudgeNozzlePlacement(-0.02f, 0f) },
-                                onRight = { nudgeNozzlePlacement(0.02f, 0f) },
-                            )
-                        }
+                        RoofNozzleLegendStatus(
+                            editingRoofNozzle = editingRoofNozzle,
+                            pendingPlacementAzimuth = pendingPlacementAzimuth,
+                            pendingPlacementRadius = pendingPlacementRadius,
+                            onNudgeUp = { nudgeNozzlePlacement(0f, -0.02f) },
+                            onNudgeDown = { nudgeNozzlePlacement(0f, 0.02f) },
+                            onNudgeLeft = { nudgeNozzlePlacement(-0.02f, 0f) },
+                            onNudgeRight = { nudgeNozzlePlacement(0.02f, 0f) },
+                            placementEnabled = editingRoofNozzle?.hasPlateLink() == true && initializePlacementFromLinkedPlate(),
+                        )
                     }
                     Text(
                         "Saving a changed roof nozzle registry will refresh saved roof nozzle UT rows and related roof nozzle findings. All nozzle rows need size and plate link before Save is enabled.",

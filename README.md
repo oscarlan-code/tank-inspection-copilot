@@ -40,12 +40,15 @@ Current product direction:
 
 ## Current Status
 
-Status as of `May 19, 2026`:
+Status as of `May 22, 2026`:
 - Android field app is the active delivery lane
 - `:app:compileDebugKotlin`, `testDebugUnitTest`, and `assembleDebug` are passing
 - the latest debug APK has been installed and smoke-tested on `emulator-5554`
 - local storage recovery now restores from structured Room tables first
 - the saved-inspection reopen flow is working and now filters out non-restorable legacy records
+- shell nozzle and roof nozzle registry screens now include top overview layout maps
+- shell nozzle `Up` placement now increases the displayed distance from bottom correctly
+- roof `0° Ref` cards now use a compact `Tank North` / `True North` label with the explanation below the stat row
 
 Current product size:
 - `11` operational field/reporting modules
@@ -64,6 +67,26 @@ Current TJS `TK-465` demo coverage:
 
 Current open usability issue:
 - Android system `Back` from task screens currently exits to the launcher instead of returning to the previous in-app screen
+
+## Handover Marker
+
+Latest Android handover marker: `May 22, 2026`
+
+Continue from:
+- branch `feat/field-android`
+- Android handoff doc: [apps/field-android/README.md](./apps/field-android/README.md)
+
+Important separation:
+- `apps/field-android` and `apps/report-platform` are separate product lanes
+- for Android continuation, do not use the report-platform lane as the working context
+
+Latest completed Android slice:
+- added top overview layout maps to `Shell Nozzles` and `Roof Nozzles`
+- fixed shell nozzle vertical adjust direction so `Up` increases `m from bottom`
+- simplified roof `0° Ref` cards to a short label plus an explanation line below
+
+Next recommended task:
+- fix Android system `Back` so task screens return in-app instead of exiting to the launcher
 
 ## Planned Production Hardening
 

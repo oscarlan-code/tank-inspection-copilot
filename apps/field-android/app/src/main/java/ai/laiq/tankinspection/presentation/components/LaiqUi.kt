@@ -1,6 +1,8 @@
 package ai.laiq.tankinspection.presentation.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +69,13 @@ data class LaiqDeleteDialogState(
     val message: String,
     val confirmText: String = "Delete",
     val onConfirm: () -> Unit,
+)
+
+data class LaiqLegendEntry(
+    val key: String,
+    val label: String,
+    val detail: String? = null,
+    val count: Int? = null,
 )
 
 @Composable
@@ -226,6 +236,105 @@ fun LaiqStatChip(
         ) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = LaiqColors.MutedText)
             Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = tone)
+        }
+    }
+}
+
+@Composable
+fun LaiqLegendCard(
+    title: String,
+    subtitle: String? = null,
+    entries: List<LaiqLegendEntry>,
+    selectedKey: String?,
+    onSelect: (String) -> Unit,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (compact) 10.dp else 14.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+        ) {
+            Text(
+                title,
+                style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleSmall,
+                color = LaiqColors.BodyText,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
+            }
+            entries.forEach { entry ->
+                val isSelected = entry.key == selectedKey
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(entry.key) }
+                        .background(
+                            if (isSelected) LaiqColors.BrandRed.copy(alpha = 0.08f) else Color.Transparent,
+                            RoundedCornerShape(14.dp),
+                        )
+                        .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 8.dp else 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (compact) 8.dp else 10.dp)
+                            .background(
+                                if (isSelected) LaiqColors.BrandRed else LaiqColors.AccentOrange,
+                                CircleShape,
+                            ),
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            entry.label,
+                            style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                            color = LaiqColors.BodyText,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        )
+                        entry.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                            Text(
+                                detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.MutedText,
+                            )
+                        }
+                    }
+                    entry.count?.let { count ->
+                        Surface(
+                            color = if (isSelected) LaiqColors.BrandRed.copy(alpha = 0.12f) else LaiqColors.SurfaceTint,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) LaiqColors.BrandRed.copy(alpha = 0.25f) else LaiqColors.PanelBorder,
+                            ),
+                        ) {
+                            Text(
+                                text = count.toString(),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) LaiqColors.BrandRed else LaiqColors.BrandTeal,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

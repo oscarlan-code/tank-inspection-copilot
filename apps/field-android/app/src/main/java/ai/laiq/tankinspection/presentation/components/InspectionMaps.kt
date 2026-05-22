@@ -12,6 +12,7 @@ import ai.laiq.tankinspection.presentation.roofPlateIdAtPolar
 import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -100,6 +102,8 @@ fun ShellSurfaceMap(
     savedCells: Set<Pair<String, Int>> = emptySet(),
     overlayCells: Set<Pair<String, Int>> = emptySet(),
     markers: List<ShellCellMarker> = emptyList(),
+    showMarkerLabels: Boolean = true,
+    showMarkerCallouts: Boolean = false,
     scaleOriginLabel: String? = null,
     anchorLaneId: String? = null,
     anchorLabel: String = "Ref",
@@ -391,29 +395,69 @@ fun ShellSurfaceMap(
                                                         style = MaterialTheme.typography.labelSmall,
                                                     )
                                                     cellMarkers.forEach { marker ->
+                                                        val markerSize = if (marker.active) 10.dp else 8.dp
+                                                        val markerOffsetX = (cellWidth - 20.dp) * marker.xRatio.coerceIn(0.05f, 0.95f)
+                                                        val markerOffsetY = (cellHeight - 20.dp) * marker.yRatio.coerceIn(0.05f, 0.95f)
+                                                        val calloutToRight = marker.xRatio < 0.58f
+                                                        val calloutLineWidth = 12.dp
                                                         Box(
                                                             modifier = Modifier
                                                                 .align(Alignment.TopStart)
                                                                 .offset(
-                                                                    x = (cellWidth - 20.dp) * marker.xRatio.coerceIn(0.05f, 0.95f),
-                                                                    y = (cellHeight - 20.dp) * marker.yRatio.coerceIn(0.05f, 0.95f),
+                                                                    x = markerOffsetX,
+                                                                    y = markerOffsetY,
                                                                 ),
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(if (marker.active) 12.dp else 10.dp)
+                                                                    .size(markerSize)
                                                                     .background(
                                                                         if (marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
                                                                         CircleShape,
                                                                     ),
                                                             )
-                                                            Text(
-                                                                marker.label,
-                                                                modifier = Modifier
-                                                                    .offset(x = 10.dp, y = (-2).dp),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = LaiqColors.BrandTeal,
-                                                            )
+                                                            if (showMarkerCallouts) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .offset(
+                                                                            x = if (calloutToRight) markerSize else -calloutLineWidth,
+                                                                            y = (markerSize - 2.dp) / 2,
+                                                                        )
+                                                                        .width(calloutLineWidth)
+                                                                        .height(2.dp)
+                                                                        .background(
+                                                                            if (marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
+                                                                            RoundedCornerShape(2.dp),
+                                                                        ),
+                                                                )
+                                                                Surface(
+                                                                    modifier = Modifier.offset(
+                                                                        x = if (calloutToRight) markerSize + calloutLineWidth + 2.dp else -(58.dp),
+                                                                        y = (-6).dp,
+                                                                    ),
+                                                                    color = Color.White,
+                                                                    shape = RoundedCornerShape(10.dp),
+                                                                    border = BorderStroke(
+                                                                        1.dp,
+                                                                        if (marker.active) LaiqColors.BrandRed else LaiqColors.PanelBorder,
+                                                                    ),
+                                                                ) {
+                                                                    Text(
+                                                                        marker.label,
+                                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                                        style = MaterialTheme.typography.labelSmall,
+                                                                        color = LaiqColors.BodyText,
+                                                                    )
+                                                                }
+                                                            } else if (showMarkerLabels) {
+                                                                Text(
+                                                                    marker.label,
+                                                                    modifier = Modifier
+                                                                        .offset(x = 10.dp, y = (-2).dp),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = LaiqColors.BrandTeal,
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -498,6 +542,8 @@ fun RoofSurfaceMap(
     annularSectionCount: Int = 0,
     hasPontoonDeck: Boolean = false,
     markers: List<RoofMapMarker> = emptyList(),
+    showMarkerLabels: Boolean = true,
+    showMarkerCallouts: Boolean = false,
     referenceLabel: String? = null,
     referenceAzimuthDeg: Double = 0.0,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
@@ -562,7 +608,23 @@ fun RoofSurfaceMap(
 
             else -> null
         } ?: return@mapNotNull null
-        marker to point
+        val adjustedPoint = if (marker.active && !showMarkerLabels) {
+            val deltaX = point.first - 0.5f
+            val deltaY = point.second - 0.5f
+            val distance = sqrt((deltaX * deltaX + deltaY * deltaY).toDouble()).toFloat()
+            val shift = 0.045f
+            if (distance > 0.001f) {
+                (
+                    (point.first + (deltaX / distance) * shift).coerceIn(0.04f, 0.96f) to
+                        (point.second + (deltaY / distance) * shift).coerceIn(0.04f, 0.96f)
+                    )
+            } else {
+                point.first to (point.second - shift).coerceIn(0.04f, 0.96f)
+            }
+        } else {
+            point
+        }
+        marker to adjustedPoint
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
@@ -571,6 +633,11 @@ fun RoofSurfaceMap(
         val umbrellaLabelHeight = 20.dp
         val circularLabelWidth = 28.dp
         val circularLabelHeight = 20.dp
+        val roofMarkerCallouts = if (showMarkerCallouts) {
+            buildRoofMarkerCallouts(markerPoints)
+        } else {
+            emptyList()
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Roof Layout Map", style = MaterialTheme.typography.titleSmall, color = LaiqColors.BodyText)
@@ -1040,7 +1107,7 @@ fun RoofSurfaceMap(
                     ) {}
                 }
                 markerPoints.forEach { (marker, point) ->
-                    val markerSize = if (marker.active) 14.dp else 10.dp
+                    val markerSize = if (marker.active && !showMarkerLabels) 18.dp else if (marker.active) 14.dp else 10.dp
                     Box(
                         modifier = Modifier
                             .size(markerSize)
@@ -1048,20 +1115,92 @@ fun RoofSurfaceMap(
                                 x = mapSize * point.first - markerSize / 2,
                                 y = mapSize * point.second - markerSize / 2,
                             )
-                            .background(
-                                color = if (marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
-                                shape = CircleShape,
+                            .then(
+                                if (marker.active && !showMarkerLabels) {
+                                    Modifier.border(3.dp, LaiqColors.BrandRed, CircleShape)
+                                } else {
+                                    Modifier.background(
+                                        color = if (marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
+                                        shape = CircleShape,
+                                    )
+                                },
                             ),
                     )
-                    Text(
-                        text = marker.label,
-                        modifier = Modifier.offset(
-                            x = mapSize * point.first + 6.dp,
-                            y = mapSize * point.second - 8.dp,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = LaiqColors.BodyText,
-                    )
+                    if (showMarkerLabels) {
+                        Text(
+                            text = marker.label,
+                            modifier = Modifier.offset(
+                                x = mapSize * point.first + 6.dp,
+                                y = mapSize * point.second - 8.dp,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LaiqColors.BodyText,
+                        )
+                    }
+                }
+                if (roofMarkerCallouts.isNotEmpty()) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        roofMarkerCallouts.forEach { callout ->
+                            val start = Offset(
+                                x = size.width * callout.startXNorm,
+                                y = size.height * callout.startYNorm,
+                            )
+                            val bend = Offset(
+                                x = size.width * callout.bendXNorm,
+                                y = size.height * callout.bendYNorm,
+                            )
+                            val end = Offset(
+                                x = size.width * callout.endXNorm,
+                                y = size.height * callout.endYNorm,
+                            )
+                            drawLine(
+                                color = if (callout.marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
+                                start = start,
+                                end = bend,
+                                strokeWidth = 2f,
+                            )
+                            drawLine(
+                                color = if (callout.marker.active) LaiqColors.BrandRed else LaiqColors.AccentOrange,
+                                start = bend,
+                                end = end,
+                                strokeWidth = 2f,
+                            )
+                        }
+                    }
+                    roofMarkerCallouts.forEach { callout ->
+                        val labelWidth = 72.dp
+                        val labelHeight = 24.dp
+                        Surface(
+                            modifier = Modifier
+                                .width(labelWidth)
+                                .height(labelHeight)
+                                .offset(
+                                    x = if (callout.alignRight) {
+                                        mapSize * callout.labelXNorm - labelWidth
+                                    } else {
+                                        mapSize * callout.labelXNorm
+                                    },
+                                    y = mapSize * callout.labelYNorm - (labelHeight / 2),
+                                ),
+                            color = Color.White,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (callout.marker.active) LaiqColors.BrandRed else LaiqColors.PanelBorder,
+                            ),
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = callout.marker.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LaiqColors.BodyText,
+                                )
+                            }
+                        }
+                    }
                 }
                 if (onSelectPosition != null) {
                     Box(
@@ -1107,6 +1246,67 @@ fun RoofSurfaceMap(
             )
         }
     }
+}
+
+private data class RoofMarkerCallout(
+    val marker: RoofMapMarker,
+    val startXNorm: Float,
+    val startYNorm: Float,
+    val bendXNorm: Float,
+    val bendYNorm: Float,
+    val endXNorm: Float,
+    val endYNorm: Float,
+    val labelXNorm: Float,
+    val labelYNorm: Float,
+    val alignRight: Boolean,
+)
+
+private fun buildRoofMarkerCallouts(
+    markerPoints: List<Pair<RoofMapMarker, Pair<Float, Float>>>,
+): List<RoofMarkerCallout> {
+    if (markerPoints.isEmpty()) return emptyList()
+    val leftMarkers = markerPoints
+        .filter { (_, point) -> point.first < 0.5f }
+        .sortedBy { (_, point) -> point.second }
+    val rightMarkers = markerPoints
+        .filter { (_, point) -> point.first >= 0.5f }
+        .sortedBy { (_, point) -> point.second }
+
+    fun spread(points: List<Pair<RoofMapMarker, Pair<Float, Float>>>): List<RoofMarkerCallout> {
+        if (points.isEmpty()) return emptyList()
+        val alignRight = points.first().second.first < 0.5f
+        val labelPositions = mutableListOf<Float>()
+        points.forEachIndexed { index, (_, point) ->
+            val preferred = point.second.coerceIn(0.16f, 0.84f)
+            val previous = labelPositions.getOrNull(index - 1)
+            val adjusted = if (previous != null && preferred - previous < 0.08f) {
+                (previous + 0.08f).coerceAtMost(0.84f)
+            } else {
+                preferred
+            }
+            labelPositions += adjusted
+        }
+        return points.mapIndexed { index, (marker, point) ->
+            val labelY = labelPositions[index]
+            val onLeftSide = point.first < 0.5f
+            val bendX = if (onLeftSide) 0.18f else 0.82f
+            val labelX = if (onLeftSide) 0.12f else 0.88f
+            RoofMarkerCallout(
+                marker = marker,
+                startXNorm = point.first,
+                startYNorm = point.second,
+                bendXNorm = bendX,
+                bendYNorm = labelY,
+                endXNorm = if (onLeftSide) labelX + 0.02f else labelX - 0.02f,
+                endYNorm = labelY,
+                labelXNorm = labelX,
+                labelYNorm = labelY,
+                alignRight = onLeftSide,
+            )
+        }
+    }
+
+    return spread(leftMarkers) + spread(rightMarkers)
 }
 
 private fun Modifier.clipToRoofCircle(): Modifier =

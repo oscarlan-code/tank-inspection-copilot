@@ -450,6 +450,22 @@ fun ScopeFormState.roofReferenceLabel(): String =
             ?: "Tank North"
     }
 
+fun ScopeFormState.roofReferenceSummaryLabel(): String =
+    if (normalizedReferenceMode() == ReferenceMode.TRUE_NORTH) {
+        "True North"
+    } else {
+        "Tank North"
+    }
+
+fun ScopeFormState.roofReferenceExplanation(): String? =
+    if (normalizedReferenceMode() == ReferenceMode.TRUE_NORTH) {
+        null
+    } else {
+        referenceRemark.trim()
+            .takeIf { remark -> remark.isNotBlank() }
+            ?.let { remark -> "Tank north marker: $remark" }
+    }
+
 fun ScopeFormState.referenceAzimuthDeg(): Double =
     0.0
 

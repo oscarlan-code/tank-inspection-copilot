@@ -35,7 +35,8 @@ import ai.laiq.tankinspection.presentation.removeRoofUtRow
 import ai.laiq.tankinspection.presentation.roofFeatureTypeLabel
 import ai.laiq.tankinspection.presentation.roofFindingSurface
 import ai.laiq.tankinspection.presentation.roofFeatureUsesCenterPlacement
-import ai.laiq.tankinspection.presentation.roofReferenceLabel
+import ai.laiq.tankinspection.presentation.roofReferenceExplanation
+import ai.laiq.tankinspection.presentation.roofReferenceSummaryLabel
 import ai.laiq.tankinspection.presentation.referenceAzimuthDeg
 import ai.laiq.tankinspection.presentation.requiresNumericReadings
 import ai.laiq.tankinspection.presentation.saveRoofUtDraft
@@ -92,8 +93,9 @@ fun RoofUtScreen(
     val roofLayout = draftState.buildRoofLayoutOrNull(roofSurfaceId)
     val hasSavedLayout = draftState.hasSavedRoofLayout(roofSurfaceId)
     val hasPendingChanges = draftState.hasPendingRoofLayoutChanges(roofSurfaceId)
-    val roofReferenceLabel = committedScope.roofReferenceLabel()
+    val roofReferenceLabel = committedScope.roofReferenceSummaryLabel()
     val roofReferenceAzimuth = committedScope.referenceAzimuthDeg()
+    val roofReferenceRemark = committedScope.roofReferenceExplanation()
     val surfaceFeatures = draftState.roofFeatures.filter { feature -> feature.roofSurfaceId == roofSurfaceId }
     val surfaceRoofUtRows = draftState.roofUtRows.filter { row -> row.roofSurfaceId == roofSurfaceId }
     val listState = rememberLazyListState()
@@ -219,6 +221,13 @@ fun RoofUtScreen(
                         }
                     }
                     LaiqStatChip("0° Ref", roofReferenceLabel, tone = LaiqColors.AccentOrange, modifier = Modifier.weight(1f))
+                }
+                roofReferenceRemark?.let { remark ->
+                    Text(
+                        remark,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
                 }
                 RoofSurfaceMap(
                     template = roofLayout.template,

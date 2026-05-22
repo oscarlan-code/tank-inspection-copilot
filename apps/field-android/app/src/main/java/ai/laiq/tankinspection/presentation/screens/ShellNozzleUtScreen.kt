@@ -18,6 +18,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqCountField
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteConfirmDialog
 import ai.laiq.tankinspection.presentation.components.LaiqDeleteDialogState
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
+import ai.laiq.tankinspection.presentation.components.LaiqLegendEntry
 import ai.laiq.tankinspection.presentation.components.LaiqLabeledValue
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
@@ -136,7 +137,7 @@ private fun formatShellGlobalLocation(
     if (shellHeightM <= 0.0 || courseCount <= 0) return null
     val normalizedOffset = courseOffsetRatio?.coerceIn(0.08, 0.92) ?: 0.5
     val strakeHeight = shellHeightM / courseCount.toDouble()
-    val heightFromBottom = ((strake - 1).coerceAtLeast(0) + normalizedOffset) * strakeHeight
+    val heightFromBottom = ((strake - 1).coerceAtLeast(0) + (1.0 - normalizedOffset)) * strakeHeight
     return "${azimuth.toInt()}° from $referenceLabel · ${"%.2f".format(heightFromBottom)} m from bottom"
 }
 
@@ -289,9 +290,11 @@ fun ShellNozzleUtScreen(
     val registryReady = registryDrafts.isNotEmpty() && registryDrafts.all { row -> row.isReadyForSave() }
     val activeSizeSelection = activeRegistryRow?.let { row -> selectedNozzleSizeOption(row.size, nozzleSizeUnitType) }.orEmpty()
     val showingCustomSizeInput = activeRegistryRow != null && activeSizeSelection == customNozzleSizeOptionValue
-    val pendingCourseOffsetValue = pendingPlacementCourseOffset.toFloatOrNull()?.coerceIn(0.08f, 0.92f)
     val listState = rememberLazyListState()
     var pendingDelete by remember { mutableStateOf<LaiqDeleteDialogState?>(null) }
+    var selectedOverviewNozzleId by rememberSaveable(draftState.shellNozzles.map { it.nozzleId }.joinToString("|")) {
+        mutableStateOf(draftState.shellNozzles.firstOrNull()?.nozzleId.orEmpty())
+    }
 
     fun syncPendingPlacementFromRow(row: ShellRegistryDraftRow?) {
         pendingPlacementAzimuth = row?.azimuthDeg.orEmpty()
@@ -376,6 +379,52 @@ fun ShellNozzleUtScreen(
         }
     }
 
+    LaunchedEffect(draftState.shellNozzles.map { nozzle -> nozzle.nozzleId }) {
+        if (draftState.shellNozzles.none { nozzle -> nozzle.nozzleId == selectedOverviewNozzleId }) {
+            selectedOverviewNozzleId = draftState.shellNozzles.firstOrNull()?.nozzleId.orEmpty()
+        }
+    }
+
+    val selectedOverviewNozzle = draftState.shellNozzles.firstOrNull { nozzle -> nozzle.nozzleId == selectedOverviewNozzleId }
+        ?: draftState.shellNozzles.firstOrNull()
+    val selectedOverviewShellMarker = selectedOverviewNozzle?.let { nozzle ->
+        val lineId = shellLinePlan?.nearestLineIdFor(nozzle.azimuthDeg) ?: return@let null
+        val course = nozzle.course ?: return@let null
+        val azimuth = nozzle.azimuthDeg ?: return@let null
+        ShellCellMarker(
+            markerId = nozzle.nozzleId,
+            lineId = lineId,
+            course = course,
+            label = nozzle.nozzleId,
+            xRatio = shellLinePlan?.let { shellMarkerXRatio(it, lineId, azimuth) } ?: 0.5f,
+            yRatio = nozzle.courseOffsetRatio?.toFloat()?.coerceIn(0.08f, 0.92f) ?: 0.5f,
+            active = true,
+        )
+    }
+    val selectedOverviewShellCell = selectedOverviewNozzle?.course?.let { course ->
+        shellLinePlan?.nearestLineIdFor(selectedOverviewNozzle.azimuthDeg)?.let { lineId -> lineId to course }
+    }
+    val selectedOverviewShellLocationLabel = selectedOverviewNozzle?.let { nozzle ->
+        val lineId = shellLinePlan?.nearestLineIdFor(nozzle.azimuthDeg)
+        val lineLabel = shellLinePlan?.lines?.firstOrNull { line -> line.lineId == lineId }?.label
+        val course = nozzle.course
+        if (lineLabel != null && course != null) {
+            "$lineLabel · Strake $course"
+        } else {
+            "No shell cell linked yet"
+        }
+    }
+    val selectedOverviewShellLocation = selectedOverviewNozzle?.let { nozzle ->
+        formatShellGlobalLocation(
+            azimuthDeg = nozzle.azimuthDeg,
+            course = nozzle.course,
+            courseOffsetRatio = nozzle.courseOffsetRatio,
+            shellHeightM = shellHeightM,
+            courseCount = shellCourseCount,
+            referenceLabel = shellLinePlan?.startReference ?: "0° reference",
+        )
+    }
+
     pendingDelete?.let { dialogState ->
         LaiqDeleteConfirmDialog(
             state = dialogState,
@@ -416,6 +465,55 @@ fun ShellNozzleUtScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                }
+                if (!showRegistryEditor && shellLinePlan != null && draftState.shellNozzles.isNotEmpty()) {
+                    LaiqDropdownField(
+                        label = "Shell Nozzle",
+                        value = selectedOverviewNozzle?.nozzleId.orEmpty(),
+                        options = draftState.shellNozzles.map { nozzle -> nozzle.nozzleId to nozzle.nozzleId },
+                        onSelected = { nozzleId -> selectedOverviewNozzleId = nozzleId },
+                    )
+                    Text(
+                        text = selectedOverviewShellLocationLabel ?: "No shell cell linked yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                    selectedOverviewShellLocation?.let { location ->
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LaiqColors.MutedText,
+                        )
+                    }
+                    ShellSurfaceMap(
+                        lines = displayedLines.map { line ->
+                            ShellMapLineVisual(
+                                lineId = line.lineId,
+                                label = line.label,
+                                azimuthDeg = line.azimuthDeg.toInt(),
+                            )
+                        },
+                        courseCount = draftState.committedSetupState().shellCourseCount.toIntOrNull() ?: 0,
+                        activeCell = selectedOverviewShellCell,
+                        savedCells = emptySet(),
+                        overlayCells = selectedOverviewShellCell?.let(::setOf) ?: emptySet(),
+                        markers = listOfNotNull(selectedOverviewShellMarker),
+                        showMarkerLabels = false,
+                        showMarkerCallouts = selectedOverviewShellMarker != null,
+                        scaleOriginLabel = shellLinePlan.startReference,
+                        anchorLaneId = shellLinePlan.lines.firstOrNull()?.lineId,
+                        captureStartLaneId = shellLinePlan.captureStartLaneId,
+                        enableViewportControls = false,
+                        repeatCycles = false,
+                        fitToViewport = true,
+                        viewportControlsAtBottom = false,
+                        showViewportGuidance = false,
+                        showFooterGuidance = false,
+                        fillActiveCell = false,
+                        showOverlayBadges = false,
+                        onSelectCell = { _, _ -> },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 if (!showRegistryEditor) {
                     Text(
@@ -631,99 +729,116 @@ fun ShellNozzleUtScreen(
                         }
                     }
                     if (shellLinePlan != null && activeRegistryRow != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                ShellSurfaceMap(
-                                    lines = displayedLines.map { line ->
-                                        ShellMapLineVisual(
-                                            lineId = line.lineId,
-                                            label = line.label,
-                                            azimuthDeg = line.azimuthDeg.toInt(),
-                                        )
+                        val shellLegendEntries = registryDrafts.map { row ->
+                            LaiqLegendEntry(
+                                key = row.nozzleId,
+                                label = row.nozzleId,
+                                detail = row.linkedLocationLabel(shellLinePlan) ?: "No shell cell linked yet",
+                            )
+                        }
+                        val shellLegendOptions = shellLegendEntries.map { entry ->
+                            entry.key to entry.label
+                        }
+                        val selectedShellMarkers = registryDrafts.mapIndexedNotNull { index, row ->
+                            if (row.nozzleId != activeRegistryRow.nozzleId) return@mapIndexedNotNull null
+                            val previewRow = if (index == activeRegistryIndex) {
+                                row.copy(
+                                    azimuthDeg = pendingPlacementAzimuth.ifBlank { row.azimuthDeg },
+                                    courseOffsetRatio = pendingPlacementCourseOffset.ifBlank { row.courseOffsetRatio.ifBlank { "0.50" } },
+                                )
+                            } else {
+                                row
+                            }
+                            previewRow.toShellCellMarker(shellLinePlan, active = index == activeRegistryIndex)
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (shellLegendOptions.isNotEmpty()) {
+                                LaiqDropdownField(
+                                    label = "Shell Nozzle",
+                                    value = activeRegistryRow.nozzleId,
+                                    options = shellLegendOptions,
+                                    onSelected = { nozzleId ->
+                                        activeRegistryIndex = registryDrafts.indexOfFirst { row -> row.nozzleId == nozzleId }.coerceAtLeast(0)
+                                        syncPendingPlacementFromRow(registryDrafts.getOrNull(activeRegistryIndex))
+                                        placementModeEnabled = false
                                     },
-                                    courseCount = draftState.committedSetupState().shellCourseCount.toIntOrNull() ?: 0,
-                                    activeCell = activeRegistryRow.course.toIntOrNull()?.let { course ->
-                                        shellLinePlan.nearestLineIdFor(activeRegistryRow.azimuthDeg.toDoubleOrNull())?.let { lineId ->
-                                            lineId to course
-                                        }
-                                    },
-                                    savedCells = emptySet(),
-                                    overlayCells = registryDrafts.mapNotNull { row ->
-                                        val course = row.course.toIntOrNull() ?: return@mapNotNull null
-                                        val lineId = shellLinePlan.nearestLineIdFor(row.azimuthDeg.toDoubleOrNull()) ?: return@mapNotNull null
+                                )
+                            }
+                            Text(
+                                text = activeRegistryRow.linkedLocationLabel(shellLinePlan) ?: "No shell cell linked yet",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LaiqColors.MutedText,
+                            )
+                            ShellSurfaceMap(
+                                lines = displayedLines.map { line ->
+                                    ShellMapLineVisual(
+                                        lineId = line.lineId,
+                                        label = line.label,
+                                        azimuthDeg = line.azimuthDeg.toInt(),
+                                    )
+                                },
+                                courseCount = draftState.committedSetupState().shellCourseCount.toIntOrNull() ?: 0,
+                                activeCell = activeRegistryRow.course.toIntOrNull()?.let { course ->
+                                    shellLinePlan.nearestLineIdFor(activeRegistryRow.azimuthDeg.toDoubleOrNull())?.let { lineId ->
                                         lineId to course
-                                    }.toSet(),
-                                    markers = registryDrafts.mapIndexedNotNull { index, row ->
-                                        val previewRow = if (index == activeRegistryIndex) {
-                                            row.copy(
-                                                azimuthDeg = pendingPlacementAzimuth.ifBlank { row.azimuthDeg },
-                                                courseOffsetRatio = pendingPlacementCourseOffset.ifBlank { row.courseOffsetRatio.ifBlank { "0.50" } },
-                                            )
-                                        } else {
-                                            row
+                                    }
+                                },
+                                savedCells = emptySet(),
+                                overlayCells = activeRegistryRow.course.toIntOrNull()?.let { course ->
+                                    shellLinePlan.nearestLineIdFor(activeRegistryRow.azimuthDeg.toDoubleOrNull())?.let { lineId ->
+                                        setOf(lineId to course)
+                                    }
+                                } ?: emptySet(),
+                                markers = selectedShellMarkers,
+                                showMarkerLabels = false,
+                                showMarkerCallouts = selectedShellMarkers.isNotEmpty(),
+                                scaleOriginLabel = shellLinePlan.startReference,
+                                anchorLaneId = shellLinePlan.lines.firstOrNull()?.lineId,
+                                captureStartLaneId = shellLinePlan.captureStartLaneId,
+                                enableViewportControls = true,
+                                viewportControlsAtBottom = true,
+                                showViewportGuidance = false,
+                                showFooterGuidance = false,
+                                fillActiveCell = false,
+                                showOverlayBadges = false,
+                                showTitle = false,
+                                showScaleOriginText = false,
+                                onSelectCell = { lineId, course ->
+                                    shellLinePlan.lines.firstOrNull { it.lineId == lineId }?.azimuthDeg?.let { azimuth ->
+                                        registryDrafts = registryDrafts.updateShellRegistryRow(activeRegistryIndex) {
+                                            copy(course = course.toString(), azimuthDeg = azimuth.toInt().toString(), courseOffsetRatio = "")
                                         }
-                                        previewRow.toShellCellMarker(shellLinePlan, active = false)
-                                    },
-                                    scaleOriginLabel = shellLinePlan.startReference,
-                                    anchorLaneId = shellLinePlan.lines.firstOrNull()?.lineId,
-                                    captureStartLaneId = shellLinePlan.captureStartLaneId,
-                                    enableViewportControls = true,
-                                    viewportControlsAtBottom = true,
-                                    showViewportGuidance = false,
-                                    showFooterGuidance = false,
-                                    fillActiveCell = false,
-                                    showOverlayBadges = false,
-                                    showTitle = false,
-                                    showScaleOriginText = false,
-                                    onSelectCell = { lineId, course ->
-                                        shellLinePlan.lines.firstOrNull { it.lineId == lineId }?.azimuthDeg?.let { azimuth ->
-                                            registryDrafts = registryDrafts.updateShellRegistryRow(activeRegistryIndex) {
-                                                copy(course = course.toString(), azimuthDeg = azimuth.toInt().toString(), courseOffsetRatio = "")
-                                            }
-                                            pendingPlacementAzimuth = azimuth.toInt().toString()
-                                            pendingPlacementCourseOffset = "0.50"
-                                            placementModeEnabled = true
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.weight(0.42f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                LaiqLabeledValue(
-                                    label = "Estimated Position",
-                                    value = when {
-                                        activeRegistryRow.hasLocationLink() ->
-                                            formatShellGlobalLocation(
-                                                azimuthDeg = pendingPlacementAzimuth.toDoubleOrNull()
-                                                    ?: activeRegistryRow.azimuthDeg.toDoubleOrNull(),
-                                                course = activeRegistryRow.course.toIntOrNull(),
-                                                courseOffsetRatio = pendingPlacementCourseOffset.toDoubleOrNull()
-                                                    ?: activeRegistryRow.courseOffsetRatio.toDoubleOrNull(),
-                                                shellHeightM = shellHeightM,
-                                                courseCount = shellCourseCount,
-                                                referenceLabel = shellLinePlan.startReference,
-                                            ) ?: "Select a shell cell first"
-                                        else -> "Select a shell cell first"
-                                    },
-                                )
-                                ShellNozzleLocationAdjustPad(
-                                    enabled = activeRegistryRow.hasLocationLink(),
-                                    onUp = { nudgeShellPlacement(deltaCourseOffset = -0.06f) },
-                                    onDown = { nudgeShellPlacement(deltaCourseOffset = 0.06f) },
-                                    onLeft = { nudgeShellPlacement(deltaAzimuthDeg = -(180.0 / shellLinePlan.lineCount.coerceAtLeast(1)) / 5.0) },
-                                    onRight = { nudgeShellPlacement(deltaAzimuthDeg = (180.0 / shellLinePlan.lineCount.coerceAtLeast(1)) / 5.0) },
-                                )
-                            }
+                                        pendingPlacementAzimuth = azimuth.toInt().toString()
+                                        pendingPlacementCourseOffset = "0.50"
+                                        placementModeEnabled = true
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            LaiqLabeledValue(
+                                label = "Estimated Position",
+                                value = when {
+                                    activeRegistryRow.hasLocationLink() ->
+                                        formatShellGlobalLocation(
+                                            azimuthDeg = pendingPlacementAzimuth.toDoubleOrNull()
+                                                ?: activeRegistryRow.azimuthDeg.toDoubleOrNull(),
+                                            course = activeRegistryRow.course.toIntOrNull(),
+                                            courseOffsetRatio = pendingPlacementCourseOffset.toDoubleOrNull()
+                                                ?: activeRegistryRow.courseOffsetRatio.toDoubleOrNull(),
+                                            shellHeightM = shellHeightM,
+                                            courseCount = shellCourseCount,
+                                            referenceLabel = shellLinePlan.startReference,
+                                        ) ?: "Select a shell cell first"
+                                    else -> "Select a shell cell first"
+                                },
+                            )
+                            ShellNozzleLocationAdjustPad(
+                                enabled = activeRegistryRow.hasLocationLink(),
+                                onUp = { nudgeShellPlacement(deltaCourseOffset = -0.06f) },
+                                onDown = { nudgeShellPlacement(deltaCourseOffset = 0.06f) },
+                                onLeft = { nudgeShellPlacement(deltaAzimuthDeg = -(180.0 / shellLinePlan.lineCount.coerceAtLeast(1)) / 5.0) },
+                                onRight = { nudgeShellPlacement(deltaAzimuthDeg = (180.0 / shellLinePlan.lineCount.coerceAtLeast(1)) / 5.0) },
+                            )
                         }
                     } else {
                         Text(
