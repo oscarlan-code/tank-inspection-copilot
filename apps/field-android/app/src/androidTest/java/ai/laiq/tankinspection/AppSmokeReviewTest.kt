@@ -36,6 +36,28 @@ class AppSmokeReviewTest {
         composeRule.onNodeWithTag(AppReviewTags.ShellUt.LaneCount).assertTextContains("4")
         composeRule.onNodeWithTag(AppReviewTags.ShellUt.RecommendedCount).assertTextContains("4")
     }
+
+    @Test
+    fun systemBack_stepsThroughTheInAppWorkflow() {
+        composeRule.onNodeWithTag(AppReviewTags.Setup.LoadSampleData).performClick()
+
+        composeRule.waitForTag(AppReviewTags.Setup.OpenCurrentInspection)
+        composeRule.onNodeWithTag(AppReviewTags.Setup.OpenCurrentInspection).performClick()
+
+        composeRule.waitForTag(AppReviewTags.TaskBoard.Root)
+        composeRule.onNodeWithTag(AppReviewTags.TaskBoard.OpenShellUt).performClick()
+
+        composeRule.waitForTag(AppReviewTags.ShellUt.Root)
+        composeRule.pressSystemBack()
+
+        composeRule.waitForTag(AppReviewTags.TaskBoard.Root)
+        composeRule.pressSystemBack()
+
+        composeRule.waitForTag(AppReviewTags.Scope.Root)
+        composeRule.pressSystemBack()
+
+        composeRule.waitForTag(AppReviewTags.Setup.Root)
+    }
 }
 
 private class ClearAppDataRule : ExternalResource() {
@@ -53,5 +75,11 @@ private class ClearAppDataRule : ExternalResource() {
 private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForTag(tag: String) {
     waitUntil(timeoutMillis = 15_000) {
         onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+    }
+}
+
+private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, MainActivity>.pressSystemBack() {
+    runOnUiThread {
+        activity.onBackPressedDispatcher.onBackPressed()
     }
 }

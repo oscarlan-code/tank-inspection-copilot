@@ -41,12 +41,14 @@ import ai.laiq.tankinspection.presentation.screens.ShellNozzleUtScreen
 import ai.laiq.tankinspection.presentation.screens.TaskBoardScreen
 import ai.laiq.tankinspection.presentation.StartReference
 import ai.laiq.tankinspection.presentation.syncTemplateToSurface
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -60,6 +62,30 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 
+private fun ProductScreen.systemBackTarget(
+    findingsReturnScreen: ProductScreen,
+    scopeReturnScreen: ProductScreen,
+): ProductScreen? =
+    when {
+        this == ProductScreen.Setup -> null
+        name == "GeneralTankInfo" -> ProductScreen.Setup
+        this == ProductScreen.Scope -> scopeReturnScreen
+        this == ProductScreen.TaskBoard -> ProductScreen.Scope
+        this == ProductScreen.RoofLayout ||
+            this == ProductScreen.ShellUt ||
+            this == ProductScreen.ShellSettlement ||
+            this == ProductScreen.RoundnessSurvey ||
+            this == ProductScreen.PlumbnessSurvey ||
+            this == ProductScreen.RoofUt ||
+            this == ProductScreen.ShellNozzleUt ||
+            this == ProductScreen.RoofNozzleUt ||
+            this == ProductScreen.Review ||
+            this == ProductScreen.MflImport -> ProductScreen.TaskBoard
+        this == ProductScreen.Findings -> findingsReturnScreen
+        this == ProductScreen.Export -> ProductScreen.Review
+        else -> ProductScreen.Setup
+    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LaiqFieldAndroidApp() {
@@ -68,6 +94,7 @@ fun LaiqFieldAndroidApp() {
     var currentScreen by remember { mutableStateOf(ProductScreen.Setup) }
     var draftState by remember { mutableStateOf(FieldDraftState()) }
     var findingsReturnScreen by remember { mutableStateOf(ProductScreen.TaskBoard) }
+    var scopeReturnScreen by remember { mutableStateOf(ProductScreen.Setup) }
     var hasLoadedSession by remember { mutableStateOf(false) }
     var selectedDemoScenarioId by remember { mutableStateOf(defaultDemoInspectionScenarioId()) }
     var localInspections by remember { mutableStateOf<List<InspectionRecordEntity>>(emptyList()) }
@@ -85,20 +112,30 @@ fun LaiqFieldAndroidApp() {
 
     fun continueFromSetup() {
         savedInspectionNotice = null
+        scopeReturnScreen = ProductScreen.Setup
         draftState = draftState.commitFundamentalInputs()
             .saveRoofLayoutDraft(ROOF_SURFACE_FIXED)
             .saveRoofLayoutDraft(ROOF_SURFACE_FLOATING)
         currentScreen = ProductScreen.Scope
     }
 
+    val systemBackTarget = currentScreen.systemBackTarget(findingsReturnScreen, scopeReturnScreen)
+
+    BackHandler(enabled = systemBackTarget != null) {
+        currentScreen = systemBackTarget ?: return@BackHandler
+    }
+
     LaunchedEffect(appSessionStore) {
         val savedSession = appSessionStore.load()
         if (savedSession != null) {
-            currentScreen = if (savedSession.currentScreen == ProductScreen.MflImport) {
-                ProductScreen.TaskBoard
-            } else {
-                savedSession.currentScreen
-            }
+            currentScreen =
+                if (savedSession.currentScreen == ProductScreen.MflImport) {
+                    ProductScreen.TaskBoard
+                } else if (savedSession.currentScreen.name == "GeneralTankInfo") {
+                    ProductScreen.Setup
+                } else {
+                    savedSession.currentScreen
+                }
             draftState = savedSession.draftState
         }
         localInspections = appSessionStore.listInspections()
@@ -140,32 +177,40 @@ fun LaiqFieldAndroidApp() {
                             containerColor = MaterialTheme.colorScheme.background,
                             titleContentColor = LaiqColors.BrandTeal,
                         ),
+                        navigationIcon = {
+                            systemBackTarget?.let { backTarget ->
+                                TextButton(onClick = { currentScreen = backTarget }) {
+                                    Text("Back")
+                                }
+                            }
+                        },
                         title = {
                             Text(
-                                when (currentScreen) {
-                                    ProductScreen.Setup -> "Inspection Setup"
-                                    ProductScreen.Scope -> "Inspection Scope"
-                                    ProductScreen.TaskBoard -> "Task Board"
-                                    ProductScreen.RoofLayout -> "Roof Elements"
-                                    ProductScreen.ShellUt -> "Shell UT"
-                                    ProductScreen.ShellSettlement -> "Shell Settlement"
-                                    ProductScreen.RoundnessSurvey -> "Roundness Survey"
-                                    ProductScreen.PlumbnessSurvey -> "Plumbness Survey"
-                                    ProductScreen.RoofUt -> "Roof UT"
-                                    ProductScreen.ShellNozzleUt -> "Shell Nozzles"
-                                    ProductScreen.RoofNozzleUt -> "Roof Nozzles"
-                                    ProductScreen.Findings -> "Findings"
-                                    ProductScreen.Review -> "Review"
-                                    ProductScreen.Export -> "Export"
-                                    ProductScreen.MflImport -> "Bottom MFL"
+                                when {
+                                    currentScreen == ProductScreen.Setup || currentScreen.name == "GeneralTankInfo" -> "Inspection Setup"
+                                    currentScreen == ProductScreen.Scope -> "Inspection Scope"
+                                    currentScreen == ProductScreen.TaskBoard -> "Task Board"
+                                    currentScreen == ProductScreen.RoofLayout -> "Roof Elements"
+                                    currentScreen == ProductScreen.ShellUt -> "Shell UT"
+                                    currentScreen == ProductScreen.ShellSettlement -> "Shell Settlement"
+                                    currentScreen == ProductScreen.RoundnessSurvey -> "Roundness Survey"
+                                    currentScreen == ProductScreen.PlumbnessSurvey -> "Plumbness Survey"
+                                    currentScreen == ProductScreen.RoofUt -> "Roof UT"
+                                    currentScreen == ProductScreen.ShellNozzleUt -> "Shell Nozzles"
+                                    currentScreen == ProductScreen.RoofNozzleUt -> "Roof Nozzles"
+                                    currentScreen == ProductScreen.Findings -> "Findings"
+                                    currentScreen == ProductScreen.Review -> "Review"
+                                    currentScreen == ProductScreen.Export -> "Export"
+                                    currentScreen == ProductScreen.MflImport -> "Bottom MFL"
+                                    else -> "Inspection Setup"
                                 },
                             )
                         },
                     )
                 },
             ) { innerPadding ->
-                when (currentScreen) {
-                    ProductScreen.Setup -> {
+                when {
+                    currentScreen == ProductScreen.Setup || currentScreen.name == "GeneralTankInfo" -> {
                         InspectionSetupScreen(
                             state = draftState.setup,
                             scopeState = draftState.scope,
@@ -246,7 +291,12 @@ fun LaiqFieldAndroidApp() {
                                     if (savedInspection != null) {
                                         savedInspectionNotice = null
                                         draftState = savedInspection.draftState
-                                        currentScreen = savedInspection.currentScreen
+                                        currentScreen =
+                                            if (savedInspection.currentScreen.name == "GeneralTankInfo") {
+                                                ProductScreen.Setup
+                                            } else {
+                                                savedInspection.currentScreen
+                                            }
                                         inspectionListRefreshKey++
                                     } else {
                                         savedInspectionNotice =
@@ -258,17 +308,20 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.Scope -> {
+                    currentScreen == ProductScreen.Scope -> {
                         InspectionScopeScreen(
                             state = draftState.scope,
                             onStateChange = { draftState = draftState.copy(scope = it) },
-                            onBack = { currentScreen = ProductScreen.Setup },
-                            onContinue = { currentScreen = ProductScreen.TaskBoard },
+                            onBack = { currentScreen = scopeReturnScreen },
+                            onContinue = {
+                                draftState = draftState.commitFundamentalInputs()
+                                currentScreen = ProductScreen.TaskBoard
+                            },
                             contentPadding = innerPadding,
                         )
                     }
 
-                    ProductScreen.TaskBoard -> {
+                    currentScreen == ProductScreen.TaskBoard -> {
                         TaskBoardScreen(
                             draftState = draftState,
                             onOpenRoofElements = { currentScreen = ProductScreen.RoofLayout },
@@ -286,7 +339,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.RoofLayout -> {
+                    currentScreen == ProductScreen.RoofLayout -> {
                         RoofLayoutScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -295,7 +348,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.ShellUt -> {
+                    currentScreen == ProductScreen.ShellUt -> {
                         ShellUtScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -305,7 +358,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.ShellSettlement -> {
+                    currentScreen == ProductScreen.ShellSettlement -> {
                         ShellSettlementScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -314,7 +367,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.RoundnessSurvey -> {
+                    currentScreen == ProductScreen.RoundnessSurvey -> {
                         RoundnessSurveyScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -323,7 +376,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.PlumbnessSurvey -> {
+                    currentScreen == ProductScreen.PlumbnessSurvey -> {
                         PlumbnessSurveyScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -332,7 +385,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.RoofUt -> {
+                    currentScreen == ProductScreen.RoofUt -> {
                         RoofUtScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -342,7 +395,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.Findings -> {
+                    currentScreen == ProductScreen.Findings -> {
                         FindingsScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -351,7 +404,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.Review -> {
+                    currentScreen == ProductScreen.Review -> {
                         ReviewScreen(
                             draftState = draftState,
                             onContinueToExport = { currentScreen = ProductScreen.Export },
@@ -360,7 +413,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.Export -> {
+                    currentScreen == ProductScreen.Export -> {
                         ExportScreen(
                             draftState = draftState,
                             appSessionStore = appSessionStore,
@@ -369,7 +422,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.ShellNozzleUt -> {
+                    currentScreen == ProductScreen.ShellNozzleUt -> {
                         ShellNozzleUtScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -379,7 +432,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.RoofNozzleUt -> {
+                    currentScreen == ProductScreen.RoofNozzleUt -> {
                         RoofNozzleUtScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -389,7 +442,7 @@ fun LaiqFieldAndroidApp() {
                         )
                     }
 
-                    ProductScreen.MflImport -> {
+                    currentScreen == ProductScreen.MflImport -> {
                         MflImportScreen(
                             draftState = draftState,
                             onDraftStateChange = { draftState = it },
@@ -397,6 +450,7 @@ fun LaiqFieldAndroidApp() {
                             contentPadding = innerPadding,
                         )
                     }
+
                 }
             }
         }
