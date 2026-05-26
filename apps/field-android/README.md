@@ -9,6 +9,26 @@ If you are moving from Codex CLI to VS Code, this file is the handoff document f
 - which sample datasets are available
 - what is still missing
 
+## Version Tracks
+
+This project keeps one Android product folder:
+
+- `apps/field-android`
+
+Current version lanes inside that folder:
+
+- `V1 beta`: current stable baseline and regression reference
+  - docs: `docs/v1-beta/README.md`
+- `V2`: redesign lane for new UX work
+  - docs: `docs/v2/README.md`
+  - scratch previews: `docs/v2/SCRATCH_PREVIEWS.md`
+
+Important rule for `V2`:
+- build one screen only
+- show the UI first
+- wait for approval before backend wiring
+- move to the next screen only after the current one is confirmed
+
 ## Open In VS Code
 
 Open this folder as the workspace root:
@@ -104,13 +124,14 @@ Current intentional non-goals:
 
 Status as of `May 22, 2026`:
 - active implementation lane is still `apps/field-android`
-- `:app:compileDebugKotlin`, `testDebugUnitTest`, and `assembleDebug` are passing
+- `:app:compileDebugKotlin`, `testDebugUnitTest`, `:app:compileDebugAndroidTestKotlin`, `assembleDebug`, and `connectedDebugAndroidTest` are passing
 - the latest debug APK was installed and smoke-tested on `emulator-5554`
 - structured local recovery is now the primary restore path
 - the setup screen `Saved Inspections` flow now filters out non-restorable records and successfully reopens the active inspection into `Task Board`
 - `Shell Nozzles` and `Roof Nozzles` now show top overview layout maps in the registry card
 - shell nozzle vertical adjust now moves `m from bottom` in the correct direction
 - roof `0° Ref` cards now show a short `Tank North` / `True North` summary with the explanation below the stat row
+- Android system `Back` and the top app bar `Back` action now step through the in-app workflow instead of dropping task screens to the launcher
 
 Current feature footprint:
 - `11` operational modules
@@ -133,9 +154,6 @@ Current status judgment:
 - stable enough for continued internal QA and stakeholder demo
 - not yet production-stable
 
-Current known live issue from emulator QA:
-- Android system `Back` from task screens exits to the launcher instead of stepping back through the in-app workflow
-
 ## Handover Marker
 
 Latest handover marker: `May 22, 2026`
@@ -152,12 +170,14 @@ Latest completed Android slice:
 - added top overview layout maps to `Shell Nozzles` and `Roof Nozzles`
 - fixed shell nozzle `Up`/`Down` vertical behavior so the displayed `m from bottom` matches the map movement
 - simplified roof `0° Ref` cards to a short label plus a note below the stat chips
+- wired Android system `Back` and a top app bar `Back` action into the in-app screen flow
+- added an emulator regression test for `Shell UT -> Task Board -> Scope -> Setup`
 
 Latest verified result on emulator:
-- shell nozzle `Up` changed the displayed height from `0.84 m from bottom` to `0.93 m from bottom`
+- Android system `Back` now steps `Shell UT -> Task Board -> Scope -> Setup` on `emulator-5554`
 
 Recommended next task:
-1. fix Android system `Back` so task screens return in-app instead of exiting to launcher
+1. switch Findings camera capture from preview thumbnails to full-resolution file-backed photos
 
 ## Current Setup Model
 

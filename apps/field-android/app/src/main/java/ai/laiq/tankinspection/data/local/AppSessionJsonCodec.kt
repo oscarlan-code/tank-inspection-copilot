@@ -23,6 +23,7 @@ import ai.laiq.tankinspection.domain.model.ShellUtRow
 import ai.laiq.tankinspection.presentation.FieldDraftState
 import ai.laiq.tankinspection.presentation.FieldTask
 import ai.laiq.tankinspection.presentation.FindingDraftInput
+import ai.laiq.tankinspection.presentation.GeneralTankInfoFormState
 import ai.laiq.tankinspection.presentation.MflImportDraftInput
 import ai.laiq.tankinspection.presentation.NozzleUtDraftInput
 import ai.laiq.tankinspection.presentation.PlumbnessSurveyDraftInput
@@ -53,6 +54,7 @@ import ai.laiq.tankinspection.presentation.availableRoofSurfaces
 import ai.laiq.tankinspection.presentation.defaultPlumbnessSurveyStationDrafts
 import ai.laiq.tankinspection.presentation.defaultRoundnessSurveyStationDrafts
 import ai.laiq.tankinspection.presentation.roofSystemLabel
+import ai.laiq.tankinspection.presentation.toGeneralTankInfoFormState
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -92,6 +94,45 @@ object AppSessionJsonCodec {
             put("thicknessUnit", state.setup.thicknessUnit.name)
             put("settlementUnit", state.setup.settlementUnit.name)
             put("nozzleSizeUnit", state.setup.nozzleSizeUnit.name)
+        })
+        put("generalTankInfo", JSONObject().apply {
+            put("client", state.generalTankInfo.client)
+            put("clientRepresentative", state.generalTankInfo.clientRepresentative)
+            put("jobNo", state.generalTankInfo.jobNo)
+            put("tankNumber", state.generalTankInfo.tankNumber)
+            put("dateCompleted", state.generalTankInfo.dateCompleted)
+            put("inspector", state.generalTankInfo.inspector)
+            put("location", state.generalTankInfo.location)
+            put("fieldLeaseName", state.generalTankInfo.fieldLeaseName)
+            put("yearBuilt", state.generalTankInfo.yearBuilt)
+            put("originalManufacturer", state.generalTankInfo.originalManufacturer)
+            put("originalConstructionStd", state.generalTankInfo.originalConstructionStd)
+            put("materialSpec", state.generalTankInfo.materialSpec)
+            put("drawingRef", state.generalTankInfo.drawingRef)
+            put("shellConstruction", state.generalTankInfo.shellConstruction)
+            put("roofType", state.generalTankInfo.roofType)
+            put("externalRoofType", state.generalTankInfo.externalRoofType)
+            put("internalRoofType", state.generalTankInfo.internalRoofType)
+            put("height", state.generalTankInfo.height)
+            put("serviceHeight", state.generalTankInfo.serviceHeight)
+            put("diameter", state.generalTankInfo.diameter)
+            put("productStored", state.generalTankInfo.productStored)
+            put("specificGravity", state.generalTankInfo.specificGravity)
+            put("designTemp", state.generalTankInfo.designTemp)
+            put("internalPressure", state.generalTankInfo.internalPressure)
+            put("courseNumber", state.generalTankInfo.courseNumber)
+            put("floorPlateNumber", state.generalTankInfo.floorPlateNumber)
+            put("roofPlateNumber", state.generalTankInfo.roofPlateNumber)
+            put("floorPlateThickness", state.generalTankInfo.floorPlateThickness)
+            put("windGirder", state.generalTankInfo.windGirder)
+            put("annularPlateNumber", state.generalTankInfo.annularPlateNumber)
+            put("insulated", state.generalTankInfo.insulated)
+            put("insulationDistance", state.generalTankInfo.insulationDistance)
+            put("annularPlateThickness", state.generalTankInfo.annularPlateThickness)
+            put("stiffener", state.generalTankInfo.stiffener)
+            put("previousExternal", state.generalTankInfo.previousExternal)
+            put("previousInternal", state.generalTankInfo.previousInternal)
+            put("previousBottom", state.generalTankInfo.previousBottom)
         })
         put("scope", JSONObject().apply {
             put("referenceMode", state.scope.referenceMode.name)
@@ -323,6 +364,7 @@ object AppSessionJsonCodec {
 
     fun decodeDraftState(json: JSONObject): FieldDraftState {
         val setupJson = json.getJSONObject("setup")
+        val generalTankInfoJson = json.optJSONObject("generalTankInfo")
         val scopeJson = json.getJSONObject("scope")
         val savedSetupJson = json.optJSONObject("savedSetupBaseline")
         val savedScopeJson = json.optJSONObject("savedScopeBaseline")
@@ -349,6 +391,9 @@ object AppSessionJsonCodec {
         val mflImportDraftJson = json.optJSONObject("mflImportDraft") ?: JSONObject()
 
         val setupState = decodeSetupFormState(setupJson)
+        val generalTankInfoState = generalTankInfoJson
+            ?.let(::decodeGeneralTankInfoFormState)
+            ?: setupState.toGeneralTankInfoFormState()
         val savedSetupState = savedSetupJson?.let(::decodeSetupFormState)
         val fixedRoofLayoutDraft = decodeRoofLayoutDraft(
             fixedRoofLayoutDraftJson ?: legacyRoofLayoutDraftJson,
@@ -377,6 +422,7 @@ object AppSessionJsonCodec {
             persistedInspectionId = json.optString("persistedInspectionId").ifBlank { null },
             persistedPackageId = json.optString("persistedPackageId").ifBlank { null },
             setup = setupState,
+            generalTankInfo = generalTankInfoState,
             scope = ScopeFormState(
                 referenceMode = decodeReferenceMode(scopeJson.optString("referenceMode", ReferenceMode.TANK_NORTH.name)),
                 startReference = enumValueOf(scopeJson.optString("startReference", StartReference.N.name)),
@@ -676,6 +722,63 @@ object AppSessionJsonCodec {
             nozzleSizeUnit = decodeNozzleSizeUnit(json.optString("nozzleSizeUnit", NozzleSizeUnit.INCH.name)),
         )
     }
+
+    private fun decodeGeneralTankInfoFormState(json: JSONObject): GeneralTankInfoFormState =
+        GeneralTankInfoFormState(
+            client = json.optString("client"),
+            clientRepresentative = json.optString("clientRepresentative"),
+            jobNo = json.optString("jobNo"),
+            tankNumber = json.optString("tankNumber"),
+            dateCompleted = json.optString("dateCompleted"),
+            inspector = json.optString("inspector"),
+            location = json.optString("location"),
+            fieldLeaseName = json.optString("fieldLeaseName"),
+            yearBuilt = json.optString("yearBuilt"),
+            originalManufacturer = json.optString("originalManufacturer"),
+            originalConstructionStd = json.optString("originalConstructionStd"),
+            materialSpec = json.optString("materialSpec"),
+            drawingRef = json.optString("drawingRef"),
+            shellConstruction = json.optString("shellConstruction", "butt"),
+            roofType = json.optString("roofType"),
+            externalRoofType = json.optString("externalRoofType").ifBlank {
+                when (json.optString("roofType").trim().lowercase()) {
+                    "external floating roof" -> "external_floating"
+                    "dome roof" -> "dome"
+                    "umbrella roof" -> "umbrella"
+                    "geodesic roof" -> "geodesic"
+                    "other fixed roof" -> "other_fixed"
+                    "cone roof" -> "cone"
+                    else -> "na"
+                }
+            },
+            internalRoofType = json.optString("internalRoofType").ifBlank {
+                if (json.optString("roofType").trim().lowercase() == "internal floating roof") {
+                    "internal_floating"
+                } else {
+                    "na"
+                }
+            },
+            height = json.optString("height"),
+            serviceHeight = json.optString("serviceHeight"),
+            diameter = json.optString("diameter"),
+            productStored = json.optString("productStored"),
+            specificGravity = json.optString("specificGravity"),
+            designTemp = json.optString("designTemp"),
+            internalPressure = json.optString("internalPressure"),
+            courseNumber = json.optString("courseNumber"),
+            floorPlateNumber = json.optString("floorPlateNumber"),
+            roofPlateNumber = json.optString("roofPlateNumber"),
+            floorPlateThickness = json.optString("floorPlateThickness"),
+            windGirder = json.optString("windGirder"),
+            annularPlateNumber = json.optString("annularPlateNumber"),
+            insulated = json.optString("insulated", "no"),
+            insulationDistance = json.optString("insulationDistance"),
+            annularPlateThickness = json.optString("annularPlateThickness"),
+            stiffener = json.optString("stiffener"),
+            previousExternal = json.optString("previousExternal"),
+            previousInternal = json.optString("previousInternal"),
+            previousBottom = json.optString("previousBottom"),
+        )
 
     private fun buildRoofLayoutDefaultTemplate(
         setup: SetupFormState,

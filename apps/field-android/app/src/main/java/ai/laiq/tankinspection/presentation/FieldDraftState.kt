@@ -36,6 +36,7 @@ import java.time.Instant
 
 enum class ProductScreen {
     Setup,
+    GeneralTankInfo,
     Scope,
     TaskBoard,
     RoofLayout,
@@ -88,6 +89,46 @@ data class SetupFormState(
     val nozzleSizeUnit: NozzleSizeUnit = NozzleSizeUnit.INCH,
 )
 
+data class GeneralTankInfoFormState(
+    val client: String = "",
+    val clientRepresentative: String = "",
+    val jobNo: String = "",
+    val tankNumber: String = "",
+    val dateCompleted: String = "",
+    val inspector: String = "",
+    val location: String = "",
+    val fieldLeaseName: String = "",
+    val yearBuilt: String = "",
+    val originalManufacturer: String = "",
+    val originalConstructionStd: String = "",
+    val materialSpec: String = "",
+    val drawingRef: String = "",
+    val shellConstruction: String = "butt",
+    val roofType: String = "",
+    val externalRoofType: String = "na",
+    val internalRoofType: String = "na",
+    val height: String = "",
+    val serviceHeight: String = "",
+    val diameter: String = "",
+    val productStored: String = "",
+    val specificGravity: String = "",
+    val designTemp: String = "",
+    val internalPressure: String = "",
+    val courseNumber: String = "",
+    val floorPlateNumber: String = "",
+    val roofPlateNumber: String = "",
+    val floorPlateThickness: String = "",
+    val windGirder: String = "",
+    val annularPlateNumber: String = "",
+    val insulated: String = "no",
+    val insulationDistance: String = "",
+    val annularPlateThickness: String = "",
+    val stiffener: String = "",
+    val previousExternal: String = "",
+    val previousInternal: String = "",
+    val previousBottom: String = "",
+)
+
 data class ScopeFormState(
     val referenceMode: ReferenceMode = ReferenceMode.TANK_NORTH,
     val startReference: StartReference = StartReference.N,
@@ -101,6 +142,7 @@ data class FieldDraftState(
     val persistedInspectionId: String? = null,
     val persistedPackageId: String? = null,
     val setup: SetupFormState = SetupFormState(),
+    val generalTankInfo: GeneralTankInfoFormState = GeneralTankInfoFormState(),
     val scope: ScopeFormState = ScopeFormState(),
     val savedReferenceBaselineKey: String? = null,
     val savedSetupBaseline: SetupFormState? = null,
@@ -421,6 +463,101 @@ fun FieldDraftState.validationErrors(): List<String> {
     return errors
 }
 
+fun GeneralTankInfoFormState.requiredValidationErrors(): List<String> {
+    val errors = mutableListOf<String>()
+    if (client.isBlank()) errors += "Enter the client."
+    if (tankNumber.isBlank()) errors += "Enter the tank number."
+    if (location.isBlank()) errors += "Enter the location."
+    if (externalRoofType == "na" && internalRoofType == "na" && roofType.isBlank()) {
+        errors += "Select the roof type."
+    }
+    if (externalRoofType == "external_floating" && internalRoofType != "na") {
+        errors += "Internal roof type must be N.A. when external roof type is external floating."
+    }
+    if (diameter.extractFirstDecimalToken()?.toDoubleOrNull()?.let { it > 0 } != true) {
+        errors += "Enter a positive tank diameter."
+    }
+    if (height.extractFirstDecimalToken()?.toDoubleOrNull()?.let { it > 0 } != true) {
+        errors += "Enter a positive tank height."
+    }
+    if (courseNumber.extractFirstIntegerToken()?.toIntOrNull()?.let { it > 0 } != true) {
+        errors += "Enter a positive shell course number."
+    }
+    return errors
+}
+
+fun GeneralTankInfoFormState.hasAnyUserInput(): Boolean =
+    client.isNotBlank() ||
+        clientRepresentative.isNotBlank() ||
+        jobNo.isNotBlank() ||
+        tankNumber.isNotBlank() ||
+        dateCompleted.isNotBlank() ||
+        inspector.isNotBlank() ||
+        location.isNotBlank() ||
+        fieldLeaseName.isNotBlank() ||
+        yearBuilt.isNotBlank() ||
+        originalManufacturer.isNotBlank() ||
+        originalConstructionStd.isNotBlank() ||
+        materialSpec.isNotBlank() ||
+        drawingRef.isNotBlank() ||
+        roofType.isNotBlank() ||
+        externalRoofType != GeneralTankInfoFormState().externalRoofType ||
+        internalRoofType != GeneralTankInfoFormState().internalRoofType ||
+        height.isNotBlank() ||
+        serviceHeight.isNotBlank() ||
+        diameter.isNotBlank() ||
+        productStored.isNotBlank() ||
+        specificGravity.isNotBlank() ||
+        designTemp.isNotBlank() ||
+        internalPressure.isNotBlank() ||
+        courseNumber.isNotBlank() ||
+        floorPlateNumber.isNotBlank() ||
+        roofPlateNumber.isNotBlank() ||
+        floorPlateThickness.isNotBlank() ||
+        windGirder.isNotBlank() ||
+        annularPlateNumber.isNotBlank() ||
+        insulationDistance.isNotBlank() ||
+        annularPlateThickness.isNotBlank() ||
+        stiffener.isNotBlank() ||
+        previousExternal.isNotBlank() ||
+        previousInternal.isNotBlank() ||
+        previousBottom.isNotBlank() ||
+        shellConstruction != GeneralTankInfoFormState().shellConstruction ||
+        insulated != GeneralTankInfoFormState().insulated
+
+fun SetupFormState.hasSeedableGeneralTankInfo(): Boolean =
+    client.isNotBlank() ||
+        site.isNotBlank() ||
+        tankNumber.isNotBlank() ||
+        diameterM.isNotBlank() ||
+        heightM.isNotBlank() ||
+        shellCourseCount.isNotBlank()
+
+fun SetupFormState.toGeneralTankInfoFormState(existing: GeneralTankInfoFormState = GeneralTankInfoFormState()): GeneralTankInfoFormState {
+    if (!hasSeedableGeneralTankInfo()) return existing
+    return existing.copy(
+        client = client,
+        tankNumber = tankNumber,
+        inspector = inspector,
+        location = site,
+        roofType = toGeneralRoofTypeLabel(),
+        externalRoofType = toGeneralExternalRoofType(),
+        internalRoofType = toGeneralInternalRoofType(),
+        height = heightM,
+        diameter = diameterM,
+        courseNumber = shellCourseCount,
+    )
+}
+
+fun FieldDraftState.syncGeneralTankInfoFromSetup(): FieldDraftState =
+    copy(generalTankInfo = setup.toGeneralTankInfoFormState(generalTankInfo))
+
+fun FieldDraftState.updateGeneralTankInfo(updated: GeneralTankInfoFormState): FieldDraftState =
+    copy(
+        generalTankInfo = updated,
+        setup = updated.toSetupFormState(setup),
+    )
+
 fun ScopeFormState.normalizedReferenceMode(): ReferenceMode =
     if (referenceMode == ReferenceMode.SITE_MARKER) ReferenceMode.TANK_NORTH else referenceMode
 
@@ -498,6 +635,93 @@ fun SetupFormState.roofSystemLabel(): String = buildList {
         )
     }
 }.joinToString(" + ").ifBlank { "No Roof Selected" }
+
+fun SetupFormState.toGeneralRoofTypeLabel(): String = when {
+    hasFloatingRoof() && floatingRoofType == "external" -> "External Floating Roof"
+    hasFloatingRoof() && floatingRoofType == "internal" -> "Internal Floating Roof"
+    hasFixedRoof() -> when (fixedRoofType) {
+        "dome" -> "Dome Roof"
+        "umbrella" -> "Umbrella Roof"
+        "geodesic" -> "Geodesic Roof"
+        "other" -> "Other Fixed Roof"
+        else -> "Cone Roof"
+    }
+
+    else -> ""
+}
+
+fun SetupFormState.toGeneralExternalRoofType(): String = when {
+    hasFloatingRoof() && floatingRoofType == "external" -> "external_floating"
+    hasFixedRoof() -> when (fixedRoofType) {
+        "dome" -> "dome"
+        "umbrella" -> "umbrella"
+        "geodesic" -> "geodesic"
+        "other" -> "other_fixed"
+        "cone" -> "cone"
+        else -> "na"
+    }
+
+    else -> "na"
+}
+
+fun SetupFormState.toGeneralInternalRoofType(): String =
+    if (hasFloatingRoof() && floatingRoofType == "internal") {
+        "internal_floating"
+    } else {
+        "na"
+    }
+
+fun GeneralTankInfoFormState.toSetupFormState(base: SetupFormState): SetupFormState {
+    val normalizedExternalRoofType = externalRoofType.ifBlank { legacyExternalRoofTypeFromLabel(roofType) }
+    val normalizedInternalRoofType = internalRoofType.ifBlank { legacyInternalRoofTypeFromLabel(roofType) }
+    val fixedRoofType = when (normalizedExternalRoofType) {
+        "cone" -> "cone"
+        "dome" -> "dome"
+        "umbrella" -> "umbrella"
+        "geodesic" -> "geodesic"
+        "other_fixed" -> "other"
+        else -> "none"
+    }
+    val floatingRoofType = when {
+        normalizedExternalRoofType == "external_floating" -> "external"
+        normalizedInternalRoofType == "internal_floating" -> "internal"
+        else -> "none"
+    }
+
+    return base.copy(
+        client = client.trim(),
+        site = location.trim().ifBlank { fieldLeaseName.trim() },
+        tankNumber = tankNumber.trim(),
+        diameterM = diameter.extractFirstDecimalToken().orEmpty(),
+        heightM = height.extractFirstDecimalToken().orEmpty(),
+        shellCourseCount = courseNumber.extractFirstIntegerToken().orEmpty(),
+        fixedRoofType = fixedRoofType,
+        floatingRoofType = floatingRoofType,
+        inspector = inspector.trim().ifBlank { base.inspector },
+    )
+}
+
+private fun legacyExternalRoofTypeFromLabel(roofType: String): String {
+    val normalizedRoof = roofType.trim().lowercase()
+    return when {
+        normalizedRoof.contains("external") && normalizedRoof.contains("floating") -> "external_floating"
+        normalizedRoof.contains("dome") -> "dome"
+        normalizedRoof.contains("umbrella") -> "umbrella"
+        normalizedRoof.contains("geodesic") -> "geodesic"
+        normalizedRoof.contains("cone") -> "cone"
+        normalizedRoof.contains("fixed") || normalizedRoof.contains("roof") -> "other_fixed"
+        else -> "na"
+    }
+}
+
+private fun legacyInternalRoofTypeFromLabel(roofType: String): String {
+    val normalizedRoof = roofType.trim().lowercase()
+    return if (normalizedRoof.contains("internal") && normalizedRoof.contains("floating")) {
+        "internal_floating"
+    } else {
+        "na"
+    }
+}
 
 fun SetupFormState.availableRoofSurfaces(): List<RoofSurfaceConfig> = buildList {
     if (hasFixedRoof()) {
@@ -2273,7 +2497,8 @@ fun FieldDraftState.currentPackageId(): String =
     persistedPackageId ?: "pkg-${stableInspectionInstanceKey()}"
 
 fun FieldDraftState.isMaterialInspectionDraft(): Boolean =
-    setup.client.isNotBlank() ||
+    generalTankInfo.hasAnyUserInput() ||
+        setup.client.isNotBlank() ||
         setup.site.isNotBlank() ||
         setup.tankNumber.isNotBlank() ||
         shellUtRows.isNotEmpty() ||
@@ -2306,6 +2531,16 @@ fun FieldDraftState.localInspectionStorageKey(): String {
         .replace(".", "-")
     return "insp-local-$tankPart-$startedPart"
 }
+
+private fun String.extractFirstDecimalToken(): String? =
+    Regex("""\d+(?:\.\d+)?""")
+        .find(this)
+        ?.value
+
+private fun String.extractFirstIntegerToken(): String? =
+    Regex("""\d+""")
+        .find(this)
+        ?.value
 
 private fun normalizeDegrees(raw: String): Double? {
     val parsed = raw.toDoubleOrNull() ?: return null

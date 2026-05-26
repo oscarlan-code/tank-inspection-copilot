@@ -65,8 +65,8 @@ Current TJS `TK-465` demo coverage:
 - `3` findings
 - `3` attachments
 
-Current open usability issue:
-- Android system `Back` from task screens currently exits to the launcher instead of returning to the previous in-app screen
+Latest Android navigation result:
+- Android system `Back` and the top app bar `Back` action now return task screens through the in-app workflow on `emulator-5554`
 
 ## Handover Marker
 
@@ -84,9 +84,11 @@ Latest completed Android slice:
 - added top overview layout maps to `Shell Nozzles` and `Roof Nozzles`
 - fixed shell nozzle vertical adjust direction so `Up` increases `m from bottom`
 - simplified roof `0° Ref` cards to a short label plus an explanation line below
+- wired Android system `Back` and a top app bar `Back` action into the in-app screen flow
+- added an emulator regression test for `Shell UT -> Task Board -> Scope -> Setup`
 
 Next recommended task:
-- fix Android system `Back` so task screens return in-app instead of exiting to the launcher
+- switch Findings camera capture from preview thumbnails to full-resolution file-backed photos
 
 ## Planned Production Hardening
 

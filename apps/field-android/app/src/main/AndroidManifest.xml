@@ -27,6 +27,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="ai.laiq.tankinspection.v2.scratch.V2ScratchPreviewActivity"
+            android:exported="true" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity"
+            android:exported="true" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity"
+            android:exported="true" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.rooflayout.V2RoofLayoutMapPreviewActivity"
+            android:exported="true" />
     </application>
 
 </manifest>
