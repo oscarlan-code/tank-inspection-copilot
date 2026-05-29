@@ -14,6 +14,7 @@ Current `V2` code areas:
 Current status:
 - no approved production `V2` screens yet
 - any exploratory screen work must remain in clearly marked `scratch/` packages until approved
+- current layout-map setup work is a UX checkpoint and is not production-wired yet
 
 Approved workflow for `V2`:
 1. build one screen only
@@ -32,3 +33,9 @@ Initial V2 target order:
 5. Element Registration
 6. UT screens
 7. Standalone Findings
+
+Future improvement notes:
+- Continue refining roof and floor plate-label behavior for high plate counts.
+- Keep crowded layout-map labels hidden by default and reveal the selected plate after tap.
+- Treat floor circular plate + annular-ring generation as preview-only until the user approves the screen.
+- Wire persistence/export only after each V2 screen is approved.

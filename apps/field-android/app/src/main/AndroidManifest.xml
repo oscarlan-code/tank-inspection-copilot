@@ -20,6 +20,12 @@
 
         <activity
             android:name=".MainActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.scratch.V2ScratchPreviewActivity"
+            android:exported="true" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,10 +34,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="ai.laiq.tankinspection.v2.scratch.V2ScratchPreviewActivity"
-            android:exported="true" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity"
             android:exported="true" />
         <activity
             android:name="ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity"

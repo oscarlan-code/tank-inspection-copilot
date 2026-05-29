@@ -97,13 +97,14 @@ fun buildRoofPlateCells(
     widestRowPlateCount: Int,
     ringCount: Int,
     sectorCount: Int,
+    centerFeatureCount: Int = 0,
     referenceAzimuthDeg: Double = 0.0,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
 ): List<RoofPlateCell> = when (template) {
     RoofTemplate.CIRCULAR_PLATE,
     RoofTemplate.CIRCULAR_CENTER_OPENING -> circularRoofPlateCells(rowCount, widestRowPlateCount)
     RoofTemplate.CONE_RADIAL -> coneRadialRoofPlateCells(
-        centerPlateCount = ringCount,
+        centerPlateCount = if (centerFeatureCount > 0) centerFeatureCount else ringCount,
         sectorCount = sectorCount,
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
@@ -383,6 +384,7 @@ fun buildRoofLinkTargetsForConfig(
     widestRowPlateCount: Int,
     ringCount: Int,
     sectorCount: Int,
+    centerFeatureCount: Int = 0,
     referenceAzimuthDeg: Double = 0.0,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
     hasAnnularRing: Boolean = false,
@@ -394,6 +396,7 @@ fun buildRoofLinkTargetsForConfig(
         widestRowPlateCount = widestRowPlateCount,
         ringCount = ringCount,
         sectorCount = sectorCount,
+        centerFeatureCount = centerFeatureCount,
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
     )

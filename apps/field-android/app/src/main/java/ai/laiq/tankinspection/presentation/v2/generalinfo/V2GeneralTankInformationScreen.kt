@@ -1,6 +1,5 @@
 package ai.laiq.tankinspection.presentation.v2.generalinfo
 
-import ai.laiq.tankinspection.presentation.GeneralTankInfoFormState
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
@@ -8,7 +7,8 @@ import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqTextField
-import ai.laiq.tankinspection.presentation.requiredValidationErrors
+import ai.laiq.tankinspection.v2.model.V2GeneralTankInfo
+import ai.laiq.tankinspection.v2.model.requiredValidationErrors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -54,8 +54,8 @@ private val internalRoofTypeOptions = listOf(
 
 @Composable
 fun V2GeneralTankInformationScreen(
-    state: GeneralTankInfoFormState,
-    onStateChange: (GeneralTankInfoFormState) -> Unit,
+    state: V2GeneralTankInfo,
+    onStateChange: (V2GeneralTankInfo) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),

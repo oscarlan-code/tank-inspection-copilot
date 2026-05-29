@@ -2,10 +2,10 @@ package ai.laiq.tankinspection.v2.generalinfo
 
 import android.content.Intent
 import android.os.Bundle
-import ai.laiq.tankinspection.presentation.GeneralTankInfoFormState
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2.generalinfo.V2GeneralTankInformationScreen
-import ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity
+import ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity
+import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -23,15 +23,19 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    var state by remember { mutableStateOf(defaultGeneralTankInfoPreviewState()) }
+                    var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
                     BackHandler { finish() }
                     V2GeneralTankInformationScreen(
-                        state = state,
-                        onStateChange = { state = it },
+                        state = draftState.generalTankInfo,
+                        onStateChange = {
+                            draftState = draftState.copy(generalTankInfo = it)
+                            V2PreviewSession.updateDraftState(draftState)
+                        },
                         onBack = { finish() },
                         onContinue = {
+                            V2PreviewSession.updateDraftState(draftState)
                             startActivity(
-                                Intent(this, V2LayoutMapSetupPreviewActivity::class.java),
+                                Intent(this, V2LayoutScopePreviewActivity::class.java),
                             )
                         },
                     )
@@ -40,19 +44,3 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
         }
     }
 }
-
-private fun defaultGeneralTankInfoPreviewState(): GeneralTankInfoFormState =
-    GeneralTankInfoFormState(
-        client = "Pacific Energy",
-        tankNumber = "TK-13",
-        location = "Utulei, American Samoa",
-        fieldLeaseName = "Pacific Terminal",
-        shellConstruction = "butt",
-        externalRoofType = "cone",
-        internalRoofType = "na",
-        productStored = "Diesel",
-        diameter = "16.0",
-        height = "12.0",
-        serviceHeight = "10.8",
-        courseNumber = "6",
-    )

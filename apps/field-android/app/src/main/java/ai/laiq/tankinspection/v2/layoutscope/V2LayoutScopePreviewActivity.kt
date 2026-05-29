@@ -1,10 +1,13 @@
-package ai.laiq.tankinspection.v2.rooflayout
+package ai.laiq.tankinspection.v2.layoutscope
 
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
-import ai.laiq.tankinspection.presentation.v2.rooflayout.V2RoofLayoutMapScreen
+import ai.laiq.tankinspection.presentation.v2.layoutscope.V2LayoutScopeScreen
+import ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity
 import ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity
+import ai.laiq.tankinspection.v2.model.selectedTargets
+import ai.laiq.tankinspection.v2.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -17,7 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
-class V2RoofLayoutMapPreviewActivity : ComponentActivity() {
+class V2LayoutScopePreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -25,25 +28,35 @@ class V2RoofLayoutMapPreviewActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
 
-                    fun openLayoutMapSetup() {
+                    fun openGeneralTankInfo() {
                         V2PreviewSession.updateDraftState(draftState)
                         startActivity(
-                            Intent(this, V2LayoutMapSetupPreviewActivity::class.java).apply {
+                            Intent(this, V2GeneralTankInformationPreviewActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                             },
                         )
                         finish()
                     }
 
-                    BackHandler { openLayoutMapSetup() }
-                    V2RoofLayoutMapScreen(
-                        state = draftState.roofLayoutMap,
+                    fun openLayoutMapSetup() {
+                        val selectedTargets = draftState.layoutScope.selectedTargets()
+                        val nextDraftState = draftState.copy(
+                            layoutMapSetup = draftState.layoutMapSetup.withFirstAvailableTarget(selectedTargets),
+                        )
+                        V2PreviewSession.updateDraftState(nextDraftState)
+                        startActivity(Intent(this, V2LayoutMapSetupPreviewActivity::class.java))
+                    }
+
+                    BackHandler { openGeneralTankInfo() }
+                    V2LayoutScopeScreen(
+                        generalTankInfo = draftState.generalTankInfo,
+                        state = draftState.layoutScope,
                         onStateChange = {
-                            draftState = draftState.copy(roofLayoutMap = it)
+                            draftState = draftState.copy(layoutScope = it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
-                        onBack = { openLayoutMapSetup() },
-                        onContinue = { V2PreviewSession.updateDraftState(draftState) },
+                        onBack = { openGeneralTankInfo() },
+                        onContinue = { openLayoutMapSetup() },
                     )
                 }
             }

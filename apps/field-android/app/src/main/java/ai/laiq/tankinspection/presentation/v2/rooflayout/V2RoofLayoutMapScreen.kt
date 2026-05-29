@@ -11,6 +11,11 @@ import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
+import ai.laiq.tankinspection.v2.model.V2ReferenceMode
+import ai.laiq.tankinspection.v2.model.V2RoofLayoutMap
+import ai.laiq.tankinspection.v2.model.V2RoofScope
+import ai.laiq.tankinspection.v2.model.withRoofScopeDefaults
+import ai.laiq.tankinspection.v2.model.withTemplateDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -24,35 +29,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private data class RoofLayoutPreviewState(
-    val roofSurface: String,
-    val referenceMode: String,
-    val rotationDirection: RotationDirection,
-    val template: RoofTemplate,
-    val rowCount: String,
-    val widestRowPlateCount: String,
-    val ringCount: String,
-    val sectorCount: String,
-    val hasAnnularRing: Boolean,
-    val annularSectionCount: String,
-)
-
 private val roofSurfaceOptions = listOf(
-    "external" to "External Roof",
-    "internal" to "Internal Roof",
+    V2RoofScope.EXTERNAL.key to V2RoofScope.EXTERNAL.label,
+    V2RoofScope.INTERNAL.key to V2RoofScope.INTERNAL.label,
 )
 
 private val referenceModeOptions = listOf(
-    "tank_north" to "Tank North",
-    "true_north" to "True North",
+    V2ReferenceMode.TANK_NORTH.key to V2ReferenceMode.TANK_NORTH.label,
+    V2ReferenceMode.TRUE_NORTH.key to V2ReferenceMode.TRUE_NORTH.label,
 )
 
 private val rotationOptions = listOf(
@@ -60,28 +48,40 @@ private val rotationOptions = listOf(
     RotationDirection.COUNTERCLOCKWISE.name to "Counterclockwise",
 )
 
+private val yesNoOptions = listOf(
+    "yes" to "Yes",
+    "no" to "No",
+)
+
+private val roofTemplateOptions = listOf(
+    RoofTemplate.CONE_RADIAL to "Cone Radial",
+    RoofTemplate.UMBRELLA_RADIAL to "Umbrella Radial",
+    RoofTemplate.CIRCULAR_PLATE to "Circular Plate",
+)
+
 @Composable
 fun V2RoofLayoutMapScreen(
+    state: V2RoofLayoutMap,
+    onStateChange: (V2RoofLayoutMap) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    var state by remember { mutableStateOf(defaultRoofLayoutPreviewState()) }
-    val templateOptions = templateOptionsForSurface(state.roofSurface)
+    val templateOptions = roofTemplateOptions
     val resolvedTemplate = state.template.takeIf { template ->
         templateOptions.any { option -> option.first == template }
     }
         ?: templateOptions.firstOrNull()?.first
         ?: RoofTemplate.CONE_RADIAL
     if (resolvedTemplate != state.template) {
-        state = state.withTemplateDefaults(resolvedTemplate)
+        onStateChange(state.withTemplateDefaults(resolvedTemplate))
     }
 
     val usesCircularPlateMap = resolvedTemplate == RoofTemplate.CIRCULAR_PLATE ||
         resolvedTemplate == RoofTemplate.CIRCULAR_CENTER_OPENING
     val usesRadialMap = resolvedTemplate == RoofTemplate.CONE_RADIAL ||
         resolvedTemplate == RoofTemplate.UMBRELLA_RADIAL
-    val mapReferenceLabel = if (state.referenceMode == "true_north") "True North" else "Tank North"
+    val mapReferenceLabel = state.referenceMode.label
     val mapRowCount = state.rowCount.toIntOrNull()?.coerceAtLeast(1) ?: 5
     val mapWidestRowPlateCount = state.widestRowPlateCount.toIntOrNull()?.coerceAtLeast(4) ?: 14
     val mapRingCount = state.ringCount.toIntOrNull()?.coerceAtLeast(1) ?: 6
@@ -114,19 +114,29 @@ fun V2RoofLayoutMapScreen(
                     left = {
                         LaiqDropdownField(
                             label = "Roof Surface",
-                            value = state.roofSurface,
+                            value = state.roofScope.key,
                             options = roofSurfaceOptions,
-                            onSelected = { surface ->
-                                state = state.withSurfaceDefaults(surface)
+                            onSelected = { scopeKey ->
+                                onStateChange(
+                                    state.withRoofScopeDefaults(
+                                        V2RoofScope.entries.first { option -> option.key == scopeKey },
+                                    ),
+                                )
                             },
                         )
                     },
                     right = {
                         LaiqDropdownField(
                             label = "0° Reference",
-                            value = state.referenceMode,
+                            value = state.referenceMode.key,
                             options = referenceModeOptions,
-                            onSelected = { state = state.copy(referenceMode = it) },
+                            onSelected = {
+                                onStateChange(
+                                    state.copy(
+                                        referenceMode = V2ReferenceMode.entries.first { option -> option.key == it },
+                                    ),
+                                )
+                            },
                         )
                     },
                 )
@@ -137,7 +147,7 @@ fun V2RoofLayoutMapScreen(
                             value = resolvedTemplate.name,
                             options = templateOptions.map { it.first.name to it.second },
                             onSelected = { selected ->
-                                state = state.withTemplateDefaults(enumValueOf(selected))
+                                onStateChange(state.withTemplateDefaults(enumValueOf(selected)))
                             },
                         )
                     },
@@ -146,7 +156,7 @@ fun V2RoofLayoutMapScreen(
                             label = "Rotation",
                             value = state.rotationDirection.name,
                             options = rotationOptions,
-                            onSelected = { state = state.copy(rotationDirection = enumValueOf(it)) },
+                            onSelected = { onStateChange(state.copy(rotationDirection = enumValueOf(it))) },
                         )
                     },
                 )
@@ -156,7 +166,7 @@ fun V2RoofLayoutMapScreen(
         item {
             LaiqSectionCard(title = "Roof Layout Map") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LaiqStatChip("Surface", roofSurfaceLabel(state.roofSurface), modifier = Modifier.weight(1f))
+                    LaiqStatChip("Surface", state.roofScope.label, modifier = Modifier.weight(1f))
                     LaiqStatChip("Pattern", templateLabel(resolvedTemplate), modifier = Modifier.weight(1f))
                     LaiqStatChip("0° Ref", mapReferenceLabel, modifier = Modifier.weight(1f))
                 }
@@ -179,9 +189,14 @@ fun V2RoofLayoutMapScreen(
                         activePlateId = null,
                         savedPlateIds = emptySet(),
                         overlayPlateIds = emptySet(),
-                        centerFeatureCount = if (resolvedTemplate == RoofTemplate.CIRCULAR_CENTER_OPENING) 1 else 0,
-                        hasAnnularRing = usesCircularPlateMap && state.hasAnnularRing,
-                        annularSectionCount = if (usesCircularPlateMap && state.hasAnnularRing) mapAnnularSectionCount else 0,
+                        centerFeatureCount = if (state.hasCenterOpening) {
+                            state.centerOpeningPlateCount.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                        } else {
+                            0
+                        },
+                        centerFeatureCountControlsLayout = true,
+                        hasAnnularRing = state.hasAnnularRing,
+                        annularSectionCount = if (state.hasAnnularRing) mapAnnularSectionCount else 0,
                         hasPontoonDeck = false,
                         markers = emptyList(),
                         showMarkerLabels = false,
@@ -205,7 +220,7 @@ fun V2RoofLayoutMapScreen(
                             LaiqCountField(
                                 label = "Row Count",
                                 value = state.rowCount,
-                                onValueChange = { state = state.copy(rowCount = it) },
+                                onValueChange = { onStateChange(state.copy(rowCount = it)) },
                                 min = 1,
                                 max = 12,
                             )
@@ -214,34 +229,12 @@ fun V2RoofLayoutMapScreen(
                             LaiqCountField(
                                 label = "Widest Row Plate Count",
                                 value = state.widestRowPlateCount,
-                                onValueChange = { state = state.copy(widestRowPlateCount = it) },
+                                onValueChange = { onStateChange(state.copy(widestRowPlateCount = it)) },
                                 min = 4,
                                 max = 40,
                             )
                         },
                     )
-                    Text(
-                        "Annular Ring",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = LaiqColors.BodyText,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    LaiqOptionChips(
-                        selectedValue = if (state.hasAnnularRing) "yes" else "no",
-                        options = listOf("yes" to "Yes", "no" to "No"),
-                        onSelect = { selected ->
-                            state = state.copy(hasAnnularRing = selected == "yes")
-                        },
-                    )
-                    if (state.hasAnnularRing) {
-                        LaiqCountField(
-                            label = "Annular Section Count",
-                            value = state.annularSectionCount,
-                            onValueChange = { state = state.copy(annularSectionCount = it) },
-                            min = 4,
-                            max = 40,
-                        )
-                    }
                 }
 
                 if (usesRadialMap) {
@@ -250,7 +243,7 @@ fun V2RoofLayoutMapScreen(
                             LaiqCountField(
                                 label = "Ring Count",
                                 value = state.ringCount,
-                                onValueChange = { state = state.copy(ringCount = it) },
+                                onValueChange = { onStateChange(state.copy(ringCount = it)) },
                                 min = 1,
                                 max = 16,
                             )
@@ -259,11 +252,88 @@ fun V2RoofLayoutMapScreen(
                             LaiqCountField(
                                 label = "Sector Count",
                                 value = state.sectorCount,
-                                onValueChange = { state = state.copy(sectorCount = it) },
+                                onValueChange = { onStateChange(state.copy(sectorCount = it)) },
                                 min = 4,
                                 max = 36,
                             )
                         },
+                    )
+                }
+
+                TwoUpFields(
+                    left = {
+                        RoofOptionChips(
+                            label = "Center Opening",
+                            selected = state.hasCenterOpening,
+                            onSelect = { selected ->
+                                onStateChange(
+                                    state.copy(
+                                        hasCenterOpening = selected,
+                                        centerOpeningPlateCount = if (selected) {
+                                            state.centerOpeningPlateCount.ifBlank { "1" }
+                                        } else {
+                                            state.centerOpeningPlateCount
+                                        },
+                                    ),
+                                )
+                            },
+                        )
+                    },
+                    right = {
+                        RoofOptionChips(
+                            label = "Annular Ring",
+                            selected = state.hasAnnularRing,
+                            onSelect = { selected ->
+                                onStateChange(
+                                    state.copy(
+                                        hasAnnularRing = selected,
+                                        annularSectionCount = if (selected) {
+                                            state.annularSectionCount.ifBlank { "18" }
+                                        } else {
+                                            state.annularSectionCount
+                                        },
+                                    ),
+                                )
+                            },
+                        )
+                    },
+                )
+                if (state.hasCenterOpening && state.hasAnnularRing) {
+                    TwoUpFields(
+                        left = {
+                            LaiqCountField(
+                                label = "Center Opening Plates",
+                                value = state.centerOpeningPlateCount,
+                                onValueChange = { onStateChange(state.copy(centerOpeningPlateCount = it)) },
+                                min = 1,
+                                max = 12,
+                            )
+                        },
+                        right = {
+                            LaiqCountField(
+                                label = "Annular Ring Plates",
+                                value = state.annularSectionCount,
+                                onValueChange = { onStateChange(state.copy(annularSectionCount = it)) },
+                                min = 4,
+                                max = 40,
+                            )
+                        },
+                    )
+                } else if (state.hasCenterOpening) {
+                    LaiqCountField(
+                        label = "Center Opening Plates",
+                        value = state.centerOpeningPlateCount,
+                        onValueChange = { onStateChange(state.copy(centerOpeningPlateCount = it)) },
+                        min = 1,
+                        max = 12,
+                    )
+                } else if (state.hasAnnularRing) {
+                    LaiqCountField(
+                        label = "Annular Ring Plates",
+                        value = state.annularSectionCount,
+                        onValueChange = { onStateChange(state.copy(annularSectionCount = it)) },
+                        min = 4,
+                        max = 40,
                     )
                 }
             }
@@ -287,6 +357,27 @@ fun V2RoofLayoutMapScreen(
 }
 
 @Composable
+private fun RoofOptionChips(
+    label: String,
+    selected: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = LaiqColors.BodyText,
+            fontWeight = FontWeight.Medium,
+        )
+        LaiqOptionChips(
+            selectedValue = if (selected) "yes" else "no",
+            options = yesNoOptions,
+            onSelect = { value -> onSelect(value == "yes") },
+        )
+    }
+}
+
+@Composable
 private fun TwoUpFields(
     left: @Composable () -> Unit,
     right: @Composable () -> Unit,
@@ -297,79 +388,9 @@ private fun TwoUpFields(
     }
 }
 
-private fun roofSurfaceLabel(surface: String): String = when (surface) {
-    "internal" -> "Internal Roof"
-    else -> "External Roof"
-}
-
 private fun templateLabel(template: RoofTemplate): String = when (template) {
     RoofTemplate.CIRCULAR_PLATE -> "Circular Plate"
-    RoofTemplate.CIRCULAR_CENTER_OPENING -> "Center Opening"
+    RoofTemplate.CIRCULAR_CENTER_OPENING -> "Circular Plate"
     RoofTemplate.CONE_RADIAL -> "Cone Radial"
     RoofTemplate.UMBRELLA_RADIAL -> "Umbrella Radial"
 }
-
-private fun templateOptionsForSurface(surface: String): List<Pair<RoofTemplate, String>> =
-    if (surface == "internal") {
-        listOf(
-            RoofTemplate.CIRCULAR_PLATE to "Circular Plate",
-            RoofTemplate.CIRCULAR_CENTER_OPENING to "Circular Plate + Center Opening",
-        )
-    } else {
-        listOf(
-            RoofTemplate.CONE_RADIAL to "Cone Radial",
-            RoofTemplate.UMBRELLA_RADIAL to "Umbrella Radial",
-            RoofTemplate.CIRCULAR_PLATE to "Circular Plate",
-        )
-    }
-
-private fun defaultRoofLayoutPreviewState(): RoofLayoutPreviewState =
-    RoofLayoutPreviewState(
-        roofSurface = "external",
-        referenceMode = "tank_north",
-        rotationDirection = RotationDirection.CLOCKWISE,
-        template = RoofTemplate.CONE_RADIAL,
-        rowCount = "5",
-        widestRowPlateCount = "14",
-        ringCount = "6",
-        sectorCount = "18",
-        hasAnnularRing = true,
-        annularSectionCount = "18",
-    ).withTemplateDefaults(RoofTemplate.CONE_RADIAL)
-
-private fun RoofLayoutPreviewState.withSurfaceDefaults(surface: String): RoofLayoutPreviewState {
-    val nextTemplate = if (surface == "internal") {
-        RoofTemplate.CIRCULAR_CENTER_OPENING
-    } else {
-        RoofTemplate.CONE_RADIAL
-    }
-    return copy(roofSurface = surface).withTemplateDefaults(nextTemplate)
-}
-
-private fun RoofLayoutPreviewState.withTemplateDefaults(template: RoofTemplate): RoofLayoutPreviewState =
-    when (template) {
-        RoofTemplate.CIRCULAR_PLATE -> copy(
-            template = template,
-            rowCount = "5",
-            widestRowPlateCount = "14",
-            hasAnnularRing = true,
-            annularSectionCount = "18",
-        )
-        RoofTemplate.CIRCULAR_CENTER_OPENING -> copy(
-            template = template,
-            rowCount = "5",
-            widestRowPlateCount = "14",
-            hasAnnularRing = true,
-            annularSectionCount = "18",
-        )
-        RoofTemplate.CONE_RADIAL -> copy(
-            template = template,
-            ringCount = "6",
-            sectorCount = "18",
-        )
-        RoofTemplate.UMBRELLA_RADIAL -> copy(
-            template = template,
-            ringCount = "8",
-            sectorCount = "20",
-        )
-    }

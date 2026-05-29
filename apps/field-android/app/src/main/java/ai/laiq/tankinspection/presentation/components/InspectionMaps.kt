@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
@@ -93,6 +94,106 @@ data class RoofMapMarker(
 )
 
 private val shellDegreeScaleMarks = listOf(0, 90, 180, 270)
+
+private enum class RoofLeaderLabelSide {
+    LEFT,
+    RIGHT,
+    TOP,
+    BOTTOM,
+}
+
+private data class RoofLeaderLabel(
+    val text: String,
+    val sourceXNorm: Float,
+    val sourceYNorm: Float,
+    val xNorm: Float,
+    val yNorm: Float,
+)
+
+private fun buildRoofLeaderLabels(cells: List<RoofPlateCell>): List<RoofLeaderLabel> {
+    val groups = cells.groupBy { cell ->
+        val dx = cell.labelXNorm - 0.5f
+        val dy = cell.labelYNorm - 0.5f
+        when {
+            abs(dx) >= abs(dy) && dx < 0f -> RoofLeaderLabelSide.LEFT
+            abs(dx) >= abs(dy) -> RoofLeaderLabelSide.RIGHT
+            dy < 0f -> RoofLeaderLabelSide.TOP
+            else -> RoofLeaderLabelSide.BOTTOM
+        }
+    }
+
+    return buildList {
+        addAll(verticalLeaderLabels(groups[RoofLeaderLabelSide.LEFT].orEmpty(), xNorm = 0.18f))
+        addAll(verticalLeaderLabels(groups[RoofLeaderLabelSide.RIGHT].orEmpty(), xNorm = 0.82f))
+        addAll(horizontalLeaderLabels(groups[RoofLeaderLabelSide.TOP].orEmpty(), yNorm = 0.18f))
+        addAll(horizontalLeaderLabels(groups[RoofLeaderLabelSide.BOTTOM].orEmpty(), yNorm = 0.82f))
+    }
+}
+
+private fun verticalLeaderLabels(
+    cells: List<RoofPlateCell>,
+    xNorm: Float,
+): List<RoofLeaderLabel> {
+    val sortedCells = cells.sortedBy { cell -> cell.labelYNorm }
+    val yPositions = spreadLabelPositions(
+        desiredPositions = sortedCells.map { cell -> cell.labelYNorm },
+        min = 0.20f,
+        max = 0.80f,
+        preferredGap = 0.064f,
+    )
+    return sortedCells.mapIndexed { index, cell ->
+        RoofLeaderLabel(
+            text = cell.mapLabel,
+            sourceXNorm = cell.labelXNorm,
+            sourceYNorm = cell.labelYNorm,
+            xNorm = xNorm,
+            yNorm = yPositions[index],
+        )
+    }
+}
+
+private fun horizontalLeaderLabels(
+    cells: List<RoofPlateCell>,
+    yNorm: Float,
+): List<RoofLeaderLabel> {
+    val sortedCells = cells.sortedBy { cell -> cell.labelXNorm }
+    val xPositions = spreadLabelPositions(
+        desiredPositions = sortedCells.map { cell -> cell.labelXNorm },
+        min = 0.22f,
+        max = 0.78f,
+        preferredGap = 0.112f,
+    )
+    return sortedCells.mapIndexed { index, cell ->
+        RoofLeaderLabel(
+            text = cell.mapLabel,
+            sourceXNorm = cell.labelXNorm,
+            sourceYNorm = cell.labelYNorm,
+            xNorm = xPositions[index],
+            yNorm = yNorm,
+        )
+    }
+}
+
+private fun spreadLabelPositions(
+    desiredPositions: List<Float>,
+    min: Float,
+    max: Float,
+    preferredGap: Float,
+): List<Float> {
+    if (desiredPositions.isEmpty()) return emptyList()
+    if (desiredPositions.size == 1) return listOf(desiredPositions.first().coerceIn(min, max))
+
+    val gap = preferredGap.coerceAtMost((max - min) / (desiredPositions.size - 1))
+    val forward = mutableListOf<Float>()
+    desiredPositions.forEachIndexed { index, desired ->
+        val minAllowed = if (index == 0) min else forward[index - 1] + gap
+        forward += desired.coerceAtLeast(minAllowed).coerceAtMost(max)
+    }
+    for (index in forward.lastIndex - 1 downTo 0) {
+        forward[index] = forward[index].coerceAtMost(forward[index + 1] - gap).coerceAtLeast(min)
+    }
+    return forward
+}
 
 @Composable
 fun ShellSurfaceMap(
@@ -538,6 +639,11 @@ fun RoofSurfaceMap(
     savedPlateIds: Set<String> = emptySet(),
     overlayPlateIds: Set<String> = emptySet(),
     centerFeatureCount: Int = 0,
+    centerFeatureCountControlsLayout: Boolean = false,
+    useLeaderPlateLabels: Boolean = false,
+    showAnnularSectionLabels: Boolean = true,
+    autoHideCrowdedPlateLabels: Boolean = false,
+    enablePlateTapSelection: Boolean = false,
     hasAnnularRing: Boolean = false,
     annularSectionCount: Int = 0,
     hasPontoonDeck: Boolean = false,
@@ -557,6 +663,7 @@ fun RoofSurfaceMap(
         widestRowPlateCount = widestRowPlateCount,
         ringCount = ringCount,
         sectorCount = sectorCount,
+        centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
     )
@@ -566,16 +673,25 @@ fun RoofSurfaceMap(
         widestRowPlateCount = widestRowPlateCount,
         ringCount = ringCount,
         sectorCount = sectorCount,
+        centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
         hasAnnularRing = hasAnnularRing,
         annularSectionCount = annularSectionCount,
     )
     val isCircularTemplate = template == RoofTemplate.CIRCULAR_PLATE || template == RoofTemplate.CIRCULAR_CENTER_OPENING
-    val isConeRadialTemplate = template == RoofTemplate.CONE_RADIAL
     val showCenterOpening = template == RoofTemplate.CIRCULAR_CENTER_OPENING || centerFeatureCount > 0
-    val displayPlateCells = plateCells
+    val displayPlateCells = if (centerFeatureCountControlsLayout && showCenterOpening && template == RoofTemplate.CONE_RADIAL) {
+        plateCells.filterNot { cell -> cell.rowNumber >= 2 }
+    } else {
+        plateCells
+    }
     val annularLinkTargets = linkTargets.filter { target -> target.plateId.startsWith("AR") }
+    val leaderPlateLabels = if (useLeaderPlateLabels && !isCircularTemplate) {
+        buildRoofLeaderLabels(displayPlateCells)
+    } else {
+        emptyList()
+    }
     val markerPoints = markers.mapNotNull { marker ->
         val point = when {
             marker.azimuthDeg != null && marker.radiusRatio != null -> {
@@ -726,7 +842,11 @@ fun RoofSurfaceMap(
                             RoofTemplate.CIRCULAR_CENTER_OPENING -> Unit
                             RoofTemplate.CONE_RADIAL -> {
                                 val sectors = sectorCount.coerceAtLeast(1)
-                                val centerPlates = ringCount.coerceIn(1, 3)
+                                val centerPlates = if (centerFeatureCount > 0) {
+                                    centerFeatureCount.coerceIn(1, 3)
+                                } else {
+                                    ringCount.coerceIn(1, 3)
+                                }
                                 val sectorStep = 360.0 / sectors.toDouble()
                                 val directionFactor = if (rotationDirection == RotationDirection.CLOCKWISE) 1.0 else -1.0
                                 val transitionOuterRadius = radius * 0.33f
@@ -903,7 +1023,7 @@ fun RoofSurfaceMap(
                     style = MaterialTheme.typography.labelSmall,
                     color = LaiqColors.AccentOrange,
                 )
-                if (hasAnnularRing) {
+                if (hasAnnularRing && !useLeaderPlateLabels) {
                     Text(
                         "Annular Ring",
                         modifier = Modifier
@@ -987,6 +1107,14 @@ fun RoofSurfaceMap(
                         )
                     }
                     displayPlateCells.forEach { cell ->
+                        val cellLabelWidth = mapSize * (cell.rightNorm - cell.leftNorm)
+                        val cellLabelHeight = mapSize * (cell.bottomNorm - cell.topNorm)
+                        val labelFits = cellLabelWidth >= circularLabelWidth + 4.dp &&
+                            cellLabelHeight >= circularLabelHeight + 2.dp
+                        val shouldShowLabel = !autoHideCrowdedPlateLabels ||
+                            labelFits ||
+                            cell.plateId == activePlateId
+                        if (!shouldShowLabel) return@forEach
                         Box(
                             modifier = Modifier
                                 .width(circularLabelWidth)
@@ -1004,8 +1132,49 @@ fun RoofSurfaceMap(
                             )
                         }
                     }
+                } else if (useLeaderPlateLabels && !autoHideCrowdedPlateLabels) {
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f),
+                    ) {
+                        leaderPlateLabels.forEach { label ->
+                            drawLine(
+                                color = LaiqColors.BrandTeal.copy(alpha = 0.24f),
+                                start = Offset(size.width * label.sourceXNorm, size.height * label.sourceYNorm),
+                                end = Offset(size.width * label.xNorm, size.height * label.yNorm),
+                                strokeWidth = 1.1.dp.toPx(),
+                            )
+                        }
+                    }
+                    leaderPlateLabels.forEach { label ->
+                        val labelWidth = if (label.text.length > 2) 42.dp else 34.dp
+                        Surface(
+                            onClick = { onSelectPlate(label.text) },
+                            modifier = Modifier
+                                .width(labelWidth)
+                                .height(20.dp)
+                                .offset(
+                                    x = mapSize * label.xNorm - labelWidth / 2,
+                                    y = mapSize * label.yNorm - 10.dp,
+                                ),
+                            color = Color.White.copy(alpha = 0.96f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label.text,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LaiqColors.BodyText,
+                                )
+                            }
+                        }
+                    }
                 } else {
                     displayPlateCells.forEach { cell ->
+                        val shouldShowLabel = !autoHideCrowdedPlateLabels || cell.plateId == activePlateId
+                        if (!shouldShowLabel) return@forEach
                         val isSaved = savedPlateIds.contains(cell.plateId)
                         val hasOverlay = overlayPlateIds.contains(cell.plateId)
                         Surface(
@@ -1051,7 +1220,7 @@ fun RoofSurfaceMap(
                         }
                     }
                 }
-                annularLinkTargets.forEach { cell ->
+                if (showAnnularSectionLabels) annularLinkTargets.forEach { cell ->
                     val isSaved = savedPlateIds.contains(cell.plateId)
                     val hasOverlay = overlayPlateIds.contains(cell.plateId)
                     Surface(
@@ -1104,7 +1273,18 @@ fun RoofSurfaceMap(
                         color = LaiqColors.AccentOrange.copy(alpha = 0.18f),
                         shape = CircleShape,
                         border = BorderStroke(2.dp, LaiqColors.AccentOrange),
-                    ) {}
+                    ) {
+                        if (centerFeatureCountControlsLayout) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = if (centerFeatureCount > 1) "CO x$centerFeatureCount" else "CO",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LaiqColors.AccentOrange,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
+                    }
                 }
                 markerPoints.forEach { (marker, point) ->
                     val markerSize = if (marker.active && !showMarkerLabels) 18.dp else if (marker.active) 14.dp else 10.dp
@@ -1202,11 +1382,11 @@ fun RoofSurfaceMap(
                         }
                     }
                 }
-                if (onSelectPosition != null) {
+                if (onSelectPosition != null || enablePlateTapSelection) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .pointerInput(onSelectPosition, onSelectPlate) {
+                            .pointerInput(onSelectPosition, enablePlateTapSelection, onSelectPlate) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         val normalizedX = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
@@ -1228,7 +1408,7 @@ fun RoofSurfaceMap(
                                             azimuthDeg = azimuthDeg,
                                             radiusRatio = radiusRatio,
                                         )?.let(onSelectPlate)
-                                        publishRoofMapPosition(offset, size, hasAnnularRing, onSelectPosition)
+                                        onSelectPosition?.let { publishRoofMapPosition(offset, size, hasAnnularRing, it) }
                                     },
                                 )
                             },
