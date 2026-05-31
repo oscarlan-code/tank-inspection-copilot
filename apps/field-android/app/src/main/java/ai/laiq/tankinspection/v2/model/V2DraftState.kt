@@ -33,14 +33,19 @@ enum class V2ReferenceMode(val key: String, val label: String) {
 }
 
 enum class V2FloorTemplate(val key: String, val label: String) {
-    RADIAL_ANNULAR("radial_annular", "Radial + Annular"),
-    PARALLEL_ANNULAR("parallel_annular", "Parallel + Annular"),
-    ANNULAR_ONLY("annular_only", "Annular Only"),
+    CIRCULAR_PLATE("circular_plate", "Circular Plate"),
+    CIRCULAR_PLATE_WITH_AR("circular_plate_ar", "Circular Plate + AR"),
 }
 
 enum class V2ShellOffsetStartRow(val key: String, val label: String) {
     ODD("odd", "Odd Courses"),
     EVEN("even", "Even Courses"),
+}
+
+enum class V2ShellThirdOffsetStart(val key: String, val label: String) {
+    FULL("full", "Full"),
+    ONE_THIRD("one_third", "1/3"),
+    TWO_THIRDS("two_thirds", "2/3"),
 }
 
 data class V2GeneralTankInfo(
@@ -108,9 +113,11 @@ data class V2LayoutMapSetup(
     val roofAnnularSectionCount: String = "12",
     val shellCourseCount: String = "6",
     val shellPlatesPerCourse: String = "12",
+    val shellLaneCount: String = "4",
     val shellPlateOffset: String = "half_plate",
     val shellOffsetStartRow: V2ShellOffsetStartRow = V2ShellOffsetStartRow.EVEN,
-    val floorTemplate: V2FloorTemplate = V2FloorTemplate.RADIAL_ANNULAR,
+    val shellThirdOffsetStart: V2ShellThirdOffsetStart = V2ShellThirdOffsetStart.FULL,
+    val floorTemplate: V2FloorTemplate = V2FloorTemplate.CIRCULAR_PLATE_WITH_AR,
     val floorPlateCount: String = "18",
     val floorAnnularSectionCount: String = "12",
     val floorPatternCountX: String = "4",
@@ -280,7 +287,7 @@ fun V2LayoutMapSetup.withRoofPatternDefaults(pattern: RoofTemplate): V2LayoutMap
     when (pattern) {
         RoofTemplate.CONE_RADIAL -> copy(
             roofPattern = pattern,
-            roofRingCount = "3",
+            roofRingCount = "1",
             roofSectorCount = "20",
             roofHasCenterOpening = true,
             roofCenterOpeningPlateCount = "1",
@@ -402,7 +409,7 @@ fun defaultV2PreviewDraftState(): V2DraftState =
             externalRoof = true,
             internalRoof = false,
             shell = true,
-            floor = false,
+            floor = true,
         ),
         layoutMapSetup = defaultV2LayoutMapSetup(),
         roofLayoutMap = defaultV2RoofLayoutMap(),

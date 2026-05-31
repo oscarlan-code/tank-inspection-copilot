@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
 import kotlinx.coroutines.flow.collect
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -650,6 +651,7 @@ fun RoofSurfaceMap(
     markers: List<RoofMapMarker> = emptyList(),
     showMarkerLabels: Boolean = true,
     showMarkerCallouts: Boolean = false,
+    mapTitle: String = "Roof Layout Map",
     referenceLabel: String? = null,
     referenceAzimuthDeg: Double = 0.0,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
@@ -756,7 +758,7 @@ fun RoofSurfaceMap(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Roof Layout Map", style = MaterialTheme.typography.titleSmall, color = LaiqColors.BodyText)
+            Text(mapTitle, style = MaterialTheme.typography.titleSmall, color = LaiqColors.BodyText)
             referenceLabel?.takeIf { it.isNotBlank() }?.let { label ->
                 Text(
                     "Reference: 0° = $label",
@@ -774,12 +776,14 @@ fun RoofSurfaceMap(
                         .fillMaxWidth()
                         .aspectRatio(1f),
                 ) {
-                    val strokeColor = LaiqColors.PanelBorder
+                    val strokeColor = LaiqColors.AccentOrange.copy(alpha = 0.44f)
+                    val boundaryColor = LaiqColors.AccentOrange.copy(alpha = 0.82f)
+                    val referenceColor = LaiqColors.BrandTeal.copy(alpha = 0.86f)
                     val radius = size.minDimension * 0.42f
                     val annularOuterRadius = if (hasAnnularRing) size.minDimension * 0.48f else radius
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val referenceAngle = azimuthToCanvasRadians(referenceAzimuthDeg)
-                    drawCircle(color = LaiqColors.BrandTeal.copy(alpha = 0.08f), radius = radius, center = center)
+                    drawCircle(color = LaiqColors.BrandTeal.copy(alpha = 0.07f), radius = radius, center = center)
                     if (hasPontoonDeck) {
                         drawCircle(
                             color = LaiqColors.BrandTeal.copy(alpha = 0.10f),
@@ -805,7 +809,7 @@ fun RoofSurfaceMap(
                                 val cosValue = cos(angle).toFloat()
                                 val sinValue = sin(angle).toFloat()
                                 drawLine(
-                                    color = LaiqColors.AccentOrange.copy(alpha = 0.75f),
+                                    color = boundaryColor,
                                     start = Offset(
                                         x = center.x + (cosValue * ringInnerRadius),
                                         y = center.y + (sinValue * ringInnerRadius),
@@ -814,26 +818,26 @@ fun RoofSurfaceMap(
                                         x = center.x + (cosValue * ringOuterRadius),
                                         y = center.y + (sinValue * ringOuterRadius),
                                     ),
-                                    strokeWidth = 2f,
+                                    strokeWidth = 2.2f,
                                 )
                             }
                         }
                         drawCircle(
-                            color = LaiqColors.AccentOrange.copy(alpha = 0.85f),
+                            color = boundaryColor,
                             radius = ringOuterRadius,
                             center = center,
-                            style = Stroke(width = 2f),
+                            style = Stroke(width = 2.4f),
                         )
                     }
-                    drawCircle(color = LaiqColors.BrandTeal.copy(alpha = 0.45f), radius = radius, center = center, style = Stroke(width = 3f))
+                    drawCircle(color = boundaryColor, radius = radius, center = center, style = Stroke(width = 3.1f))
                     drawLine(
-                        color = LaiqColors.AccentOrange,
+                        color = referenceColor,
                         start = center,
                         end = Offset(
                             x = center.x + (cos(referenceAngle) * annularOuterRadius).toFloat(),
                             y = center.y + (sin(referenceAngle) * annularOuterRadius).toFloat(),
                         ),
-                        strokeWidth = 3f,
+                        strokeWidth = 3.2f,
                     )
 
                     if (!isCircularTemplate) {
@@ -859,14 +863,14 @@ fun RoofSurfaceMap(
                                     color = strokeColor,
                                     radius = transitionOuterRadius,
                                     center = center,
-                                    style = Stroke(width = 2f),
+                                    style = Stroke(width = 2.2f),
                                 )
                                 if (centerPlates == 3) {
                                     drawCircle(
                                         color = strokeColor,
                                         radius = centerPlateRadius,
                                         center = center,
-                                        style = Stroke(width = 2f),
+                                        style = Stroke(width = 2.2f),
                                     )
                                 }
                                 for (sector in 0 until sectors) {
@@ -883,7 +887,7 @@ fun RoofSurfaceMap(
                                             x = center.x + (cosValue * radius),
                                             y = center.y + (sinValue * radius),
                                         ),
-                                        strokeWidth = 2f,
+                                        strokeWidth = 2.1f,
                                     )
                                 }
                                 when (activePlateId?.toIntOrNull()) {
@@ -954,7 +958,7 @@ fun RoofSurfaceMap(
                                     color = strokeColor,
                                     radius = radius * ring / rings.toFloat(),
                                     center = center,
-                                    style = Stroke(width = 2f),
+                                    style = Stroke(width = 2.1f),
                                 )
                             }
                             for (sector in 0 until sectors) {
@@ -966,7 +970,7 @@ fun RoofSurfaceMap(
                                         x = center.x + (cos(angle) * radius).toFloat(),
                                         y = center.y + (sin(angle) * radius).toFloat(),
                                     ),
-                                    strokeWidth = 2f,
+                                    strokeWidth = 2.1f,
                                 )
                             }
                             displayPlateCells.firstOrNull { cell -> cell.plateId == activePlateId }?.let { activeCell ->
@@ -1023,7 +1027,7 @@ fun RoofSurfaceMap(
                     style = MaterialTheme.typography.labelSmall,
                     color = LaiqColors.AccentOrange,
                 )
-                if (hasAnnularRing && !useLeaderPlateLabels) {
+                if (hasAnnularRing && !useLeaderPlateLabels && !showAnnularSectionLabels) {
                     Text(
                         "Annular Ring",
                         modifier = Modifier
@@ -1221,6 +1225,15 @@ fun RoofSurfaceMap(
                     }
                 }
                 if (showAnnularSectionLabels) annularLinkTargets.forEach { cell ->
+                    val annularArcLength = if (annularSectionCount > 0) {
+                        mapSize * (0.48f * (2f * PI.toFloat() / annularSectionCount.toFloat()))
+                    } else {
+                        mapSize
+                    }
+                    val annularLabelFits = annularArcLength >= 44.dp
+                    if (autoHideCrowdedPlateLabels && !annularLabelFits && cell.plateId != activePlateId) {
+                        return@forEach
+                    }
                     val isSaved = savedPlateIds.contains(cell.plateId)
                     val hasOverlay = overlayPlateIds.contains(cell.plateId)
                     Surface(

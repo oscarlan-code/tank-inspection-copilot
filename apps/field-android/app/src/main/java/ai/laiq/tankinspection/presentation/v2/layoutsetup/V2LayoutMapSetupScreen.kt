@@ -17,12 +17,14 @@ import ai.laiq.tankinspection.v2.model.V2LayoutSurface
 import ai.laiq.tankinspection.v2.model.V2LayoutTarget
 import ai.laiq.tankinspection.v2.model.V2ReferenceMode
 import ai.laiq.tankinspection.v2.model.V2ShellOffsetStartRow
+import ai.laiq.tankinspection.v2.model.V2ShellThirdOffsetStart
 import ai.laiq.tankinspection.v2.model.withTargetApproval
 import ai.laiq.tankinspection.v2.model.withoutTargetApproval
 import ai.laiq.tankinspection.v2.model.withRoofPatternDefaults
 import ai.laiq.tankinspection.v2.model.withSelectedTarget
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +57,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
@@ -67,8 +71,8 @@ private val referenceModeOptions = listOf(
 )
 
 private val roofPatternOptions = listOf(
-    RoofTemplate.CONE_RADIAL.name to "Cone Radial",
-    RoofTemplate.UMBRELLA_RADIAL.name to "Umbrella Radial",
+    RoofTemplate.CONE_RADIAL.name to "Cone Radial (single ring)",
+    RoofTemplate.UMBRELLA_RADIAL.name to "Umbrella Radial (multi-ring)",
     RoofTemplate.CIRCULAR_PLATE.name to "Circular Plate",
 )
 
@@ -78,19 +82,25 @@ private val yesNoOptions = listOf(
 )
 
 private val floorTemplateOptions = listOf(
-    V2FloorTemplate.RADIAL_ANNULAR.key to "Circular Plate + Annular",
-    V2FloorTemplate.ANNULAR_ONLY.key to "Annular Only",
+    V2FloorTemplate.CIRCULAR_PLATE.key to V2FloorTemplate.CIRCULAR_PLATE.label,
+    V2FloorTemplate.CIRCULAR_PLATE_WITH_AR.key to V2FloorTemplate.CIRCULAR_PLATE_WITH_AR.label,
 )
 
 private val shellOffsetOptions = listOf(
     "aligned" to "Aligned",
+    "third_plate" to "1/3",
     "half_plate" to "Half",
-    "one_plate" to "1 Plate",
 )
 
 private val shellOffsetStartRowOptions = listOf(
     V2ShellOffsetStartRow.ODD.key to V2ShellOffsetStartRow.ODD.label,
     V2ShellOffsetStartRow.EVEN.key to V2ShellOffsetStartRow.EVEN.label,
+)
+
+private val shellThirdOffsetStartOptions = listOf(
+    V2ShellThirdOffsetStart.FULL.key to "C1 Full",
+    V2ShellThirdOffsetStart.ONE_THIRD.key to "C1 1/3",
+    V2ShellThirdOffsetStart.TWO_THIRDS.key to "C1 2/3",
 )
 
 @Composable
@@ -109,8 +119,10 @@ fun V2LayoutMapSetupScreen(
     val selectedSurface = selectedTarget.surface
     val selectedTargetApproved = selectedTarget in state.approvedTargets
     val allTargetsApproved = visibleTargets.all { target -> target in state.approvedTargets }
-    val usesRadialRoofPattern = state.roofPattern == RoofTemplate.CONE_RADIAL ||
-        state.roofPattern == RoofTemplate.UMBRELLA_RADIAL
+    val usesConeRoofPattern = state.roofPattern == RoofTemplate.CONE_RADIAL
+    val usesUmbrellaRoofPattern = state.roofPattern == RoofTemplate.UMBRELLA_RADIAL
+    val usesCircularRoofPattern = state.roofPattern == RoofTemplate.CIRCULAR_PLATE ||
+        state.roofPattern == RoofTemplate.CIRCULAR_CENTER_OPENING
     fun updateCurrentTarget(updated: V2LayoutMapSetup) {
         onStateChange(updated.withoutTargetApproval(selectedTarget))
     }
@@ -169,7 +181,18 @@ fun V2LayoutMapSetupScreen(
         }
 
         item {
-            LaiqSectionCard(title = "Surface Layout") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Layout Surface",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaiqColors.BrandTeal,
+                )
                 LaiqOptionChips(
                     selectedValue = selectedTarget.key,
                     options = visibleTargets.map { it.key to it.label },
@@ -179,28 +202,26 @@ fun V2LayoutMapSetupScreen(
                         )
                     },
                 )
+            }
+        }
 
+        item {
+            LaiqSectionCard(title = "${selectedTarget.label} Layout") {
                 when (selectedSurface) {
                     V2LayoutSurface.ROOF -> {
                         SurfaceSubsection(title = "Roof Setup") {
-                            TwoUpFields(
-                                left = {
-                                    LaiqStatChip(
-                                        label = "Roof Scope",
-                                        value = selectedTarget.label,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                },
-                                right = {
-                                    LaiqDropdownField(
-                                        label = "Roof Pattern",
-                                        value = state.roofPattern.name,
-                                        options = roofPatternOptions,
-                                        onSelected = { selected ->
-                                            onStateChange(
-                                                state.withRoofPatternDefaults(RoofTemplate.valueOf(selected)),
-                                            )
-                                        },
+                            LaiqStatChip(
+                                label = "Roof Scope",
+                                value = selectedTarget.label,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            LaiqDropdownField(
+                                label = "Roof Pattern",
+                                value = state.roofPattern.name,
+                                options = roofPatternOptions,
+                                onSelected = { selected ->
+                                    onStateChange(
+                                        state.withRoofPatternDefaults(RoofTemplate.valueOf(selected)),
                                     )
                                 },
                             )
@@ -213,11 +234,7 @@ fun V2LayoutMapSetupScreen(
                                             updateCurrentTarget(
                                                 state.copy(
                                                     roofHasCenterOpening = selected,
-                                                    roofCenterOpeningPlateCount = if (selected) {
-                                                        state.roofCenterOpeningPlateCount.ifBlank { "1" }
-                                                    } else {
-                                                        state.roofCenterOpeningPlateCount
-                                                    },
+                                                    roofCenterOpeningPlateCount = "1",
                                                 ),
                                             )
                                         },
@@ -244,11 +261,21 @@ fun V2LayoutMapSetupScreen(
                             )
                         }
                         SurfaceSubsection(title = "Roof Counts") {
-                            if (usesRadialRoofPattern) {
+                            if (usesConeRoofPattern) {
+                                LaiqCountField(
+                                    label = "Radial Sector Count",
+                                    value = state.roofSectorCount,
+                                    onValueChange = {
+                                        updateCurrentTarget(state.copy(roofSectorCount = it))
+                                    },
+                                    min = 4,
+                                    max = 36,
+                                )
+                            } else if (usesUmbrellaRoofPattern) {
                                 TwoUpFields(
                                     left = {
                                         LaiqCountField(
-                                            label = "Ring Count",
+                                            label = "Plate Ring Count",
                                             value = state.roofRingCount,
                                             onValueChange = {
                                                 updateCurrentTarget(state.copy(roofRingCount = it))
@@ -259,7 +286,7 @@ fun V2LayoutMapSetupScreen(
                                     },
                                     right = {
                                         LaiqCountField(
-                                            label = "Sector Count",
+                                            label = "Radial Sector Count",
                                             value = state.roofSectorCount,
                                             onValueChange = {
                                                 updateCurrentTarget(state.copy(roofSectorCount = it))
@@ -269,11 +296,11 @@ fun V2LayoutMapSetupScreen(
                                         )
                                     },
                                 )
-                            } else {
+                            } else if (usesCircularRoofPattern) {
                                 TwoUpFields(
                                     left = {
                                         LaiqCountField(
-                                            label = "Row Count",
+                                            label = "Plate Rows",
                                             value = state.roofRowCount,
                                             onValueChange = {
                                                 updateCurrentTarget(state.copy(roofRowCount = it))
@@ -295,42 +322,14 @@ fun V2LayoutMapSetupScreen(
                                     },
                                 )
                             }
-                            if (state.roofHasCenterOpening && state.roofHasAnnularRing) {
-                                TwoUpFields(
-                                    left = {
-                                        LaiqCountField(
-                                            label = "Center Opening Plates",
-                                            value = state.roofCenterOpeningPlateCount,
-                                            onValueChange = {
-                                                updateCurrentTarget(state.copy(roofCenterOpeningPlateCount = it))
-                                            },
-                                            min = 1,
-                                            max = 12,
-                                        )
-                                    },
-                                    right = {
-                                        LaiqCountField(
-                                            label = "Annular Ring Plates",
-                                            value = state.roofAnnularSectionCount,
-                                            onValueChange = {
-                                                updateCurrentTarget(state.copy(roofAnnularSectionCount = it))
-                                            },
-                                            min = 4,
-                                            max = 40,
-                                        )
-                                    },
+                            if (state.roofHasCenterOpening) {
+                                LaiqStatChip(
+                                    label = "Center Opening",
+                                    value = "1 default",
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
-                            } else if (state.roofHasCenterOpening) {
-                                LaiqCountField(
-                                    label = "Center Opening Plates",
-                                    value = state.roofCenterOpeningPlateCount,
-                                    onValueChange = {
-                                        updateCurrentTarget(state.copy(roofCenterOpeningPlateCount = it))
-                                    },
-                                    min = 1,
-                                    max = 12,
-                                )
-                            } else if (state.roofHasAnnularRing) {
+                            }
+                            if (state.roofHasAnnularRing) {
                                 LaiqCountField(
                                     label = "Annular Ring Plates",
                                     value = state.roofAnnularSectionCount,
@@ -350,8 +349,8 @@ fun V2LayoutMapSetupScreen(
 
                     V2LayoutSurface.SHELL -> {
                         SurfaceSubsection(title = "Shell Setup") {
-                            ThreeUpFields(
-                                first = {
+                            TwoUpFields(
+                                left = {
                                     LaiqCountField(
                                         label = "Course Count",
                                         value = state.shellCourseCount,
@@ -362,7 +361,7 @@ fun V2LayoutMapSetupScreen(
                                         max = 12,
                                     )
                                 },
-                                second = {
+                                right = {
                                     LaiqCountField(
                                         label = "Plates / Course",
                                         value = state.shellPlatesPerCourse,
@@ -373,36 +372,79 @@ fun V2LayoutMapSetupScreen(
                                         max = 48,
                                     )
                                 },
-                                third = {
-                                    LaiqDropdownField(
-                                        label = "Course Offset",
-                                        value = state.shellPlateOffset,
-                                        options = shellOffsetOptions,
-                                        onSelected = {
-                                            updateCurrentTarget(state.copy(shellPlateOffset = it))
-                                        },
-                                    )
+                            )
+                            LaiqCountField(
+                                label = "UT Lane Count",
+                                value = state.shellLaneCount,
+                                onValueChange = {
+                                    updateCurrentTarget(state.copy(shellLaneCount = it))
                                 },
+                                min = 1,
+                                max = 24,
+                            )
+                            Text(
+                                text = "Offset Amount",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = LaiqColors.BodyText,
+                                fontWeight = FontWeight.SemiBold,
                             )
                             LaiqOptionChips(
-                                selectedValue = state.shellOffsetStartRow.key,
-                                options = shellOffsetStartRowOptions,
-                                onSelect = { selected ->
-                                    updateCurrentTarget(
-                                        state.copy(
-                                            shellOffsetStartRow = V2ShellOffsetStartRow.entries.first { option ->
-                                                option.key == selected
-                                            },
-                                        ),
-                                    )
+                                selectedValue = state.shellPlateOffset,
+                                options = shellOffsetOptions,
+                                onSelect = {
+                                    updateCurrentTarget(state.copy(shellPlateOffset = it))
                                 },
                             )
+                            if (state.shellPlateOffset == "third_plate") {
+                                Text(
+                                    text = "Course 1 Start",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = LaiqColors.BodyText,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                LaiqOptionChips(
+                                    selectedValue = state.shellThirdOffsetStart.key,
+                                    options = shellThirdOffsetStartOptions,
+                                    onSelect = { selected ->
+                                        updateCurrentTarget(
+                                            state.copy(
+                                                shellThirdOffsetStart = V2ShellThirdOffsetStart.entries.first { option ->
+                                                    option.key == selected
+                                                },
+                                            ),
+                                        )
+                                    },
+                                )
+                            } else if (state.shellPlateOffset == "half_plate") {
+                                Text(
+                                    text = "Offset Courses",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = LaiqColors.BodyText,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                LaiqOptionChips(
+                                    selectedValue = state.shellOffsetStartRow.key,
+                                    options = shellOffsetStartRowOptions,
+                                    onSelect = { selected ->
+                                        updateCurrentTarget(
+                                            state.copy(
+                                                shellOffsetStartRow = V2ShellOffsetStartRow.entries.first { option ->
+                                                    option.key == selected
+                                                },
+                                            ),
+                                        )
+                                    },
+                                )
+                            }
                         }
                         ShellPlateLayoutPreviewPanel(
                             courseCount = state.shellCourseCount.toPositiveInt(6),
                             platesPerCourse = state.shellPlatesPerCourse.toPositiveInt(12),
                             offsetMode = state.shellPlateOffset,
                             offsetStartRow = state.shellOffsetStartRow,
+                            thirdOffsetStart = state.shellThirdOffsetStart,
+                            laneCount = state.shellLaneCount.toPositiveInt(4),
+                            referenceMode = state.referenceMode,
                         )
                     }
 
@@ -422,41 +464,41 @@ fun V2LayoutMapSetupScreen(
                                     )
                                 },
                             )
-                            if (state.floorTemplate != V2FloorTemplate.ANNULAR_ONLY) {
-                                TwoUpFields(
-                                    left = {
-                                        LaiqCountField(
-                                            label = "Row Count",
-                                            value = state.floorPatternCountX,
-                                            onValueChange = {
-                                                updateCurrentTarget(state.copy(floorPatternCountX = it))
-                                            },
-                                            min = 1,
-                                            max = 12,
-                                        )
+                            TwoUpFields(
+                                left = {
+                                    LaiqCountField(
+                                        label = "Plate Rows",
+                                        value = state.floorPatternCountX,
+                                        onValueChange = {
+                                            updateCurrentTarget(state.copy(floorPatternCountX = it))
+                                        },
+                                        min = 1,
+                                        max = 12,
+                                    )
+                                },
+                                right = {
+                                    LaiqCountField(
+                                        label = "Widest Row Plates",
+                                        value = state.floorPatternCountY,
+                                        onValueChange = {
+                                            updateCurrentTarget(state.copy(floorPatternCountY = it))
+                                        },
+                                        min = 4,
+                                        max = 40,
+                                    )
+                                },
+                            )
+                            if (state.floorTemplate == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR) {
+                                LaiqCountField(
+                                    label = "Annular Ring Plates",
+                                    value = state.floorAnnularSectionCount,
+                                    onValueChange = {
+                                        updateCurrentTarget(state.copy(floorAnnularSectionCount = it))
                                     },
-                                    right = {
-                                        LaiqCountField(
-                                            label = "Widest Row Plates",
-                                            value = state.floorPatternCountY,
-                                            onValueChange = {
-                                                updateCurrentTarget(state.copy(floorPatternCountY = it))
-                                            },
-                                            min = 4,
-                                            max = 40,
-                                        )
-                                    },
+                                    min = 4,
+                                    max = 40,
                                 )
                             }
-                            LaiqCountField(
-                                label = "Annular Ring Plates",
-                                value = state.floorAnnularSectionCount,
-                                onValueChange = {
-                                    updateCurrentTarget(state.copy(floorAnnularSectionCount = it))
-                                },
-                                min = 4,
-                                max = 40,
-                            )
                         }
                         FloorLayoutPreviewPanel(
                             template = state.floorTemplate,
@@ -582,7 +624,7 @@ private fun RoofLayoutPreviewPanel(
                 sectorCount = sectorCount,
                 activePlateId = selectedPlateId,
                 centerFeatureCount = if (state.roofHasCenterOpening) {
-                    state.roofCenterOpeningPlateCount.toPositiveInt(1)
+                    1
                 } else {
                     0
                 },
@@ -598,6 +640,7 @@ private fun RoofLayoutPreviewPanel(
                     0
                 },
                 referenceLabel = referenceMode.label,
+                mapTitle = "Roof Layout Map",
                 onSelectPlate = { selectedPlateId = it },
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -624,7 +667,7 @@ private fun FloorLayoutPreviewPanel(
     var selectedPlateId by remember(template, rowCount, widestRowPlateCount, annularSectionCount) {
         mutableStateOf<String?>(null)
     }
-    val hasInternalPlates = template != V2FloorTemplate.ANNULAR_ONLY
+    val hasAnnularRing = template == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
@@ -639,17 +682,18 @@ private fun FloorLayoutPreviewPanel(
         ) {
             RoofSurfaceMap(
                 template = RoofTemplate.CIRCULAR_PLATE,
-                rowCount = if (hasInternalPlates) rowCount else 1,
-                widestRowPlateCount = if (hasInternalPlates) widestRowPlateCount else 4,
+                rowCount = rowCount,
+                widestRowPlateCount = widestRowPlateCount,
                 ringCount = 0,
                 sectorCount = 0,
                 activePlateId = selectedPlateId,
-                hasAnnularRing = true,
-                annularSectionCount = annularSectionCount,
-                showAnnularSectionLabels = true,
+                hasAnnularRing = hasAnnularRing,
+                annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
+                showAnnularSectionLabels = hasAnnularRing,
                 autoHideCrowdedPlateLabels = true,
                 enablePlateTapSelection = true,
                 referenceLabel = referenceMode.label,
+                mapTitle = "Floor Layout Map",
                 onSelectPlate = { selectedPlateId = it },
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -697,7 +741,7 @@ private fun FloorLayoutCanvas(
     val gridColumns = plateColumns.coerceAtLeast(1)
     val gridRows = plateRows.coerceAtLeast(1)
     val annularSections = annularSectionCount.coerceAtLeast(4)
-    val usesPlateGrid = template != V2FloorTemplate.ANNULAR_ONLY
+    val hasAnnularRing = template == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR
     val brandColor = LaiqColors.BrandTeal
     val gridBorder = LaiqColors.BrandTeal.copy(alpha = 0.40f)
     val annularColor = LaiqColors.AccentOrange
@@ -707,10 +751,10 @@ private fun FloorLayoutCanvas(
         val center = Offset(size.width / 2f, size.height / 2f)
         val outerRadius = size.minDimension * 0.45f
         val annularInnerRadius = outerRadius * 0.83f
-        val plateZoneRadius = if (template == V2FloorTemplate.ANNULAR_ONLY) {
-            annularInnerRadius * 0.70f
-        } else {
+        val plateZoneRadius = if (hasAnnularRing) {
             annularInnerRadius * 0.94f
+        } else {
+            outerRadius * 0.88f
         }
         val labelPaint = android.graphics.Paint().apply {
             color = brandColor.toArgb()
@@ -737,49 +781,47 @@ private fun FloorLayoutCanvas(
             center = center,
         )
 
-        if (usesPlateGrid) {
-            val gridWidth = plateZoneRadius * 1.58f
-            val gridHeight = plateZoneRadius * 1.58f
-            val cellWidth = gridWidth / gridColumns
-            val cellHeight = gridHeight / gridRows
-            val gridLeft = center.x - gridWidth / 2f
-            val gridTop = center.y - gridHeight / 2f
-            val gridClip = Path().apply {
-                addOval(
-                    Rect(
-                        left = center.x - plateZoneRadius,
-                        top = center.y - plateZoneRadius,
-                        right = center.x + plateZoneRadius,
-                        bottom = center.y + plateZoneRadius,
-                    ),
-                )
-            }
+        val gridWidth = plateZoneRadius * 1.58f
+        val gridHeight = plateZoneRadius * 1.58f
+        val cellWidth = gridWidth / gridColumns
+        val cellHeight = gridHeight / gridRows
+        val gridLeft = center.x - gridWidth / 2f
+        val gridTop = center.y - gridHeight / 2f
+        val gridClip = Path().apply {
+            addOval(
+                Rect(
+                    left = center.x - plateZoneRadius,
+                    top = center.y - plateZoneRadius,
+                    right = center.x + plateZoneRadius,
+                    bottom = center.y + plateZoneRadius,
+                ),
+            )
+        }
 
-            clipPath(gridClip) {
-                repeat(gridRows) { row ->
-                    repeat(gridColumns) { column ->
-                        val x = gridLeft + column * cellWidth
-                        val y = gridTop + row * cellHeight
-                        val plateNo = row * gridColumns + column + 1
-                        drawRect(
-                            color = Color.White,
-                            topLeft = Offset(x, y),
-                            size = Size(cellWidth, cellHeight),
+        clipPath(gridClip) {
+            repeat(gridRows) { row ->
+                repeat(gridColumns) { column ->
+                    val x = gridLeft + column * cellWidth
+                    val y = gridTop + row * cellHeight
+                    val plateNo = row * gridColumns + column + 1
+                    drawRect(
+                        color = Color.White,
+                        topLeft = Offset(x, y),
+                        size = Size(cellWidth, cellHeight),
+                    )
+                    drawRect(
+                        color = gridBorder,
+                        topLeft = Offset(x, y),
+                        size = Size(cellWidth, cellHeight),
+                        style = Stroke(width = 1.1.dp.toPx()),
+                    )
+                    if (cellWidth >= 24.dp.toPx() && cellHeight >= 22.dp.toPx() && plateNo <= 99) {
+                        drawContext.canvas.nativeCanvas.drawText(
+                            plateNo.toString(),
+                            x + cellWidth / 2f,
+                            y + cellHeight * 0.62f,
+                            labelPaint,
                         )
-                        drawRect(
-                            color = gridBorder,
-                            topLeft = Offset(x, y),
-                            size = Size(cellWidth, cellHeight),
-                            style = Stroke(width = 1.1.dp.toPx()),
-                        )
-                        if (cellWidth >= 24.dp.toPx() && cellHeight >= 22.dp.toPx() && plateNo <= 99) {
-                            drawContext.canvas.nativeCanvas.drawText(
-                                plateNo.toString(),
-                                x + cellWidth / 2f,
-                                y + cellHeight * 0.62f,
-                                labelPaint,
-                            )
-                        }
                     }
                 }
             }
@@ -787,19 +829,21 @@ private fun FloorLayoutCanvas(
 
         drawCircle(
             color = brandColor.copy(alpha = 0.52f),
-            radius = annularInnerRadius,
+            radius = if (hasAnnularRing) annularInnerRadius else outerRadius,
             center = center,
             style = Stroke(width = 2.dp.toPx()),
         )
-        drawCircle(
-            color = annularColor.copy(alpha = 0.10f),
-            radius = (outerRadius + annularInnerRadius) / 2f,
-            center = center,
-            style = Stroke(width = outerRadius - annularInnerRadius),
-        )
+        if (hasAnnularRing) {
+            drawCircle(
+                color = annularColor.copy(alpha = 0.10f),
+                radius = (outerRadius + annularInnerRadius) / 2f,
+                center = center,
+                style = Stroke(width = outerRadius - annularInnerRadius),
+            )
+        }
 
         val sectionStep = 360.0 / annularSections.toDouble()
-        repeat(annularSections) { sectionIndex ->
+        if (hasAnnularRing) repeat(annularSections) { sectionIndex ->
             val angle = Math.toRadians(-90.0 + sectionStep * sectionIndex)
             val cosValue = cos(angle).toFloat()
             val sinValue = sin(angle).toFloat()
@@ -816,15 +860,17 @@ private fun FloorLayoutCanvas(
                 strokeWidth = 1.2.dp.toPx(),
             )
         }
-        drawCircle(
-            color = annularColor.copy(alpha = 0.82f),
-            radius = outerRadius,
-            center = center,
-            style = Stroke(width = 1.6.dp.toPx()),
-        )
+        if (hasAnnularRing) {
+            drawCircle(
+                color = annularColor.copy(alpha = 0.82f),
+                radius = outerRadius,
+                center = center,
+                style = Stroke(width = 1.6.dp.toPx()),
+            )
+        }
 
         val labelEvery = max(1, annularSections / 12)
-        repeat(annularSections) { sectionIndex ->
+        if (hasAnnularRing) repeat(annularSections) { sectionIndex ->
             if (sectionIndex % labelEvery == 0) {
                 val labelAngle = Math.toRadians(-90.0 + sectionStep * (sectionIndex + 0.5))
                 val labelRadius = (outerRadius + annularInnerRadius) / 2f
@@ -858,28 +904,54 @@ private fun ShellPlateLayoutPreviewPanel(
     platesPerCourse: Int,
     offsetMode: String,
     offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
+    laneCount: Int,
+    referenceMode: V2ReferenceMode,
 ) {
+    var selectedPlateId by remember(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart, laneCount) {
+        mutableStateOf<String?>(null)
+    }
+    var selectedLaneIndex by remember(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart, laneCount) {
+        mutableStateOf<Int?>(null)
+    }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
         border = BorderStroke(1.dp, LaiqColors.PanelBorder),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
-                .height(460.dp),
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Text("Shell Layout Map", style = MaterialTheme.typography.titleSmall, color = LaiqColors.BodyText)
+            Text(
+                "Reference: 0° = ${referenceMode.label}",
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+            selectedLaneIndex?.let { laneIndex ->
+                SelectedPlateChip(text = "Selected lane: L${laneIndex + 1}")
+            }
+            selectedPlateId?.let { plateId ->
+                SelectedPlateChip(text = "Selected plate: $plateId")
+            }
             ShellPlateCanvas(
                 courseCount = courseCount,
                 platesPerCourse = platesPerCourse,
                 offsetMode = offsetMode,
                 offsetStartRow = offsetStartRow,
+                thirdOffsetStart = thirdOffsetStart,
+                laneCount = laneCount,
+                selectedPlateId = selectedPlateId,
+                selectedLaneIndex = selectedLaneIndex,
+                onSelectLane = { selectedLaneIndex = it },
+                onSelectPlate = { selectedPlateId = it },
                 modifier = Modifier
-                    .align(Alignment.Center)
                     .fillMaxWidth()
-                    .height(340.dp),
+                    .height(380.dp),
             )
         }
     }
@@ -891,30 +963,91 @@ private fun ShellPlateCanvas(
     platesPerCourse: Int,
     offsetMode: String,
     offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
+    laneCount: Int,
+    selectedPlateId: String?,
+    selectedLaneIndex: Int?,
+    onSelectLane: (Int) -> Unit,
+    onSelectPlate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val brandColor = LaiqColors.BrandTeal
-    val borderColor = LaiqColors.BrandTeal.copy(alpha = 0.48f)
+    val borderColor = LaiqColors.BrandTeal.copy(alpha = 0.70f)
+    val seamColor = LaiqColors.AccentOrange.copy(alpha = 0.84f)
     val mutedColor = LaiqColors.MutedText
-    Canvas(modifier = modifier) {
-        val labelWidth = 46.dp.toPx()
-        val topPadding = 18.dp.toPx()
-        val bottomPadding = 12.dp.toPx()
-        val left = labelWidth
-        val right = size.width - 4.dp.toPx()
-        val availableWidth = (right - left).coerceAtLeast(120.dp.toPx())
-        val rowHeight = ((size.height - topPadding - bottomPadding) / courseCount.coerceAtLeast(1))
+    val density = LocalDensity.current
+    val labelWidthPx = with(density) { 46.dp.toPx() }
+    val topPaddingPx = with(density) { 26.dp.toPx() }
+    val bottomPaddingPx = with(density) { 14.dp.toPx() }
+    val rightPaddingPx = with(density) { 8.dp.toPx() }
+    val cellGapPx = with(density) { 2.dp.toPx() }
+    val laneExtensionPx = with(density) { 18.dp.toPx() }
+    Canvas(
+        modifier = modifier.pointerInput(
+            courseCount,
+            platesPerCourse,
+            offsetMode,
+            offsetStartRow,
+            thirdOffsetStart,
+            laneCount,
+        ) {
+            detectTapGestures { offset ->
+                val rows = courseCount.coerceAtLeast(1)
+                val left = labelWidthPx
+                val right = size.width.toFloat() - rightPaddingPx
+                val rowHeight = ((size.height.toFloat() - topPaddingPx - bottomPaddingPx) / rows)
+                    .coerceAtLeast(1f)
+                val mapTop = topPaddingPx
+                val mapBottom = topPaddingPx + rows * rowHeight - cellGapPx
+                val laneTotal = laneCount.coerceIn(1, 24)
+                val laneWidth = (right - left) / laneTotal
+                if (
+                    offset.x in left..right &&
+                    offset.y >= mapTop - laneExtensionPx &&
+                    offset.y <= mapBottom + laneExtensionPx
+                ) {
+                    val laneIndex = ((offset.x - left) / laneWidth)
+                        .toInt()
+                        .coerceIn(0, laneTotal - 1)
+                    onSelectLane(laneIndex)
+                }
+                val hit = buildShellPlateSegments(
+                    canvasSize = Size(size.width.toFloat(), size.height.toFloat()),
+                    labelWidth = labelWidthPx,
+                    topPadding = topPaddingPx,
+                    bottomPadding = bottomPaddingPx,
+                    rightPadding = rightPaddingPx,
+                    cellGap = cellGapPx,
+                    courseCount = courseCount,
+                    platesPerCourse = platesPerCourse,
+                    offsetMode = offsetMode,
+                    offsetStartRow = offsetStartRow,
+                    thirdOffsetStart = thirdOffsetStart,
+                ).lastOrNull { segment -> segment.rect.contains(offset) }
+                hit?.let { segment -> onSelectPlate(segment.plateId) }
+            }
+        },
+    ) {
+        val rows = courseCount.coerceAtLeast(1)
+        val plateCount = platesPerCourse.coerceAtLeast(1)
+        val left = labelWidthPx
+        val right = size.width - rightPaddingPx
+        val rowHeight = ((size.height - topPaddingPx - bottomPaddingPx) / rows)
             .coerceAtLeast(28.dp.toPx())
-        val offsetCells = when (offsetMode) {
-            "half_plate" -> 0.5f
-            "one_plate" -> 1f
-            else -> 0f
-        }
-        val cellWidth = availableWidth / (platesPerCourse.coerceAtLeast(1) + max(offsetCells, 0.35f))
-        val cellGap = 2.dp.toPx()
+        val laneTotal = laneCount.coerceIn(1, 24)
+        val mapTop = topPaddingPx
+        val mapBottom = topPaddingPx + rows * rowHeight - cellGapPx
+        val laneWidth = (right - left) / laneTotal
         val labelPaint = android.graphics.Paint().apply {
             color = mutedColor.toArgb()
             textSize = 12.dp.toPx()
+            isAntiAlias = true
+        }
+        val lanePaint = android.graphics.Paint().apply {
+            color = brandColor.toArgb()
+            textSize = 11.dp.toPx()
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
             isAntiAlias = true
         }
         val platePaint = android.graphics.Paint().apply {
@@ -923,50 +1056,296 @@ private fun ShellPlateCanvas(
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
         }
+        val selectedPaint = android.graphics.Paint().apply {
+            color = LaiqColors.BrandRed.toArgb()
+            textSize = 11.dp.toPx()
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val selectedLaneLabelPaint = android.graphics.Paint().apply {
+            color = LaiqColors.BrandRed.toArgb()
+            textSize = 12.dp.toPx()
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val segments = buildShellPlateSegments(
+            canvasSize = size,
+            labelWidth = labelWidthPx,
+            topPadding = topPaddingPx,
+            bottomPadding = bottomPaddingPx,
+            rightPadding = rightPaddingPx,
+            cellGap = cellGapPx,
+            courseCount = courseCount,
+            platesPerCourse = platesPerCourse,
+            offsetMode = offsetMode,
+            offsetStartRow = offsetStartRow,
+            thirdOffsetStart = thirdOffsetStart,
+        )
 
-        repeat(courseCount.coerceAtLeast(1)) { rowIndex ->
-            val courseNo = courseCount - rowIndex
-            val y = topPadding + rowIndex * rowHeight
-            val shouldOffset = when (offsetStartRow) {
-                V2ShellOffsetStartRow.ODD -> courseNo % 2 == 1
-                V2ShellOffsetStartRow.EVEN -> courseNo % 2 == 0
-            }
-            val rowOffset = if (shouldOffset) offsetCells * cellWidth else 0f
+        drawLine(
+            color = seamColor,
+            start = Offset(left, topPaddingPx - 14.dp.toPx()),
+            end = Offset(left, size.height - bottomPaddingPx + 2.dp.toPx()),
+            strokeWidth = 2.dp.toPx(),
+        )
+        drawLine(
+            color = seamColor.copy(alpha = 0.58f),
+            start = Offset(right, topPaddingPx - 14.dp.toPx()),
+            end = Offset(right, size.height - bottomPaddingPx + 2.dp.toPx()),
+            strokeWidth = 1.4.dp.toPx(),
+        )
+        drawContext.canvas.nativeCanvas.drawText(
+            "0°",
+            left,
+            topPaddingPx - 18.dp.toPx(),
+            labelPaint,
+        )
 
+        repeat(rows) { rowIndex ->
+            val courseNo = rows - rowIndex
+            val y = topPaddingPx + rowIndex * rowHeight
             drawContext.canvas.nativeCanvas.drawText(
                 "C$courseNo",
                 0f,
                 y + rowHeight * 0.62f,
                 labelPaint,
             )
+        }
 
-            repeat(platesPerCourse.coerceAtLeast(1)) { plateIndex ->
-                val x = left + rowOffset + plateIndex * cellWidth
-                val width = (cellWidth - cellGap).coerceAtLeast(8.dp.toPx())
-                val height = (rowHeight - cellGap).coerceAtLeast(20.dp.toPx())
+        repeat(laneTotal) { laneIndex ->
+            val isSelectedLane = laneIndex == selectedLaneIndex
+            if (laneIndex % 2 == 0 || isSelectedLane) {
                 drawRect(
-                    color = Color.White,
-                    topLeft = Offset(x, y),
-                    size = Size(width, height),
+                    color = if (isSelectedLane) {
+                        LaiqColors.BrandRed.copy(alpha = 0.14f)
+                    } else {
+                        brandColor.copy(alpha = 0.055f)
+                    },
+                    topLeft = Offset(left + laneIndex * laneWidth, mapTop),
+                    size = Size(laneWidth, mapBottom - mapTop),
                 )
+            }
+            if (laneWidth >= 34.dp.toPx()) {
+                drawContext.canvas.nativeCanvas.drawText(
+                    "L${laneIndex + 1}",
+                    left + laneIndex * laneWidth + laneWidth / 2f,
+                    mapTop - 7.dp.toPx(),
+                    if (isSelectedLane) selectedLaneLabelPaint else lanePaint,
+                )
+            }
+        }
+
+        segments.forEach { segment ->
+            val isSelected = segment.plateId == selectedPlateId
+            drawRect(
+                color = if (isSelected) LaiqColors.BrandRed.copy(alpha = 0.10f) else Color.White,
+                topLeft = Offset(segment.rect.left, segment.rect.top),
+                size = Size(segment.rect.width, segment.rect.height),
+            )
+            drawRect(
+                color = if (isSelected) LaiqColors.BrandRed else borderColor,
+                topLeft = Offset(segment.rect.left, segment.rect.top),
+                size = Size(segment.rect.width, segment.rect.height),
+                style = Stroke(width = if (isSelected) 2.3.dp.toPx() else 1.65.dp.toPx()),
+            )
+            val canShowLabel = plateCount <= 16 &&
+                !segment.isWrapSegment &&
+                segment.rect.width >= 22.dp.toPx() &&
+                segment.rect.height >= 24.dp.toPx()
+            if (canShowLabel || isSelected) {
+                drawContext.canvas.nativeCanvas.drawText(
+                    segment.plateNo.toString(),
+                    segment.rect.left + segment.rect.width / 2f,
+                    segment.rect.top + segment.rect.height * 0.62f,
+                    if (isSelected) selectedPaint else platePaint,
+                )
+            }
+            if (segment.isWrapSegment && isSelected) {
+                drawLine(
+                    color = LaiqColors.BrandRed.copy(alpha = 0.74f),
+                    start = Offset(segment.rect.left, segment.rect.bottom + 2.dp.toPx()),
+                    end = Offset(segment.rect.right, segment.rect.bottom + 2.dp.toPx()),
+                    strokeWidth = 2.dp.toPx(),
+                )
+            }
+        }
+
+        repeat(laneTotal) { laneIndex ->
+            val isSelectedLane = laneIndex == selectedLaneIndex
+            if (laneIndex % 2 == 0 || isSelectedLane) {
                 drawRect(
-                    color = borderColor,
-                    topLeft = Offset(x, y),
-                    size = Size(width, height),
-                    style = Stroke(width = 1.2.dp.toPx()),
+                    color = if (isSelectedLane) {
+                        LaiqColors.BrandRed.copy(alpha = 0.08f)
+                    } else {
+                        brandColor.copy(alpha = 0.035f)
+                    },
+                    topLeft = Offset(left + laneIndex * laneWidth, mapTop),
+                    size = Size(laneWidth, mapBottom - mapTop),
                 )
-                if (platesPerCourse <= 16) {
-                    drawContext.canvas.nativeCanvas.drawText(
-                        "${plateIndex + 1}",
-                        x + width / 2f,
-                        y + height * 0.62f,
-                        platePaint,
+            }
+        }
+
+        for (boundaryIndex in 1 until laneTotal) {
+            val x = left + boundaryIndex * laneWidth
+            drawVerticalDashedLine(
+                x = x,
+                startY = mapTop - laneExtensionPx,
+                endY = mapBottom + laneExtensionPx,
+                color = LaiqColors.BrandRed.copy(alpha = 0.78f),
+                dashHeight = 14.dp.toPx(),
+                gapHeight = 7.dp.toPx(),
+                strokeWidth = 2.dp.toPx(),
+            )
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawVerticalDashedLine(
+    x: Float,
+    startY: Float,
+    endY: Float,
+    color: Color,
+    dashHeight: Float,
+    gapHeight: Float,
+    strokeWidth: Float,
+) {
+    var y = startY
+    while (y < endY) {
+        val dashEnd = (y + dashHeight).coerceAtMost(endY)
+        drawLine(
+            color = color,
+            start = Offset(x, y),
+            end = Offset(x, dashEnd),
+            strokeWidth = strokeWidth,
+        )
+        y += dashHeight + gapHeight
+    }
+}
+
+private data class ShellPlateSegment(
+    val courseNo: Int,
+    val plateNo: Int,
+    val rect: Rect,
+    val isWrapSegment: Boolean = false,
+) {
+    val plateId: String = "C$courseNo-P$plateNo"
+}
+
+private fun buildShellPlateSegments(
+    canvasSize: Size,
+    labelWidth: Float,
+    topPadding: Float,
+    bottomPadding: Float,
+    rightPadding: Float,
+    cellGap: Float,
+    courseCount: Int,
+    platesPerCourse: Int,
+    offsetMode: String,
+    offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
+): List<ShellPlateSegment> {
+    val rows = courseCount.coerceAtLeast(1)
+    val plateCount = platesPerCourse.coerceAtLeast(1)
+    val left = labelWidth
+    val right = canvasSize.width - rightPadding
+    val availableWidth = (right - left).coerceAtLeast(1f)
+    val rowHeight = ((canvasSize.height - topPadding - bottomPadding) / rows).coerceAtLeast(1f)
+    val cellWidth = availableWidth / plateCount
+    val height = (rowHeight - cellGap).coerceAtLeast(1f)
+
+    return buildList {
+        repeat(rows) { rowIndex ->
+            val courseNo = rows - rowIndex
+            val y = topPadding + rowIndex * rowHeight
+            val offsetFraction = shellOffsetFraction(
+                courseNo = courseNo,
+                offsetMode = offsetMode,
+                offsetStartRow = offsetStartRow,
+                thirdOffsetStart = thirdOffsetStart,
+            )
+            if (offsetFraction > 0f && plateCount > 1) {
+                val leadingRight = left + cellWidth * offsetFraction
+                val trailingLeft = right - cellWidth * (1f - offsetFraction)
+                add(
+                    ShellPlateSegment(
+                        courseNo = courseNo,
+                        plateNo = plateCount,
+                        rect = shellVisualRect(left, leadingRight, y, height, cellGap),
+                        isWrapSegment = true,
+                    ),
+                )
+                repeat(plateCount - 1) { plateIndex ->
+                    val x = left + cellWidth * offsetFraction + plateIndex * cellWidth
+                    add(
+                        ShellPlateSegment(
+                            courseNo = courseNo,
+                            plateNo = plateIndex + 1,
+                            rect = shellVisualRect(x, x + cellWidth, y, height, cellGap),
+                        ),
+                    )
+                }
+                add(
+                    ShellPlateSegment(
+                        courseNo = courseNo,
+                        plateNo = plateCount,
+                        rect = shellVisualRect(trailingLeft, right, y, height, cellGap),
+                        isWrapSegment = true,
+                    ),
+                )
+            } else {
+                repeat(plateCount) { plateIndex ->
+                    val x = left + plateIndex * cellWidth
+                    add(
+                        ShellPlateSegment(
+                            courseNo = courseNo,
+                            plateNo = plateIndex + 1,
+                            rect = shellVisualRect(x, x + cellWidth, y, height, cellGap),
+                        ),
                     )
                 }
             }
         }
     }
 }
+
+private fun shellVisualRect(
+    rawLeft: Float,
+    rawRight: Float,
+    top: Float,
+    height: Float,
+    gap: Float,
+): Rect {
+    val width = (rawRight - rawLeft).coerceAtLeast(1f)
+    val inset = (gap / 2f).coerceAtMost(width / 3f)
+    return Rect(rawLeft + inset, top, rawRight - inset, top + height)
+}
+
+private fun shellOffsetFraction(
+    courseNo: Int,
+    offsetMode: String,
+    offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
+): Float =
+    when (offsetMode) {
+        "third_plate" -> {
+            val startStep = when (thirdOffsetStart) {
+                V2ShellThirdOffsetStart.FULL -> 0
+                V2ShellThirdOffsetStart.ONE_THIRD -> 1
+                V2ShellThirdOffsetStart.TWO_THIRDS -> 2
+            }
+            ((startStep + courseNo - 1) % 3) / 3f
+        }
+        "half_plate" -> {
+            val shouldOffset = when (offsetStartRow) {
+                V2ShellOffsetStartRow.ODD -> courseNo % 2 == 1
+                V2ShellOffsetStartRow.EVEN -> courseNo % 2 == 0
+            }
+            if (shouldOffset) 0.50f else 0f
+        }
+        else -> 0f
+    }
 
 private fun String.toPositiveInt(fallback: Int): Int =
     toIntOrNull()?.takeIf { it > 0 } ?: fallback
