@@ -19,7 +19,7 @@ import ai.laiq.tankinspection.v2.model.V2ReferenceMode
 import ai.laiq.tankinspection.v2.model.V2ShellOffsetStartRow
 import ai.laiq.tankinspection.v2.model.V2ShellThirdOffsetStart
 import ai.laiq.tankinspection.v2.model.withTargetApproval
-import ai.laiq.tankinspection.v2.model.withoutTargetApproval
+import ai.laiq.tankinspection.v2.model.withoutAllTargetApprovals
 import ai.laiq.tankinspection.v2.model.withRoofPatternDefaults
 import ai.laiq.tankinspection.v2.model.withSelectedTarget
 import androidx.compose.foundation.BorderStroke
@@ -111,20 +111,24 @@ fun V2LayoutMapSetupScreen(
     roofLabel: String,
     onStateChange: (V2LayoutMapSetup) -> Unit,
     onBack: () -> Unit,
-    onContinue: (V2LayoutTarget) -> Unit,
+    onContinue: (V2LayoutMapSetup) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val visibleTargets = layoutTargets.ifEmpty { listOf(V2LayoutTarget.EXTERNAL_ROOF) }
     val selectedTarget = if (state.selectedTarget in visibleTargets) state.selectedTarget else visibleTargets.first()
     val selectedSurface = selectedTarget.surface
-    val selectedTargetApproved = selectedTarget in state.approvedTargets
-    val allTargetsApproved = visibleTargets.all { target -> target in state.approvedTargets }
+    val selectedValidationErrors = state.validationErrorsFor(selectedTarget)
+    val selectedTargetApproved = selectedTarget in state.approvedTargets && selectedValidationErrors.isEmpty()
+    val nextTargetToApprove = visibleTargets.firstOrNull { target ->
+        target != selectedTarget &&
+            (target !in state.approvedTargets || state.validationErrorsFor(target).isNotEmpty())
+    }
     val usesConeRoofPattern = state.roofPattern == RoofTemplate.CONE_RADIAL
     val usesUmbrellaRoofPattern = state.roofPattern == RoofTemplate.UMBRELLA_RADIAL
     val usesCircularRoofPattern = state.roofPattern == RoofTemplate.CIRCULAR_PLATE ||
         state.roofPattern == RoofTemplate.CIRCULAR_CENTER_OPENING
     fun updateCurrentTarget(updated: V2LayoutMapSetup) {
-        onStateChange(updated.withoutTargetApproval(selectedTarget))
+        onStateChange(updated.withoutAllTargetApprovals())
     }
 
     LazyColumn(
@@ -167,10 +171,12 @@ fun V2LayoutMapSetupScreen(
                     },
                 )
                 if (state.referenceMode == V2ReferenceMode.TANK_NORTH) {
-                    LaiqTextField(
-                        value = state.referenceNote,
-                        onValueChange = { onStateChange(state.copy(referenceNote = it)) },
-                        label = { Text("Tank North Note") },
+	                    LaiqTextField(
+	                        value = state.referenceNote,
+	                        onValueChange = {
+	                            onStateChange(state.copy(referenceNote = it).withoutAllTargetApprovals())
+	                        },
+	                        label = { Text("Tank North Note") },
                         singleLine = false,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -218,12 +224,12 @@ fun V2LayoutMapSetupScreen(
                             LaiqDropdownField(
                                 label = "Roof Pattern",
                                 value = state.roofPattern.name,
-                                options = roofPatternOptions,
-                                onSelected = { selected ->
-                                    onStateChange(
-                                        state.withRoofPatternDefaults(RoofTemplate.valueOf(selected)),
-                                    )
-                                },
+	                                options = roofPatternOptions,
+	                                onSelected = { selected ->
+	                                    updateCurrentTarget(
+	                                        state.withRoofPatternDefaults(RoofTemplate.valueOf(selected)),
+	                                    )
+	                                },
                             )
                             TwoUpFields(
                                 left = {
@@ -437,15 +443,23 @@ fun V2LayoutMapSetupScreen(
                                 )
                             }
                         }
-                        ShellPlateLayoutPreviewPanel(
-                            courseCount = state.shellCourseCount.toPositiveInt(6),
-                            platesPerCourse = state.shellPlatesPerCourse.toPositiveInt(12),
-                            offsetMode = state.shellPlateOffset,
-                            offsetStartRow = state.shellOffsetStartRow,
-                            thirdOffsetStart = state.shellThirdOffsetStart,
-                            laneCount = state.shellLaneCount.toPositiveInt(4),
-                            referenceMode = state.referenceMode,
-                        )
+	                        ShellPlateLayoutPreviewPanel(
+	                            courseCount = state.shellCourseCount.toPositiveInt(6),
+	                            platesPerCourse = state.shellPlatesPerCourse.toPositiveInt(12),
+	                            offsetMode = state.shellPlateOffset,
+	                            offsetStartRow = state.shellOffsetStartRow,
+	                            thirdOffsetStart = state.shellThirdOffsetStart,
+	                            laneCount = state.shellLaneCount.toPositiveInt(4),
+	                            selectedLaneIndex = state.selectedShellLaneIndex,
+	                            selectedPlateId = state.selectedShellPlateId,
+	                            onSelectLane = { laneIndex ->
+	                                onStateChange(state.copy(selectedShellLaneIndex = laneIndex))
+	                            },
+	                            onSelectPlate = { plateId ->
+	                                onStateChange(state.copy(selectedShellPlateId = plateId))
+	                            },
+	                            referenceMode = state.referenceMode,
+	                        )
                     }
 
                     V2LayoutSurface.FLOOR -> {
@@ -512,6 +526,12 @@ fun V2LayoutMapSetupScreen(
             }
         }
 
+        if (selectedValidationErrors.isNotEmpty()) {
+            item {
+                LayoutValidationPanel(selectedValidationErrors)
+            }
+        }
+
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaiqSecondaryButton(
@@ -519,28 +539,112 @@ fun V2LayoutMapSetupScreen(
                     onClick = onBack,
                     modifier = Modifier.weight(1f),
                 )
-                LaiqPrimaryButton(
-                    text = when {
-                        !selectedTargetApproved -> "Approve Layout"
-                        !allTargetsApproved -> "Next Layout"
-                        else -> "Continue"
-                    },
+	                LaiqPrimaryButton(
+	                    text = when {
+	                        !selectedTargetApproved -> "Approve Layout"
+	                        nextTargetToApprove != null -> "Next Layout"
+	                        else -> "Continue"
+	                    },
                     onClick = {
-                        when {
-                            !selectedTargetApproved -> {
-                                onStateChange(state.withTargetApproval(selectedTarget, approved = true))
-                            }
-                            !allTargetsApproved -> {
-                                val nextTarget = visibleTargets.first { target -> target !in state.approvedTargets }
-                                onStateChange(state.withSelectedTarget(nextTarget))
-                            }
-                            else -> onContinue(selectedTarget)
+                        val approvedState = if (selectedTargetApproved) {
+                            state
+                        } else {
+                            state.withTargetApproval(selectedTarget, approved = true)
+                        }
+                        val nextUnapprovedTarget = visibleTargets.firstOrNull { target ->
+                            target != selectedTarget &&
+                                (target !in approvedState.approvedTargets ||
+                                    approvedState.validationErrorsFor(target).isNotEmpty())
+                        }
+                        if (nextUnapprovedTarget != null) {
+                            onStateChange(approvedState.withSelectedTarget(nextUnapprovedTarget))
+                        } else {
+                            onContinue(approvedState)
                         }
                     },
+                    enabled = selectedTargetApproved || selectedValidationErrors.isEmpty(),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LayoutValidationPanel(errors: List<String>) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = LaiqColors.BrandRed.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, LaiqColors.BrandRed.copy(alpha = 0.34f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Fix before approval",
+                style = MaterialTheme.typography.titleSmall,
+                color = LaiqColors.BrandRed,
+                fontWeight = FontWeight.SemiBold,
+            )
+            errors.forEach { error ->
+                Text(
+                    text = "- $error",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.BodyText,
+                )
+            }
+        }
+    }
+}
+
+private fun V2LayoutMapSetup.validationErrorsFor(target: V2LayoutTarget): List<String> =
+    buildList {
+        when (target.surface) {
+            V2LayoutSurface.ROOF -> {
+                when (roofPattern) {
+                    RoofTemplate.CONE_RADIAL -> {
+                        requireCount("Radial sector count", roofSectorCount, min = 4, max = 36)
+                    }
+                    RoofTemplate.UMBRELLA_RADIAL -> {
+                        requireCount("Plate ring count", roofRingCount, min = 1, max = 12)
+                        requireCount("Radial sector count", roofSectorCount, min = 4, max = 36)
+                    }
+                    RoofTemplate.CIRCULAR_PLATE,
+                    RoofTemplate.CIRCULAR_CENTER_OPENING -> {
+                        requireCount("Plate rows", roofRowCount, min = 1, max = 12)
+                        requireCount("Widest row plates", roofWidestRowPlateCount, min = 4, max = 40)
+                    }
+                }
+                if (roofHasAnnularRing) {
+                    requireCount("Annular ring plates", roofAnnularSectionCount, min = 4, max = 40)
+                }
+            }
+            V2LayoutSurface.SHELL -> {
+                requireCount("Course count", shellCourseCount, min = 1, max = 12)
+                requireCount("Plates per course", shellPlatesPerCourse, min = 1, max = 48)
+                requireCount("UT lane count", shellLaneCount, min = 1, max = 24)
+            }
+            V2LayoutSurface.FLOOR -> {
+                requireCount("Plate rows", floorPatternCountX, min = 1, max = 12)
+                requireCount("Widest row plates", floorPatternCountY, min = 4, max = 40)
+                if (floorTemplate == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR) {
+                    requireCount("Annular ring plates", floorAnnularSectionCount, min = 4, max = 40)
+                }
+            }
+        }
+    }
+
+private fun MutableList<String>.requireCount(
+    label: String,
+    value: String,
+    min: Int,
+    max: Int,
+) {
+    val parsed = value.toIntOrNull()
+    if (parsed == null || parsed !in min..max) {
+        add("$label must be $min-$max.")
     }
 }
 
@@ -906,14 +1010,14 @@ private fun ShellPlateLayoutPreviewPanel(
     offsetStartRow: V2ShellOffsetStartRow,
     thirdOffsetStart: V2ShellThirdOffsetStart,
     laneCount: Int,
+    selectedLaneIndex: Int?,
+    selectedPlateId: String?,
+    onSelectLane: (Int) -> Unit,
+    onSelectPlate: (String) -> Unit,
     referenceMode: V2ReferenceMode,
 ) {
-    var selectedPlateId by remember(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart, laneCount) {
-        mutableStateOf<String?>(null)
-    }
-    var selectedLaneIndex by remember(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart, laneCount) {
-        mutableStateOf<Int?>(null)
-    }
+    val resolvedLaneCount = laneCount.coerceIn(1, 24)
+    val resolvedSelectedLaneIndex = selectedLaneIndex?.takeIf { laneIndex -> laneIndex in 0 until resolvedLaneCount }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
@@ -932,7 +1036,7 @@ private fun ShellPlateLayoutPreviewPanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = LaiqColors.MutedText,
             )
-            selectedLaneIndex?.let { laneIndex ->
+            resolvedSelectedLaneIndex?.let { laneIndex ->
                 SelectedPlateChip(text = "Selected lane: L${laneIndex + 1}")
             }
             selectedPlateId?.let { plateId ->
@@ -944,11 +1048,11 @@ private fun ShellPlateLayoutPreviewPanel(
                 offsetMode = offsetMode,
                 offsetStartRow = offsetStartRow,
                 thirdOffsetStart = thirdOffsetStart,
-                laneCount = laneCount,
+                laneCount = resolvedLaneCount,
                 selectedPlateId = selectedPlateId,
-                selectedLaneIndex = selectedLaneIndex,
-                onSelectLane = { selectedLaneIndex = it },
-                onSelectPlate = { selectedPlateId = it },
+                selectedLaneIndex = resolvedSelectedLaneIndex,
+                onSelectLane = onSelectLane,
+                onSelectPlate = onSelectPlate,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(380.dp),

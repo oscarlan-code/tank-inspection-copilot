@@ -95,6 +95,48 @@ data class V2LayoutScope(
     val floor: Boolean = false,
 )
 
+data class V2ElementSetup(
+    val externalRoof: Boolean = true,
+    val internalRoof: Boolean = true,
+    val shell: Boolean = true,
+    val floor: Boolean = true,
+)
+
+enum class V2ElementType(
+    val key: String,
+    val label: String,
+    val shortLabel: String,
+    val surfaces: Set<V2LayoutSurface>,
+) {
+    NOZZLE("nozzle", "Nozzle", "NZ", setOf(V2LayoutSurface.ROOF, V2LayoutSurface.SHELL)),
+    MANHOLE("manhole", "Manhole", "MH", setOf(V2LayoutSurface.ROOF, V2LayoutSurface.SHELL, V2LayoutSurface.FLOOR)),
+    STAIR("stair", "Stair / Staircase", "ST", setOf(V2LayoutSurface.SHELL)),
+    PLATFORM("platform", "Platform", "PF", setOf(V2LayoutSurface.ROOF, V2LayoutSurface.SHELL)),
+    VENT("vent", "Vent", "VT", setOf(V2LayoutSurface.ROOF)),
+    GAUGE_HATCH("gauge_hatch", "Gauge Hatch", "GH", setOf(V2LayoutSurface.ROOF, V2LayoutSurface.SHELL)),
+    ROOF_DRAIN("roof_drain", "Roof Drain", "RD", setOf(V2LayoutSurface.ROOF)),
+    SUPPORT("support", "Support", "SP", setOf(V2LayoutSurface.ROOF)),
+    SUMP("sump", "Sump", "SU", setOf(V2LayoutSurface.FLOOR)),
+    DATUM("datum", "Reference / Datum", "RF", setOf(V2LayoutSurface.SHELL, V2LayoutSurface.FLOOR)),
+}
+
+data class V2PlacedElement(
+    val id: String,
+    val label: String,
+    val type: V2ElementType,
+    val normalizedX: Float,
+    val normalizedY: Float,
+)
+
+data class V2ElementPlacementState(
+    val selectedTarget: V2LayoutTarget = V2LayoutTarget.EXTERNAL_ROOF,
+    val selectedElementType: V2ElementType = V2ElementType.NOZZLE,
+    val selectedElementId: String? = null,
+    val placementsByTarget: Map<V2LayoutTarget, List<V2PlacedElement>> = emptyMap(),
+    val approvedTargets: Set<V2LayoutTarget> = emptySet(),
+    val nextElementIndexByTargetAndType: Map<String, Int> = emptyMap(),
+)
+
 data class V2LayoutMapSetup(
     val selectedTarget: V2LayoutTarget = V2LayoutTarget.EXTERNAL_ROOF,
     val selectedSurface: V2LayoutSurface = V2LayoutSurface.ROOF,
@@ -117,6 +159,8 @@ data class V2LayoutMapSetup(
     val shellPlateOffset: String = "half_plate",
     val shellOffsetStartRow: V2ShellOffsetStartRow = V2ShellOffsetStartRow.EVEN,
     val shellThirdOffsetStart: V2ShellThirdOffsetStart = V2ShellThirdOffsetStart.FULL,
+    val selectedShellLaneIndex: Int? = null,
+    val selectedShellPlateId: String? = null,
     val floorTemplate: V2FloorTemplate = V2FloorTemplate.CIRCULAR_PLATE_WITH_AR,
     val floorPlateCount: String = "18",
     val floorAnnularSectionCount: String = "12",
@@ -144,6 +188,8 @@ data class V2DraftState(
     val generalTankInfo: V2GeneralTankInfo = V2GeneralTankInfo(),
     val layoutScope: V2LayoutScope = V2LayoutScope(),
     val layoutMapSetup: V2LayoutMapSetup = defaultV2LayoutMapSetup(),
+    val elementSetup: V2ElementSetup = V2ElementSetup(),
+    val elementPlacement: V2ElementPlacementState = defaultV2ElementPlacementState(),
     val roofLayoutMap: V2RoofLayoutMap = defaultV2RoofLayoutMap(),
 )
 
@@ -270,6 +316,9 @@ fun V2LayoutMapSetup.withTargetApproval(target: V2LayoutTarget, approved: Boolea
 fun V2LayoutMapSetup.withoutTargetApproval(target: V2LayoutTarget): V2LayoutMapSetup =
     withTargetApproval(target, approved = false)
 
+fun V2LayoutMapSetup.withoutAllTargetApprovals(): V2LayoutMapSetup =
+    copy(approvedTargets = emptySet())
+
 fun V2LayoutScope.selectedTargets(): List<V2LayoutTarget> =
     buildList {
         if (externalRoof) add(V2LayoutTarget.EXTERNAL_ROOF)
@@ -277,6 +326,105 @@ fun V2LayoutScope.selectedTargets(): List<V2LayoutTarget> =
         if (shell) add(V2LayoutTarget.SHELL)
         if (floor) add(V2LayoutTarget.FLOOR)
     }
+
+fun V2ElementSetup.selectedTargets(): List<V2LayoutTarget> =
+    buildList {
+        if (externalRoof) add(V2LayoutTarget.EXTERNAL_ROOF)
+        if (internalRoof) add(V2LayoutTarget.INTERNAL_ROOF)
+        if (shell) add(V2LayoutTarget.SHELL)
+        if (floor) add(V2LayoutTarget.FLOOR)
+    }
+
+fun V2ElementType.supports(target: V2LayoutTarget): Boolean =
+    target.surface in surfaces
+
+fun V2ElementPlacementState.placementsFor(target: V2LayoutTarget): List<V2PlacedElement> =
+    placementsByTarget[target].orEmpty()
+
+fun V2ElementPlacementState.withFirstAvailableTarget(targets: List<V2LayoutTarget>): V2ElementPlacementState {
+    if (targets.isEmpty() || selectedTarget in targets) return this
+    return copy(selectedTarget = targets.first(), selectedElementId = null)
+}
+
+fun V2ElementPlacementState.withSelectedTarget(target: V2LayoutTarget): V2ElementPlacementState =
+    copy(selectedTarget = target, selectedElementId = null)
+
+fun V2ElementPlacementState.withSelectedElementType(type: V2ElementType): V2ElementPlacementState =
+    copy(selectedElementType = type)
+
+fun V2ElementPlacementState.withSelectedElement(id: String?): V2ElementPlacementState =
+    copy(selectedElementId = id)
+
+fun V2ElementPlacementState.withTargetApproval(
+    target: V2LayoutTarget,
+    approved: Boolean,
+): V2ElementPlacementState =
+    copy(
+        approvedTargets = if (approved) approvedTargets + target else approvedTargets - target,
+    )
+
+fun V2ElementPlacementState.withoutTargetApproval(target: V2LayoutTarget): V2ElementPlacementState =
+    withTargetApproval(target, approved = false)
+
+fun V2ElementPlacementState.withPlacedElement(
+    target: V2LayoutTarget,
+    type: V2ElementType,
+    normalizedX: Float,
+    normalizedY: Float,
+): V2ElementPlacementState {
+    val existing = placementsFor(target)
+    val labelPrefix = "${type.shortLabel}-"
+    val sequenceKey = "${target.key}:${type.key}"
+    val highestExistingIndex = existing
+        .filter { it.type == type }
+        .mapNotNull { element -> element.label.removePrefix(labelPrefix).toIntOrNull() }
+        .maxOrNull()
+        ?: 0
+    val nextIndex = maxOf(
+        nextElementIndexByTargetAndType[sequenceKey] ?: 1,
+        highestExistingIndex + 1,
+    )
+    val nextElement = V2PlacedElement(
+        id = "${target.key}_${type.key}_$nextIndex",
+        label = "${type.shortLabel}-$nextIndex",
+        type = type,
+        normalizedX = normalizedX,
+        normalizedY = normalizedY,
+    )
+    return copy(
+        placementsByTarget = placementsByTarget + (target to (existing + nextElement)),
+        selectedElementId = nextElement.id,
+        nextElementIndexByTargetAndType = nextElementIndexByTargetAndType + (sequenceKey to (nextIndex + 1)),
+    ).withoutTargetApproval(target)
+}
+
+fun V2ElementPlacementState.withMovedElement(
+    target: V2LayoutTarget,
+    elementId: String,
+    normalizedX: Float,
+    normalizedY: Float,
+): V2ElementPlacementState {
+    val updated = placementsFor(target).map { element ->
+        if (element.id == elementId) {
+            element.copy(normalizedX = normalizedX, normalizedY = normalizedY)
+        } else {
+            element
+        }
+    }
+    return copy(
+        placementsByTarget = placementsByTarget + (target to updated),
+        selectedElementId = elementId,
+    ).withoutTargetApproval(target)
+}
+
+fun V2ElementPlacementState.withRemovedElement(
+    target: V2LayoutTarget,
+    elementId: String,
+): V2ElementPlacementState =
+    copy(
+        placementsByTarget = placementsByTarget + (target to placementsFor(target).filterNot { it.id == elementId }),
+        selectedElementId = if (selectedElementId == elementId) null else selectedElementId,
+    ).withoutTargetApproval(target)
 
 fun V2LayoutMapSetup.withFirstAvailableTarget(targets: List<V2LayoutTarget>): V2LayoutMapSetup {
     if (targets.isEmpty() || selectedTarget in targets) return this
@@ -412,6 +560,13 @@ fun defaultV2PreviewDraftState(): V2DraftState =
             floor = true,
         ),
         layoutMapSetup = defaultV2LayoutMapSetup(),
+        elementSetup = V2ElementSetup(
+            externalRoof = true,
+            internalRoof = false,
+            shell = true,
+            floor = true,
+        ),
+        elementPlacement = defaultV2ElementPlacementState(),
         roofLayoutMap = defaultV2RoofLayoutMap(),
     )
 
@@ -419,6 +574,27 @@ private fun defaultV2LayoutMapSetup(): V2LayoutMapSetup =
     V2LayoutMapSetup(
         referenceNote = "Refer to the plant north marker near the stair landing.",
     ).withRoofPatternDefaults(RoofTemplate.CONE_RADIAL)
+
+private fun defaultV2ElementPlacementState(): V2ElementPlacementState =
+    V2ElementPlacementState(
+        placementsByTarget = mapOf(
+            V2LayoutTarget.EXTERNAL_ROOF to listOf(
+                V2PlacedElement("external_roof_vent_1", "VT-1", V2ElementType.VENT, 0.50f, 0.18f),
+                V2PlacedElement("external_roof_manhole_1", "MH-1", V2ElementType.MANHOLE, 0.62f, 0.48f),
+                V2PlacedElement("external_roof_drain_1", "RD-1", V2ElementType.ROOF_DRAIN, 0.30f, 0.74f),
+            ),
+            V2LayoutTarget.SHELL to listOf(
+                V2PlacedElement("shell_nozzle_1", "NZ-1", V2ElementType.NOZZLE, 0.18f, 0.28f),
+                V2PlacedElement("shell_nozzle_2", "NZ-2", V2ElementType.NOZZLE, 0.74f, 0.34f),
+                V2PlacedElement("shell_stair_1", "ST-1", V2ElementType.STAIR, 0.86f, 0.62f),
+                V2PlacedElement("shell_manhole_1", "MH-1", V2ElementType.MANHOLE, 0.42f, 0.76f),
+            ),
+            V2LayoutTarget.FLOOR to listOf(
+                V2PlacedElement("floor_sump_1", "SU-1", V2ElementType.SUMP, 0.52f, 0.54f),
+                V2PlacedElement("floor_reference_1", "RF-1", V2ElementType.DATUM, 0.24f, 0.30f),
+            ),
+        ),
+    )
 
 private fun defaultV2RoofLayoutMap(): V2RoofLayoutMap =
     V2RoofLayoutMap().withTemplateDefaults(RoofTemplate.CONE_RADIAL)

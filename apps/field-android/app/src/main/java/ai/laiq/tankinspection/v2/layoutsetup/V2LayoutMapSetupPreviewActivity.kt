@@ -4,17 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2.layoutsetup.V2LayoutMapSetupScreen
+import ai.laiq.tankinspection.v2.elementsetup.V2ElementSetupPreviewActivity
 import ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity
 import ai.laiq.tankinspection.v2.model.V2LayoutSurface
 import ai.laiq.tankinspection.v2.model.V2LayoutTarget
 import ai.laiq.tankinspection.v2.model.roofSummaryLabel
 import ai.laiq.tankinspection.v2.model.selectedTargets
 import ai.laiq.tankinspection.v2.model.tankBadgeLabel
-import ai.laiq.tankinspection.v2.model.toRoofLayoutMap
 import ai.laiq.tankinspection.v2.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v2.model.withSelectedTarget
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
-import ai.laiq.tankinspection.v2.rooflayout.V2RoofLayoutMapPreviewActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -57,20 +56,20 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
                         )
                     }
 
-                    fun openLayoutScope() {
-                        V2PreviewSession.updateDraftState(draftState)
-                        startActivity(
+	                    fun openLayoutScope() {
+	                        V2PreviewSession.updateDraftState(draftState)
+	                        startActivity(
                             Intent(this, V2LayoutScopePreviewActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                             },
                         )
-                        finish()
-                    }
+	                        finish()
+	                    }
 
-                    val selectedTargets = draftState.layoutScope.selectedTargets()
+	                    val selectedTargets = draftState.layoutScope.selectedTargets()
 
-                    BackHandler { openLayoutScope() }
-                    V2LayoutMapSetupScreen(
+	                    BackHandler { openLayoutScope() }
+	                    V2LayoutMapSetupScreen(
                         state = draftState.layoutMapSetup,
                         layoutTargets = selectedTargets,
                         tankLabel = draftState.tankBadgeLabel(),
@@ -79,27 +78,14 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
                             draftState = draftState.copy(layoutMapSetup = it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
-                        onBack = { openLayoutScope() },
-                        onContinue = {
-                            val nextRoofTarget = selectedTargets.firstOrNull { target ->
-                                target.surface == V2LayoutSurface.ROOF
-                            }
-                            val nextDraftState = if (nextRoofTarget != null) {
-                                draftState.copy(
-                                    layoutMapSetup = draftState.layoutMapSetup.withSelectedTarget(nextRoofTarget),
-                                    roofLayoutMap = draftState.layoutMapSetup
-                                        .withSelectedTarget(nextRoofTarget)
-                                        .toRoofLayoutMap(),
-                                )
-                            } else {
-                                draftState
-                            }
-                            V2PreviewSession.updateDraftState(nextDraftState)
-                            if (nextRoofTarget != null) {
-                                startActivity(Intent(this, V2RoofLayoutMapPreviewActivity::class.java))
-                            }
-                        },
-                    )
+	                        onBack = { openLayoutScope() },
+	                        onContinue = { approvedSetup ->
+	                            val nextDraftState = draftState.copy(layoutMapSetup = approvedSetup)
+	                            draftState = nextDraftState
+	                            V2PreviewSession.updateDraftState(nextDraftState)
+	                            startActivity(Intent(this, V2ElementSetupPreviewActivity::class.java))
+	                        },
+	                    )
                 }
             }
         }

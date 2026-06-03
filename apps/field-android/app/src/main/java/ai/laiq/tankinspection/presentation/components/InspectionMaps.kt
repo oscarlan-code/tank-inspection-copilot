@@ -651,6 +651,7 @@ fun RoofSurfaceMap(
     markers: List<RoofMapMarker> = emptyList(),
     showMarkerLabels: Boolean = true,
     showMarkerCallouts: Boolean = false,
+    showInteractionHint: Boolean = true,
     mapTitle: String = "Roof Layout Map",
     referenceLabel: String? = null,
     referenceAzimuthDeg: Double = 0.0,
@@ -1428,15 +1429,17 @@ fun RoofSurfaceMap(
                     )
                 }
             }
-            Text(
-                if (onSelectPosition != null) {
-                    "Placement mode is active. Tap the roof map to preview the active roof element location. Plate link is kept alongside the visual estimate."
-                } else {
-                    "Tap a plate region on the map to select it."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = LaiqColors.MutedText,
-            )
+            if (showInteractionHint) {
+                Text(
+                    if (onSelectPosition != null) {
+                        "Placement mode is active. Tap the roof map to preview the active roof element location. Plate link is kept alongside the visual estimate."
+                    } else {
+                        "Tap a plate region on the map to select it."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
+            }
         }
     }
 }

@@ -1,7 +1,6 @@
 package ai.laiq.tankinspection.presentation.v2.rooflayout
 
 import ai.laiq.tankinspection.domain.model.RoofTemplate
-import ai.laiq.tankinspection.domain.model.RotationDirection
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqCountField
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
@@ -41,11 +40,6 @@ private val roofSurfaceOptions = listOf(
 private val referenceModeOptions = listOf(
     V2ReferenceMode.TANK_NORTH.key to V2ReferenceMode.TANK_NORTH.label,
     V2ReferenceMode.TRUE_NORTH.key to V2ReferenceMode.TRUE_NORTH.label,
-)
-
-private val rotationOptions = listOf(
-    RotationDirection.CLOCKWISE.name to "Clockwise",
-    RotationDirection.COUNTERCLOCKWISE.name to "Counterclockwise",
 )
 
 private val yesNoOptions = listOf(
@@ -140,24 +134,12 @@ fun V2RoofLayoutMapScreen(
                         )
                     },
                 )
-                TwoUpFields(
-                    left = {
-                        LaiqDropdownField(
-                            label = "Map Pattern",
-                            value = resolvedTemplate.name,
-                            options = templateOptions.map { it.first.name to it.second },
-                            onSelected = { selected ->
-                                onStateChange(state.withTemplateDefaults(enumValueOf(selected)))
-                            },
-                        )
-                    },
-                    right = {
-                        LaiqDropdownField(
-                            label = "Rotation",
-                            value = state.rotationDirection.name,
-                            options = rotationOptions,
-                            onSelected = { onStateChange(state.copy(rotationDirection = enumValueOf(it))) },
-                        )
+                LaiqDropdownField(
+                    label = "Map Pattern",
+                    value = resolvedTemplate.name,
+                    options = templateOptions.map { it.first.name to it.second },
+                    onSelected = { selected ->
+                        onStateChange(state.withTemplateDefaults(enumValueOf(selected)))
                     },
                 )
             }
@@ -189,11 +171,11 @@ fun V2RoofLayoutMapScreen(
                         activePlateId = null,
                         savedPlateIds = emptySet(),
                         overlayPlateIds = emptySet(),
-                        centerFeatureCount = if (state.hasCenterOpening) {
-                            state.centerOpeningPlateCount.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                        } else {
-                            0
-                        },
+	                        centerFeatureCount = if (state.hasCenterOpening) {
+	                            1
+	                        } else {
+	                            0
+	                        },
                         centerFeatureCountControlsLayout = true,
                         hasAnnularRing = state.hasAnnularRing,
                         annularSectionCount = if (state.hasAnnularRing) mapAnnularSectionCount else 0,
@@ -264,19 +246,15 @@ fun V2RoofLayoutMapScreen(
                     left = {
                         RoofOptionChips(
                             label = "Center Opening",
-                            selected = state.hasCenterOpening,
-                            onSelect = { selected ->
-                                onStateChange(
-                                    state.copy(
-                                        hasCenterOpening = selected,
-                                        centerOpeningPlateCount = if (selected) {
-                                            state.centerOpeningPlateCount.ifBlank { "1" }
-                                        } else {
-                                            state.centerOpeningPlateCount
-                                        },
-                                    ),
-                                )
-                            },
+	                            selected = state.hasCenterOpening,
+	                            onSelect = { selected ->
+	                                onStateChange(
+	                                    state.copy(
+	                                        hasCenterOpening = selected,
+	                                        centerOpeningPlateCount = "1",
+	                                    ),
+	                                )
+	                            },
                         )
                     },
                     right = {
@@ -298,36 +276,14 @@ fun V2RoofLayoutMapScreen(
                         )
                     },
                 )
-                if (state.hasCenterOpening && state.hasAnnularRing) {
-                    TwoUpFields(
-                        left = {
-                            LaiqCountField(
-                                label = "Center Opening Plates",
-                                value = state.centerOpeningPlateCount,
-                                onValueChange = { onStateChange(state.copy(centerOpeningPlateCount = it)) },
-                                min = 1,
-                                max = 12,
-                            )
-                        },
-                        right = {
-                            LaiqCountField(
-                                label = "Annular Ring Plates",
-                                value = state.annularSectionCount,
-                                onValueChange = { onStateChange(state.copy(annularSectionCount = it)) },
-                                min = 4,
-                                max = 40,
-                            )
-                        },
+                if (state.hasCenterOpening) {
+                    LaiqStatChip(
+                        label = "Center Opening",
+                        value = "1 default",
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                } else if (state.hasCenterOpening) {
-                    LaiqCountField(
-                        label = "Center Opening Plates",
-                        value = state.centerOpeningPlateCount,
-                        onValueChange = { onStateChange(state.copy(centerOpeningPlateCount = it)) },
-                        min = 1,
-                        max = 12,
-                    )
-                } else if (state.hasAnnularRing) {
+                }
+                if (state.hasAnnularRing) {
                     LaiqCountField(
                         label = "Annular Ring Plates",
                         value = state.annularSectionCount,

@@ -1,6 +1,8 @@
 package ai.laiq.tankinspection.v2.preview
 
 import ai.laiq.tankinspection.v2.model.V2DraftState
+import ai.laiq.tankinspection.v2.model.V2ElementPlacementState
+import ai.laiq.tankinspection.v2.model.V2ElementSetup
 import ai.laiq.tankinspection.v2.model.V2GeneralTankInfo
 import ai.laiq.tankinspection.v2.model.V2LayoutMapSetup
 import ai.laiq.tankinspection.v2.model.V2LayoutScope
@@ -21,6 +23,14 @@ object V2PreviewSession {
 
     fun updateLayoutMapSetup(updated: V2LayoutMapSetup) {
         draftState = draftState.copy(layoutMapSetup = updated)
+    }
+
+    fun updateElementSetup(updated: V2ElementSetup) {
+        draftState = draftState.copy(elementSetup = updated)
+    }
+
+    fun updateElementPlacement(updated: V2ElementPlacementState) {
+        draftState = draftState.copy(elementPlacement = updated)
     }
 
     fun updateLayoutScope(updated: V2LayoutScope) {

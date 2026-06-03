@@ -23,7 +23,7 @@
             android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2.scratch.V2ScratchPreviewActivity"
-            android:exported="true" />
+            android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity"
             android:exported="true">
@@ -35,13 +35,19 @@
         </activity>
         <activity
             android:name="ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity"
-            android:exported="true" />
+            android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity"
-            android:exported="true" />
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.elementsetup.V2ElementSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.elementsetup.V2ElementPlacementPreviewActivity"
+            android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2.rooflayout.V2RoofLayoutMapPreviewActivity"
-            android:exported="true" />
+            android:exported="false" />
     </application>
 
 </manifest>
