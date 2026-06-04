@@ -5,6 +5,7 @@ import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2.elementsetup.V2ElementSetupScreen
 import ai.laiq.tankinspection.v2.model.selectedTargets
+import ai.laiq.tankinspection.v2.model.withReconciledElementSetup
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 class V2ElementSetupPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V2PreviewSession.attach(applicationContext)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -38,7 +40,7 @@ class V2ElementSetupPreviewActivity : ComponentActivity() {
                         approvedLayoutTargets = approvedLayoutTargets,
                         state = draftState.elementSetup,
                         onStateChange = {
-                            draftState = draftState.copy(elementSetup = it)
+                            draftState = draftState.withReconciledElementSetup(it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
                         onBack = { goBackToLastLayout() },

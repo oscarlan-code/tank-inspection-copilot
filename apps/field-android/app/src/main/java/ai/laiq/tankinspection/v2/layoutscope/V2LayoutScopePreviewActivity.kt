@@ -8,6 +8,7 @@ import ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActi
 import ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity
 import ai.laiq.tankinspection.v2.model.selectedTargets
 import ai.laiq.tankinspection.v2.model.withFirstAvailableTarget
+import ai.laiq.tankinspection.v2.model.withReconciledLayoutScope
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 class V2LayoutScopePreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V2PreviewSession.attach(applicationContext)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -52,7 +54,7 @@ class V2LayoutScopePreviewActivity : ComponentActivity() {
                         generalTankInfo = draftState.generalTankInfo,
                         state = draftState.layoutScope,
                         onStateChange = {
-                            draftState = draftState.copy(layoutScope = it)
+                            draftState = draftState.withReconciledLayoutScope(it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
                         onBack = { openGeneralTankInfo() },

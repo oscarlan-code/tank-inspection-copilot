@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 class V2RoofLayoutMapPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V2PreviewSession.attach(applicationContext)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

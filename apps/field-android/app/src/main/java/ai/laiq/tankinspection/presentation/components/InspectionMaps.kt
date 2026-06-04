@@ -638,6 +638,7 @@ fun RoofSurfaceMap(
     sectorCount: Int,
     activePlateId: String?,
     savedPlateIds: Set<String> = emptySet(),
+    emphasizeUtHighlights: Boolean = false,
     overlayPlateIds: Set<String> = emptySet(),
     centerFeatureCount: Int = 0,
     centerFeatureCountControlsLayout: Boolean = false,
@@ -690,6 +691,7 @@ fun RoofSurfaceMap(
         plateCells
     }
     val annularLinkTargets = linkTargets.filter { target -> target.plateId.startsWith("AR") }
+    val completedUtColor = Color(0xFF167A4A)
     val leaderPlateLabels = if (useLeaderPlateLabels && !isCircularTemplate) {
         buildRoofLeaderLabels(displayPlateCells)
     } else {
@@ -891,6 +893,42 @@ fun RoofSurfaceMap(
                                         strokeWidth = 2.1f,
                                     )
                                 }
+                                if (emphasizeUtHighlights) {
+                                    savedPlateIds.forEach { plateId ->
+                                        drawConeRadialPlateHighlight(
+                                            plateId = plateId,
+                                            sectors = sectors,
+                                            centerPlates = centerPlates,
+                                            sectorStep = sectorStep,
+                                            directionFactor = directionFactor,
+                                            referenceAzimuthDeg = referenceAzimuthDeg,
+                                            center = center,
+                                            centerPlateRadius = centerPlateRadius,
+                                            transitionOuterRadius = transitionOuterRadius,
+                                            outerRadius = radius,
+                                            fillColor = completedUtColor.copy(alpha = 0.28f),
+                                            borderColor = completedUtColor,
+                                            strokeWidth = 4.5f,
+                                        )
+                                    }
+                                    activePlateId?.let { plateId ->
+                                        drawConeRadialPlateHighlight(
+                                            plateId = plateId,
+                                            sectors = sectors,
+                                            centerPlates = centerPlates,
+                                            sectorStep = sectorStep,
+                                            directionFactor = directionFactor,
+                                            referenceAzimuthDeg = referenceAzimuthDeg,
+                                            center = center,
+                                            centerPlateRadius = centerPlateRadius,
+                                            transitionOuterRadius = transitionOuterRadius,
+                                            outerRadius = radius,
+                                            fillColor = LaiqColors.BrandRed.copy(alpha = 0.24f),
+                                            borderColor = LaiqColors.BrandRed,
+                                            strokeWidth = 5.5f,
+                                        )
+                                    }
+                                }
                                 when (activePlateId?.toIntOrNull()) {
                                     null -> Unit
                                     sectors + 1 -> if (centerPlates == 1) {
@@ -974,6 +1012,36 @@ fun RoofSurfaceMap(
                                     strokeWidth = 2.1f,
                                 )
                             }
+                            if (emphasizeUtHighlights) {
+                                displayPlateCells
+                                    .filter { cell -> cell.plateId in savedPlateIds || cell.plateId == activePlateId }
+                                    .sortedBy { cell -> if (cell.plateId == activePlateId) 1 else 0 }
+                                    .forEach { cell ->
+                                        val isActive = cell.plateId == activePlateId
+                                        val centerAngleDeg = Math.toDegrees(
+                                            atan2(
+                                                (cell.yNorm - 0.5f).toDouble(),
+                                                (cell.xNorm - 0.5f).toDouble(),
+                                            ),
+                                        ).toFloat()
+                                        val innerRadius = radius * (cell.rowNumber - 1) / rings.toFloat()
+                                        val outerRadius = radius * cell.rowNumber / rings.toFloat()
+                                        drawRoofRingSectorHighlight(
+                                            center = center,
+                                            innerRadius = innerRadius,
+                                            outerRadius = outerRadius,
+                                            centerAngleDeg = centerAngleDeg,
+                                            sweepDeg = sectorStep.toFloat(),
+                                            fillColor = if (isActive) {
+                                                LaiqColors.BrandRed.copy(alpha = 0.24f)
+                                            } else {
+                                                completedUtColor.copy(alpha = 0.28f)
+                                            },
+                                            borderColor = if (isActive) LaiqColors.BrandRed else completedUtColor,
+                                            borderWidth = if (isActive) 5.5f else 4.5f,
+                                        )
+                                    }
+                            }
                             displayPlateCells.firstOrNull { cell -> cell.plateId == activePlateId }?.let { activeCell ->
                                 val centerAngleDeg = Math.toDegrees(
                                     atan2(
@@ -995,23 +1063,52 @@ fun RoofSurfaceMap(
                         }
                     }
                     }
-                    annularLinkTargets.firstOrNull { cell -> cell.plateId == activePlateId }?.let { activeSection ->
-                        val sectionCount = annularSectionCount.coerceAtLeast(0)
-                        if (hasAnnularRing && sectionCount > 0) {
-                            val centerAngleDeg = Math.toDegrees(
-                                atan2(
-                                    (activeSection.yNorm - 0.5f).toDouble(),
-                                    (activeSection.xNorm - 0.5f).toDouble(),
-                                ),
-                            ).toFloat()
-                            drawRoofRingSectorOutline(
-                                center = center,
-                                innerRadius = radius,
-                                outerRadius = annularOuterRadius,
-                                centerAngleDeg = centerAngleDeg,
-                                sweepDeg = (360f / sectionCount.toFloat()),
-                                color = LaiqColors.BrandRed,
-                            )
+                    val sectionCount = annularSectionCount.coerceAtLeast(0)
+                    if (hasAnnularRing && sectionCount > 0) {
+                        if (emphasizeUtHighlights) {
+                            annularLinkTargets
+                                .filter { cell -> cell.plateId in savedPlateIds || cell.plateId == activePlateId }
+                                .sortedBy { cell -> if (cell.plateId == activePlateId) 1 else 0 }
+                                .forEach { section ->
+                                    val isActive = section.plateId == activePlateId
+                                    val centerAngleDeg = Math.toDegrees(
+                                        atan2(
+                                            (section.yNorm - 0.5f).toDouble(),
+                                            (section.xNorm - 0.5f).toDouble(),
+                                        ),
+                                    ).toFloat()
+                                    drawRoofRingSectorHighlight(
+                                        center = center,
+                                        innerRadius = radius,
+                                        outerRadius = annularOuterRadius,
+                                        centerAngleDeg = centerAngleDeg,
+                                        sweepDeg = (360f / sectionCount.toFloat()),
+                                        fillColor = if (isActive) {
+                                            LaiqColors.BrandRed.copy(alpha = 0.24f)
+                                        } else {
+                                            completedUtColor.copy(alpha = 0.28f)
+                                        },
+                                        borderColor = if (isActive) LaiqColors.BrandRed else completedUtColor,
+                                        borderWidth = if (isActive) 5.5f else 4.5f,
+                                    )
+                                }
+                        } else {
+                            annularLinkTargets.firstOrNull { cell -> cell.plateId == activePlateId }?.let { activeSection ->
+                                val centerAngleDeg = Math.toDegrees(
+                                    atan2(
+                                        (activeSection.yNorm - 0.5f).toDouble(),
+                                        (activeSection.xNorm - 0.5f).toDouble(),
+                                    ),
+                                ).toFloat()
+                                drawRoofRingSectorOutline(
+                                    center = center,
+                                    innerRadius = radius,
+                                    outerRadius = annularOuterRadius,
+                                    centerAngleDeg = centerAngleDeg,
+                                    sweepDeg = (360f / sectionCount.toFloat()),
+                                    color = LaiqColors.BrandRed,
+                                )
+                            }
                         }
                     }
                 }
@@ -1068,19 +1165,27 @@ fun RoofSurfaceMap(
                                     .width(mapSize * (cell.rightNorm - cell.leftNorm))
                                     .height(mapSize * (cell.bottomNorm - cell.topNorm))
                                     .padding(1.dp),
-                                color = when {
-                                    isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
-                                    else -> Color.White
-                                },
+	                            color = when {
+	                                    emphasizeUtHighlights && isActive -> LaiqColors.BrandRed.copy(alpha = 0.22f)
+	                                    emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.34f)
+	                                    isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
+	                                    else -> Color.White
+	                                },
                                 shape = RoundedCornerShape(4.dp),
                                 border = BorderStroke(
-                                    if (isActive) 2.dp else 1.dp,
-                                    when {
-                                        isActive -> LaiqColors.BrandRed
-                                        hasOverlay -> LaiqColors.AccentOrange
-                                        isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
-                                        else -> LaiqColors.PanelBorder
-                                    },
+	                                    when {
+	                                        emphasizeUtHighlights && isActive -> 3.dp
+	                                        emphasizeUtHighlights && isSaved -> 2.dp
+	                                        isActive -> 2.dp
+	                                        else -> 1.dp
+	                                    },
+	                                    when {
+	                                        isActive -> LaiqColors.BrandRed
+	                                        hasOverlay -> LaiqColors.AccentOrange
+	                                        emphasizeUtHighlights && isSaved -> completedUtColor
+	                                        isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
+	                                        else -> LaiqColors.PanelBorder
+	                                    },
                                 ),
                             ) {
                                 Box(modifier = Modifier.matchParentSize()) {
@@ -1191,18 +1296,22 @@ fun RoofSurfaceMap(
                                     x = mapSize * cell.labelXNorm - umbrellaLabelWidth / 2,
                                     y = mapSize * cell.labelYNorm - umbrellaLabelHeight / 2,
                                 ),
-                            color = when {
-                                isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
-                                else -> Color.White
-                            },
+	                            color = when {
+	                                emphasizeUtHighlights && cell.plateId == activePlateId -> LaiqColors.BrandRed.copy(alpha = 0.16f)
+	                                emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.16f)
+	                                isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
+	                                else -> Color.White
+	                            },
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(
-                                1.dp,
-                                when {
-                                    hasOverlay -> LaiqColors.AccentOrange
-                                    isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
-                                    else -> LaiqColors.PanelBorder
-                                },
+	                                if (emphasizeUtHighlights && (cell.plateId == activePlateId || isSaved)) 2.dp else 1.dp,
+	                                when {
+	                                    cell.plateId == activePlateId -> LaiqColors.BrandRed
+	                                    hasOverlay -> LaiqColors.AccentOrange
+	                                    emphasizeUtHighlights && isSaved -> completedUtColor
+	                                    isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
+	                                    else -> LaiqColors.PanelBorder
+	                                },
                             ),
                         ) {
                             Box(modifier = Modifier.matchParentSize()) {
@@ -1219,8 +1328,12 @@ fun RoofSurfaceMap(
                                     text = cell.mapLabel,
                                     modifier = Modifier.align(Alignment.Center),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = LaiqColors.BodyText,
-                                )
+	                                    color = when {
+	                                        cell.plateId == activePlateId -> LaiqColors.BrandRed
+	                                        emphasizeUtHighlights && isSaved -> completedUtColor
+	                                        else -> LaiqColors.BodyText
+	                                    },
+	                                )
                             }
                         }
                     }
@@ -1247,17 +1360,21 @@ fun RoofSurfaceMap(
                                 y = mapSize * cell.labelYNorm - 11.dp,
                             ),
                         color = when {
-                            isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
-                            else -> Color.White
-                        },
+	                            emphasizeUtHighlights && cell.plateId == activePlateId -> LaiqColors.BrandRed.copy(alpha = 0.18f)
+	                            emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.20f)
+	                            isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
+	                            else -> Color.White
+	                        },
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(
-                            1.dp,
-                            when {
-                                hasOverlay -> LaiqColors.AccentOrange
-                                isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
-                                else -> LaiqColors.AccentOrange.copy(alpha = 0.65f)
-                            },
+	                            if (emphasizeUtHighlights && (cell.plateId == activePlateId || isSaved)) 2.dp else 1.dp,
+	                            when {
+	                                cell.plateId == activePlateId -> LaiqColors.BrandRed
+	                                hasOverlay -> LaiqColors.AccentOrange
+	                                emphasizeUtHighlights && isSaved -> completedUtColor
+	                                isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.45f)
+	                                else -> LaiqColors.AccentOrange.copy(alpha = 0.65f)
+	                            },
                         ),
                     ) {
                         Box(modifier = Modifier.matchParentSize()) {
@@ -1274,8 +1391,12 @@ fun RoofSurfaceMap(
                                 text = cell.mapLabel,
                                 modifier = Modifier.align(Alignment.Center),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = LaiqColors.AccentOrange,
-                            )
+	                            color = when {
+	                                cell.plateId == activePlateId -> LaiqColors.BrandRed
+	                                emphasizeUtHighlights && isSaved -> completedUtColor
+	                                else -> LaiqColors.AccentOrange
+	                            },
+	                        )
                         }
                     }
                 }
@@ -1624,5 +1745,120 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoofRingSectorO
             y = center.y + (sin(endRadians).toFloat() * outerRadius),
         ),
         strokeWidth = strokeWidth,
+    )
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawConeRadialPlateHighlight(
+    plateId: String,
+    sectors: Int,
+    centerPlates: Int,
+    sectorStep: Double,
+    directionFactor: Double,
+    referenceAzimuthDeg: Double,
+    center: Offset,
+    centerPlateRadius: Float,
+    transitionOuterRadius: Float,
+    outerRadius: Float,
+    fillColor: Color,
+    borderColor: Color,
+    strokeWidth: Float,
+) {
+    when (val plateNumber = plateId.toIntOrNull()) {
+        null -> Unit
+        in 1..sectors -> {
+            val centerAzimuth = normalizeDegreesForMap(
+                referenceAzimuthDeg + directionFactor * sectorStep * (plateNumber - 0.5),
+            )
+            drawRoofRingSectorHighlight(
+                center = center,
+                innerRadius = transitionOuterRadius,
+                outerRadius = outerRadius,
+                centerAngleDeg = Math.toDegrees(azimuthToCanvasRadians(centerAzimuth)).toFloat(),
+                sweepDeg = sectorStep.toFloat(),
+                fillColor = fillColor,
+                borderColor = borderColor,
+                borderWidth = strokeWidth,
+            )
+        }
+        sectors + 1 -> if (centerPlates == 1) {
+            drawCircle(color = fillColor, radius = transitionOuterRadius, center = center)
+            drawCircle(
+                color = borderColor,
+                radius = transitionOuterRadius,
+                center = center,
+                style = Stroke(width = strokeWidth),
+            )
+        } else {
+            drawRoofRingSectorHighlight(
+                center = center,
+                innerRadius = if (centerPlates == 3) centerPlateRadius else 0f,
+                outerRadius = transitionOuterRadius,
+                centerAngleDeg = -90f,
+                sweepDeg = 180f,
+                fillColor = fillColor,
+                borderColor = borderColor,
+                borderWidth = strokeWidth,
+            )
+        }
+        sectors + 2 -> if (centerPlates == 2 || centerPlates == 3) {
+            drawRoofRingSectorHighlight(
+                center = center,
+                innerRadius = if (centerPlates == 3) centerPlateRadius else 0f,
+                outerRadius = transitionOuterRadius,
+                centerAngleDeg = 90f,
+                sweepDeg = 180f,
+                fillColor = fillColor,
+                borderColor = borderColor,
+                borderWidth = strokeWidth,
+            )
+        }
+        sectors + 3 -> if (centerPlates == 3) {
+            drawCircle(color = fillColor, radius = centerPlateRadius, center = center)
+            drawCircle(
+                color = borderColor,
+                radius = centerPlateRadius,
+                center = center,
+                style = Stroke(width = strokeWidth),
+            )
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoofRingSectorHighlight(
+    center: Offset,
+    innerRadius: Float,
+    outerRadius: Float,
+    centerAngleDeg: Float,
+    sweepDeg: Float,
+    fillColor: Color,
+    borderColor: Color,
+    borderWidth: Float = 4f,
+) {
+    val startAngleDeg = centerAngleDeg - (sweepDeg / 2f)
+    val middleRadius = ((innerRadius + outerRadius) / 2f).coerceAtLeast(outerRadius / 2f)
+    val fillThickness = (outerRadius - innerRadius).coerceAtLeast(borderWidth)
+    val middleRect = Rect(
+        left = center.x - middleRadius,
+        top = center.y - middleRadius,
+        right = center.x + middleRadius,
+        bottom = center.y + middleRadius,
+    )
+    drawArc(
+        color = fillColor,
+        startAngle = startAngleDeg,
+        sweepAngle = sweepDeg,
+        useCenter = false,
+        topLeft = middleRect.topLeft,
+        size = middleRect.size,
+        style = Stroke(width = fillThickness),
+    )
+    drawRoofRingSectorOutline(
+        center = center,
+        innerRadius = innerRadius,
+        outerRadius = outerRadius,
+        centerAngleDeg = centerAngleDeg,
+        sweepDeg = sweepDeg,
+        color = borderColor,
+        strokeWidth = borderWidth,
     )
 }

@@ -12,6 +12,7 @@ import ai.laiq.tankinspection.v2.model.roofSummaryLabel
 import ai.laiq.tankinspection.v2.model.selectedTargets
 import ai.laiq.tankinspection.v2.model.tankBadgeLabel
 import ai.laiq.tankinspection.v2.model.withFirstAvailableTarget
+import ai.laiq.tankinspection.v2.model.withReconciledLayoutMapSetup
 import ai.laiq.tankinspection.v2.model.withSelectedTarget
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V2PreviewSession.attach(applicationContext)
         val requestedTarget = intent.getStringExtra(EXTRA_TARGET)
             ?.let { key -> V2LayoutTarget.entries.firstOrNull { it.key == key } }
         val requestedSurface = intent.getStringExtra(EXTRA_SURFACE)
@@ -75,7 +77,7 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
                         tankLabel = draftState.tankBadgeLabel(),
                         roofLabel = draftState.roofSummaryLabel(),
                         onStateChange = {
-                            draftState = draftState.copy(layoutMapSetup = it)
+                            draftState = draftState.withReconciledLayoutMapSetup(it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
 	                        onBack = { openLayoutScope() },

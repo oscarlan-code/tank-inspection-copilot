@@ -1,11 +1,13 @@
-package ai.laiq.tankinspection.v2.generalinfo
+package ai.laiq.tankinspection.v2.utsetup
 
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
-import ai.laiq.tankinspection.presentation.v2.generalinfo.V2GeneralTankInformationScreen
-import ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity
+import ai.laiq.tankinspection.presentation.v2.utsetup.V2UtSetupScreen
+import ai.laiq.tankinspection.v2.model.selectedTargets
+import ai.laiq.tankinspection.v2.model.withReconciledUtSetup
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
+import ai.laiq.tankinspection.v2.utmeasurement.V2UtMeasurementPreviewActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -17,7 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
-class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
+class V2UtSetupPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         V2PreviewSession.attach(applicationContext)
@@ -25,19 +27,27 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
-                    BackHandler { finish() }
-                    V2GeneralTankInformationScreen(
-                        state = draftState.generalTankInfo,
+                    val approvedLayoutTargets = draftState.layoutScope.selectedTargets()
+                        .filter { target -> target in draftState.layoutMapSetup.approvedTargets }
+
+                    fun goBackToElementPlacement() {
+                        V2PreviewSession.updateDraftState(draftState)
+                        finish()
+                    }
+
+                    BackHandler { goBackToElementPlacement() }
+                    V2UtSetupScreen(
+                        generalTankInfo = draftState.generalTankInfo,
+                        approvedLayoutTargets = approvedLayoutTargets,
+                        state = draftState.utSetup,
                         onStateChange = {
-                            draftState = draftState.copy(generalTankInfo = it)
+                            draftState = draftState.withReconciledUtSetup(it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
-                        onBack = { finish() },
+                        onBack = { goBackToElementPlacement() },
                         onContinue = {
                             V2PreviewSession.updateDraftState(draftState)
-                            startActivity(
-                                Intent(this, V2LayoutScopePreviewActivity::class.java),
-                            )
+                            startActivity(Intent(this, V2UtMeasurementPreviewActivity::class.java))
                         },
                     )
                 }

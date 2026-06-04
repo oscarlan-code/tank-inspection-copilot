@@ -1,0 +1,830 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "fede8b157eaf711323b56c27f83febcd",
+    "entities": [
+      {
+        "tableName": "v2_inspection_record",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `schemaVersion` INTEGER NOT NULL, `client` TEXT NOT NULL, `tankNumber` TEXT NOT NULL, `location` TEXT NOT NULL, `fieldLeaseName` TEXT NOT NULL, `inspector` TEXT NOT NULL, `externalRoofType` TEXT NOT NULL, `internalRoofType` TEXT NOT NULL, `referenceMode` TEXT NOT NULL, `referenceNote` TEXT NOT NULL, `diameterM` REAL, `heightM` REAL, `shellCourseCount` INTEGER, `shellLaneCount` INTEGER, `reviewStatus` TEXT NOT NULL, `createdAtIso` TEXT NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "client",
+            "columnName": "client",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tankNumber",
+            "columnName": "tankNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fieldLeaseName",
+            "columnName": "fieldLeaseName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inspector",
+            "columnName": "inspector",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "externalRoofType",
+            "columnName": "externalRoofType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "internalRoofType",
+            "columnName": "internalRoofType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceMode",
+            "columnName": "referenceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceNote",
+            "columnName": "referenceNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diameterM",
+            "columnName": "diameterM",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "heightM",
+            "columnName": "heightM",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellCourseCount",
+            "columnName": "shellCourseCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellLaneCount",
+            "columnName": "shellLaneCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "reviewStatus",
+            "columnName": "reviewStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtIso",
+            "columnName": "createdAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_layout_target",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `targetKey` TEXT NOT NULL, `targetLabel` TEXT NOT NULL, `surfaceKey` TEXT NOT NULL, `inLayoutScope` INTEGER NOT NULL, `layoutApproved` INTEGER NOT NULL, `elementInScope` INTEGER NOT NULL, `elementApproved` INTEGER NOT NULL, `utInScope` INTEGER NOT NULL, `utApproved` INTEGER NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `targetKey`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetLabel",
+            "columnName": "targetLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surfaceKey",
+            "columnName": "surfaceKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inLayoutScope",
+            "columnName": "inLayoutScope",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layoutApproved",
+            "columnName": "layoutApproved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementInScope",
+            "columnName": "elementInScope",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementApproved",
+            "columnName": "elementApproved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utInScope",
+            "columnName": "utInScope",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utApproved",
+            "columnName": "utApproved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "targetKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_layout_config",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `targetKey` TEXT NOT NULL, `surfaceKey` TEXT NOT NULL, `referenceMode` TEXT NOT NULL, `referenceNote` TEXT NOT NULL, `roofPattern` TEXT, `roofRingCount` INTEGER, `roofSectorCount` INTEGER, `roofRowCount` INTEGER, `roofWidestRowPlateCount` INTEGER, `roofHasCenterOpening` INTEGER, `roofHasAnnularRing` INTEGER, `roofAnnularSectionCount` INTEGER, `shellCourseCount` INTEGER, `shellPlatesPerCourse` INTEGER, `shellLaneCount` INTEGER, `shellPlateOffset` TEXT, `shellOffsetStartRow` TEXT, `shellThirdOffsetStart` TEXT, `floorTemplate` TEXT, `floorPlateCount` INTEGER, `floorAnnularSectionCount` INTEGER, `floorPatternCountX` INTEGER, `floorPatternCountY` INTEGER, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `targetKey`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surfaceKey",
+            "columnName": "surfaceKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceMode",
+            "columnName": "referenceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceNote",
+            "columnName": "referenceNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roofPattern",
+            "columnName": "roofPattern",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofRingCount",
+            "columnName": "roofRingCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofSectorCount",
+            "columnName": "roofSectorCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofRowCount",
+            "columnName": "roofRowCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofWidestRowPlateCount",
+            "columnName": "roofWidestRowPlateCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofHasCenterOpening",
+            "columnName": "roofHasCenterOpening",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofHasAnnularRing",
+            "columnName": "roofHasAnnularRing",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roofAnnularSectionCount",
+            "columnName": "roofAnnularSectionCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellCourseCount",
+            "columnName": "shellCourseCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellPlatesPerCourse",
+            "columnName": "shellPlatesPerCourse",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellLaneCount",
+            "columnName": "shellLaneCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellPlateOffset",
+            "columnName": "shellPlateOffset",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellOffsetStartRow",
+            "columnName": "shellOffsetStartRow",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shellThirdOffsetStart",
+            "columnName": "shellThirdOffsetStart",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "floorTemplate",
+            "columnName": "floorTemplate",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "floorPlateCount",
+            "columnName": "floorPlateCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "floorAnnularSectionCount",
+            "columnName": "floorAnnularSectionCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "floorPatternCountX",
+            "columnName": "floorPatternCountX",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "floorPatternCountY",
+            "columnName": "floorPatternCountY",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "targetKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_element",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `targetKey` TEXT NOT NULL, `elementId` TEXT NOT NULL, `elementLabel` TEXT NOT NULL, `elementTypeKey` TEXT NOT NULL, `normalizedX` REAL NOT NULL, `normalizedY` REAL NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `targetKey`, `elementId`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementId",
+            "columnName": "elementId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementLabel",
+            "columnName": "elementLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementTypeKey",
+            "columnName": "elementTypeKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedX",
+            "columnName": "normalizedX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedY",
+            "columnName": "normalizedY",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "targetKey",
+            "elementId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_ut_measurement",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `itemKey` TEXT NOT NULL, `targetKey` TEXT NOT NULL, `itemLabel` TEXT NOT NULL, `itemKind` TEXT NOT NULL, `elementTypeKey` TEXT, `nozzleSize` TEXT, `laneId` TEXT, `course` INTEGER, `plateId` TEXT, `elementId` TEXT, `confirmed` INTEGER NOT NULL, `measured` INTEGER NOT NULL, `value1` REAL, `value2` REAL, `value3` REAL, `value4` REAL, `value5` REAL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `itemKey`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemKey",
+            "columnName": "itemKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemLabel",
+            "columnName": "itemLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemKind",
+            "columnName": "itemKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementTypeKey",
+            "columnName": "elementTypeKey",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "nozzleSize",
+            "columnName": "nozzleSize",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "laneId",
+            "columnName": "laneId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "course",
+            "columnName": "course",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "plateId",
+            "columnName": "plateId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "elementId",
+            "columnName": "elementId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "confirmed",
+            "columnName": "confirmed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measured",
+            "columnName": "measured",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value1",
+            "columnName": "value1",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "value2",
+            "columnName": "value2",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "value3",
+            "columnName": "value3",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "value4",
+            "columnName": "value4",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "value5",
+            "columnName": "value5",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "itemKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_finding",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `findingId` TEXT NOT NULL, `targetKey` TEXT NOT NULL, `itemLabel` TEXT NOT NULL, `itemKind` TEXT NOT NULL, `elementTypeKey` TEXT, `linkedUtItemKey` TEXT NOT NULL, `note` TEXT, `attachmentCount` INTEGER NOT NULL, `hasMissingAttachment` INTEGER NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `findingId`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "findingId",
+            "columnName": "findingId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemLabel",
+            "columnName": "itemLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemKind",
+            "columnName": "itemKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elementTypeKey",
+            "columnName": "elementTypeKey",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "linkedUtItemKey",
+            "columnName": "linkedUtItemKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "attachmentCount",
+            "columnName": "attachmentCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasMissingAttachment",
+            "columnName": "hasMissingAttachment",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "findingId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_attachment",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `attachmentId` TEXT NOT NULL, `findingId` TEXT NOT NULL, `kind` TEXT NOT NULL, `relativePath` TEXT NOT NULL, `displayName` TEXT NOT NULL, `mediaType` TEXT NOT NULL, `fileByteSize` INTEGER, `fileExists` INTEGER NOT NULL, `annotationStrokeCount` INTEGER NOT NULL, `annotationPointCount` INTEGER NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `attachmentId`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachmentId",
+            "columnName": "attachmentId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "findingId",
+            "columnName": "findingId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relativePath",
+            "columnName": "relativePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaType",
+            "columnName": "mediaType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileByteSize",
+            "columnName": "fileByteSize",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fileExists",
+            "columnName": "fileExists",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "annotationStrokeCount",
+            "columnName": "annotationStrokeCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "annotationPointCount",
+            "columnName": "annotationPointCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "attachmentId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "v2_task_snapshot",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inspectionId` TEXT NOT NULL, `taskKey` TEXT NOT NULL, `taskTitle` TEXT NOT NULL, `taskOrder` INTEGER NOT NULL, `inScope` INTEGER NOT NULL, `statusCode` TEXT NOT NULL, `statusLabel` TEXT NOT NULL, `isComplete` INTEGER NOT NULL, `blocksExport` INTEGER NOT NULL, `entryCount` INTEGER NOT NULL, `referenceCount` INTEGER NOT NULL, `updatedAtIso` TEXT NOT NULL, PRIMARY KEY(`inspectionId`, `taskKey`))",
+        "fields": [
+          {
+            "fieldPath": "inspectionId",
+            "columnName": "inspectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskKey",
+            "columnName": "taskKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskTitle",
+            "columnName": "taskTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskOrder",
+            "columnName": "taskOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inScope",
+            "columnName": "inScope",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "statusCode",
+            "columnName": "statusCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "statusLabel",
+            "columnName": "statusLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isComplete",
+            "columnName": "isComplete",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blocksExport",
+            "columnName": "blocksExport",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entryCount",
+            "columnName": "entryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceCount",
+            "columnName": "referenceCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "inspectionId",
+            "taskKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fede8b157eaf711323b56c27f83febcd')"
+    ]
+  }
+}

@@ -19,7 +19,7 @@ import ai.laiq.tankinspection.v2.model.V2ReferenceMode
 import ai.laiq.tankinspection.v2.model.V2ShellOffsetStartRow
 import ai.laiq.tankinspection.v2.model.V2ShellThirdOffsetStart
 import ai.laiq.tankinspection.v2.model.withTargetApproval
-import ai.laiq.tankinspection.v2.model.withoutAllTargetApprovals
+import ai.laiq.tankinspection.v2.model.withoutTargetApproval
 import ai.laiq.tankinspection.v2.model.withRoofPatternDefaults
 import ai.laiq.tankinspection.v2.model.withSelectedTarget
 import androidx.compose.foundation.BorderStroke
@@ -128,7 +128,7 @@ fun V2LayoutMapSetupScreen(
     val usesCircularRoofPattern = state.roofPattern == RoofTemplate.CIRCULAR_PLATE ||
         state.roofPattern == RoofTemplate.CIRCULAR_CENTER_OPENING
     fun updateCurrentTarget(updated: V2LayoutMapSetup) {
-        onStateChange(updated.withoutAllTargetApprovals())
+        onStateChange(updated.withoutTargetApproval(selectedTarget))
     }
 
     LazyColumn(
@@ -172,10 +172,10 @@ fun V2LayoutMapSetupScreen(
                 )
                 if (state.referenceMode == V2ReferenceMode.TANK_NORTH) {
 	                    LaiqTextField(
-	                        value = state.referenceNote,
-	                        onValueChange = {
-	                            onStateChange(state.copy(referenceNote = it).withoutAllTargetApprovals())
-	                        },
+		                        value = state.referenceNote,
+		                        onValueChange = {
+		                            onStateChange(state.copy(referenceNote = it, approvedTargets = emptySet()))
+		                        },
 	                        label = { Text("Tank North Note") },
                         singleLine = false,
                         modifier = Modifier

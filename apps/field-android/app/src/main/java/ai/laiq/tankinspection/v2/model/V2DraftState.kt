@@ -102,6 +102,68 @@ data class V2ElementSetup(
     val floor: Boolean = true,
 )
 
+data class V2UtSetup(
+    val externalRoof: Boolean = true,
+    val internalRoof: Boolean = true,
+    val shell: Boolean = true,
+    val floor: Boolean = true,
+)
+
+enum class V2UtItemKind {
+    LAYOUT_REGION,
+    ELEMENT,
+}
+
+data class V2UtMeasurementEntry(
+    val itemKey: String,
+    val target: V2LayoutTarget,
+    val itemLabel: String,
+    val kind: V2UtItemKind,
+    val elementType: V2ElementType? = null,
+    val nozzleSize: String = "6 in",
+    val readings: List<String> = emptyList(),
+    val confirmed: Boolean = false,
+)
+
+data class V2UtMeasurementState(
+    val selectedTarget: V2LayoutTarget = V2LayoutTarget.EXTERNAL_ROOF,
+    val activeItemKey: String? = null,
+    val entriesByItemKey: Map<String, V2UtMeasurementEntry> = emptyMap(),
+    val approvedTargets: Set<V2LayoutTarget> = emptySet(),
+)
+
+data class V2FindingState(
+    val activeItemKey: String? = null,
+    val findingsByItemKey: Map<String, V2FindingRecord> = emptyMap(),
+)
+
+data class V2FindingRecord(
+    val itemKey: String,
+    val target: V2LayoutTarget,
+    val itemLabel: String,
+    val itemKind: V2UtItemKind,
+    val elementType: V2ElementType? = null,
+    val note: String = "",
+    val photos: List<V2FindingPhoto> = emptyList(),
+    val selectedPhotoId: String? = null,
+)
+
+data class V2FindingPhoto(
+    val id: String,
+    val relativePath: String,
+    val displayName: String,
+    val annotationStrokes: List<V2AnnotationStroke> = emptyList(),
+)
+
+data class V2AnnotationStroke(
+    val points: List<V2AnnotationPoint>,
+)
+
+data class V2AnnotationPoint(
+    val x: Float,
+    val y: Float,
+)
+
 enum class V2ElementType(
     val key: String,
     val label: String,
@@ -190,6 +252,9 @@ data class V2DraftState(
     val layoutMapSetup: V2LayoutMapSetup = defaultV2LayoutMapSetup(),
     val elementSetup: V2ElementSetup = V2ElementSetup(),
     val elementPlacement: V2ElementPlacementState = defaultV2ElementPlacementState(),
+    val utSetup: V2UtSetup = V2UtSetup(),
+    val utMeasurements: V2UtMeasurementState = V2UtMeasurementState(),
+    val findingState: V2FindingState = V2FindingState(),
     val roofLayoutMap: V2RoofLayoutMap = defaultV2RoofLayoutMap(),
 )
 
@@ -298,6 +363,42 @@ fun GeneralTankInfoFormState.toV2GeneralTankInfo(): V2GeneralTankInfo =
         previousBottom = previousBottom,
     )
 
+fun V2FindingRecord.withPhoto(photo: V2FindingPhoto): V2FindingRecord =
+    copy(
+        photos = photos + photo,
+        selectedPhotoId = photo.id,
+    )
+
+fun V2FindingRecord.withSelectedPhoto(photoId: String?): V2FindingRecord =
+    copy(selectedPhotoId = photoId)
+
+fun V2FindingRecord.withPhotoAnnotations(
+    photoId: String,
+    strokes: List<V2AnnotationStroke>,
+): V2FindingRecord =
+    copy(
+        photos = photos.map { photo ->
+            if (photo.id == photoId) photo.copy(annotationStrokes = strokes) else photo
+        },
+        selectedPhotoId = photoId,
+    )
+
+fun V2FindingRecord.withRemovedPhoto(photoId: String): V2FindingRecord {
+    val nextPhotos = photos.filterNot { photo -> photo.id == photoId }
+    return copy(
+        photos = nextPhotos,
+        selectedPhotoId = selectedPhotoId
+            .takeIf { selected -> selected != photoId && nextPhotos.any { photo -> photo.id == selected } }
+            ?: nextPhotos.lastOrNull()?.id,
+    )
+}
+
+fun V2FindingState.withActiveFinding(record: V2FindingRecord): V2FindingState =
+    copy(
+        activeItemKey = record.itemKey,
+        findingsByItemKey = findingsByItemKey + (record.itemKey to record),
+    )
+
 fun V2LayoutMapSetup.withSelectedSurface(surface: V2LayoutSurface): V2LayoutMapSetup =
     copy(selectedSurface = surface)
 
@@ -335,6 +436,14 @@ fun V2ElementSetup.selectedTargets(): List<V2LayoutTarget> =
         if (floor) add(V2LayoutTarget.FLOOR)
     }
 
+fun V2UtSetup.selectedTargets(): List<V2LayoutTarget> =
+    buildList {
+        if (externalRoof) add(V2LayoutTarget.EXTERNAL_ROOF)
+        if (internalRoof) add(V2LayoutTarget.INTERNAL_ROOF)
+        if (shell) add(V2LayoutTarget.SHELL)
+        if (floor) add(V2LayoutTarget.FLOOR)
+    }
+
 fun V2ElementType.supports(target: V2LayoutTarget): Boolean =
     target.surface in surfaces
 
@@ -345,6 +454,44 @@ fun V2ElementPlacementState.withFirstAvailableTarget(targets: List<V2LayoutTarge
     if (targets.isEmpty() || selectedTarget in targets) return this
     return copy(selectedTarget = targets.first(), selectedElementId = null)
 }
+
+fun V2UtMeasurementState.withFirstAvailableTarget(targets: List<V2LayoutTarget>): V2UtMeasurementState {
+    if (targets.isEmpty() || selectedTarget in targets) return this
+    return copy(selectedTarget = targets.first(), activeItemKey = null)
+}
+
+fun V2UtMeasurementState.withSelectedTarget(target: V2LayoutTarget): V2UtMeasurementState =
+    copy(selectedTarget = target, activeItemKey = null)
+
+fun V2UtMeasurementState.withSelectedEntry(entry: V2UtMeasurementEntry): V2UtMeasurementState =
+    copy(
+        activeItemKey = entry.itemKey,
+        entriesByItemKey = if (entry.itemKey in entriesByItemKey) {
+            entriesByItemKey
+        } else {
+            entriesByItemKey + (entry.itemKey to entry)
+        },
+    )
+
+fun V2UtMeasurementState.withUpdatedEntry(entry: V2UtMeasurementEntry): V2UtMeasurementState =
+    copy(
+        activeItemKey = null,
+        entriesByItemKey = entriesByItemKey + (entry.itemKey to entry),
+    ).withoutTargetApproval(entry.target)
+
+fun V2UtMeasurementState.withClearedActiveItem(): V2UtMeasurementState =
+    copy(activeItemKey = null)
+
+fun V2UtMeasurementState.withTargetApproval(
+    target: V2LayoutTarget,
+    approved: Boolean,
+): V2UtMeasurementState =
+    copy(
+        approvedTargets = if (approved) approvedTargets + target else approvedTargets - target,
+    )
+
+fun V2UtMeasurementState.withoutTargetApproval(target: V2LayoutTarget): V2UtMeasurementState =
+    withTargetApproval(target, approved = false)
 
 fun V2ElementPlacementState.withSelectedTarget(target: V2LayoutTarget): V2ElementPlacementState =
     copy(selectedTarget = target, selectedElementId = null)
@@ -425,6 +572,195 @@ fun V2ElementPlacementState.withRemovedElement(
         placementsByTarget = placementsByTarget + (target to placementsFor(target).filterNot { it.id == elementId }),
         selectedElementId = if (selectedElementId == elementId) null else selectedElementId,
     ).withoutTargetApproval(target)
+
+fun V2DraftState.withReconciledLayoutScope(updatedScope: V2LayoutScope): V2DraftState {
+    val visibleTargets = updatedScope.selectedTargets()
+    val visibleTargetSet = visibleTargets.toSet()
+    val removedTargets = V2LayoutTarget.entries.toSet() - visibleTargetSet
+    return copy(
+        layoutScope = updatedScope,
+        layoutMapSetup = layoutMapSetup
+            .copy(approvedTargets = layoutMapSetup.approvedTargets.intersect(visibleTargetSet))
+            .withFirstAvailableTarget(visibleTargets),
+        elementSetup = elementSetup.constrainedTo(visibleTargetSet),
+        utSetup = utSetup.constrainedTo(visibleTargetSet),
+    )
+        .withoutElementPlacementFor(removedTargets)
+        .withoutUtDataFor(removedTargets)
+        .withoutFindingDataFor(removedTargets)
+}
+
+fun V2DraftState.withReconciledLayoutMapSetup(updatedSetup: V2LayoutMapSetup): V2DraftState {
+    val visibleTargets = layoutScope.selectedTargets()
+    val visibleTargetSet = visibleTargets.toSet()
+    val constrainedSetup = updatedSetup
+        .copy(approvedTargets = updatedSetup.approvedTargets.intersect(visibleTargetSet))
+        .withFirstAvailableTarget(visibleTargets)
+    val invalidatedTargets = layoutMapSetup.approvedTargets - constrainedSetup.approvedTargets
+    return copy(layoutMapSetup = constrainedSetup)
+        .withoutUtDataFor(invalidatedTargets)
+        .withoutFindingDataFor(invalidatedTargets)
+        .withoutElementApprovalFor(invalidatedTargets)
+}
+
+fun V2DraftState.withReconciledElementSetup(updatedSetup: V2ElementSetup): V2DraftState {
+    val approvedLayoutTargets = layoutScope.selectedTargets()
+        .filter { target -> target in layoutMapSetup.approvedTargets }
+        .toSet()
+    val selectedElementTargets = updatedSetup.selectedTargets()
+        .filter { target -> target in approvedLayoutTargets }
+        .toSet()
+    val removedElementTargets = V2LayoutTarget.entries.toSet() - selectedElementTargets
+    return copy(elementSetup = updatedSetup.constrainedTo(approvedLayoutTargets))
+        .withoutElementPlacementFor(removedElementTargets)
+        .withoutElementUtEntriesForRemovedPlacements()
+        .withoutElementFindingsForRemovedPlacements()
+}
+
+fun V2DraftState.withReconciledElementPlacement(updatedPlacement: V2ElementPlacementState): V2DraftState {
+    val changedTargets = V2LayoutTarget.entries.filter { target ->
+        elementPlacement.placementsFor(target) != updatedPlacement.placementsFor(target)
+    }.toSet()
+    return copy(elementPlacement = updatedPlacement)
+        .withoutUtApprovalFor(changedTargets)
+        .withoutElementUtEntriesForRemovedPlacements()
+        .withoutElementFindingsForRemovedPlacements()
+}
+
+fun V2DraftState.withReconciledUtSetup(updatedSetup: V2UtSetup): V2DraftState {
+    val approvedLayoutTargets = layoutScope.selectedTargets()
+        .filter { target -> target in layoutMapSetup.approvedTargets }
+        .toSet()
+    val selectedUtTargets = updatedSetup.selectedTargets()
+        .filter { target -> target in approvedLayoutTargets }
+        .toSet()
+    val removedUtTargets = V2LayoutTarget.entries.toSet() - selectedUtTargets
+    return copy(utSetup = updatedSetup.constrainedTo(approvedLayoutTargets))
+        .withoutUtDataFor(removedUtTargets)
+        .withoutFindingDataFor(removedUtTargets)
+}
+
+private fun V2DraftState.withoutElementApprovalFor(targets: Set<V2LayoutTarget>): V2DraftState {
+    if (targets.isEmpty()) return this
+    return copy(
+        elementPlacement = elementPlacement.copy(
+            approvedTargets = elementPlacement.approvedTargets - targets,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutElementPlacementFor(targets: Set<V2LayoutTarget>): V2DraftState {
+    if (targets.isEmpty()) return this
+    val nextPlacements = elementPlacement.placementsByTarget.filterKeys { target -> target !in targets }
+    val selectedElementStillExists = nextPlacements.values.flatten().any { element ->
+        element.id == elementPlacement.selectedElementId
+    }
+    return copy(
+        elementPlacement = elementPlacement.copy(
+            selectedTarget = if (elementPlacement.selectedTarget in targets) {
+                nextPlacements.keys.firstOrNull() ?: V2LayoutTarget.EXTERNAL_ROOF
+            } else {
+                elementPlacement.selectedTarget
+            },
+            selectedElementId = elementPlacement.selectedElementId.takeIf { selectedElementStillExists },
+            placementsByTarget = nextPlacements,
+            approvedTargets = elementPlacement.approvedTargets - targets,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutUtApprovalFor(targets: Set<V2LayoutTarget>): V2DraftState {
+    if (targets.isEmpty()) return this
+    return copy(
+        utMeasurements = utMeasurements.copy(
+            approvedTargets = utMeasurements.approvedTargets - targets,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutUtDataFor(targets: Set<V2LayoutTarget>): V2DraftState {
+    if (targets.isEmpty()) return this
+    val nextEntries = utMeasurements.entriesByItemKey.filterValues { entry -> entry.target !in targets }
+    val activeItemKey = utMeasurements.activeItemKey.takeIf { key -> key in nextEntries }
+    return copy(
+        utMeasurements = utMeasurements.copy(
+            selectedTarget = if (utMeasurements.selectedTarget in targets) {
+                nextEntries.values.firstOrNull()?.target ?: V2LayoutTarget.EXTERNAL_ROOF
+            } else {
+                utMeasurements.selectedTarget
+            },
+            activeItemKey = activeItemKey,
+            entriesByItemKey = nextEntries,
+            approvedTargets = utMeasurements.approvedTargets - targets,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutFindingDataFor(targets: Set<V2LayoutTarget>): V2DraftState {
+    if (targets.isEmpty()) return this
+    val nextFindings = findingState.findingsByItemKey.filterValues { finding -> finding.target !in targets }
+    return copy(
+        findingState = findingState.copy(
+            activeItemKey = findingState.activeItemKey.takeIf { key -> key in nextFindings },
+            findingsByItemKey = nextFindings,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutElementUtEntriesForRemovedPlacements(): V2DraftState {
+    val validElementKeys = elementPlacement.placementsByTarget.flatMap { (target, placements) ->
+        placements.map { element -> elementUtItemKey(target, element.id) }
+    }.toSet()
+    val removedEntryTargets = mutableSetOf<V2LayoutTarget>()
+    val nextEntries = utMeasurements.entriesByItemKey.filterValues { entry ->
+        val keep = entry.kind != V2UtItemKind.ELEMENT || entry.itemKey in validElementKeys
+        if (!keep) removedEntryTargets += entry.target
+        keep
+    }
+    if (nextEntries.size == utMeasurements.entriesByItemKey.size && removedEntryTargets.isEmpty()) return this
+    return copy(
+        utMeasurements = utMeasurements.copy(
+            activeItemKey = utMeasurements.activeItemKey.takeIf { key -> key in nextEntries },
+            entriesByItemKey = nextEntries,
+            approvedTargets = utMeasurements.approvedTargets - removedEntryTargets,
+        ),
+    )
+}
+
+private fun V2DraftState.withoutElementFindingsForRemovedPlacements(): V2DraftState {
+    val validElementKeys = elementPlacement.placementsByTarget.flatMap { (target, placements) ->
+        placements.map { element -> elementUtItemKey(target, element.id) }
+    }.toSet()
+    val nextFindings = findingState.findingsByItemKey.filterValues { finding ->
+        finding.itemKind != V2UtItemKind.ELEMENT || finding.itemKey in validElementKeys
+    }
+    if (nextFindings.size == findingState.findingsByItemKey.size) return this
+    return copy(
+        findingState = findingState.copy(
+            activeItemKey = findingState.activeItemKey.takeIf { key -> key in nextFindings },
+            findingsByItemKey = nextFindings,
+        ),
+    )
+}
+
+private fun V2ElementSetup.constrainedTo(targets: Set<V2LayoutTarget>): V2ElementSetup =
+    copy(
+        externalRoof = externalRoof && V2LayoutTarget.EXTERNAL_ROOF in targets,
+        internalRoof = internalRoof && V2LayoutTarget.INTERNAL_ROOF in targets,
+        shell = shell && V2LayoutTarget.SHELL in targets,
+        floor = floor && V2LayoutTarget.FLOOR in targets,
+    )
+
+private fun V2UtSetup.constrainedTo(targets: Set<V2LayoutTarget>): V2UtSetup =
+    copy(
+        externalRoof = externalRoof && V2LayoutTarget.EXTERNAL_ROOF in targets,
+        internalRoof = internalRoof && V2LayoutTarget.INTERNAL_ROOF in targets,
+        shell = shell && V2LayoutTarget.SHELL in targets,
+        floor = floor && V2LayoutTarget.FLOOR in targets,
+    )
+
+private fun elementUtItemKey(target: V2LayoutTarget, elementId: String): String =
+    "${target.key}:element:$elementId"
 
 fun V2LayoutMapSetup.withFirstAvailableTarget(targets: List<V2LayoutTarget>): V2LayoutMapSetup {
     if (targets.isEmpty() || selectedTarget in targets) return this
@@ -567,6 +903,14 @@ fun defaultV2PreviewDraftState(): V2DraftState =
             floor = true,
         ),
         elementPlacement = defaultV2ElementPlacementState(),
+        utSetup = V2UtSetup(
+            externalRoof = true,
+            internalRoof = false,
+            shell = true,
+            floor = true,
+        ),
+        utMeasurements = V2UtMeasurementState(),
+        findingState = V2FindingState(),
         roofLayoutMap = defaultV2RoofLayoutMap(),
     )
 

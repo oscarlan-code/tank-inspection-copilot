@@ -46,6 +46,15 @@
             android:name="ai.laiq.tankinspection.v2.elementsetup.V2ElementPlacementPreviewActivity"
             android:exported="false" />
         <activity
+            android:name="ai.laiq.tankinspection.v2.utsetup.V2UtSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.utmeasurement.V2UtMeasurementPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2.finding.V2FindingCapturePreviewActivity"
+            android:exported="false" />
+        <activity
             android:name="ai.laiq.tankinspection.v2.rooflayout.V2RoofLayoutMapPreviewActivity"
             android:exported="false" />
     </application>

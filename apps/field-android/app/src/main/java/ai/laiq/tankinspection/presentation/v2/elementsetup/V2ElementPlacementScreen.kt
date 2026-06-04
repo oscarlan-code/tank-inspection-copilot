@@ -17,6 +17,8 @@ import ai.laiq.tankinspection.v2.model.V2LayoutMapSetup
 import ai.laiq.tankinspection.v2.model.V2LayoutSurface
 import ai.laiq.tankinspection.v2.model.V2LayoutTarget
 import ai.laiq.tankinspection.v2.model.V2PlacedElement
+import ai.laiq.tankinspection.v2.model.V2ShellOffsetStartRow
+import ai.laiq.tankinspection.v2.model.V2ShellThirdOffsetStart
 import ai.laiq.tankinspection.v2.model.placementsFor
 import ai.laiq.tankinspection.v2.model.supports
 import ai.laiq.tankinspection.v2.model.withMovedElement
@@ -36,7 +38,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,7 +82,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -300,13 +300,16 @@ private fun ElementPlacementWorkspace(
     val shellCellGapPx = with(density) { 2.dp.toPx() }
     val placedDragStartThresholdPx = with(density) { 12.dp.toPx() }
     val tapGestureTolerancePx = with(density) { 20.dp.toPx() }
-    val deleteCrossVisualSizePx = with(density) { 34.dp.toPx() }
-    val deleteCrossHitSizePx = with(density) { 54.dp.toPx() }
-    val editModeLongPressMillis = 1_000L
+    val deleteActionVisualWidthPx = with(density) { 66.dp.toPx() }
+    val deleteActionVisualHeightPx = with(density) { 32.dp.toPx() }
+    val deleteActionHitWidthPx = with(density) { 94.dp.toPx() }
+    val deleteActionHitHeightPx = with(density) { 62.dp.toPx() }
+    val editModeDoubleTapMillis = 420L
     var mapSize by remember(selectedTarget) { mutableStateOf(Size.Zero) }
     var mapBoundsInRoot by remember(selectedTarget) { mutableStateOf<Rect?>(null) }
     var dragState by remember(selectedTarget) { mutableStateOf<ElementDragState?>(null) }
     var editMode by remember(selectedTarget) { mutableStateOf(false) }
+    var lastElementTap by remember(selectedTarget) { mutableStateOf<Pair<String, Long>?>(null) }
     val editPulseTransition = rememberInfiniteTransition(label = "element-edit-pulse")
     val editMarkerAlpha by editPulseTransition.animateFloat(
         initialValue = 0.78f,
@@ -317,6 +320,7 @@ private fun ElementPlacementWorkspace(
         ),
         label = "element-edit-alpha",
     )
+    val latestSelectedElementId by rememberUpdatedState(selectedElementId)
 
     fun placementRegion(): PlacementRegion? =
         placementRegionForTarget(
@@ -400,7 +404,7 @@ private fun ElementPlacementWorkspace(
 
     LaiqSectionCard(
         title = "${selectedTarget.label} Elements",
-        subtitle = "Drag the selected icon onto the layout to add. Long-press a placed callout to edit, then drag it or tap its X to delete.",
+        subtitle = "Drag the selected icon onto the layout to add. Double-tap a placed callout to edit, then drag it or tap Delete.",
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -456,11 +460,11 @@ private fun ElementPlacementWorkspace(
                         .onGloballyPositioned { coordinates ->
                             mapBoundsInRoot = coordinates.boundsInRoot()
                         }
-                        .pointerInput(selectedTarget, selectedPlacements, selectedElementId, editMode, mapSize) {
+                        .pointerInput(selectedTarget, selectedPlacements, editMode, mapSize) {
                             awaitEachGesture {
                                 val down = awaitFirstDown(requireUnconsumed = false)
                                 if (mapSize.isUsable()) {
-                                    val orderedPlacements = selectedPlacements.withSelectedElementOnTop(selectedElementId)
+                                    val orderedPlacements = selectedPlacements.withSelectedElementOnTop(latestSelectedElementId)
                                     val deleteHit = if (editMode) {
                                         findDeleteCrossAtMapPosition(
                                             position = down.position,
@@ -469,8 +473,10 @@ private fun ElementPlacementWorkspace(
                                             markerWidthPx = markerWidthPx,
                                             markerAnchorXpx = markerAnchorXpx,
                                             markerAnchorYpx = markerAnchorYpx,
-                                            deleteCrossVisualSizePx = deleteCrossVisualSizePx,
-                                            deleteCrossHitSizePx = deleteCrossHitSizePx,
+                                            deleteActionVisualWidthPx = deleteActionVisualWidthPx,
+                                            deleteActionVisualHeightPx = deleteActionVisualHeightPx,
+                                            deleteActionHitWidthPx = deleteActionHitWidthPx,
+                                            deleteActionHitHeightPx = deleteActionHitHeightPx,
                                             placementRegion = placementRegion(),
                                         )
                                     } else {
@@ -486,7 +492,8 @@ private fun ElementPlacementWorkspace(
                                         }
                                         if (totalDrag.getDistance() < tapGestureTolerancePx) {
                                             onRemoveElement(selectedTarget, deleteHit.id)
-                                            if (selectedElementId == deleteHit.id) {
+                                            lastElementTap = null
+                                            if (latestSelectedElementId == deleteHit.id) {
                                                 onSelectElement(null)
                                             }
                                             if (selectedPlacements.size <= 1) {
@@ -517,11 +524,11 @@ private fun ElementPlacementWorkspace(
                                         if (totalDrag.getDistance() < tapGestureTolerancePx) {
                                             onSelectElement(null)
                                             editMode = false
+                                            lastElementTap = null
                                         }
                                         return@awaitEachGesture
                                     }
 
-                                    onSelectElement(hitElement.id)
                                     val elementCenter = markerCenter(hitElement, mapSize, placementRegion())
                                     val initialDragState = ElementDragState(
                                         source = ElementDragSource.PLACED_ELEMENT,
@@ -538,6 +545,7 @@ private fun ElementPlacementWorkspace(
                                     )
 
                                     if (editMode) {
+                                        onSelectElement(hitElement.id)
                                         var totalDrag = Offset.Zero
                                         var dragStarted = false
                                         while (true) {
@@ -578,42 +586,29 @@ private fun ElementPlacementWorkspace(
                                         return@awaitEachGesture
                                     }
 
-                                    var totalDragBeforeEdit = Offset.Zero
-                                    val longPressReached = withTimeoutOrNull(editModeLongPressMillis) {
-                                        while (true) {
-                                            val event = awaitPointerEvent()
-                                            val change = event.changes.firstOrNull { pointer -> pointer.id == down.id }
-                                                ?: return@withTimeoutOrNull false
-                                            if (!change.pressed) return@withTimeoutOrNull false
-                                            totalDragBeforeEdit += change.positionChange()
-                                            if (totalDragBeforeEdit.getDistance() >= placedDragStartThresholdPx) {
-                                                return@withTimeoutOrNull false
-                                            }
-                                        }
-                                    } == null
-                                    if (longPressReached) {
-                                        editMode = true
-                                        dragState = initialDragState
-                                        val completed = drag(down.id) { change ->
-                                            val delta = change.positionChange()
-                                            change.consume()
-                                            val activeDrag = dragState
-                                            if (activeDrag != null) {
-                                                dragState = activeDrag.copy(
-                                                    mapPosition = (activeDrag.mapPosition + delta)
-                                                        .coerceInsideMap(mapSize, mapEdgePaddingPx),
-                                                    rootPosition = activeDrag.rootPosition?.let { rootPosition ->
-                                                        rootPosition + delta
-                                                    },
-                                                )
-                                            }
-                                        }
-                                        if (completed) {
-                                            finishActiveDrag()
-                                        } else {
-                                            dragState = null
-                                        }
+                                    var totalDrag = Offset.Zero
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { pointer -> pointer.id == down.id } ?: break
+                                        totalDrag += change.positionChange()
+                                        if (!change.pressed) break
                                     }
+                                    if (totalDrag.getDistance() < tapGestureTolerancePx) {
+                                        val previousTap = lastElementTap
+                                        val isDoubleTap = previousTap?.first == hitElement.id &&
+                                            down.uptimeMillis - previousTap.second <= editModeDoubleTapMillis
+                                        if (isDoubleTap) {
+                                            lastElementTap = null
+                                            editMode = true
+                                        } else {
+                                            lastElementTap = hitElement.id to down.uptimeMillis
+                                        }
+                                        onSelectElement(hitElement.id)
+                                    } else {
+                                        lastElementTap = null
+                                    }
+                                    dragState = null
+                                    return@awaitEachGesture
                                 }
                             }
                         },
@@ -887,22 +882,23 @@ private fun ElementMarkerCallout(
         }
         if (editMode) {
             Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(14.dp),
                 color = LaiqColors.BrandRed,
                 border = BorderStroke(1.5.dp, Color.White),
                 shadowElevation = 4.dp,
                 modifier = Modifier
                     .align(labelAlignment)
                     .offset(
-                        x = if (flipHorizontal) (-8).dp else 8.dp,
-                        y = (-9).dp,
+                        x = if (flipHorizontal) (-10).dp else 10.dp,
+                        y = (-12).dp,
                     )
-                    .size(34.dp),
+                    .width(66.dp)
+                    .height(32.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "X",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = "Delete",
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                     )
@@ -1039,6 +1035,8 @@ private fun ElementPlacementMapBackground(
             courseCount = layoutMapSetup.shellCourseCount.toPositiveInt(6),
             platesPerCourse = layoutMapSetup.shellPlatesPerCourse.toPositiveInt(12),
             offsetMode = layoutMapSetup.shellPlateOffset,
+            offsetStartRow = layoutMapSetup.shellOffsetStartRow,
+            thirdOffsetStart = layoutMapSetup.shellThirdOffsetStart,
             laneCount = layoutMapSetup.shellLaneCount.toPositiveInt(4),
             referenceLabel = layoutMapSetup.referenceMode.label,
             modifier = modifier,
@@ -1051,6 +1049,8 @@ private fun ShellElementMapBackground(
     courseCount: Int,
     platesPerCourse: Int,
     offsetMode: String,
+    offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
     laneCount: Int,
     referenceLabel: String,
     modifier: Modifier = Modifier,
@@ -1153,6 +1153,8 @@ private fun ShellElementMapBackground(
                 courseCount = courseCount,
                 platesPerCourse = platesPerCourse,
                 offsetMode = offsetMode,
+                offsetStartRow = offsetStartRow,
+                thirdOffsetStart = thirdOffsetStart,
             )
             segments.forEach { segment ->
                 drawRect(
@@ -1307,8 +1309,10 @@ private fun findDeleteCrossAtMapPosition(
     markerWidthPx: Float,
     markerAnchorXpx: Float,
     markerAnchorYpx: Float,
-    deleteCrossVisualSizePx: Float,
-    deleteCrossHitSizePx: Float,
+    deleteActionVisualWidthPx: Float,
+    deleteActionVisualHeightPx: Float,
+    deleteActionHitWidthPx: Float,
+    deleteActionHitHeightPx: Float,
     placementRegion: PlacementRegion? = null,
 ): V2PlacedElement? =
     placements.asReversed().firstOrNull { element ->
@@ -1318,8 +1322,10 @@ private fun findDeleteCrossAtMapPosition(
             markerWidthPx = markerWidthPx,
             markerAnchorXpx = markerAnchorXpx,
             markerAnchorYpx = markerAnchorYpx,
-            deleteCrossVisualSizePx = deleteCrossVisualSizePx,
-            deleteCrossHitSizePx = deleteCrossHitSizePx,
+            deleteActionVisualWidthPx = deleteActionVisualWidthPx,
+            deleteActionVisualHeightPx = deleteActionVisualHeightPx,
+            deleteActionHitWidthPx = deleteActionHitWidthPx,
+            deleteActionHitHeightPx = deleteActionHitHeightPx,
             placementRegion = placementRegion,
         ).contains(position)
     }
@@ -1330,8 +1336,10 @@ private fun deleteCrossRectForElement(
     markerWidthPx: Float,
     markerAnchorXpx: Float,
     markerAnchorYpx: Float,
-    deleteCrossVisualSizePx: Float,
-    deleteCrossHitSizePx: Float,
+    deleteActionVisualWidthPx: Float,
+    deleteActionVisualHeightPx: Float,
+    deleteActionHitWidthPx: Float,
+    deleteActionHitHeightPx: Float,
     placementRegion: PlacementRegion? = null,
 ): Rect {
     val center = markerCenter(element, mapSize, placementRegion)
@@ -1343,23 +1351,23 @@ private fun deleteCrossRectForElement(
     )
     val markerLeft = center.x - anchorXpx
     val markerTop = center.y - markerAnchorYpx
-    val horizontalNudge = deleteCrossVisualSizePx * 0.24f
-    val verticalNudge = deleteCrossVisualSizePx * 0.26f
+    val horizontalNudge = deleteActionVisualWidthPx * 0.15f
+    val verticalNudge = deleteActionVisualHeightPx * 0.38f
     val visualLeft = if (flipHorizontal) {
         markerLeft - horizontalNudge
     } else {
-        markerLeft + markerWidthPx - deleteCrossVisualSizePx + horizontalNudge
+        markerLeft + markerWidthPx - deleteActionVisualWidthPx + horizontalNudge
     }
     val visualTop = markerTop - verticalNudge
     val hitCenter = Offset(
-        x = visualLeft + deleteCrossVisualSizePx / 2f,
-        y = visualTop + deleteCrossVisualSizePx / 2f,
+        x = visualLeft + deleteActionVisualWidthPx / 2f,
+        y = visualTop + deleteActionVisualHeightPx / 2f,
     )
     return Rect(
-        left = hitCenter.x - deleteCrossHitSizePx / 2f,
-        top = hitCenter.y - deleteCrossHitSizePx / 2f,
-        right = hitCenter.x + deleteCrossHitSizePx / 2f,
-        bottom = hitCenter.y + deleteCrossHitSizePx / 2f,
+        left = hitCenter.x - deleteActionHitWidthPx / 2f,
+        top = hitCenter.y - deleteActionHitHeightPx / 2f,
+        right = hitCenter.x + deleteActionHitWidthPx / 2f,
+        bottom = hitCenter.y + deleteActionHitHeightPx / 2f,
     )
 }
 
@@ -1460,6 +1468,8 @@ private fun buildShellPlacementSegments(
     courseCount: Int,
     platesPerCourse: Int,
     offsetMode: String,
+    offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
 ): List<ShellPlacementSegment> {
     val rows = courseCount.coerceAtLeast(1)
     val plateCount = platesPerCourse.coerceAtLeast(1)
@@ -1473,11 +1483,13 @@ private fun buildShellPlacementSegments(
     return buildList {
         repeat(rows) { rowIndex ->
             val y = topPadding + rowIndex * rowHeight
-            val offsetFraction = when (offsetMode) {
-                "half_plate" -> if ((rows - rowIndex) % 2 == 0) 0.5f else 0f
-                "third_plate" -> (((rows - rowIndex) - 1) % 3) / 3f
-                else -> 0f
-            }
+            val courseNo = rows - rowIndex
+            val offsetFraction = shellOffsetFraction(
+                courseNo = courseNo,
+                offsetMode = offsetMode,
+                offsetStartRow = offsetStartRow,
+                thirdOffsetStart = thirdOffsetStart,
+            )
             if (offsetFraction > 0f && plateCount > 1) {
                 val leadingRight = left + cellWidth * offsetFraction
                 val trailingLeft = right - cellWidth * (1f - offsetFraction)
@@ -1496,6 +1508,31 @@ private fun buildShellPlacementSegments(
         }
     }
 }
+
+private fun shellOffsetFraction(
+    courseNo: Int,
+    offsetMode: String,
+    offsetStartRow: V2ShellOffsetStartRow,
+    thirdOffsetStart: V2ShellThirdOffsetStart,
+): Float =
+    when (offsetMode) {
+        "third_plate" -> {
+            val startStep = when (thirdOffsetStart) {
+                V2ShellThirdOffsetStart.FULL -> 0
+                V2ShellThirdOffsetStart.ONE_THIRD -> 1
+                V2ShellThirdOffsetStart.TWO_THIRDS -> 2
+            }
+            ((startStep + courseNo - 1) % 3) / 3f
+        }
+        "half_plate" -> {
+            val shouldOffset = when (offsetStartRow) {
+                V2ShellOffsetStartRow.ODD -> courseNo % 2 == 1
+                V2ShellOffsetStartRow.EVEN -> courseNo % 2 == 0
+            }
+            if (shouldOffset) 0.5f else 0f
+        }
+        else -> 0f
+    }
 
 private fun shellVisualRect(
     rawLeft: Float,

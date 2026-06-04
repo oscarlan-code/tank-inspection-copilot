@@ -3,4 +3,7 @@
     <files-path
         name="internal_exports"
         path="exports/" />
+    <files-path
+        name="v2_findings"
+        path="v2-findings/" />
 </paths>

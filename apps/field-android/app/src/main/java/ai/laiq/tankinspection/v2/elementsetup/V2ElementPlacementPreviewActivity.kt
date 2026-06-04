@@ -2,12 +2,13 @@ package ai.laiq.tankinspection.v2.elementsetup
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2.elementsetup.V2ElementPlacementScreen
 import ai.laiq.tankinspection.v2.model.selectedTargets
 import ai.laiq.tankinspection.v2.model.withFirstAvailableTarget
+import ai.laiq.tankinspection.v2.model.withReconciledElementPlacement
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
+import ai.laiq.tankinspection.v2.utsetup.V2UtSetupPreviewActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 class V2ElementPlacementPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V2PreviewSession.attach(applicationContext)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -61,7 +63,7 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                         visibleTargets = visibleTargets,
                         state = draftState.elementPlacement,
                         onStateChange = {
-                            val nextDraftState = draftState.copy(elementPlacement = it)
+                            val nextDraftState = draftState.withReconciledElementPlacement(it)
                             draftState = nextDraftState
                             V2PreviewSession.updateDraftState(nextDraftState)
                         },
@@ -70,11 +72,7 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                             val nextDraftState = draftState.copy(elementPlacement = approvedState)
                             draftState = nextDraftState
                             V2PreviewSession.updateDraftState(nextDraftState)
-                            Toast.makeText(
-                                this,
-                                "Element placement approved. Next screen: UT setup.",
-                                Toast.LENGTH_LONG,
-                            ).show()
+                            startActivity(Intent(this, V2UtSetupPreviewActivity::class.java))
                         },
                     )
                 }
