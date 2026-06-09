@@ -64,8 +64,8 @@ data class V2GeneralTankInfo(
     val drawingRef: String = "",
     val shellConstruction: String = "butt",
     val roofType: String = "",
-    val externalRoofType: String = "na",
-    val internalRoofType: String = "na",
+    val externalRoofType: String = "yes",
+    val internalRoofType: String = "no",
     val height: String = "",
     val serviceHeight: String = "",
     val diameter: String = "",
@@ -87,6 +87,33 @@ data class V2GeneralTankInfo(
     val previousInternal: String = "",
     val previousBottom: String = "",
 )
+
+fun V2GeneralTankInfo.hasExternalRoof(): Boolean =
+    externalRoofType.toRoofPresence()
+
+fun V2GeneralTankInfo.hasInternalRoof(): Boolean =
+    internalRoofType.toRoofPresence()
+
+fun V2GeneralTankInfo.normalizedRoofPresence(): V2GeneralTankInfo =
+    copy(
+        roofType = "",
+        externalRoofType = if (hasExternalRoof()) "yes" else "no",
+        internalRoofType = if (hasInternalRoof()) "yes" else "no",
+    )
+
+private fun String.toRoofPresence(): Boolean =
+    when (trim().lowercase()) {
+        "yes",
+        "present",
+        "cone",
+        "dome",
+        "umbrella",
+        "geodesic",
+        "other_fixed",
+        "external_floating",
+        "internal_floating" -> true
+        else -> false
+    }
 
 data class V2LayoutScope(
     val externalRoof: Boolean = true,
@@ -263,12 +290,6 @@ fun V2GeneralTankInfo.requiredValidationErrors(): List<String> {
     if (client.isBlank()) errors += "Enter the client."
     if (tankNumber.isBlank()) errors += "Enter the tank number."
     if (location.isBlank()) errors += "Enter the location."
-    if (externalRoofType == "na" && internalRoofType == "na" && roofType.isBlank()) {
-        errors += "Select the roof type."
-    }
-    if (externalRoofType == "external_floating" && internalRoofType != "na") {
-        errors += "Internal roof type must be N.A. when external roof type is external floating."
-    }
     if (diameter.extractFirstDecimalToken()?.toDoubleOrNull()?.let { it > 0 } != true) {
         errors += "Enter a positive tank diameter."
     }
@@ -361,7 +382,7 @@ fun GeneralTankInfoFormState.toV2GeneralTankInfo(): V2GeneralTankInfo =
         previousExternal = previousExternal,
         previousInternal = previousInternal,
         previousBottom = previousBottom,
-    )
+    ).normalizedRoofPresence()
 
 fun V2FindingRecord.withPhoto(photo: V2FindingPhoto): V2FindingRecord =
     copy(
@@ -572,6 +593,15 @@ fun V2ElementPlacementState.withRemovedElement(
         placementsByTarget = placementsByTarget + (target to placementsFor(target).filterNot { it.id == elementId }),
         selectedElementId = if (selectedElementId == elementId) null else selectedElementId,
     ).withoutTargetApproval(target)
+
+fun V2DraftState.withReconciledGeneralTankInfo(updatedInfo: V2GeneralTankInfo): V2DraftState {
+    val normalizedInfo = updatedInfo.normalizedRoofPresence()
+    val roofAwareScope = layoutScope.copy(
+        externalRoof = layoutScope.externalRoof && normalizedInfo.hasExternalRoof(),
+        internalRoof = layoutScope.internalRoof && normalizedInfo.hasInternalRoof(),
+    )
+    return copy(generalTankInfo = normalizedInfo).withReconciledLayoutScope(roofAwareScope)
+}
 
 fun V2DraftState.withReconciledLayoutScope(updatedScope: V2LayoutScope): V2DraftState {
     val visibleTargets = updatedScope.selectedTargets()
@@ -864,13 +894,11 @@ fun V2DraftState.tankBadgeLabel(): String =
     generalTankInfo.tankNumber.ifBlank { "Tank" }
 
 fun V2DraftState.roofSummaryLabel(): String =
-    when (generalTankInfo.externalRoofType) {
-        "dome" -> "Dome"
-        "umbrella" -> "Umbrella"
-        "geodesic" -> "Geodesic"
-        "external_floating" -> "External Floating"
-        "other_fixed" -> "Other Fixed"
-        else -> "Cone"
+    when (layoutMapSetup.roofPattern) {
+        RoofTemplate.CIRCULAR_PLATE,
+        RoofTemplate.CIRCULAR_CENTER_OPENING -> "Circular Plate"
+        RoofTemplate.UMBRELLA_RADIAL -> "Umbrella Radial"
+        RoofTemplate.CONE_RADIAL -> "Cone Radial"
     }
 
 fun defaultV2PreviewDraftState(): V2DraftState =
@@ -881,8 +909,8 @@ fun defaultV2PreviewDraftState(): V2DraftState =
             location = "Utulei, American Samoa",
             fieldLeaseName = "Pacific Terminal",
             shellConstruction = "butt",
-            externalRoofType = "cone",
-            internalRoofType = "na",
+            externalRoofType = "yes",
+            internalRoofType = "no",
             productStored = "Diesel",
             diameter = "16.0",
             height = "12.0",

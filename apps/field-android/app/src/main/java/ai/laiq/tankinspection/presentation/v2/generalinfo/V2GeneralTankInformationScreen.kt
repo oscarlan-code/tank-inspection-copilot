@@ -1,13 +1,14 @@
 package ai.laiq.tankinspection.presentation.v2.generalinfo
 
 import ai.laiq.tankinspection.presentation.components.LaiqColors
-import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqTextField
 import ai.laiq.tankinspection.v2.model.V2GeneralTankInfo
+import ai.laiq.tankinspection.v2.model.hasExternalRoof
+import ai.laiq.tankinspection.v2.model.hasInternalRoof
 import ai.laiq.tankinspection.v2.model.requiredValidationErrors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -37,19 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
-private val externalRoofTypeOptions = listOf(
-    "na" to "N.A.",
-    "cone" to "Cone Roof",
-    "dome" to "Dome Roof",
-    "umbrella" to "Umbrella Roof",
-    "geodesic" to "Geodesic Roof",
-    "other_fixed" to "Other Fixed Roof",
-    "external_floating" to "External Floating Roof",
-)
-
-private val internalRoofTypeOptions = listOf(
-    "na" to "N.A.",
-    "internal_floating" to "Internal Floating Roof",
+private val roofPresenceOptions = listOf(
+    "yes" to "Yes",
+    "no" to "No",
 )
 
 @Composable
@@ -146,28 +137,31 @@ fun V2GeneralTankInformationScreen(
                     TwoUpFields(
                         wide = wideLayout,
                         left = {
-                            LaiqDropdownField(
-                                label = "External Roof Type",
-                                value = state.externalRoofType,
-                                options = externalRoofTypeOptions,
-                                onSelected = {
-                                    val nextInternalRoofType =
-                                        if (it == "external_floating") "na" else state.internalRoofType
+                            RoofPresenceField(
+                                label = "External Roof",
+                                selectedValue = if (state.hasExternalRoof()) "yes" else "no",
+                                onSelect = {
                                     onStateChange(
                                         state.copy(
+                                            roofType = "",
                                             externalRoofType = it,
-                                            internalRoofType = nextInternalRoofType,
                                         ),
                                     )
                                 },
                             )
                         },
                         right = {
-                            LaiqDropdownField(
-                                label = "Internal Roof Type",
-                                value = state.internalRoofType,
-                                options = internalRoofTypeOptions,
-                                onSelected = { onStateChange(state.copy(internalRoofType = it)) },
+                            RoofPresenceField(
+                                label = "Internal Roof",
+                                selectedValue = if (state.hasInternalRoof()) "yes" else "no",
+                                onSelect = {
+                                    onStateChange(
+                                        state.copy(
+                                            roofType = "",
+                                            internalRoofType = it,
+                                        ),
+                                    )
+                                },
                             )
                         },
                     )
@@ -496,6 +490,27 @@ private fun UnitField(
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = keyboardOptions,
     )
+}
+
+@Composable
+private fun RoofPresenceField(
+    label: String,
+    selectedValue: String,
+    onSelect: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = LaiqColors.BodyText,
+            fontWeight = FontWeight.Medium,
+        )
+        LaiqOptionChips(
+            selectedValue = selectedValue,
+            options = roofPresenceOptions,
+            onSelect = onSelect,
+        )
+    }
 }
 
 @Composable

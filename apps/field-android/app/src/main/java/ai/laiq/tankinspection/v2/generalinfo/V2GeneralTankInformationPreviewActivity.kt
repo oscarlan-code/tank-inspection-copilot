@@ -5,6 +5,7 @@ import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2.generalinfo.V2GeneralTankInformationScreen
 import ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity
+import ai.laiq.tankinspection.v2.model.withReconciledGeneralTankInfo
 import ai.laiq.tankinspection.v2.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -29,7 +30,7 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
                     V2GeneralTankInformationScreen(
                         state = draftState.generalTankInfo,
                         onStateChange = {
-                            draftState = draftState.copy(generalTankInfo = it)
+                            draftState = draftState.withReconciledGeneralTankInfo(it)
                             V2PreviewSession.updateDraftState(draftState)
                         },
                         onBack = { finish() },

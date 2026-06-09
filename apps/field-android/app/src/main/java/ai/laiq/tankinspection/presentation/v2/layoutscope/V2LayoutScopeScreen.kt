@@ -7,6 +7,8 @@ import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.v2.model.V2GeneralTankInfo
 import ai.laiq.tankinspection.v2.model.V2LayoutScope
+import ai.laiq.tankinspection.v2.model.hasExternalRoof
+import ai.laiq.tankinspection.v2.model.hasInternalRoof
 import ai.laiq.tankinspection.v2.model.selectedTargets
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -39,9 +41,13 @@ fun V2LayoutScopeScreen(
     onContinue: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val externalRoofAvailable = generalTankInfo.externalRoofType != "na"
-    val internalRoofAvailable = generalTankInfo.internalRoofType != "na"
-    val selectedTargets = state.selectedTargets()
+    val externalRoofAvailable = generalTankInfo.hasExternalRoof()
+    val internalRoofAvailable = generalTankInfo.hasInternalRoof()
+    val effectiveState = state.copy(
+        externalRoof = state.externalRoof && externalRoofAvailable,
+        internalRoof = state.internalRoof && internalRoofAvailable,
+    )
+    val selectedTargets = effectiveState.selectedTargets()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -84,8 +90,8 @@ fun V2LayoutScopeScreen(
             LaiqSectionCard(title = "Layout Maps") {
                 LayoutScopeRow(
                     title = "External Roof",
-                    detail = roofTypeLabel(generalTankInfo.externalRoofType),
-                    checked = state.externalRoof && externalRoofAvailable,
+                    detail = roofPresenceLabel(externalRoofAvailable),
+                    checked = effectiveState.externalRoof,
                     enabled = externalRoofAvailable,
                     onCheckedChange = {
                         onStateChange(state.copy(externalRoof = it))
@@ -93,8 +99,8 @@ fun V2LayoutScopeScreen(
                 )
                 LayoutScopeRow(
                     title = "Internal Roof",
-                    detail = roofTypeLabel(generalTankInfo.internalRoofType),
-                    checked = state.internalRoof && internalRoofAvailable,
+                    detail = roofPresenceLabel(internalRoofAvailable),
+                    checked = effectiveState.internalRoof,
                     enabled = internalRoofAvailable,
                     onCheckedChange = {
                         onStateChange(state.copy(internalRoof = it))
@@ -193,14 +199,5 @@ private fun LayoutScopeRow(
     }
 }
 
-private fun roofTypeLabel(value: String): String =
-    when (value) {
-        "cone" -> "Cone Roof"
-        "dome" -> "Dome Roof"
-        "umbrella" -> "Umbrella Roof"
-        "geodesic" -> "Geodesic Roof"
-        "other_fixed" -> "Other Fixed Roof"
-        "external_floating" -> "External Floating Roof"
-        "internal_floating" -> "Internal Floating Roof"
-        else -> "N.A."
-    }
+private fun roofPresenceLabel(present: Boolean): String =
+    if (present) "Present in general tank information" else "Not present in general tank information"

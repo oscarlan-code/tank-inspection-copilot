@@ -28,6 +28,8 @@ import ai.laiq.tankinspection.v2.model.V2UtMeasurementEntry
 import ai.laiq.tankinspection.v2.model.V2UtMeasurementState
 import ai.laiq.tankinspection.v2.model.V2UtSetup
 import ai.laiq.tankinspection.v2.model.defaultV2PreviewDraftState
+import ai.laiq.tankinspection.v2.model.normalizedRoofPresence
+import ai.laiq.tankinspection.v2.model.withReconciledGeneralTankInfo
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -49,8 +51,9 @@ object V2DraftJsonCodec {
     fun decode(raw: String): V2DraftState {
         val json = JSONObject(raw)
         val defaults = defaultV2PreviewDraftState()
-        return defaults.copy(
+        val decoded = defaults.copy(
             generalTankInfo = json.optJSONObject("generalTankInfo")?.toGeneralTankInfo(defaults.generalTankInfo)
+                ?.normalizedRoofPresence()
                 ?: defaults.generalTankInfo,
             layoutScope = json.optJSONObject("layoutScope")?.toLayoutScope(defaults.layoutScope)
                 ?: defaults.layoutScope,
@@ -69,6 +72,7 @@ object V2DraftJsonCodec {
             roofLayoutMap = json.optJSONObject("roofLayoutMap")?.toRoofLayoutMap(defaults.roofLayoutMap)
                 ?: defaults.roofLayoutMap,
         )
+        return decoded.withReconciledGeneralTankInfo(decoded.generalTankInfo)
     }
 
     private fun V2GeneralTankInfo.toJson(): JSONObject =

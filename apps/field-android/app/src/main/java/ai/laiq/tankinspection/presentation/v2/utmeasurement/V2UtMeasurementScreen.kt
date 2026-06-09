@@ -494,10 +494,10 @@ private fun ShellUtMap(
         val placementRegion = shellPlacementRegion(
             mapSize = mapSizePx,
             courseCount = courseCount,
-            labelWidthPx = with(density) { 42.dp.toPx() },
-            topPaddingPx = with(density) { 42.dp.toPx() },
-            bottomPaddingPx = with(density) { 16.dp.toPx() },
-            rightPaddingPx = with(density) { 10.dp.toPx() },
+            labelWidthPx = with(density) { 46.dp.toPx() },
+            topPaddingPx = with(density) { 26.dp.toPx() },
+            bottomPaddingPx = with(density) { 14.dp.toPx() },
+            rightPaddingPx = with(density) { 8.dp.toPx() },
             cellGapPx = with(density) { 2.dp.toPx() },
             markerAnchorInsetPx = with(density) { 8.dp.toPx() },
         )
@@ -578,10 +578,10 @@ private fun ShellUtCanvas(
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    val labelWidthPx = with(density) { 42.dp.toPx() }
-    val topPaddingPx = with(density) { 42.dp.toPx() }
-    val bottomPaddingPx = with(density) { 16.dp.toPx() }
-    val rightPaddingPx = with(density) { 10.dp.toPx() }
+    val labelWidthPx = with(density) { 46.dp.toPx() }
+    val topPaddingPx = with(density) { 26.dp.toPx() }
+    val bottomPaddingPx = with(density) { 14.dp.toPx() }
+    val rightPaddingPx = with(density) { 8.dp.toPx() }
     val cellGapPx = with(density) { 2.dp.toPx() }
     Canvas(
         modifier = modifier.pointerInput(courseCount, laneCount) {

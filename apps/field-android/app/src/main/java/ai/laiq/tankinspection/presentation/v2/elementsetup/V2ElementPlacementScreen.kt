@@ -293,10 +293,10 @@ private fun ElementPlacementWorkspace(
     val mapEdgePaddingPx = with(density) { 16.dp.toPx() }
     val roofSurfaceMapSizePx = with(density) { 320.dp.toPx() }
     val roofSurfaceTopOffsetPx = with(density) { 58.dp.toPx() }
-    val shellLabelWidthPx = with(density) { 42.dp.toPx() }
-    val shellTopPaddingPx = with(density) { 34.dp.toPx() }
-    val shellBottomPaddingPx = with(density) { 16.dp.toPx() }
-    val shellRightPaddingPx = with(density) { 10.dp.toPx() }
+    val shellLabelWidthPx = with(density) { 46.dp.toPx() }
+    val shellTopPaddingPx = with(density) { 26.dp.toPx() }
+    val shellBottomPaddingPx = with(density) { 14.dp.toPx() }
+    val shellRightPaddingPx = with(density) { 8.dp.toPx() }
     val shellCellGapPx = with(density) { 2.dp.toPx() }
     val placedDragStartThresholdPx = with(density) { 12.dp.toPx() }
     val tapGestureTolerancePx = with(density) { 20.dp.toPx() }
@@ -976,7 +976,7 @@ private fun ElementPlacementMapBackground(
             template = layoutMapSetup.roofPattern,
             rowCount = layoutMapSetup.roofRowCount.toPositiveInt(4),
             widestRowPlateCount = layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10),
-            ringCount = layoutMapSetup.roofRingCount.toPositiveInt(4),
+            ringCount = layoutMapSetup.roofRingCount.toPositiveInt(3),
             sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20),
             activePlateId = null,
             centerFeatureCount = if (layoutMapSetup.roofHasCenterOpening) 1 else 0,
@@ -1000,22 +1000,15 @@ private fun ElementPlacementMapBackground(
 
         V2LayoutSurface.FLOOR -> RoofSurfaceMap(
             template = RoofTemplate.CIRCULAR_PLATE,
-            rowCount = layoutMapSetup.floorPlateCount.toPositiveInt(18).let { plateCount ->
-                when {
-                    plateCount >= 28 -> 5
-                    plateCount >= 18 -> 4
-                    plateCount >= 10 -> 3
-                    else -> 2
-                }
-            },
-            widestRowPlateCount = layoutMapSetup.floorPlateCount.toPositiveInt(18).coerceIn(8, 24),
+            rowCount = layoutMapSetup.floorPatternCountX.toPositiveInt(4),
+            widestRowPlateCount = layoutMapSetup.floorPatternCountY.toPositiveInt(12),
             ringCount = 0,
             sectorCount = 0,
             activePlateId = null,
             centerFeatureCount = 0,
             centerFeatureCountControlsLayout = false,
             useLeaderPlateLabels = false,
-            showAnnularSectionLabels = false,
+            showAnnularSectionLabels = layoutMapSetup.floorTemplate == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR,
             autoHideCrowdedPlateLabels = true,
             enablePlateTapSelection = false,
             showInteractionHint = false,
@@ -1061,10 +1054,10 @@ private fun ShellElementMapBackground(
             val borderColor = LaiqColors.BrandTeal.copy(alpha = 0.74f)
             val laneColor = LaiqColors.BrandRed.copy(alpha = 0.62f)
             val mutedColor = LaiqColors.MutedText
-            val labelWidth = 42.dp.toPx()
-            val topPadding = 34.dp.toPx()
-            val bottomPadding = 16.dp.toPx()
-            val rightPadding = 10.dp.toPx()
+            val labelWidth = 46.dp.toPx()
+            val topPadding = 26.dp.toPx()
+            val bottomPadding = 14.dp.toPx()
+            val rightPadding = 8.dp.toPx()
             val cellGap = 2.dp.toPx()
             val left = labelWidth
             val right = size.width - rightPadding
