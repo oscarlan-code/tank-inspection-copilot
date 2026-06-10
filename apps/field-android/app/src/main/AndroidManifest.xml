@@ -22,10 +22,41 @@
             android:name=".MainActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.scratch.V2ScratchPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2beta.scratch.V2ScratchPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.generalinfo.V2GeneralTankInformationPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2beta.generalinfo.V2GeneralTankInformationPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.layoutscope.V2LayoutScopePreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.layoutsetup.V2LayoutMapSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.elementsetup.V2ElementSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.elementsetup.V2ElementPlacementPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.utsetup.V2UtSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.utmeasurement.V2UtMeasurementPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.finding.V2FindingCapturePreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2beta.rooflayout.V2RoofLayoutMapPreviewActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="ai.laiq.tankinspection.v2product.scratch.V2ScratchPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2product.taskhome.V2TaskHomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,28 +65,34 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="ai.laiq.tankinspection.v2.layoutscope.V2LayoutScopePreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.generalinfo.V2GeneralTankInformationPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.layoutsetup.V2LayoutMapSetupPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.layoutscope.V2LayoutScopePreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.elementsetup.V2ElementSetupPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.layoutsetup.V2LayoutMapSetupPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.elementsetup.V2ElementPlacementPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.elementsetup.V2ElementSetupPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.utsetup.V2UtSetupPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.elementsetup.V2ElementPlacementPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.utmeasurement.V2UtMeasurementPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.utsetup.V2UtSetupPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.finding.V2FindingCapturePreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.utmeasurement.V2UtMeasurementPreviewActivity"
             android:exported="false" />
         <activity
-            android:name="ai.laiq.tankinspection.v2.rooflayout.V2RoofLayoutMapPreviewActivity"
+            android:name="ai.laiq.tankinspection.v2product.checklist.V2InspectionChecklistPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2product.finding.V2FindingCapturePreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v2product.rooflayout.V2RoofLayoutMapPreviewActivity"
             android:exported="false" />
     </application>
 
