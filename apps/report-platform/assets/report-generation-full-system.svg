@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="980" viewBox="0 0 1800 980" role="img" aria-labelledby="title desc">
+  <title id="title">Report Generation Simple Topology</title>
+  <desc id="desc">A simplified and centered topology diagram for report generation showing users, Android export, report platform, knowledge base, Codex CLI, outputs, and backend storage.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .lane { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 26; ry: 26; }
+      .users-lane { fill: #eef4ff; stroke: #93c5fd; }
+      .storage-lane { fill: #f8fafc; stroke: #94a3b8; }
+      .box { fill: #ffffff; stroke-width: 2.5; rx: 20; ry: 20; }
+      .blue { fill: #f8fbff; stroke: #60a5fa; }
+      .green { fill: #f3fff5; stroke: #4ade80; }
+      .amber { fill: #fff8f1; stroke: #fb923c; }
+      .teal { fill: #f0fdfa; stroke: #14b8a6; }
+      .slate { fill: #f8fafc; stroke: #64748b; }
+      .yellow { fill: #fffdf0; stroke: #eab308; }
+      .role { fill: #ffffff; stroke: #60a5fa; stroke-width: 2; rx: 16; ry: 16; }
+      .title { font-family: Arial, Helvetica, sans-serif; font-size: 34px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-family: Arial, Helvetica, sans-serif; font-size: 16px; fill: #475569; }
+      .panel-title { font-family: Arial, Helvetica, sans-serif; font-size: 22px; font-weight: 700; fill: #0f172a; }
+      .role-text { font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 700; fill: #0f172a; text-anchor: middle; dominant-baseline: middle; }
+      .box-title { font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .body { font-family: Arial, Helvetica, sans-serif; font-size: 15px; fill: #334155; text-anchor: middle; }
+      .small { font-family: Arial, Helvetica, sans-serif; font-size: 13px; fill: #475569; text-anchor: middle; }
+      .legend-pill { fill: #0f172a; rx: 15; ry: 15; }
+      .legend-text { font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; fill: #ffffff; text-anchor: middle; dominant-baseline: middle; }
+      .line { stroke: #334155; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .line-soft { stroke: #64748b; stroke-width: 3; fill: none; marker-end: url(#arrow); stroke-dasharray: 9 7; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1800" height="980"/>
+
+  <text class="title" x="80" y="60">Report Generation Simple Topology</text>
+  <text class="subtitle" x="80" y="92">Android export + report inputs + knowledge base retrieval + Codex CLI drafting + review + preview + PDF</text>
+
+  <rect class="lane users-lane" x="80" y="130" width="1640" height="120"/>
+  <text class="panel-title" x="110" y="170">Users And Roles</text>
+
+  <rect class="role" x="110" y="190" width="200" height="40"/>
+  <text class="role-text" x="210" y="210">Super Admin</text>
+
+  <rect class="role" x="340" y="190" width="200" height="40"/>
+  <text class="role-text" x="440" y="210">Manager</text>
+
+  <rect class="role" x="570" y="190" width="200" height="40"/>
+  <text class="role-text" x="670" y="210">Inspector</text>
+
+  <rect class="role" x="800" y="190" width="200" height="40"/>
+  <text class="role-text" x="900" y="210">Reviewer</text>
+
+  <rect class="role" x="1030" y="190" width="220" height="40"/>
+  <text class="role-text" x="1140" y="210">Client Viewer</text>
+
+  <rect class="legend-pill" x="1390" y="148" width="300" height="30"/>
+  <text class="legend-text" x="1540" y="163">Tenant + workspace + role filters apply everywhere</text>
+
+  <rect class="lane" x="80" y="280" width="1640" height="430"/>
+  <text class="panel-title" x="110" y="320">Main Product Flow</text>
+
+  <rect class="box green" x="110" y="380" width="240" height="170"/>
+  <text class="box-title" x="230" y="422">Android V2 Product</text>
+  <text class="body" x="230" y="458">Field capture source of truth</text>
+  <text class="body" x="230" y="484">Exports JSON package</text>
+  <text class="body" x="230" y="510">Exports attachments</text>
+  <text class="body" x="230" y="536">Carries tenant metadata</text>
+
+  <rect class="box blue" x="420" y="350" width="310" height="230"/>
+  <text class="box-title" x="575" y="392">Report Platform</text>
+  <text class="body" x="575" y="438">Import creates report job</text>
+  <text class="body" x="575" y="464">Inspector adds report inputs</text>
+  <text class="body" x="575" y="490">Authorization context applies</text>
+  <text class="body" x="575" y="516">Tenant and role scoped access</text>
+  <text class="body" x="575" y="542">Review workflow lives here</text>
+
+  <rect class="box amber" x="800" y="350" width="300" height="230"/>
+  <text class="box-title" x="950" y="392">Knowledge Base</text>
+  <text class="body" x="950" y="438">Previous reports are indexed</text>
+  <text class="body" x="950" y="464">Vector retrieval finds precedent</text>
+  <text class="body" x="950" y="490">Metadata filters enforce isolation</text>
+  <text class="body" x="950" y="516">Returns authorized examples</text>
+
+  <rect class="box amber" x="1170" y="350" width="250" height="230"/>
+  <text class="box-title" x="1295" y="392">Codex CLI</text>
+  <text class="body" x="1295" y="438">Drafts one section at a time</text>
+  <text class="body" x="1295" y="464">Uses facts and manual inputs</text>
+  <text class="body" x="1295" y="490">Uses retrieved precedent</text>
+  <text class="body" x="1295" y="516">Saves draft and provenance</text>
+
+  <rect class="box teal" x="1490" y="350" width="200" height="230"/>
+  <text class="box-title" x="1590" y="392">Outputs</text>
+  <text class="body" x="1590" y="438">Section drafts</text>
+  <text class="body" x="1590" y="464">Browser preview</text>
+  <text class="body" x="1590" y="490">Reviewer approval</text>
+  <text class="body" x="1590" y="516">Final PDF</text>
+  <text class="body" x="1590" y="542">Audit trail</text>
+
+  <path class="line" d="M 350 465 H 420"/>
+  <path class="line" d="M 730 465 H 800"/>
+  <path class="line" d="M 1100 465 H 1170"/>
+  <path class="line" d="M 1420 465 H 1490"/>
+
+  <path class="line-soft" d="M 1590 605 H 575 V 580"/>
+  <text class="small" x="1030" y="622">review feedback can trigger section reruns</text>
+
+  <rect class="box yellow" x="420" y="620" width="1270" height="70"/>
+  <text class="box-title" x="510" y="655">Core Rule</text>
+  <text class="body" x="1085" y="652">Facts come from Android export and manual report inputs.</text>
+  <text class="body" x="1085" y="676">Previous reports are precedent only. Codex drafts section-by-section under review control.</text>
+
+  <rect class="lane storage-lane" x="80" y="760" width="1640" height="180"/>
+  <text class="panel-title" x="110" y="800">Backend Storage</text>
+
+  <rect class="box slate" x="110" y="830" width="420" height="90"/>
+  <text class="box-title" x="320" y="872">Postgres</text>
+  <text class="small" x="320" y="898">tenants, workspaces, users, report jobs, drafts, reviews,</text>
+  <text class="small" x="320" y="916">provenance, audit, policies</text>
+
+  <rect class="box slate" x="570" y="830" width="420" height="90"/>
+  <text class="box-title" x="780" y="872">Object Storage</text>
+  <text class="small" x="780" y="898">imports, attachments, source PDFs, preview artifacts,</text>
+  <text class="small" x="780" y="916">final PDFs</text>
+
+  <rect class="box slate" x="1030" y="830" width="520" height="90"/>
+  <text class="box-title" x="1290" y="872">pgvector / Vector Index</text>
+  <text class="small" x="1290" y="898">chunk embeddings plus metadata filters for tenant, workspace,</text>
+  <text class="small" x="1290" y="916">visibility, and section type</text>
+
+  <path class="line-soft" d="M 575 580 V 830"/>
+  <path class="line-soft" d="M 950 580 V 830 H 1290"/>
+  <path class="line-soft" d="M 1590 580 V 830 H 780"/>
+</svg>

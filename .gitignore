@@ -13,6 +13,12 @@ apps/field-android/.gradle-local/
 apps/field-android/build/
 apps/field-android/app/build/
 apps/field-android/local.properties
+apps/field-ios-demo/.build/
+apps/field-ios-demo/FieldIOSDemo.xcodeproj/project.xcworkspace/
+apps/field-ios-demo/FieldIOSDemo.xcodeproj/xcuserdata/
+apps/report-platform/node_modules/
+apps/report-platform/dist/
+apps/report-platform/.data/
 
 # Local recovery and QA artifacts
 .git.icloud-placeholder

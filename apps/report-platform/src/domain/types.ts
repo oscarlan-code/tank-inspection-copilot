@@ -1,0 +1,172 @@
+export type SectionKind = "structured" | "narrative" | "map" | "attachment";
+export type WorkspaceDataSourceMode = "fixture" | "api";
+
+export type SectionStatus =
+  | "not started"
+  | "generated"
+  | "edited"
+  | "missing info"
+  | "review required"
+  | "approved";
+
+export type MissingFieldInput = "text" | "textarea" | "date" | "select";
+
+export type MissingField = {
+  id: string;
+  label: string;
+  input: MissingFieldInput;
+  value: string;
+  suggestion?: string;
+  reason: string;
+  source: string;
+  options?: string[];
+};
+
+export type ChatRole = "assistant" | "user";
+
+export type AssistantAction = {
+  id: string;
+  type:
+    | "replace_section_content"
+    | "apply_text_style"
+    | "move_marker"
+    | "resize_plate";
+  label: string;
+  reason: string;
+  contentHtml?: string;
+  fontFamily?: string;
+  fontSize?: string;
+  textAlign?: "left" | "center";
+  color?: string;
+  markerId?: string;
+  deltaX?: number;
+  deltaY?: number;
+  plateId?: string;
+  widthDelta?: number;
+  heightDelta?: number;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: ChatRole;
+  content: string;
+  actions?: AssistantAction[];
+};
+
+export type LayoutMarkerType = "finding" | "element" | "weld";
+
+export type LayoutMarker = {
+  id: string;
+  label: string;
+  type: LayoutMarkerType;
+  x: number;
+  y: number;
+  source: string;
+};
+
+export type LayoutPlate = {
+  id: string;
+  label: string;
+  row: number;
+  column: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  source: string;
+};
+
+export type LayoutDrawingBlock = {
+  client: string;
+  project: string;
+  drawing: string;
+  reference: string;
+  referenceMode: string;
+  updatedAtLabel: string;
+};
+
+export type LayoutMapData = {
+  id: string;
+  title: string;
+  subtitle: string;
+  surfaceLabel: string;
+  legend: string[];
+  markers: LayoutMarker[];
+  plates: LayoutPlate[];
+  gridRows: number;
+  gridColumns: number;
+  drawingBlock: LayoutDrawingBlock;
+  selectedMarkerId?: string;
+  overrideCount: number;
+};
+
+export type WorkspaceValidationResult = {
+  ruleCode: string;
+  ruleLabel: string;
+  passed: boolean;
+  blocksExport: boolean;
+  message: string;
+};
+
+export type WorkspaceImportSummary = {
+  dataSourceMode: WorkspaceDataSourceMode;
+  packageType: string;
+  schemaVersion: number;
+  inspectionId: string;
+  inspectionReference: string;
+  exportedByUserId: string;
+  exportedAtIso: string;
+  tenantId: string;
+  tenantName: string;
+  workspaceId: string;
+  workspaceName: string;
+  roleLabel: string;
+  workflowScreen: string;
+  validationResults: WorkspaceValidationResult[];
+  findingCount: number;
+  attachmentCount: number;
+  measurementCount: number;
+};
+
+export type WorkspaceApiLinks = {
+  apiBaseUrl: string;
+  importInspectionPath: string;
+  loadReportJobPath: string;
+  saveSectionDraftPath: string;
+  saveManualInputsPath: string;
+  saveLayoutOverridePath: string;
+  generateSectionPath: string;
+  sectionChatPath: string;
+  approveSectionPath: string;
+};
+
+export type ReportSection = {
+  id: string;
+  number: string;
+  title: string;
+  shortLabel: string;
+  kind: SectionKind;
+  generated: boolean;
+  edited: boolean;
+  approved: boolean;
+  reviewRequired: boolean;
+  description: string;
+  content: string;
+  aiHint: string;
+  templateExpectation: string;
+  sourceSummary: string;
+  missingFields: MissingField[];
+  layoutMap?: LayoutMapData;
+};
+
+export type WorkspaceReport = {
+  id: string;
+  title: string;
+  reference: string;
+  client: string;
+  tank: string;
+  inspectedDate: string;
+  importSummary: WorkspaceImportSummary;
+  apiLinks: WorkspaceApiLinks;
+  sections: ReportSection[];
+};

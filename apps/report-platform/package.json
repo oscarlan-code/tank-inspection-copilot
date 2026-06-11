@@ -1,0 +1,36 @@
+{
+  "name": "@tank-inspection/report-platform",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "api": "node ./server/index.mjs",
+    "kb:rebuild": "node ./server/scripts/rebuild-precedent-kb.mjs",
+    "kb:audit": "node ./server/scripts/audit-precedent-kb.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tiptap/extension-color": "^2.11.5",
+    "@tiptap/extension-font-family": "^2.11.5",
+    "@tiptap/extension-text-align": "^2.11.5",
+    "@tiptap/extension-text-style": "^2.11.5",
+    "@tiptap/extension-underline": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "dompurify": "^3.2.6",
+    "konva": "^10.0.12",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-konva": "^18.2.16"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
