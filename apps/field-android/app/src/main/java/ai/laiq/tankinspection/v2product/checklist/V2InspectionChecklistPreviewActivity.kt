@@ -8,6 +8,7 @@ import ai.laiq.tankinspection.presentation.v2product.checklist.V2InspectionCheck
 import ai.laiq.tankinspection.v2product.preview.V2PreviewSession
 import ai.laiq.tankinspection.v2product.storage.V2WorkflowScreen
 import ai.laiq.tankinspection.v2product.taskhome.V2TaskHomeActivity
+import ai.laiq.tankinspection.v2product.utmeasurement.V2UtMeasurementPreviewActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -31,6 +32,11 @@ class V2InspectionChecklistPreviewActivity : ComponentActivity() {
 
                     fun goBackToUtMeasurements() {
                         V2PreviewSession.updateDraftState(draftState)
+                        startActivity(
+                            Intent(this, V2UtMeasurementPreviewActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            },
+                        )
                         finish()
                     }
 

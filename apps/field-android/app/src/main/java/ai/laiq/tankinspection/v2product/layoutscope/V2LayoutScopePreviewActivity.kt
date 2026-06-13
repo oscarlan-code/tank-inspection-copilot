@@ -3,9 +3,13 @@ package ai.laiq.tankinspection.v2product.layoutscope
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
+import ai.laiq.tankinspection.presentation.v2product.common.V2DownstreamDataWarningDialog
 import ai.laiq.tankinspection.presentation.v2product.layoutscope.V2LayoutScopeScreen
 import ai.laiq.tankinspection.v2product.generalinfo.V2GeneralTankInformationPreviewActivity
 import ai.laiq.tankinspection.v2product.layoutsetup.V2LayoutMapSetupPreviewActivity
+import ai.laiq.tankinspection.v2product.model.V2DownstreamDataImpact
+import ai.laiq.tankinspection.v2product.model.V2DraftState
+import ai.laiq.tankinspection.v2product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v2product.model.selectedTargets
 import ai.laiq.tankinspection.v2product.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v2product.model.withReconciledLayoutScope
@@ -31,6 +35,8 @@ class V2LayoutScopePreviewActivity : ComponentActivity() {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
+                    var pendingDraftState by remember { mutableStateOf<V2DraftState?>(null) }
+                    var pendingImpact by remember { mutableStateOf<V2DownstreamDataImpact?>(null) }
 
                     fun openGeneralTankInfo() {
                         V2PreviewSession.updateDraftState(draftState)
@@ -51,17 +57,44 @@ class V2LayoutScopePreviewActivity : ComponentActivity() {
                         startActivity(Intent(this, V2LayoutMapSetupPreviewActivity::class.java))
                     }
 
+                    fun applyDraftState(nextDraftState: V2DraftState) {
+                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
+                        if (impact != null) {
+                            pendingDraftState = nextDraftState
+                            pendingImpact = impact
+                        } else {
+                            draftState = nextDraftState
+                            V2PreviewSession.updateDraftState(nextDraftState)
+                        }
+                    }
+
                     BackHandler { openGeneralTankInfo() }
                     V2LayoutScopeScreen(
                         generalTankInfo = draftState.generalTankInfo,
                         state = draftState.layoutScope,
                         onStateChange = {
-                            draftState = draftState.withReconciledLayoutScope(it)
-                            V2PreviewSession.updateDraftState(draftState)
+                            applyDraftState(draftState.withReconciledLayoutScope(it))
                         },
                         onBack = { openGeneralTankInfo() },
                         onContinue = { openLayoutMapSetup() },
                     )
+                    pendingImpact?.let { impact ->
+                        V2DownstreamDataWarningDialog(
+                            impact = impact,
+                            onDismiss = {
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                            onConfirm = {
+                                pendingDraftState?.let { nextDraftState ->
+                                    draftState = nextDraftState
+                                    V2PreviewSession.updateDraftState(nextDraftState)
+                                }
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                        )
+                    }
                 }
             }
         }

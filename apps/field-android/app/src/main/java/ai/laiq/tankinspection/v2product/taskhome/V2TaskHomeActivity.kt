@@ -51,7 +51,7 @@ class V2TaskHomeActivity : ComponentActivity() {
                         onContinueInspection = { task ->
                             exportReviewState = null
                             if (V2PreviewSession.continueInspection(task.inspectionId)) {
-                                startActivity(Intent(this, activityFor(task)))
+                                startActivities(resumeIntentsFor(task.currentScreen))
                             }
                         },
                         onReviewExport = { task ->
@@ -178,8 +178,38 @@ class V2TaskHomeActivity : ComponentActivity() {
         )
     }
 
-    private fun activityFor(task: V2TaskSummary): Class<out ComponentActivity> =
-        when (task.currentScreen) {
+    private fun resumeIntentsFor(screen: V2WorkflowScreen): Array<Intent> =
+        workflowPathFor(screen)
+            .map { workflowScreen -> Intent(this, activityFor(workflowScreen)) }
+            .toTypedArray()
+
+    private fun workflowPathFor(screen: V2WorkflowScreen): List<V2WorkflowScreen> {
+        val resumeTarget = when (screen) {
+            V2WorkflowScreen.TASK_HOME,
+            V2WorkflowScreen.GENERAL_INFO -> V2WorkflowScreen.GENERAL_INFO
+            V2WorkflowScreen.FINDINGS -> V2WorkflowScreen.UT_MEASUREMENT
+            else -> screen
+        }
+        val orderedWorkflow = listOf(
+            V2WorkflowScreen.GENERAL_INFO,
+            V2WorkflowScreen.LAYOUT_SCOPE,
+            V2WorkflowScreen.LAYOUT_MAP_SETUP,
+            V2WorkflowScreen.ELEMENT_SETUP,
+            V2WorkflowScreen.ELEMENT_PLACEMENT,
+            V2WorkflowScreen.UT_SETUP,
+            V2WorkflowScreen.UT_MEASUREMENT,
+            V2WorkflowScreen.CHECKLIST,
+        )
+        val targetIndex = orderedWorkflow.indexOf(resumeTarget)
+        return if (targetIndex >= 0) {
+            orderedWorkflow.subList(0, targetIndex + 1)
+        } else {
+            listOf(V2WorkflowScreen.GENERAL_INFO)
+        }
+    }
+
+    private fun activityFor(screen: V2WorkflowScreen): Class<out ComponentActivity> =
+        when (screen) {
             V2WorkflowScreen.TASK_HOME,
             V2WorkflowScreen.GENERAL_INFO -> V2GeneralTankInformationPreviewActivity::class.java
             V2WorkflowScreen.LAYOUT_SCOPE -> V2LayoutScopePreviewActivity::class.java

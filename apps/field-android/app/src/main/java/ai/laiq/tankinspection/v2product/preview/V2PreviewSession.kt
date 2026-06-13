@@ -29,7 +29,7 @@ object V2PreviewSession {
     private const val LEGACY_DRAFT_STATE_KEY = "draft_state_json"
     private const val ACTIVE_INSPECTION_ID_KEY = "active_inspection_id"
     private const val ACTIVE_SCREEN_KEY = "active_screen_key"
-    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260711"
+    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260611_complete_report_data"
     private const val STORAGE_DIR_NAME = "v2-product-session"
     private const val TASKS_DIR_NAME = "tasks"
     private const val DRAFT_FILE_NAME = "draft-state.json"
@@ -238,19 +238,46 @@ object V2PreviewSession {
         val hasExistingTasks = runBlocking { store.hasAnyTasks() }
         runCatching {
             runBlocking {
-                val seeds = if (hasExistingTasks) {
-                    listOf(v2ProductApiStandardV10Seed())
+                if (hasExistingTasks) {
+                    seedOrRefreshMockTask(store, v2ProductApiStandardV10Seed())
                 } else {
-                    v2ProductMockTaskSeeds()
-                }
-                seeds.forEach { seed ->
-                    val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
-                    persistTaskSnapshot(identity.inspectionId, seed.state)
+                    v2ProductMockTaskSeeds().forEach { seed ->
+                        val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
+                        persistTaskSnapshot(identity.inspectionId, seed.state)
+                    }
                 }
             }
             preferences.edit().putBoolean(MOCK_TASKS_SEEDED_KEY, true).apply()
         }.onFailure { error ->
             lastPersistenceError = error
+        }
+    }
+
+    private suspend fun seedOrRefreshMockTask(
+        store: V2ProductStore,
+        seed: V2MockTaskSeed,
+    ) {
+        val matchingSummaries = store.listTaskSummaries()
+            .sortedByDescending { task -> task.updatedAtIso }
+            .filter { summary ->
+                val savedState = decodeFile(taskDraftFile(summary.inspectionId))
+                    ?: decodeFile(taskBackupFile(summary.inspectionId))
+                    ?: return@filter false
+                savedState.generalTankInfo.client == seed.state.generalTankInfo.client &&
+                    savedState.generalTankInfo.tankNumber == seed.state.generalTankInfo.tankNumber &&
+                    savedState.generalTankInfo.jobNo == seed.state.generalTankInfo.jobNo
+            }
+
+        if (matchingSummaries.isEmpty()) {
+            val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
+            persistTaskSnapshot(identity.inspectionId, seed.state)
+            return
+        }
+
+        matchingSummaries.forEach { summary ->
+            val identity = store.getTaskIdentity(summary.inspectionId) ?: return@forEach
+            store.saveNow(seed.state, identity, seed.workflowScreen)
+            persistTaskSnapshot(identity.inspectionId, seed.state)
         }
     }
 

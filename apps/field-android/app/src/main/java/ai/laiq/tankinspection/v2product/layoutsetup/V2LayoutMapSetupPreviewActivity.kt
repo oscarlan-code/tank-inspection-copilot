@@ -3,11 +3,15 @@ package ai.laiq.tankinspection.v2product.layoutsetup
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
+import ai.laiq.tankinspection.presentation.v2product.common.V2DownstreamDataWarningDialog
 import ai.laiq.tankinspection.presentation.v2product.layoutsetup.V2LayoutMapSetupScreen
 import ai.laiq.tankinspection.v2product.elementsetup.V2ElementSetupPreviewActivity
 import ai.laiq.tankinspection.v2product.layoutscope.V2LayoutScopePreviewActivity
+import ai.laiq.tankinspection.v2product.model.V2DownstreamDataImpact
+import ai.laiq.tankinspection.v2product.model.V2DraftState
 import ai.laiq.tankinspection.v2product.model.V2LayoutSurface
 import ai.laiq.tankinspection.v2product.model.V2LayoutTarget
+import ai.laiq.tankinspection.v2product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v2product.model.roofSummaryLabel
 import ai.laiq.tankinspection.v2product.model.selectedTargets
 import ai.laiq.tankinspection.v2product.model.tankBadgeLabel
@@ -59,6 +63,8 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
                             },
                         )
                     }
+                    var pendingDraftState by remember { mutableStateOf<V2DraftState?>(null) }
+                    var pendingImpact by remember { mutableStateOf<V2DownstreamDataImpact?>(null) }
 
 	                    fun openLayoutScope() {
 	                        V2PreviewSession.updateDraftState(draftState)
@@ -72,6 +78,17 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
 
 	                    val selectedTargets = draftState.layoutScope.selectedTargets()
 
+                    fun applyDraftState(nextDraftState: V2DraftState) {
+                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
+                        if (impact != null) {
+                            pendingDraftState = nextDraftState
+                            pendingImpact = impact
+                        } else {
+                            draftState = nextDraftState
+                            V2PreviewSession.updateDraftState(nextDraftState)
+                        }
+                    }
+
 	                    BackHandler { openLayoutScope() }
 	                    V2LayoutMapSetupScreen(
                         state = draftState.layoutMapSetup,
@@ -79,8 +96,7 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
                         tankLabel = draftState.tankBadgeLabel(),
                         roofLabel = draftState.roofSummaryLabel(),
                         onStateChange = {
-                            draftState = draftState.withReconciledLayoutMapSetup(it)
-                            V2PreviewSession.updateDraftState(draftState)
+                            applyDraftState(draftState.withReconciledLayoutMapSetup(it))
                         },
 	                        onBack = { openLayoutScope() },
 	                        onContinue = { approvedSetup ->
@@ -90,6 +106,23 @@ class V2LayoutMapSetupPreviewActivity : ComponentActivity() {
 	                            startActivity(Intent(this, V2ElementSetupPreviewActivity::class.java))
 	                        },
 	                    )
+                    pendingImpact?.let { impact ->
+                        V2DownstreamDataWarningDialog(
+                            impact = impact,
+                            onDismiss = {
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                            onConfirm = {
+                                pendingDraftState?.let { nextDraftState ->
+                                    draftState = nextDraftState
+                                    V2PreviewSession.updateDraftState(nextDraftState)
+                                }
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                        )
+                    }
                 }
             }
         }

@@ -3,7 +3,11 @@ package ai.laiq.tankinspection.v2product.elementsetup
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
+import ai.laiq.tankinspection.presentation.v2product.common.V2DownstreamDataWarningDialog
 import ai.laiq.tankinspection.presentation.v2product.elementsetup.V2ElementPlacementScreen
+import ai.laiq.tankinspection.v2product.model.V2DownstreamDataImpact
+import ai.laiq.tankinspection.v2product.model.V2DraftState
+import ai.laiq.tankinspection.v2product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v2product.model.selectedTargets
 import ai.laiq.tankinspection.v2product.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v2product.model.withReconciledElementPlacement
@@ -42,6 +46,8 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                             },
                         )
                     }
+                    var pendingDraftState by remember { mutableStateOf<V2DraftState?>(null) }
+                    var pendingImpact by remember { mutableStateOf<V2DownstreamDataImpact?>(null) }
 
                     val approvedLayoutTargets = draftState.layoutScope.selectedTargets()
                         .filter { target -> target in draftState.layoutMapSetup.approvedTargets }
@@ -58,6 +64,17 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                         finish()
                     }
 
+                    fun applyDraftState(nextDraftState: V2DraftState) {
+                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
+                        if (impact != null) {
+                            pendingDraftState = nextDraftState
+                            pendingImpact = impact
+                        } else {
+                            draftState = nextDraftState
+                            V2PreviewSession.updateDraftState(nextDraftState)
+                        }
+                    }
+
                     BackHandler { openElementScope() }
                     V2ElementPlacementScreen(
                         generalTankInfo = draftState.generalTankInfo,
@@ -65,9 +82,7 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                         visibleTargets = visibleTargets,
                         state = draftState.elementPlacement,
                         onStateChange = {
-                            val nextDraftState = draftState.withReconciledElementPlacement(it)
-                            draftState = nextDraftState
-                            V2PreviewSession.updateDraftState(nextDraftState)
+                            applyDraftState(draftState.withReconciledElementPlacement(it))
                         },
                         onBack = { openElementScope() },
                         onContinue = { approvedState ->
@@ -77,6 +92,23 @@ class V2ElementPlacementPreviewActivity : ComponentActivity() {
                             startActivity(Intent(this, V2UtSetupPreviewActivity::class.java))
                         },
                     )
+                    pendingImpact?.let { impact ->
+                        V2DownstreamDataWarningDialog(
+                            impact = impact,
+                            onDismiss = {
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                            onConfirm = {
+                                pendingDraftState?.let { nextDraftState ->
+                                    draftState = nextDraftState
+                                    V2PreviewSession.updateDraftState(nextDraftState)
+                                }
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                        )
+                    }
                 }
             }
         }

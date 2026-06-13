@@ -83,7 +83,7 @@ export function RichTextSectionEditor({ content, onChange }: Props) {
 
     const normalized = normalizeSectionContent(content);
     if (editor.getHTML() !== normalized) {
-      editor.commands.setContent(normalized, { emitUpdate: false });
+      editor.commands.setContent(normalized, false);
     }
   }, [content, editor]);
 

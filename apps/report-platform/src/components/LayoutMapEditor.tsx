@@ -29,7 +29,7 @@ export function LayoutMapEditor({
   onPlateSelect,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerWidth, setContainerWidth] = useState(MAP_STAGE.width);
+  const [containerWidth, setContainerWidth] = useState<number>(MAP_STAGE.width);
   const safeLayoutMap = useMemo(() => ensureLayoutMapData(layoutMap), [layoutMap]);
   const scale = Math.min(1, containerWidth / MAP_STAGE.width);
   const selectedMarker = safeLayoutMap.markers.find((marker) => marker.id === activeMarkerId) ?? null;

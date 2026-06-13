@@ -12,6 +12,7 @@ import ai.laiq.tankinspection.v2product.model.completedItemCount
 import ai.laiq.tankinspection.v2product.model.isComplete
 import ai.laiq.tankinspection.v2product.model.placementsFor
 import ai.laiq.tankinspection.v2product.model.requiredValidationErrors
+import ai.laiq.tankinspection.v2product.model.requiresElementUt
 import ai.laiq.tankinspection.v2product.model.selectedTargets
 import ai.laiq.tankinspection.v2product.storage.db.V2AttachmentEntity
 import ai.laiq.tankinspection.v2product.storage.db.V2ChecklistItemEntity
@@ -60,7 +61,7 @@ class V2ProductStore(
         "laiq-field-v2-product-db",
     )
         .addMigrations(V2FieldDatabase.MIGRATION_1_2, V2FieldDatabase.MIGRATION_2_3)
-        .addMigrations(V2FieldDatabase.MIGRATION_3_4)
+        .addMigrations(V2FieldDatabase.MIGRATION_3_4, V2FieldDatabase.MIGRATION_4_5)
         .build()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val saveMutex = Mutex()
@@ -713,7 +714,9 @@ class V2ProductStore(
                     itemLabel = entry.itemLabel,
                     itemKind = entry.kind.name,
                     elementTypeKey = entry.elementType?.key,
-                    nozzleSize = entry.nozzleSize.takeIf { entry.elementType == V2ElementType.NOZZLE },
+                    nozzleSize = entry.nozzleSize.takeIf { entry.requiresElementUt() },
+                    reinforcementPadReading = entry.reinforcementPadReading.trim().toDoubleOrNull()
+                        .takeIf { entry.requiresElementUt() },
                     laneId = laneCourse?.laneId,
                     course = laneCourse?.course,
                     plateId = entry.itemLabel.takeIf { entry.kind == V2UtItemKind.LAYOUT_REGION && laneCourse == null },
@@ -1218,7 +1221,8 @@ private fun V2FindingRecord.hasFieldEvidence(): Boolean =
     note.isNotBlank() || photos.isNotEmpty()
 
 private fun V2UtMeasurementEntry.hasPositiveReading(): Boolean =
-    readings.any { reading -> reading.trim().toDoubleOrNull()?.let { value -> value > 0.0 } == true }
+    readings.any { reading -> reading.trim().toDoubleOrNull()?.let { value -> value > 0.0 } == true } ||
+        reinforcementPadReading.trim().toDoubleOrNull()?.let { value -> value > 0.0 } == true
 
 private fun V2UtMeasurementEntry.elementId(): String? =
     itemKey.substringAfter(":element:", missingDelimiterValue = "").ifBlank { null }
@@ -1489,6 +1493,7 @@ private fun V2UtMeasurementEntity.toJson(): JSONObject =
         .put("itemKind", itemKind)
         .put("elementTypeKey", elementTypeKey)
         .put("nozzleSize", nozzleSize)
+        .put("reinforcementPadReading", reinforcementPadReading)
         .put("laneId", laneId)
         .put("course", course)
         .put("plateId", plateId)

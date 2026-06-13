@@ -355,6 +355,7 @@ object V2DraftJsonCodec {
             .put("kind", kind.name)
             .putNullable("elementType", elementType?.key)
             .put("nozzleSize", nozzleSize)
+            .put("reinforcementPadReading", reinforcementPadReading)
             .put("readings", JSONArray().apply { readings.forEach(::put) })
             .put("confirmed", confirmed)
 
@@ -387,6 +388,7 @@ object V2DraftJsonCodec {
             kind = kind,
             elementType = optNullableString("elementType")?.let(::elementTypeByKey),
             nozzleSize = optString("nozzleSize", "6 in"),
+            reinforcementPadReading = optString("reinforcementPadReading", ""),
             readings = optJSONArray("readings")?.toStringList() ?: emptyList(),
             confirmed = optBoolean("confirmed", false),
         )

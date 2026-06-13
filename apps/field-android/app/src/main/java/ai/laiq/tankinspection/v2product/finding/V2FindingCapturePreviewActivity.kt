@@ -6,13 +6,18 @@ import android.provider.OpenableColumns
 import android.widget.Toast
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.v2product.finding.V2FindingCaptureScreen
+import ai.laiq.tankinspection.v2product.model.V2DraftState
 import ai.laiq.tankinspection.v2product.model.V2FindingPhoto
 import ai.laiq.tankinspection.v2product.model.V2FindingRecord
 import ai.laiq.tankinspection.v2product.model.V2LayoutTarget
 import ai.laiq.tankinspection.v2product.model.V2UtItemKind
 import ai.laiq.tankinspection.v2product.model.V2UtMeasurementEntry
+import ai.laiq.tankinspection.v2product.model.hasCapturedEvidence
 import ai.laiq.tankinspection.v2product.model.withActiveFinding
 import ai.laiq.tankinspection.v2product.model.withPhoto
+import ai.laiq.tankinspection.v2product.model.withReplacedPhoto
+import ai.laiq.tankinspection.v2product.model.withRemovedFinding
+import ai.laiq.tankinspection.v2product.model.withSavedFinding
 import ai.laiq.tankinspection.v2product.preview.V2PreviewSession
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -35,14 +40,22 @@ import kotlinx.coroutines.withContext
 
 class V2FindingCapturePreviewActivity : ComponentActivity() {
     private var pendingCameraPhoto: V2FindingPhoto? = null
+    private var pendingReplacementPhotoId: String? = null
     private var applyDraftUpdate: ((V2FindingRecord) -> Unit)? = null
     private var latestFindingRecord: V2FindingRecord? = null
+    private var activeItemKeyForPhoto: String? = null
 
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         val photo = pendingCameraPhoto
+        val replacementPhotoId = pendingReplacementPhotoId
         pendingCameraPhoto = null
+        pendingReplacementPhotoId = null
         if (success && photo != null) {
-            addPhotoToActiveFinding(photo)
+            if (replacementPhotoId != null) {
+                replacePhotoInActiveFinding(replacementPhotoId, photo)
+            } else {
+                addPhotoToActiveFinding(photo)
+            }
         } else if (photo != null) {
             File(filesDir, photo.relativePath).delete()
         }
@@ -70,21 +83,26 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         V2PreviewSession.attach(applicationContext)
         pendingCameraPhoto = savedInstanceState?.toPendingPhoto()
-        val itemKey = intent.getStringExtra(EXTRA_ITEM_KEY).orEmpty()
+        val initialItemKey = intent.getStringExtra(EXTRA_ITEM_KEY).orEmpty()
 
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
-                    val entry = draftState.utMeasurements.entriesByItemKey[itemKey]
-                    val record = draftState.findingState.findingsByItemKey[itemKey]
-                        ?: entry?.toFindingRecord()
-                        ?: fallbackFindingRecord(itemKey)
+                    var activeItemKey by remember { mutableStateOf(initialItemKey) }
+                    var record by remember {
+                        mutableStateOf(blankFindingRecord(initialItemKey, V2PreviewSession.draftState))
+                    }
+                    activeItemKeyForPhoto = record.itemKey
+                    latestFindingRecord = record
 
                     fun updateRecord(updated: V2FindingRecord) {
                         latestFindingRecord = updated
+                        record = updated
+                        activeItemKey = updated.itemKey
+                        activeItemKeyForPhoto = updated.itemKey
                         val nextDraftState = draftState.copy(
-                            findingState = draftState.findingState.withActiveFinding(updated),
+                            findingState = draftState.findingState.withSavedFinding(updated),
                         )
                         draftState = nextDraftState
                         V2PreviewSession.updateDraftState(nextDraftState)
@@ -93,15 +111,51 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
                     applyDraftUpdate = ::updateRecord
 
                     fun close() {
-                        updateRecord(latestFindingRecord ?: record)
+                        val latestRecord = latestFindingRecord ?: record
+                        if (latestRecord.hasCapturedEvidence()) {
+                            updateRecord(latestRecord)
+                        }
                         finish()
+                    }
+
+                    fun deleteFinding(finding: V2FindingRecord) {
+                        finding.photos.forEach { photo ->
+                            File(filesDir, photo.relativePath).delete()
+                        }
+                        if (latestFindingRecord?.itemKey == finding.itemKey) {
+                            latestFindingRecord = null
+                        }
+                        val nextFindingState = draftState.findingState.withRemovedFinding(finding.itemKey)
+                        val nextDraftState = draftState.copy(findingState = nextFindingState)
+                        draftState = nextDraftState
+                        V2PreviewSession.updateDraftState(nextDraftState)
+                        if (record.itemKey == finding.itemKey) {
+                            val blankRecord = blankFindingRecord(finding.itemKey, nextDraftState)
+                            record = blankRecord
+                            latestFindingRecord = blankRecord
+                            activeItemKey = blankRecord.itemKey
+                            activeItemKeyForPhoto = blankRecord.itemKey
+                        }
                     }
 
                     BackHandler { close() }
                     V2FindingCaptureScreen(
                         record = record,
+                        allFindings = draftState.findingState.findingsByItemKey.values
+                            .sortedWith(compareBy<V2FindingRecord> { it.target.key }.thenBy { it.itemLabel }),
                         imageRootDir = filesDir,
                         onRecordChange = ::updateRecord,
+                        onSelectFinding = { selected ->
+                            val latestRecord = latestFindingRecord ?: record
+                            if (latestRecord.hasCapturedEvidence() && latestRecord.itemKey != selected.itemKey) {
+                                updateRecord(latestRecord)
+                            }
+                            record = selected
+                            activeItemKey = selected.itemKey
+                            activeItemKeyForPhoto = selected.itemKey
+                            latestFindingRecord = selected
+                        },
+                        onDeleteFinding = ::deleteFinding,
                         onTakePhoto = {
                             runCatching {
                                 val photo = prepareCameraPhoto()
@@ -110,6 +164,24 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
                             }.onFailure {
                                 val photo = pendingCameraPhoto
                                 pendingCameraPhoto = null
+                                if (photo != null) File(filesDir, photo.relativePath).delete()
+                                Toast.makeText(
+                                    this,
+                                    it.message ?: "No camera app available.",
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
+                        onRetakePhoto = { selectedPhoto ->
+                            runCatching {
+                                val photo = prepareCameraPhoto(displayName = selectedPhoto.displayName)
+                                pendingCameraPhoto = photo
+                                pendingReplacementPhotoId = selectedPhoto.id
+                                takePictureLauncher.launch(uriForPhoto(photo))
+                            }.onFailure {
+                                val photo = pendingCameraPhoto
+                                pendingCameraPhoto = null
+                                pendingReplacementPhotoId = null
                                 if (photo != null) File(filesDir, photo.relativePath).delete()
                                 Toast.makeText(
                                     this,
@@ -138,9 +210,10 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
     }
 
     private fun addPhotoToActiveFinding(photo: V2FindingPhoto) {
-        val itemKey = intent.getStringExtra(EXTRA_ITEM_KEY).orEmpty()
+        val itemKey = activeItemKeyForPhoto ?: intent.getStringExtra(EXTRA_ITEM_KEY).orEmpty()
         val currentState = V2PreviewSession.draftState
-        val currentRecord = currentState.findingState.findingsByItemKey[itemKey]
+        val currentRecord = latestFindingRecord?.takeIf { record -> record.itemKey == itemKey }
+            ?: currentState.findingState.findingsByItemKey[itemKey]
             ?: currentState.utMeasurements.entriesByItemKey[itemKey]?.toFindingRecord()
             ?: fallbackFindingRecord(itemKey)
         val updatedRecord = currentRecord.withPhoto(photo)
@@ -155,7 +228,28 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
         }
     }
 
-    private fun prepareCameraPhoto(): V2FindingPhoto {
+    private fun replacePhotoInActiveFinding(photoId: String, replacement: V2FindingPhoto) {
+        val itemKey = activeItemKeyForPhoto ?: intent.getStringExtra(EXTRA_ITEM_KEY).orEmpty()
+        val currentState = V2PreviewSession.draftState
+        val currentRecord = latestFindingRecord?.takeIf { record -> record.itemKey == itemKey }
+            ?: currentState.findingState.findingsByItemKey[itemKey]
+            ?: currentState.utMeasurements.entriesByItemKey[itemKey]?.toFindingRecord()
+            ?: fallbackFindingRecord(itemKey)
+        val oldPhoto = currentRecord.photos.firstOrNull { photo -> photo.id == photoId }
+        val updatedRecord = currentRecord.withReplacedPhoto(photoId, replacement)
+        latestFindingRecord = updatedRecord
+        oldPhoto?.let { photo -> File(filesDir, photo.relativePath).delete() }
+        val update = applyDraftUpdate
+        if (update != null) {
+            update(updatedRecord)
+        } else {
+            V2PreviewSession.updateDraftState(
+                currentState.copy(findingState = currentState.findingState.withActiveFinding(updatedRecord)),
+            )
+        }
+    }
+
+    private fun prepareCameraPhoto(displayName: String? = null): V2FindingPhoto {
         val timestamp = Instant.now().toEpochMilli()
         val relativePath = "v2-findings/photo-$timestamp.jpg"
         File(filesDir, relativePath).also { file ->
@@ -165,7 +259,7 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
         return V2FindingPhoto(
             id = "photo-$timestamp",
             relativePath = relativePath,
-            displayName = "Photo $timestamp",
+            displayName = displayName ?: "Photo $timestamp",
         )
     }
 
@@ -237,6 +331,10 @@ class V2FindingCapturePreviewActivity : ComponentActivity() {
             itemKind = kind,
             elementType = elementType,
         )
+
+    private fun blankFindingRecord(itemKey: String, state: V2DraftState): V2FindingRecord =
+        state.utMeasurements.entriesByItemKey[itemKey]?.toFindingRecord()
+            ?: fallbackFindingRecord(itemKey)
 
     private fun fallbackFindingRecord(itemKey: String): V2FindingRecord =
         V2FindingRecord(

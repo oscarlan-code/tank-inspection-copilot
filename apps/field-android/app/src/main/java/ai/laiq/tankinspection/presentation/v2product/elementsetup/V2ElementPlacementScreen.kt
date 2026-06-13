@@ -8,6 +8,7 @@ import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
+import ai.laiq.tankinspection.presentation.components.LaiqTextField
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
 import ai.laiq.tankinspection.v2product.model.V2ElementPlacementState
 import ai.laiq.tankinspection.v2product.model.V2ElementType
@@ -24,6 +25,7 @@ import ai.laiq.tankinspection.v2product.model.supports
 import ai.laiq.tankinspection.v2product.model.withMovedElement
 import ai.laiq.tankinspection.v2product.model.withPlacedElement
 import ai.laiq.tankinspection.v2product.model.withRemovedElement
+import ai.laiq.tankinspection.v2product.model.withRenamedElement
 import ai.laiq.tankinspection.v2product.model.withSelectedElement
 import ai.laiq.tankinspection.v2product.model.withSelectedElementType
 import ai.laiq.tankinspection.v2product.model.withSelectedTarget
@@ -122,7 +124,6 @@ fun V2ElementPlacementScreen(
         ?: availableElementTypes.firstOrNull()
         ?: V2ElementType.NOZZLE
     val selectedPlacements = state.placementsFor(selectedTarget)
-    val selectedElement = selectedPlacements.firstOrNull { element -> element.id == state.selectedElementId }
     val selectedTargetApproved = selectedTarget in state.approvedTargets
     val scrollState = rememberScrollState()
 
@@ -226,14 +227,13 @@ fun V2ElementPlacementScreen(
                     onMoveElement = { target, elementId, normalizedX, normalizedY ->
                         onStateChange(latestState.withMovedElement(target, elementId, normalizedX, normalizedY))
                     },
+                    onRenameElement = { target, elementId, label ->
+                        onStateChange(latestState.withRenamedElement(target, elementId, label))
+                    },
                     onRemoveElement = { target, elementId ->
                         onStateChange(latestState.withRemovedElement(target, elementId))
                     },
                 )
-
-                selectedElement?.let { element ->
-                    SelectedElementSummary(element = element, modifier = Modifier.fillMaxWidth())
-                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     LaiqSecondaryButton(
@@ -281,9 +281,11 @@ private fun ElementPlacementWorkspace(
     onSelectElement: (String?) -> Unit,
     onAddElement: (V2LayoutTarget, V2ElementType, Float, Float) -> Unit,
     onMoveElement: (V2LayoutTarget, String, Float, Float) -> Unit,
+    onRenameElement: (V2LayoutTarget, String, String) -> Unit,
     onRemoveElement: (V2LayoutTarget, String) -> Unit,
 ) {
     val supportedElementTypes = V2ElementType.entries.filter { type -> type.supports(selectedTarget) }
+    val selectedElement = selectedPlacements.firstOrNull { element -> element.id == selectedElementId }
     val density = LocalDensity.current
     val markerWidthPx = with(density) { 132.dp.toPx() }
     val markerHeightPx = with(density) { 74.dp.toPx() }
@@ -300,10 +302,6 @@ private fun ElementPlacementWorkspace(
     val shellCellGapPx = with(density) { 2.dp.toPx() }
     val placedDragStartThresholdPx = with(density) { 12.dp.toPx() }
     val tapGestureTolerancePx = with(density) { 20.dp.toPx() }
-    val deleteActionVisualWidthPx = with(density) { 66.dp.toPx() }
-    val deleteActionVisualHeightPx = with(density) { 32.dp.toPx() }
-    val deleteActionHitWidthPx = with(density) { 94.dp.toPx() }
-    val deleteActionHitHeightPx = with(density) { 62.dp.toPx() }
     val editModeDoubleTapMillis = 420L
     var mapSize by remember(selectedTarget) { mutableStateOf(Size.Zero) }
     var mapBoundsInRoot by remember(selectedTarget) { mutableStateOf<Rect?>(null) }
@@ -312,10 +310,10 @@ private fun ElementPlacementWorkspace(
     var lastElementTap by remember(selectedTarget) { mutableStateOf<Pair<String, Long>?>(null) }
     val editPulseTransition = rememberInfiniteTransition(label = "element-edit-pulse")
     val editMarkerAlpha by editPulseTransition.animateFloat(
-        initialValue = 0.78f,
+        initialValue = 0.42f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 620),
+            animation = tween(durationMillis = 420),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "element-edit-alpha",
@@ -404,7 +402,7 @@ private fun ElementPlacementWorkspace(
 
     LaiqSectionCard(
         title = "${selectedTarget.label} Elements",
-        subtitle = "Drag the selected icon onto the layout to add. Double-tap a placed callout to edit, then drag it or tap Delete.",
+        subtitle = "Drag the selected icon onto the layout to add. Double-tap a placed callout to edit, rename, or move it.",
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -465,44 +463,6 @@ private fun ElementPlacementWorkspace(
                                 val down = awaitFirstDown(requireUnconsumed = false)
                                 if (mapSize.isUsable()) {
                                     val orderedPlacements = selectedPlacements.withSelectedElementOnTop(latestSelectedElementId)
-                                    val deleteHit = if (editMode) {
-                                        findDeleteCrossAtMapPosition(
-                                            position = down.position,
-                                            placements = orderedPlacements,
-                                            mapSize = mapSize,
-                                            markerWidthPx = markerWidthPx,
-                                            markerAnchorXpx = markerAnchorXpx,
-                                            markerAnchorYpx = markerAnchorYpx,
-                                            deleteActionVisualWidthPx = deleteActionVisualWidthPx,
-                                            deleteActionVisualHeightPx = deleteActionVisualHeightPx,
-                                            deleteActionHitWidthPx = deleteActionHitWidthPx,
-                                            deleteActionHitHeightPx = deleteActionHitHeightPx,
-                                            placementRegion = placementRegion(),
-                                        )
-                                    } else {
-                                        null
-                                    }
-                                    if (deleteHit != null) {
-                                        var totalDrag = Offset.Zero
-                                        while (true) {
-                                            val event = awaitPointerEvent()
-                                            val change = event.changes.firstOrNull { pointer -> pointer.id == down.id } ?: break
-                                            totalDrag += change.positionChange()
-                                            if (!change.pressed) break
-                                        }
-                                        if (totalDrag.getDistance() < tapGestureTolerancePx) {
-                                            onRemoveElement(selectedTarget, deleteHit.id)
-                                            lastElementTap = null
-                                            if (latestSelectedElementId == deleteHit.id) {
-                                                onSelectElement(null)
-                                            }
-                                            if (selectedPlacements.size <= 1) {
-                                                editMode = false
-                                            }
-                                        }
-                                        return@awaitEachGesture
-                                    }
-
                                     val hitElement = findElementAtMapPosition(
                                         position = down.position,
                                         placements = orderedPlacements,
@@ -621,6 +581,7 @@ private fun ElementPlacementWorkspace(
 
                     selectedPlacements.withSelectedElementOnTop(selectedElementId).forEach { element ->
                         if (dragState?.elementId != element.id && mapSize.isUsable()) {
+                            val isEditSelected = editMode && element.id == selectedElementId
                             val center = markerCenter(element, mapSize, placementRegion())
                             val flipHorizontal = shouldFlipMarkerCallout(center, mapSize)
                             val anchorXpx = markerAnchorXFor(
@@ -631,7 +592,6 @@ private fun ElementPlacementWorkspace(
                             ElementPlacementMarker(
                                 element = element,
                                 selected = element.id == selectedElementId,
-                                editMode = editMode,
                                 flipHorizontal = flipHorizontal,
                                 modifier = Modifier.offset {
                                     markerOffset(
@@ -640,7 +600,9 @@ private fun ElementPlacementWorkspace(
                                         markerAnchorYpx = markerAnchorYpx,
                                     )
                                 }.graphicsLayer {
-                                    alpha = if (editMode) editMarkerAlpha else 1f
+                                    alpha = if (isEditSelected) editMarkerAlpha else 1f
+                                    scaleX = if (isEditSelected) 1.08f else 1f
+                                    scaleY = if (isEditSelected) 1.08f else 1f
                                 },
                             )
                         }
@@ -657,7 +619,6 @@ private fun ElementPlacementWorkspace(
                             label = activeDrag.label,
                             type = activeDrag.elementType,
                             selected = true,
-                            editMode = editMode && activeDrag.source == ElementDragSource.PLACED_ELEMENT,
                             flipHorizontal = flipHorizontal,
                             modifier = Modifier.offset {
                                 markerOffset(
@@ -668,8 +629,25 @@ private fun ElementPlacementWorkspace(
                             },
                         )
                     }
+
                 }
             }
+
+            selectedElement
+                ?.takeIf { editMode }
+                ?.let { element ->
+                    SelectedElementSummary(
+                        element = element,
+                        onRename = { label ->
+                            onRenameElement(selectedTarget, element.id, label)
+                        },
+                        onRemove = {
+                            onRemoveElement(selectedTarget, element.id)
+                            editMode = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
             if (selectedPlacements.isEmpty()) {
                 Text(
@@ -784,7 +762,6 @@ private fun SelectedToolChip(
 private fun ElementPlacementMarker(
     element: V2PlacedElement,
     selected: Boolean,
-    editMode: Boolean,
     flipHorizontal: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -792,7 +769,6 @@ private fun ElementPlacementMarker(
         label = element.label,
         type = element.type,
         selected = selected,
-        editMode = editMode,
         flipHorizontal = flipHorizontal,
         modifier = modifier,
     )
@@ -803,7 +779,6 @@ private fun ElementMarkerCallout(
     label: String,
     type: V2ElementType,
     selected: Boolean,
-    editMode: Boolean,
     flipHorizontal: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -880,64 +855,78 @@ private fun ElementMarkerCallout(
                 )
             }
         }
-        if (editMode) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = LaiqColors.BrandRed,
-                border = BorderStroke(1.5.dp, Color.White),
-                shadowElevation = 4.dp,
-                modifier = Modifier
-                    .align(labelAlignment)
-                    .offset(
-                        x = if (flipHorizontal) (-10).dp else 10.dp,
-                        y = (-12).dp,
-                    )
-                    .width(66.dp)
-                    .height(32.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "Delete",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
     }
 }
 
 @Composable
 private fun SelectedElementSummary(
     element: V2PlacedElement,
+    onRename: (String) -> Unit,
+    onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var draftLabel by remember(element.id, element.label) { mutableStateOf(element.label) }
+    val trimmedLabel = draftLabel.trim()
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = Color.White,
         border = BorderStroke(1.dp, LaiqColors.PanelBorder),
         modifier = modifier,
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            ElementGlyph(type = element.type)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Selected: ${element.label}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = LaiqColors.BodyText,
-                    fontWeight = FontWeight.SemiBold,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ElementGlyph(type = element.type)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Edit Element",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Type stays ${element.type.label}; name can be customized.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                }
+            }
+            LaiqTextField(
+                value = draftLabel,
+                onValueChange = { updated ->
+                    draftLabel = updated
+                    if (updated.trim().isNotBlank()) {
+                        onRename(updated)
+                    }
+                },
+                label = { Text("Element Name") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LaiqStatChip(
+                    label = "Type",
+                    value = element.type.label,
+                    modifier = Modifier.weight(1f),
                 )
+                LaiqSecondaryButton(
+                    text = "Remove",
+                    onClick = onRemove,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (trimmedLabel.isBlank()) {
                 Text(
-                    text = element.type.label,
+                    text = "Element name cannot be blank.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = LaiqColors.MutedText,
+                    color = LaiqColors.BrandRed,
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
@@ -1294,75 +1283,6 @@ private fun findElementAtMapPosition(
         )
         hitRect.contains(position) || position.distanceTo(center) <= markerAnchorYpx / 2f
     }
-
-private fun findDeleteCrossAtMapPosition(
-    position: Offset,
-    placements: List<V2PlacedElement>,
-    mapSize: Size,
-    markerWidthPx: Float,
-    markerAnchorXpx: Float,
-    markerAnchorYpx: Float,
-    deleteActionVisualWidthPx: Float,
-    deleteActionVisualHeightPx: Float,
-    deleteActionHitWidthPx: Float,
-    deleteActionHitHeightPx: Float,
-    placementRegion: PlacementRegion? = null,
-): V2PlacedElement? =
-    placements.asReversed().firstOrNull { element ->
-        deleteCrossRectForElement(
-            element = element,
-            mapSize = mapSize,
-            markerWidthPx = markerWidthPx,
-            markerAnchorXpx = markerAnchorXpx,
-            markerAnchorYpx = markerAnchorYpx,
-            deleteActionVisualWidthPx = deleteActionVisualWidthPx,
-            deleteActionVisualHeightPx = deleteActionVisualHeightPx,
-            deleteActionHitWidthPx = deleteActionHitWidthPx,
-            deleteActionHitHeightPx = deleteActionHitHeightPx,
-            placementRegion = placementRegion,
-        ).contains(position)
-    }
-
-private fun deleteCrossRectForElement(
-    element: V2PlacedElement,
-    mapSize: Size,
-    markerWidthPx: Float,
-    markerAnchorXpx: Float,
-    markerAnchorYpx: Float,
-    deleteActionVisualWidthPx: Float,
-    deleteActionVisualHeightPx: Float,
-    deleteActionHitWidthPx: Float,
-    deleteActionHitHeightPx: Float,
-    placementRegion: PlacementRegion? = null,
-): Rect {
-    val center = markerCenter(element, mapSize, placementRegion)
-    val flipHorizontal = shouldFlipMarkerCallout(center, mapSize)
-    val anchorXpx = markerAnchorXFor(
-        flipHorizontal = flipHorizontal,
-        markerWidthPx = markerWidthPx,
-        defaultAnchorXpx = markerAnchorXpx,
-    )
-    val markerLeft = center.x - anchorXpx
-    val markerTop = center.y - markerAnchorYpx
-    val horizontalNudge = deleteActionVisualWidthPx * 0.15f
-    val verticalNudge = deleteActionVisualHeightPx * 0.38f
-    val visualLeft = if (flipHorizontal) {
-        markerLeft - horizontalNudge
-    } else {
-        markerLeft + markerWidthPx - deleteActionVisualWidthPx + horizontalNudge
-    }
-    val visualTop = markerTop - verticalNudge
-    val hitCenter = Offset(
-        x = visualLeft + deleteActionVisualWidthPx / 2f,
-        y = visualTop + deleteActionVisualHeightPx / 2f,
-    )
-    return Rect(
-        left = hitCenter.x - deleteActionHitWidthPx / 2f,
-        top = hitCenter.y - deleteActionHitHeightPx / 2f,
-        right = hitCenter.x + deleteActionHitWidthPx / 2f,
-        bottom = hitCenter.y + deleteActionHitHeightPx / 2f,
-    )
-}
 
 private fun List<V2PlacedElement>.withSelectedElementOnTop(selectedElementId: String?): List<V2PlacedElement> {
     if (selectedElementId == null) return this

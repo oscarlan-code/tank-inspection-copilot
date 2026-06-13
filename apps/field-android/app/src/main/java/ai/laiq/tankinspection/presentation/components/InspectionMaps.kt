@@ -55,9 +55,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
 import kotlinx.coroutines.flow.collect
 import kotlin.math.PI
@@ -628,6 +630,14 @@ private fun positiveShellScaleDelta(value: Float): Float {
     if (result < 0f) result += 360f
     return result
 }
+
+private fun fittedPlateLabelFontSize(label: String) =
+    when {
+        label.length >= 5 -> 6.sp
+        label.length == 4 -> 7.sp
+        label.length == 3 -> 8.sp
+        else -> 10.sp
+    }
 
 @Composable
 fun RoofSurfaceMap(
@@ -1237,8 +1247,15 @@ fun RoofSurfaceMap(
                         ) {
                             Text(
                                 text = cell.mapLabel,
-                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = fittedPlateLabelFontSize(cell.mapLabel),
+                                ),
                                 color = LaiqColors.BodyText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
@@ -1326,13 +1343,21 @@ fun RoofSurfaceMap(
                                 }
                                 Text(
                                     text = cell.mapLabel,
-                                    modifier = Modifier.align(Alignment.Center),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .fillMaxWidth(),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = fittedPlateLabelFontSize(cell.mapLabel),
+                                    ),
 	                                    color = when {
 	                                        cell.plateId == activePlateId -> LaiqColors.BrandRed
 	                                        emphasizeUtHighlights && isSaved -> completedUtColor
 	                                        else -> LaiqColors.BodyText
 	                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false,
+                                    textAlign = TextAlign.Center,
 	                                )
                             }
                         }
@@ -1389,13 +1414,21 @@ fun RoofSurfaceMap(
                             }
                             Text(
                                 text = cell.mapLabel,
-                                modifier = Modifier.align(Alignment.Center),
-                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = fittedPlateLabelFontSize(cell.mapLabel),
+                                ),
 	                            color = when {
 	                                cell.plateId == activePlateId -> LaiqColors.BrandRed
 	                                emphasizeUtHighlights && isSaved -> completedUtColor
 	                                else -> LaiqColors.AccentOrange
 	                            },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
+                                textAlign = TextAlign.Center,
 	                        )
                         }
                     }

@@ -1,4 +1,3 @@
-import exportFixture from "../fixtures/v2-product-export-shell-internal.json";
 import { buildDefaultPlates, ensureLayoutMapData } from "../lib/layoutMapGeometry";
 import { validateV2ProductExportPackage } from "../lib/validateV2ProductExport";
 import {
@@ -121,8 +120,6 @@ export type ApiReportJobState = {
   aiStatus?: ApiAiStatus;
 };
 
-const fixturePackage = buildApiStandardFixturePackage(exportFixture as V2ProductExportPackage);
-
 const fixtureManualSupplement: ManualReportSupplement = {
   reportReference: API_STANDARD_PRIMARY_REPORT.reference,
   inspectedDate: API_STANDARD_PRIMARY_REPORT.inspectedDate,
@@ -137,57 +134,11 @@ const fixtureManualSupplement: ManualReportSupplement = {
 };
 
 const defaultApiBaseUrl = "";
+const v10ApiStandardBootstrapPath = "/api/v1/report-jobs/bootstrap/v10-api-standard";
+let workspaceBootstrapPromise: Promise<WorkspaceBootstrap> | null = null;
 
 function buildApiStandardFixturePackage(exportPackage: V2ProductExportPackage): V2ProductExportPackage {
-  const inspectionId = "inspection-v10-api653-internal-external-20220722";
-  const inspectionReference = "LAIQ-V10-20220722";
-  const exportedAtIso = "2022-07-22T16:30:00Z";
-
-  return {
-    ...exportPackage,
-    inspectionId,
-    inspectionReference,
-    exportedAtIso,
-    task: {
-      ...exportPackage.task,
-      inspectionId,
-      inspectionReference,
-      client: "Pacific Energy",
-      tankNumber: "V10",
-      exportedAtIso,
-    },
-    inspectionRecord: {
-      ...exportPackage.inspectionRecord,
-      inspectionId,
-      inspectionReference,
-      client: "Pacific Energy",
-      tankNumber: "V10",
-      location: "Vuda Terminal, Fiji",
-      fieldLeaseName: "Pacific Energy Vuda Terminal",
-      inspector: "Syed A. R. Balkhi",
-      diameterM: 19.52,
-      heightM: 14.535,
-      shellCourseCount: 8,
-      externalRoofType: "fixed_dome_roof",
-    },
-    validationResults: withInspectionId(exportPackage.validationResults, inspectionId),
-    taskSnapshots: withInspectionId(exportPackage.taskSnapshots, inspectionId),
-    layoutTargets: withInspectionId(exportPackage.layoutTargets, inspectionId),
-    layoutConfigs: withInspectionId(exportPackage.layoutConfigs, inspectionId),
-    elements: withInspectionId(exportPackage.elements, inspectionId),
-    utMeasurements: withInspectionId(exportPackage.utMeasurements, inspectionId),
-    inspectionChecklistItems: withInspectionId(exportPackage.inspectionChecklistItems, inspectionId),
-    inspectionChecklistSectionNotes: withInspectionId(exportPackage.inspectionChecklistSectionNotes, inspectionId),
-    findings: withInspectionId(exportPackage.findings, inspectionId),
-    attachments: withInspectionId(exportPackage.attachments, inspectionId),
-  };
-}
-
-function withInspectionId<T extends { inspectionId: string }>(items: T[], inspectionId: string): T[] {
-  return items.map((item) => ({
-    ...item,
-    inspectionId,
-  }));
+  return exportPackage;
 }
 
 const makeField = (
@@ -199,10 +150,15 @@ const makeField = (
 });
 
 export async function loadWorkspaceBootstrap(): Promise<WorkspaceBootstrap> {
+  workspaceBootstrapPromise ??= loadWorkspaceBootstrapUncached();
+  return workspaceBootstrapPromise;
+}
+
+async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
   const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_REPORT_API_BASE_URL) ?? defaultApiBaseUrl;
 
   try {
-    const response = await fetch(buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/bootstrap/shell-internal"));
+    const response = await fetch(buildApiUrl(apiBaseUrl, v10ApiStandardBootstrapPath));
     if (!response.ok) {
       throw new Error(`Bootstrap request failed with ${response.status}`);
     }
@@ -224,9 +180,11 @@ export async function loadWorkspaceBootstrap(): Promise<WorkspaceBootstrap> {
           statusLabel: "Fallback generator",
           detail: "Backend AI status was not returned by the API.",
           checkedAtIso: new Date().toISOString(),
-        },
+      },
     };
   } catch (error) {
+    const fixturePackage = await loadFixturePackage();
+
     assertValidAndroidExport(fixturePackage);
     const baselineReport = buildWorkspaceReport(
       fixturePackage,
@@ -252,6 +210,11 @@ export async function loadWorkspaceBootstrap(): Promise<WorkspaceBootstrap> {
       },
     };
   }
+}
+
+async function loadFixturePackage(): Promise<V2ProductExportPackage> {
+  const fixtureModule = await import("../fixtures/v2-product-export-shell-internal.json");
+  return buildApiStandardFixturePackage(fixtureModule.default as V2ProductExportPackage);
 }
 
 export function buildInitialChats(report: WorkspaceReport): Record<string, ChatMessage[]> {

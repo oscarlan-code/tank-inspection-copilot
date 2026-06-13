@@ -30,7 +30,8 @@ Current status:
 - V2 preview state now persists locally for process-restart recovery, with product-critical records mirrored into V2 structured Room storage.
 - UT Measurements allows zero UT points for an approved layout; only points with positive readings are highlighted as measured.
 - Task Home can now review export validation results and generate local export packages from the Room-backed product store.
-- The checklist numbering intentionally preserves the fixed-roof PDF source numbering, including the gaps where floating-roof-only sections are absent from the sample sheet.
+- The checklist numbering preserves the full report field-sheet sequence; floating-roof sections remain present and are marked N/A for fixed-roof V10.
+- V10 app/export-to-report alignment checklist: `docs/v2-product/V10_APP_EXPORT_REPORT_ALIGNMENT_CHECKLIST.md`.
 
 Product-backend target:
 - Keep the approved V2 UI/UX and harden the backend underneath it.

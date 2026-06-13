@@ -4,8 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
+import ai.laiq.tankinspection.presentation.v2product.common.V2DownstreamDataWarningDialog
 import ai.laiq.tankinspection.presentation.v2product.generalinfo.V2GeneralTankInformationScreen
 import ai.laiq.tankinspection.v2product.layoutscope.V2LayoutScopePreviewActivity
+import ai.laiq.tankinspection.v2product.model.V2DownstreamDataImpact
+import ai.laiq.tankinspection.v2product.model.V2DraftState
+import ai.laiq.tankinspection.v2product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v2product.model.withReconciledGeneralTankInfo
 import ai.laiq.tankinspection.v2product.preview.V2PreviewSession
 import ai.laiq.tankinspection.v2product.storage.V2WorkflowScreen
@@ -29,12 +33,25 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
+                    var pendingDraftState by remember { mutableStateOf<V2DraftState?>(null) }
+                    var pendingImpact by remember { mutableStateOf<V2DownstreamDataImpact?>(null) }
+
+                    fun applyDraftState(nextDraftState: V2DraftState) {
+                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
+                        if (impact != null) {
+                            pendingDraftState = nextDraftState
+                            pendingImpact = impact
+                        } else {
+                            draftState = nextDraftState
+                            V2PreviewSession.updateDraftState(nextDraftState)
+                        }
+                    }
+
                     BackHandler { finish() }
                     V2GeneralTankInformationScreen(
                         state = draftState.generalTankInfo,
                         onStateChange = {
-                            draftState = draftState.withReconciledGeneralTankInfo(it)
-                            V2PreviewSession.updateDraftState(draftState)
+                            applyDraftState(draftState.withReconciledGeneralTankInfo(it))
                         },
                         onBack = { finish() },
                         onContinue = {
@@ -52,6 +69,23 @@ class V2GeneralTankInformationPreviewActivity : ComponentActivity() {
                             }
                         },
                     )
+                    pendingImpact?.let { impact ->
+                        V2DownstreamDataWarningDialog(
+                            impact = impact,
+                            onDismiss = {
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                            onConfirm = {
+                                pendingDraftState?.let { nextDraftState ->
+                                    draftState = nextDraftState
+                                    V2PreviewSession.updateDraftState(nextDraftState)
+                                }
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                        )
+                    }
                 }
             }
         }

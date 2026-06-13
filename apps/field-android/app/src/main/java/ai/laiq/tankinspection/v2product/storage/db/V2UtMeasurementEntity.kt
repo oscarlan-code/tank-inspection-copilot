@@ -14,6 +14,7 @@ data class V2UtMeasurementEntity(
     val itemKind: String,
     val elementTypeKey: String?,
     val nozzleSize: String?,
+    val reinforcementPadReading: Double?,
     val laneId: String?,
     val course: Int?,
     val plateId: String?,

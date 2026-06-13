@@ -148,6 +148,7 @@ data class V2UtMeasurementEntry(
     val kind: V2UtItemKind,
     val elementType: V2ElementType? = null,
     val nozzleSize: String = "6 in",
+    val reinforcementPadReading: String = "",
     val readings: List<String> = emptyList(),
     val confirmed: Boolean = false,
 )
@@ -208,6 +209,12 @@ enum class V2ElementType(
     SUMP("sump", "Sump", "SU", setOf(V2LayoutSurface.FLOOR)),
     DATUM("datum", "Reference / Datum", "RF", setOf(V2LayoutSurface.SHELL, V2LayoutSurface.FLOOR)),
 }
+
+fun V2ElementType.requiresUtMeasurement(): Boolean =
+    this == V2ElementType.NOZZLE || this == V2ElementType.MANHOLE
+
+fun V2UtMeasurementEntry.requiresElementUt(): Boolean =
+    kind == V2UtItemKind.ELEMENT && elementType?.requiresUtMeasurement() == true
 
 data class V2PlacedElement(
     val id: String,
@@ -415,10 +422,37 @@ fun V2FindingRecord.withRemovedPhoto(photoId: String): V2FindingRecord {
     )
 }
 
+fun V2FindingRecord.withReplacedPhoto(
+    photoId: String,
+    replacement: V2FindingPhoto,
+): V2FindingRecord =
+    copy(
+        photos = photos.map { photo ->
+            if (photo.id == photoId) replacement else photo
+        },
+        selectedPhotoId = replacement.id,
+    )
+
 fun V2FindingState.withActiveFinding(record: V2FindingRecord): V2FindingState =
     copy(
         activeItemKey = record.itemKey,
         findingsByItemKey = findingsByItemKey + (record.itemKey to record),
+    )
+
+fun V2FindingRecord.hasCapturedEvidence(): Boolean =
+    note.isNotBlank() || photos.isNotEmpty()
+
+fun V2FindingState.withSavedFinding(record: V2FindingRecord): V2FindingState =
+    if (record.hasCapturedEvidence()) {
+        withActiveFinding(record)
+    } else {
+        withRemovedFinding(record.itemKey)
+    }
+
+fun V2FindingState.withRemovedFinding(itemKey: String): V2FindingState =
+    copy(
+        activeItemKey = activeItemKey.takeIf { activeKey -> activeKey != itemKey },
+        findingsByItemKey = findingsByItemKey - itemKey,
     )
 
 fun V2LayoutMapSetup.withSelectedSurface(surface: V2LayoutSurface): V2LayoutMapSetup =
@@ -523,6 +557,26 @@ fun V2ElementPlacementState.withSelectedElementType(type: V2ElementType): V2Elem
 
 fun V2ElementPlacementState.withSelectedElement(id: String?): V2ElementPlacementState =
     copy(selectedElementId = id)
+
+fun V2ElementPlacementState.withRenamedElement(
+    target: V2LayoutTarget,
+    elementId: String,
+    label: String,
+): V2ElementPlacementState {
+    val trimmedLabel = label.trim()
+    if (trimmedLabel.isBlank()) return this
+    val updated = placementsFor(target).map { element ->
+        if (element.id == elementId) {
+            element.copy(label = trimmedLabel)
+        } else {
+            element
+        }
+    }
+    return copy(
+        placementsByTarget = placementsByTarget + (target to updated),
+        selectedElementId = elementId,
+    )
+}
 
 fun V2ElementPlacementState.withTargetApproval(
     target: V2LayoutTarget,
@@ -629,6 +683,7 @@ fun V2DraftState.withReconciledLayoutMapSetup(updatedSetup: V2LayoutMapSetup): V
         .withFirstAvailableTarget(visibleTargets)
     val invalidatedTargets = layoutMapSetup.approvedTargets - constrainedSetup.approvedTargets
     return copy(layoutMapSetup = constrainedSetup)
+        .withoutElementPlacementFor(invalidatedTargets)
         .withoutUtDataFor(invalidatedTargets)
         .withoutFindingDataFor(invalidatedTargets)
         .withoutElementApprovalFor(invalidatedTargets)
@@ -649,11 +704,14 @@ fun V2DraftState.withReconciledElementSetup(updatedSetup: V2ElementSetup): V2Dra
 }
 
 fun V2DraftState.withReconciledElementPlacement(updatedPlacement: V2ElementPlacementState): V2DraftState {
-    val changedTargets = V2LayoutTarget.entries.filter { target ->
-        elementPlacement.placementsFor(target) != updatedPlacement.placementsFor(target)
+    val typeChangedElementKeys = elementPlacement.typeChangedElementKeysComparedTo(updatedPlacement)
+    val approvalChangedTargets = V2LayoutTarget.entries.filter { target ->
+        elementPlacement.hasUtRelevantPlacementChange(target, updatedPlacement)
     }.toSet()
     return copy(elementPlacement = updatedPlacement)
-        .withoutUtApprovalFor(changedTargets)
+        .withSynchronizedElementLabels()
+        .withoutUtApprovalFor(approvalChangedTargets)
+        .withoutElementUtDataForKeys(typeChangedElementKeys)
         .withoutElementUtEntriesForRemovedPlacements()
         .withoutElementFindingsForRemovedPlacements()
 }
@@ -727,6 +785,45 @@ private fun V2DraftState.withoutUtDataFor(targets: Set<V2LayoutTarget>): V2Draft
     )
 }
 
+private fun V2DraftState.withSynchronizedElementLabels(): V2DraftState {
+    val labelByItemKey = elementPlacement.placementsByTarget.flatMap { (target, placements) ->
+        placements.map { element -> elementUtItemKey(target, element.id) to element.label }
+    }.toMap()
+    if (labelByItemKey.isEmpty()) return this
+    return copy(
+        utMeasurements = utMeasurements.copy(
+            entriesByItemKey = utMeasurements.entriesByItemKey.mapValues { (key, entry) ->
+                labelByItemKey[key]?.let { label -> entry.copy(itemLabel = label) } ?: entry
+            },
+        ),
+        findingState = findingState.copy(
+            findingsByItemKey = findingState.findingsByItemKey.mapValues { (key, finding) ->
+                labelByItemKey[key]?.let { label -> finding.copy(itemLabel = label) } ?: finding
+            },
+        ),
+    )
+}
+
+private fun V2DraftState.withoutElementUtDataForKeys(elementKeys: Set<String>): V2DraftState {
+    if (elementKeys.isEmpty()) return this
+    val nextEntries = utMeasurements.entriesByItemKey.filterValues { entry ->
+        entry.itemKey !in elementKeys
+    }
+    val nextFindings = findingState.findingsByItemKey.filterValues { finding ->
+        finding.itemKey !in elementKeys
+    }
+    return copy(
+        utMeasurements = utMeasurements.copy(
+            activeItemKey = utMeasurements.activeItemKey.takeIf { key -> key in nextEntries },
+            entriesByItemKey = nextEntries,
+        ),
+        findingState = findingState.copy(
+            activeItemKey = findingState.activeItemKey.takeIf { key -> key in nextFindings },
+            findingsByItemKey = nextFindings,
+        ),
+    )
+}
+
 private fun V2DraftState.withoutFindingDataFor(targets: Set<V2LayoutTarget>): V2DraftState {
     if (targets.isEmpty()) return this
     val nextFindings = findingState.findingsByItemKey.filterValues { finding -> finding.target !in targets }
@@ -792,6 +889,31 @@ private fun V2UtSetup.constrainedTo(targets: Set<V2LayoutTarget>): V2UtSetup =
 
 private fun elementUtItemKey(target: V2LayoutTarget, elementId: String): String =
     "${target.key}:element:$elementId"
+
+private fun V2ElementPlacementState.typeChangedElementKeysComparedTo(
+    next: V2ElementPlacementState,
+): Set<String> =
+    V2LayoutTarget.entries.flatMap { target ->
+        val oldById = placementsFor(target).associateBy { element -> element.id }
+        val nextById = next.placementsFor(target).associateBy { element -> element.id }
+        oldById.mapNotNull { (elementId, oldElement) ->
+            val nextElement = nextById[elementId] ?: return@mapNotNull null
+            elementUtItemKey(target, elementId).takeIf { oldElement.type != nextElement.type }
+        }
+    }.toSet()
+
+private fun V2ElementPlacementState.hasUtRelevantPlacementChange(
+    target: V2LayoutTarget,
+    next: V2ElementPlacementState,
+): Boolean {
+    val oldById = placementsFor(target).associateBy { element -> element.id }
+    val nextById = next.placementsFor(target).associateBy { element -> element.id }
+    if (oldById.keys != nextById.keys) return true
+    return oldById.any { (elementId, oldElement) ->
+        val nextElement = nextById[elementId] ?: return@any true
+        oldElement.type != nextElement.type
+    }
+}
 
 fun V2LayoutMapSetup.withFirstAvailableTarget(targets: List<V2LayoutTarget>): V2LayoutMapSetup {
     if (targets.isEmpty() || selectedTarget in targets) return this

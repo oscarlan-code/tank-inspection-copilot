@@ -145,6 +145,7 @@ export type V2ProductExportUtMeasurement = {
   itemKind: string;
   elementTypeKey: string | null;
   nozzleSize: string | null;
+  reinforcementPadReading: number | null;
   laneId: string | null;
   course: number | null;
   plateId: string | null;

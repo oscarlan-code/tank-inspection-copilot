@@ -19,6 +19,11 @@ const databasePath = join(appRoot, ".data", "report-platform.sqlite");
 const port = Number(process.env.REPORT_PLATFORM_API_PORT || 8788);
 const host = process.env.REPORT_PLATFORM_API_HOST || "0.0.0.0";
 const bootstrapKey = "api-standard-v10";
+const bootstrapPaths = new Set([
+  "/api/v1/report-jobs/bootstrap/v10-api-standard",
+  // Backward-compatible alias for any running UI opened before the V10 fixture was promoted.
+  "/api/v1/report-jobs/bootstrap/shell-internal",
+]);
 
 const reportStore = createReportStore({ dbFilePath: databasePath });
 const fixtureExportPackage = buildApiStandardFixturePackage(JSON.parse(readFileSync(fixturePath, "utf8")));
@@ -94,7 +99,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET" && pathname === "/api/v1/report-jobs/bootstrap/shell-internal") {
+    if (request.method === "GET" && pathname === "/api/v1/exports/android-v2-product/v10-api-standard.json") {
+      const state = reportStore.loadBootstrapReport(bootstrapKey);
+      writeJson(response, 200, state?.exportPackage ?? fixtureExportPackage);
+      return;
+    }
+
+    if (request.method === "GET" && bootstrapPaths.has(pathname)) {
       const state = reportStore.loadBootstrapReport(bootstrapKey);
       if (!state) {
         writeJson(response, 404, { error: "Bootstrap report job not found." });

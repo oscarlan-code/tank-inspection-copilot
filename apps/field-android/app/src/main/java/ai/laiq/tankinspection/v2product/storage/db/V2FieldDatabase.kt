@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         V2AttachmentEntity::class,
         V2TaskSnapshotEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class V2FieldDatabase : RoomDatabase() {
@@ -293,6 +293,18 @@ abstract class V2FieldDatabase : RoomDatabase() {
                             `updatedAtIso` TEXT NOT NULL,
                             PRIMARY KEY(`inspectionId`, `sectionKey`)
                         )
+                        """.trimIndent(),
+                    )
+                }
+            }
+
+        val MIGRATION_4_5 =
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        ALTER TABLE v2_ut_measurement
+                        ADD COLUMN reinforcementPadReading REAL
                         """.trimIndent(),
                     )
                 }

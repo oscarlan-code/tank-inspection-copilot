@@ -21,6 +21,8 @@ import ai.laiq.tankinspection.v2product.model.V2ShellThirdOffsetStart
 import ai.laiq.tankinspection.v2product.model.V2UtItemKind
 import ai.laiq.tankinspection.v2product.model.V2UtMeasurementEntry
 import ai.laiq.tankinspection.v2product.model.V2UtMeasurementState
+import ai.laiq.tankinspection.v2product.model.requiresElementUt
+import ai.laiq.tankinspection.v2product.model.requiresUtMeasurement
 import ai.laiq.tankinspection.v2product.model.withClearedActiveItem
 import ai.laiq.tankinspection.v2product.model.withSelectedEntry
 import ai.laiq.tankinspection.v2product.model.withSelectedTarget
@@ -31,6 +33,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,6 +54,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -94,6 +98,16 @@ private val nozzleSizeOptions = listOf(
     "12 in" to "12 in",
     "N.A." to "N.A.",
 )
+
+private enum class UtMapFocusMode(
+    val key: String,
+    val label: String,
+    val hint: String,
+) {
+    PLATES("plates", "Plates", "Show plate/region UT only. Element badges are hidden to reduce clutter."),
+    ELEMENTS("elements", "Elements", "Show element callouts only. Plate taps and green plate overlays are hidden."),
+    BOTH("both", "Both", "Show plate/region UT and element UT together for final review."),
+}
 
 @Composable
 fun V2UtMeasurementScreen(
@@ -265,73 +279,104 @@ private fun UtMapWorkspace(
         entry.target == selectedTarget && entry.confirmed && entry.hasMeasuredReadings()
     }
     val activeEntry = state.entriesByItemKey[state.activeItemKey]?.takeIf { entry -> entry.target == selectedTarget }
+    var focusMode by remember(selectedTarget) { mutableStateOf(UtMapFocusMode.PLATES) }
+    val showPlateLayer = focusMode != UtMapFocusMode.ELEMENTS
+    val showElementLayer = focusMode != UtMapFocusMode.PLATES
+    val visibleActiveEntry = activeEntry?.takeIf { entry ->
+        when (entry.kind) {
+            V2UtItemKind.LAYOUT_REGION -> showPlateLayer
+            V2UtItemKind.ELEMENT -> showElementLayer
+        }
+    }
     LaiqSectionCard(
         title = "${selectedTarget.label} UT Map",
 	        subtitle = "Tap only the random points you choose to survey. Leave readings blank if no UT is conducted.",
     ) {
-        when (selectedTarget.surface) {
-            V2LayoutSurface.ROOF -> RoofOrFloorUtMap(
-                selectedTarget = selectedTarget,
-                layoutMapSetup = layoutMapSetup,
-                placements = placements,
-                activeEntry = activeEntry,
-                completedPlateIds = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
-                    .map { entry -> entry.itemLabel }
-                    .toSet(),
-                activePlateId = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
-                completedElementKeys = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
-                    .map { entry -> entry.itemKey }
-                    .toSet(),
-                activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
-                onSelectEntry = onSelectEntry,
-                onConfirm = onConfirm,
-                onOpenFinding = onOpenFinding,
-                onClose = onClose,
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LaiqOptionChips(
+                selectedValue = focusMode.key,
+                options = UtMapFocusMode.entries.map { mode -> mode.key to mode.label },
+                onSelect = { selected ->
+                    UtMapFocusMode.entries.firstOrNull { mode -> mode.key == selected }?.let { mode ->
+                        focusMode = mode
+                    }
+                },
             )
+            Text(
+                text = focusMode.hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+            when (selectedTarget.surface) {
+                V2LayoutSurface.ROOF -> RoofOrFloorUtMap(
+                    selectedTarget = selectedTarget,
+                    layoutMapSetup = layoutMapSetup,
+                    placements = placements,
+                    activeEntry = visibleActiveEntry,
+                    completedPlateIds = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
+                        .map { entry -> entry.itemLabel }
+                        .toSet(),
+                    activePlateId = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
+                    completedElementKeys = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
+                        .map { entry -> entry.itemKey }
+                        .toSet(),
+                    activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
+                    showPlateLayer = showPlateLayer,
+                    showElementLayer = showElementLayer,
+                    onSelectEntry = onSelectEntry,
+                    onConfirm = onConfirm,
+                    onOpenFinding = onOpenFinding,
+                    onClose = onClose,
+                )
 
-            V2LayoutSurface.FLOOR -> RoofOrFloorUtMap(
-                selectedTarget = selectedTarget,
-                layoutMapSetup = layoutMapSetup,
-                placements = placements,
-                activeEntry = activeEntry,
-                completedPlateIds = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
-                    .map { entry -> entry.itemLabel }
-                    .toSet(),
-                activePlateId = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
-                completedElementKeys = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
-                    .map { entry -> entry.itemKey }
-                    .toSet(),
-                activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
-                onSelectEntry = onSelectEntry,
-                onConfirm = onConfirm,
-                onOpenFinding = onOpenFinding,
-                onClose = onClose,
-            )
+                V2LayoutSurface.FLOOR -> RoofOrFloorUtMap(
+                    selectedTarget = selectedTarget,
+                    layoutMapSetup = layoutMapSetup,
+                    placements = placements,
+                    activeEntry = visibleActiveEntry,
+                    completedPlateIds = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
+                        .map { entry -> entry.itemLabel }
+                        .toSet(),
+                    activePlateId = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
+                    completedElementKeys = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
+                        .map { entry -> entry.itemKey }
+                        .toSet(),
+                    activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
+                    showPlateLayer = showPlateLayer,
+                    showElementLayer = showElementLayer,
+                    onSelectEntry = onSelectEntry,
+                    onConfirm = onConfirm,
+                    onOpenFinding = onOpenFinding,
+                    onClose = onClose,
+                )
 
-            V2LayoutSurface.SHELL -> ShellUtMap(
-                selectedTarget = selectedTarget,
-                layoutMapSetup = layoutMapSetup,
-                placements = placements,
-                activeEntry = activeEntry,
-                completedRegionLabels = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
-                    .map { entry -> entry.itemLabel }
-                    .toSet(),
-                activeRegionLabel = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
-                completedElementKeys = completedEntries
-                    .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
-                    .map { entry -> entry.itemKey }
-                    .toSet(),
-                activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
-                onSelectEntry = onSelectEntry,
-                onConfirm = onConfirm,
-                onOpenFinding = onOpenFinding,
-                onClose = onClose,
-            )
+                V2LayoutSurface.SHELL -> ShellUtMap(
+                    selectedTarget = selectedTarget,
+                    layoutMapSetup = layoutMapSetup,
+                    placements = placements,
+                    activeEntry = visibleActiveEntry,
+                    completedRegionLabels = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }
+                        .map { entry -> entry.itemLabel }
+                        .toSet(),
+                    activeRegionLabel = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.LAYOUT_REGION }?.itemLabel,
+                    completedElementKeys = completedEntries
+                        .filter { entry -> entry.kind == V2UtItemKind.ELEMENT }
+                        .map { entry -> entry.itemKey }
+                        .toSet(),
+                    activeElementKey = activeEntry?.takeIf { entry -> entry.kind == V2UtItemKind.ELEMENT }?.itemKey,
+                    showRegionLayer = showPlateLayer,
+                    showElementLayer = showElementLayer,
+                    onSelectEntry = onSelectEntry,
+                    onConfirm = onConfirm,
+                    onOpenFinding = onOpenFinding,
+                    onClose = onClose,
+                )
+            }
         }
     }
 }
@@ -346,6 +391,8 @@ private fun RoofOrFloorUtMap(
     activePlateId: String?,
     completedElementKeys: Set<String>,
     activeElementKey: String?,
+    showPlateLayer: Boolean,
+    showElementLayer: Boolean,
     onSelectEntry: (V2UtMeasurementEntry) -> Unit,
     onConfirm: (V2UtMeasurementEntry) -> Unit,
     onOpenFinding: (V2UtMeasurementEntry) -> Unit,
@@ -391,15 +438,15 @@ private fun RoofOrFloorUtMap(
             },
             ringCount = layoutMapSetup.roofRingCount.toPositiveInt(3),
             sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20),
-            activePlateId = activePlateId,
-            savedPlateIds = completedPlateIds,
-            emphasizeUtHighlights = true,
+            activePlateId = activePlateId.takeIf { showPlateLayer },
+            savedPlateIds = completedPlateIds.takeIf { showPlateLayer }.orEmpty(),
+            emphasizeUtHighlights = showPlateLayer,
             centerFeatureCount = if (selectedTarget.surface == V2LayoutSurface.ROOF && layoutMapSetup.roofHasCenterOpening) 1 else 0,
             centerFeatureCountControlsLayout = true,
             useLeaderPlateLabels = false,
             showAnnularSectionLabels = selectedTarget.surface == V2LayoutSurface.FLOOR,
-            autoHideCrowdedPlateLabels = true,
-            enablePlateTapSelection = true,
+            autoHideCrowdedPlateLabels = false,
+            enablePlateTapSelection = showPlateLayer,
             hasAnnularRing = when (selectedTarget.surface) {
                 V2LayoutSurface.ROOF -> layoutMapSetup.roofHasAnnularRing
                 V2LayoutSurface.FLOOR -> layoutMapSetup.floorTemplate == V2FloorTemplate.CIRCULAR_PLATE_WITH_AR
@@ -417,25 +464,32 @@ private fun RoofOrFloorUtMap(
             },
             modifier = Modifier.fillMaxWidth(),
         )
-        placements.sortedBy { element ->
-            if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
-        }.forEach { element ->
-            val key = elementItemKey(selectedTarget, element)
-            val center = markerCenter(element, mapSizePx, placementRegion)
-            UtElementCallout(
-                element = element,
-                selected = key == activeElementKey,
-                completed = key in completedElementKeys,
-                onClick = {
-                    onSelectEntry(elementEntry(selectedTarget, element))
-                },
-                modifier = Modifier.offset {
-                    IntOffset(
-                        x = (center.x - markerAnchorXpx).roundToInt(),
-                        y = (center.y - markerAnchorYpx).roundToInt(),
-                    )
-                },
-            )
+        if (showElementLayer) {
+            placements.sortedBy { element ->
+                if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
+            }.forEach { element ->
+                val key = elementItemKey(selectedTarget, element)
+                val center = markerCenter(element, mapSizePx, placementRegion)
+                UtElementCallout(
+                    element = element,
+                    selected = key == activeElementKey,
+                    completed = key in completedElementKeys,
+                    onClick = {
+                        val entry = elementEntry(selectedTarget, element)
+                        if (element.type.requiresUtMeasurement()) {
+                            onSelectEntry(entry)
+                        } else {
+                            onOpenFinding(entry)
+                        }
+                    },
+                    modifier = Modifier.offset {
+                        IntOffset(
+                            x = (center.x - markerAnchorXpx).roundToInt(),
+                            y = (center.y - markerAnchorYpx).roundToInt(),
+                        )
+                    },
+                )
+            }
         }
         activeEntry?.let { entry ->
             val anchor = anchorForRoofOrFloorEntry(
@@ -472,6 +526,8 @@ private fun ShellUtMap(
     activeRegionLabel: String?,
     completedElementKeys: Set<String>,
     activeElementKey: String?,
+    showRegionLayer: Boolean,
+    showElementLayer: Boolean,
     onSelectEntry: (V2UtMeasurementEntry) -> Unit,
     onConfirm: (V2UtMeasurementEntry) -> Unit,
     onOpenFinding: (V2UtMeasurementEntry) -> Unit,
@@ -481,21 +537,27 @@ private fun ShellUtMap(
     val laneCount = layoutMapSetup.shellLaneCount.toPositiveInt(4).coerceIn(1, 24)
     val mapHeight = if (activeEntry == null) 430.dp else 700.dp
     val density = LocalDensity.current
+    val shellScrollState = rememberScrollState()
+    var horizontalZoom by remember(laneCount) {
+        mutableStateOf(if (laneCount == 4) 1.35f else 1.20f)
+    }
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .height(mapHeight),
     ) {
-        val mapWidth = maxWidth
+        val canvasHeight = (mapHeight - 58.dp).coerceAtLeast(360.dp)
+        val viewportWidth = maxWidth
+        val mapWidth = (maxWidth * horizontalZoom).coerceAtLeast(maxWidth)
         val mapSizePx = Size(
             width = with(density) { mapWidth.toPx() },
-            height = with(density) { mapHeight.toPx() },
+            height = with(density) { canvasHeight.toPx() },
         )
         val placementRegion = shellPlacementRegion(
             mapSize = mapSizePx,
             courseCount = courseCount,
             labelWidthPx = with(density) { 46.dp.toPx() },
-            topPaddingPx = with(density) { 26.dp.toPx() },
+            topPaddingPx = with(density) { 52.dp.toPx() },
             bottomPaddingPx = with(density) { 14.dp.toPx() },
             rightPaddingPx = with(density) { 8.dp.toPx() },
             cellGapPx = with(density) { 2.dp.toPx() },
@@ -503,62 +565,112 @@ private fun ShellUtMap(
         )
         val markerAnchorXpx = with(density) { 12.dp.toPx() }
         val markerAnchorYpx = with(density) { 44.dp.toPx() }
-        ShellUtCanvas(
-            courseCount = courseCount,
-            platesPerCourse = layoutMapSetup.shellPlatesPerCourse.toPositiveInt(12),
-            offsetMode = layoutMapSetup.shellPlateOffset,
-            offsetStartRow = layoutMapSetup.shellOffsetStartRow,
-            thirdOffsetStart = layoutMapSetup.shellThirdOffsetStart,
-            laneCount = laneCount,
-            completedRegionLabels = completedRegionLabels,
-            activeRegionLabel = activeRegionLabel,
-            referenceLabel = layoutMapSetup.referenceMode.label,
-            onSelectRegion = { laneIndex, course ->
-                onSelectEntry(regionEntry(selectedTarget, "L${laneIndex + 1}-C$course"))
-            },
+        Column(
             modifier = Modifier.fillMaxSize(),
-        )
-        placements.sortedBy { element ->
-            if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
-        }.forEach { element ->
-            val key = elementItemKey(selectedTarget, element)
-            val center = markerCenter(element, mapSizePx, placementRegion)
-            UtElementCallout(
-                element = element,
-                selected = key == activeElementKey,
-                completed = key in completedElementKeys,
-                onClick = {
-                    onSelectEntry(elementEntry(selectedTarget, element))
-                },
-                modifier = Modifier.offset {
-                    IntOffset(
-                        x = (center.x - markerAnchorXpx).roundToInt(),
-                        y = (center.y - markerAnchorYpx).roundToInt(),
-                    )
-                },
-            )
-        }
-        activeEntry?.let { entry ->
-            val anchor = anchorForShellEntry(
-                placements = placements,
-                entry = entry,
-                courseCount = courseCount,
-                laneCount = laneCount,
-                mapSize = mapSizePx,
-                placementRegion = placementRegion,
-            )
-            FloatingUtMeasurementCard(
-                entry = entry,
-                onConfirm = onConfirm,
-                onOpenFinding = onOpenFinding,
-                onClose = onClose,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Horizontal zoom",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LaiqColors.MutedText,
+                    modifier = Modifier.weight(0.55f),
+                )
+                Slider(
+                    value = horizontalZoom,
+                    onValueChange = { updated -> horizontalZoom = updated.coerceIn(1f, 2.4f) },
+                    valueRange = 1f..2.4f,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Box(
                 modifier = Modifier
-                    .width(310.dp)
-                    .offset(
-                        x = floatingXOffset(anchor.x, mapWidth, 310.dp),
-                        y = floatingYOffset(anchor.y, mapHeight, entry),
-                    ),
-            )
+                    .fillMaxWidth()
+                    .height(canvasHeight)
+                    .horizontalScroll(shellScrollState),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(mapWidth)
+                        .height(canvasHeight),
+                ) {
+                    ShellUtCanvas(
+                        courseCount = courseCount,
+                        platesPerCourse = layoutMapSetup.shellPlatesPerCourse.toPositiveInt(12),
+                        offsetMode = layoutMapSetup.shellPlateOffset,
+                        offsetStartRow = layoutMapSetup.shellOffsetStartRow,
+                        thirdOffsetStart = layoutMapSetup.shellThirdOffsetStart,
+                        laneCount = laneCount,
+                        completedRegionLabels = completedRegionLabels.takeIf { showRegionLayer }.orEmpty(),
+                        activeRegionLabel = activeRegionLabel.takeIf { showRegionLayer },
+                        referenceLabel = layoutMapSetup.referenceMode.label,
+                        enableRegionSelection = showRegionLayer,
+                        onSelectRegion = { laneIndex, course ->
+                            onSelectEntry(regionEntry(selectedTarget, "L${laneIndex + 1}-C$course"))
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (showElementLayer) {
+                        placements.sortedBy { element ->
+                            if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
+                        }.forEach { element ->
+                            val key = elementItemKey(selectedTarget, element)
+                            val center = markerCenter(element, mapSizePx, placementRegion)
+                            UtElementCallout(
+                                element = element,
+                                selected = key == activeElementKey,
+                                completed = key in completedElementKeys,
+                                onClick = {
+                                    val entry = elementEntry(selectedTarget, element)
+                                    if (element.type.requiresUtMeasurement()) {
+                                        onSelectEntry(entry)
+                                    } else {
+                                        onOpenFinding(entry)
+                                    }
+                                },
+                                modifier = Modifier.offset {
+                                    IntOffset(
+                                        x = (center.x - markerAnchorXpx).roundToInt(),
+                                        y = (center.y - markerAnchorYpx).roundToInt(),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    activeEntry?.let { entry ->
+                        val anchor = anchorForShellEntry(
+                            placements = placements,
+                            entry = entry,
+                            courseCount = courseCount,
+                            laneCount = laneCount,
+                            mapSize = mapSizePx,
+                            placementRegion = placementRegion,
+                        )
+                        FloatingUtMeasurementCard(
+                            entry = entry,
+                            onConfirm = onConfirm,
+                            onOpenFinding = onOpenFinding,
+                            onClose = onClose,
+                            modifier = Modifier
+                                .width(310.dp)
+                                .offset(
+                                    x = floatingXOffset(
+                                        anchorX = anchor.x,
+                                        mapWidth = mapWidth,
+                                        cardWidth = 310.dp,
+                                        viewportWidth = viewportWidth,
+                                        scrollOffset = with(density) { shellScrollState.value.toDp() },
+                                    ),
+                                    y = floatingYOffset(anchor.y, canvasHeight, entry),
+                                ),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -574,17 +686,18 @@ private fun ShellUtCanvas(
     completedRegionLabels: Set<String>,
     activeRegionLabel: String?,
     referenceLabel: String,
+    enableRegionSelection: Boolean,
     onSelectRegion: (Int, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val labelWidthPx = with(density) { 46.dp.toPx() }
-    val topPaddingPx = with(density) { 26.dp.toPx() }
+    val topPaddingPx = with(density) { 52.dp.toPx() }
     val bottomPaddingPx = with(density) { 14.dp.toPx() }
     val rightPaddingPx = with(density) { 8.dp.toPx() }
     val cellGapPx = with(density) { 2.dp.toPx() }
-    Canvas(
-        modifier = modifier.pointerInput(courseCount, laneCount) {
+    val canvasModifier = if (enableRegionSelection) {
+        modifier.pointerInput(courseCount, laneCount, enableRegionSelection) {
             detectTapGestures { offset ->
                 val rows = courseCount.coerceAtLeast(1)
                 val left = labelWidthPx
@@ -601,7 +714,12 @@ private fun ShellUtCanvas(
                     onSelectRegion(laneIndex, course)
                 }
             }
-        },
+        }
+    } else {
+        modifier
+    }
+    Canvas(
+        modifier = canvasModifier,
     ) {
         val borderColor = LaiqColors.BrandTeal.copy(alpha = 0.72f)
         val laneColor = LaiqColors.BrandRed.copy(alpha = 0.78f)
@@ -621,6 +739,9 @@ private fun ShellUtCanvas(
             textSize = 12.dp.toPx()
             isAntiAlias = true
         }
+        val edgeLabelPaint = android.graphics.Paint(labelPaint).apply {
+            textAlign = android.graphics.Paint.Align.RIGHT
+        }
         val lanePaint = android.graphics.Paint().apply {
             color = LaiqColors.BrandRed.toArgb()
             textSize = 11.dp.toPx()
@@ -629,7 +750,8 @@ private fun ShellUtCanvas(
             isAntiAlias = true
         }
 
-        drawContext.canvas.nativeCanvas.drawText("0° = $referenceLabel", left, 18.dp.toPx(), labelPaint)
+        drawContext.canvas.nativeCanvas.drawText("0° / 360° = $referenceLabel", left, 18.dp.toPx(), labelPaint)
+        drawContext.canvas.nativeCanvas.drawText("360°", right, 18.dp.toPx(), edgeLabelPaint)
 
         repeat(rows) { rowIndex ->
             val course = rows - rowIndex
@@ -644,9 +766,9 @@ private fun ShellUtCanvas(
 
         repeat(laneCount) { laneIndex ->
             drawContext.canvas.nativeCanvas.drawText(
-                "L${laneIndex + 1}",
+                shellLaneDisplayLabel(laneIndex = laneIndex, laneCount = laneCount),
                 left + laneIndex * laneWidth + laneWidth / 2f,
-                mapTop - 8.dp.toPx(),
+                mapTop - 12.dp.toPx(),
                 lanePaint,
             )
         }
@@ -689,11 +811,16 @@ private fun ShellUtCanvas(
             val y = mapTop + rowIndex * rowHeight
             repeat(laneCount) { laneIndex ->
                 val label = "L${laneIndex + 1}-C$course"
+                val displayLabel = shellRegionDisplayLabel(
+                    laneIndex = laneIndex,
+                    laneCount = laneCount,
+                    course = course,
+                )
                 val isActive = label == activeRegionLabel
                 val isCompleted = label in completedRegionLabels
+                val topLeft = Offset(left + laneIndex * laneWidth, y)
+                val regionSize = Size(laneWidth, rowHeight - cellGapPx)
                 if (isActive || isCompleted) {
-                    val topLeft = Offset(left + laneIndex * laneWidth, y)
-                    val regionSize = Size(laneWidth, rowHeight - cellGapPx)
                     val stateColor = if (isActive) selectedColor else completedColor
                     drawRect(
                         color = stateColor.copy(alpha = if (isActive) 0.34f else 0.32f),
@@ -706,15 +833,28 @@ private fun ShellUtCanvas(
                         size = regionSize,
                         style = Stroke(width = if (isActive) 3.dp.toPx() else 2.4.dp.toPx()),
                     )
-                    if (laneWidth >= 42.dp.toPx() && rowHeight >= 34.dp.toPx()) {
-                        statusLabelPaint.color = stateColor.toArgb()
-                        drawContext.canvas.nativeCanvas.drawText(
-                            if (isActive) label else "DONE",
-                            topLeft.x + regionSize.width / 2f,
-                            topLeft.y + regionSize.height / 2f + 4.dp.toPx(),
-                            statusLabelPaint,
-                        )
+                }
+                if (laneWidth >= 42.dp.toPx() && rowHeight >= 34.dp.toPx()) {
+                    val labelMaxWidth = (regionSize.width - 6.dp.toPx()).coerceAtLeast(8.dp.toPx())
+                    var fittedTextSize = 12.dp.toPx()
+                    val minTextSize = 7.dp.toPx()
+                    statusLabelPaint.color = when {
+                        isActive -> selectedColor.toArgb()
+                        isCompleted -> completedColor.toArgb()
+                        else -> mutedColor.copy(alpha = 0.78f).toArgb()
                     }
+                    statusLabelPaint.isFakeBoldText = isActive || isCompleted
+                    statusLabelPaint.textSize = fittedTextSize
+                    while (statusLabelPaint.measureText(displayLabel) > labelMaxWidth && fittedTextSize > minTextSize) {
+                        fittedTextSize -= 1.dp.toPx()
+                        statusLabelPaint.textSize = fittedTextSize
+                    }
+                    drawContext.canvas.nativeCanvas.drawText(
+                        displayLabel,
+                        topLeft.x + regionSize.width / 2f,
+                        topLeft.y + regionSize.height / 2f + fittedTextSize * 0.35f,
+                        statusLabelPaint,
+                    )
                 }
             }
         }
@@ -744,6 +884,26 @@ private fun ShellUtCanvas(
         }
     }
 }
+
+private fun shellLaneDisplayLabel(laneIndex: Int, laneCount: Int): String =
+    if (laneCount == 4) {
+        listOf("N", "E", "S", "W")[laneIndex.coerceIn(0, 3)]
+    } else if (laneIndex == 0) {
+        "L1 (N)"
+    } else {
+        "L${laneIndex + 1}"
+    }
+
+private fun shellRegionDisplayLabel(
+    laneIndex: Int,
+    laneCount: Int,
+    course: Int,
+): String =
+    if (laneCount == 4) {
+        "${shellLaneDisplayLabel(laneIndex, laneCount)}-C$course"
+    } else {
+        "L${laneIndex + 1}-C$course"
+    }
 
 @Composable
 private fun UtElementCallout(
@@ -842,10 +1002,18 @@ private fun FloatingUtMeasurementCard(
 ) {
     val labels = entry.readingLabels()
     var nozzleSize by remember(entry.itemKey) { mutableStateOf(entry.nozzleSize) }
+    var reinforcementPadReading by remember(entry.itemKey) {
+        mutableStateOf(entry.reinforcementPadReading)
+    }
     var readings by remember(entry.itemKey) {
         mutableStateOf(entry.readings.withSize(labels.size))
     }
-    val validationErrors = utReadingValidationErrors(readings, labels)
+    val padValidationError = reinforcementPadReading
+        .trim()
+        .takeIf { reading -> reading.isNotBlank() }
+        ?.takeUnless { reading -> reading.toDoubleOrNull()?.let { value -> value > 0.0 } == true }
+        ?.let { "Use a positive number for reinforcement pad." }
+    val validationErrors = utReadingValidationErrors(readings, labels) + listOfNotNull(padValidationError)
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
@@ -869,9 +1037,9 @@ private fun FloatingUtMeasurementCard(
                 color = LaiqColors.MutedText,
             )
 
-            if (entry.elementType == V2ElementType.NOZZLE) {
+            if (entry.requiresElementUt()) {
                 LaiqDropdownField(
-                    label = "Nozzle Size",
+                    label = "Element Size",
                     value = nozzleSize,
                     options = nozzleSizeOptions,
                     onSelected = { nozzleSize = it },
@@ -900,6 +1068,15 @@ private fun FloatingUtMeasurementCard(
                         Box(modifier = Modifier.weight(1f))
                     }
                 }
+            }
+
+            if (entry.requiresElementUt()) {
+                CompactUtTextField(
+                    value = reinforcementPadReading,
+                    onValueChange = { updated -> reinforcementPadReading = updated },
+                    label = "Reinforcement Pad",
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             if (validationErrors.isNotEmpty()) {
@@ -937,6 +1114,7 @@ private fun FloatingUtMeasurementCard(
                         onOpenFinding(
                             entry.copy(
                                 nozzleSize = nozzleSize,
+                                reinforcementPadReading = reinforcementPadReading.trim(),
                                 readings = readings.map { reading -> reading.trim() },
                                 confirmed = true,
                             ),
@@ -952,6 +1130,7 @@ private fun FloatingUtMeasurementCard(
                     onConfirm(
                         entry.copy(
                             nozzleSize = nozzleSize,
+                            reinforcementPadReading = reinforcementPadReading.trim(),
                             readings = readings.map { reading -> reading.trim() },
                             confirmed = true,
                         ),
@@ -1154,13 +1333,28 @@ private fun Size.isUsable(): Boolean =
 private fun Offset.distanceTo(other: Offset): Float =
     hypot(x - other.x, y - other.y)
 
-private fun floatingXOffset(anchorX: Float, mapWidth: Dp, cardWidth: Dp): Dp {
+private fun floatingXOffset(
+    anchorX: Float,
+    mapWidth: Dp,
+    cardWidth: Dp,
+    viewportWidth: Dp = mapWidth,
+    scrollOffset: Dp = 0.dp,
+): Dp {
     val maxX = (mapWidth - cardWidth).coerceAtLeast(0.dp)
-    return (mapWidth * anchorX - cardWidth / 2f).coerceIn(0.dp, maxX)
+    val rawX = mapWidth * anchorX - cardWidth / 2f
+    val visibleMinX = scrollOffset.coerceIn(0.dp, maxX)
+    val visibleMaxX = (scrollOffset + viewportWidth - cardWidth).coerceIn(0.dp, maxX)
+    return if (visibleMaxX >= visibleMinX) {
+        rawX.coerceIn(visibleMinX, visibleMaxX)
+    } else {
+        rawX.coerceIn(0.dp, maxX)
+    }
 }
 
 private fun floatingYOffset(anchorY: Float, mapHeight: Dp, entry: V2UtMeasurementEntry): Dp {
-    val estimatedCardHeight = if (entry.readingLabels().size >= 5 || entry.elementType == V2ElementType.NOZZLE) {
+    val estimatedCardHeight = if (entry.requiresElementUt()) {
+        454.dp
+    } else if (entry.readingLabels().size >= 5) {
         392.dp
     } else {
         326.dp
@@ -1214,15 +1408,15 @@ private fun V2UtMeasurementEntry.cardTitle(): String =
 private fun V2UtMeasurementEntry.readingLabels(): List<String> =
     when {
         kind == V2UtItemKind.LAYOUT_REGION -> listOf("UT 1", "UT 2", "UT 3", "UT 4", "UT 5")
-        elementType == V2ElementType.NOZZLE && target.surface == V2LayoutSurface.ROOF -> listOf("N", "S", "E", "W")
-        elementType == V2ElementType.NOZZLE && target.surface == V2LayoutSurface.SHELL -> listOf("12 o'clock", "3 o'clock", "6 o'clock", "9 o'clock")
+        requiresElementUt() && target.surface == V2LayoutSurface.ROOF -> listOf("N", "E", "S", "W")
+        requiresElementUt() && target.surface == V2LayoutSurface.SHELL -> listOf("12 o'clock", "3 o'clock", "6 o'clock", "9 o'clock")
         else -> listOf("UT 1", "UT 2", "UT 3", "UT 4")
     }
 
 private fun V2UtMeasurementEntry.hasMeasuredReadings(): Boolean =
     readings.withSize(readingLabels().size).any { reading ->
         reading.trim().toDoubleOrNull()?.let { value -> value > 0.0 } == true
-    }
+    } || reinforcementPadReading.trim().toDoubleOrNull()?.let { value -> value > 0.0 } == true
 
 private fun utReadingValidationErrors(
     readings: List<String>,

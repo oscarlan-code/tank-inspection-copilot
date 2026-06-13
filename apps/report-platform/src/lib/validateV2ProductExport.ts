@@ -46,11 +46,11 @@ export function validateV2ProductExportPackage(
   }
 
   if (!exportPackage.layoutTargets.some((target) => target.targetKey === "shell" && target.inLayoutScope)) {
-    issues.push("At least one in-scope shell layout target is required for the shell-internal report preview.");
+    issues.push("At least one in-scope shell layout target is required for the API-standard V10 report preview.");
   }
 
   if (!exportPackage.layoutConfigs.some((config) => config.targetKey === "shell")) {
-    issues.push("A shell layoutConfig is required for the shell-internal report preview.");
+    issues.push("A shell layoutConfig is required for the API-standard V10 report preview.");
   }
 
   if (exportPackage.validationResults.length === 0) {

@@ -41,6 +41,19 @@ Primary import source today:
 - `packageType: "v2_product_export"`
 - `schemaVersion: 2`
 
+Current app-import mock fixture for report generation:
+- `apps/report-platform/src/fixtures/v2-product-export-shell-internal.json`
+- Source role: aligned Android V2 Product export fixture for V10
+- Reference PDF: `/Users/oscar/Public/irs/Sample Reports/22PE1-4 TK V10 Internal & External Inspection Report.pdf`
+- Contains: tenant/workspace/user metadata, layout targets/configs, 23 elements, 136 UT rows, 195 checklist items, 13 checklist section notes, 9 findings, and 0 attachments.
+- UT split: 68 external roof rows, 32 shell rows, and 36 floor rows.
+
+The report-platform API seeds this fixture through:
+- `GET /api/v1/report-jobs/bootstrap/v10-api-standard`
+- `POST /api/v1/imports/android-v2-product`
+
+The legacy bootstrap alias `GET /api/v1/report-jobs/bootstrap/shell-internal` is kept only for compatibility with older local UI sessions.
+
 Canonical alignment target:
 - `packages/canonical-schema/inspection-package.schema.json`
 - `packages/canonical-schema/examples/minimal-inspection-package.json`

@@ -11,6 +11,7 @@ import ai.laiq.tankinspection.v2product.model.V2AnnotationPoint
 import ai.laiq.tankinspection.v2product.model.V2AnnotationStroke
 import ai.laiq.tankinspection.v2product.model.V2FindingPhoto
 import ai.laiq.tankinspection.v2product.model.V2FindingRecord
+import ai.laiq.tankinspection.v2product.model.hasCapturedEvidence
 import ai.laiq.tankinspection.v2product.model.withPhotoAnnotations
 import ai.laiq.tankinspection.v2product.model.withRemovedPhoto
 import ai.laiq.tankinspection.v2product.model.withSelectedPhoto
@@ -31,12 +32,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,9 +76,13 @@ private val quickFindingNotes = listOf(
 @Composable
 fun V2FindingCaptureScreen(
     record: V2FindingRecord,
+    allFindings: List<V2FindingRecord> = emptyList(),
     imageRootDir: File,
     onRecordChange: (V2FindingRecord) -> Unit,
+    onSelectFinding: (V2FindingRecord) -> Unit = {},
+    onDeleteFinding: (V2FindingRecord) -> Unit = {},
     onTakePhoto: () -> Unit,
+    onRetakePhoto: (V2FindingPhoto) -> Unit = {},
     onImportPhoto: () -> Unit,
     onBack: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -81,6 +90,15 @@ fun V2FindingCaptureScreen(
     val latestRecord by rememberUpdatedState(record)
     val selectedPhoto = record.photos.firstOrNull { photo -> photo.id == record.selectedPhotoId }
         ?: record.photos.lastOrNull()
+    val locationFindings = if (record.hasCapturedEvidence()) {
+        emptyList()
+    } else {
+        allFindings.filter { finding ->
+            finding.itemKey == record.itemKey && finding.hasCapturedEvidence()
+        }
+    }
+    var reviewExpanded by remember(record.itemKey) { mutableStateOf(false) }
+    var deleteTarget by remember { mutableStateOf<V2FindingRecord?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -126,7 +144,7 @@ fun V2FindingCaptureScreen(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     LaiqPrimaryButton(
-                        text = "Take Photo",
+                        text = "Add Photo",
                         onClick = onTakePhoto,
                         modifier = Modifier.weight(1f),
                     )
@@ -166,13 +184,18 @@ fun V2FindingCaptureScreen(
                             modifier = Modifier.weight(1f),
                         )
                         LaiqSecondaryButton(
-                            text = "Remove Photo",
-                            onClick = {
-                                onRecordChange(latestRecord.withRemovedPhoto(selectedPhoto.id))
-                            },
+                            text = "Retake",
+                            onClick = { onRetakePhoto(selectedPhoto) },
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    LaiqSecondaryButton(
+                        text = "Remove Photo",
+                        onClick = {
+                            onRecordChange(latestRecord.withRemovedPhoto(selectedPhoto.id))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -206,6 +229,18 @@ fun V2FindingCaptureScreen(
             }
         }
 
+        if (locationFindings.isNotEmpty()) {
+            item {
+                PreviousFindingsStrip(
+                    findings = locationFindings,
+                    expanded = reviewExpanded,
+                    onExpandedChange = { expanded -> reviewExpanded = expanded },
+                    onSelectFinding = onSelectFinding,
+                    onDeleteFinding = { finding -> deleteTarget = finding },
+                )
+            }
+        }
+
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaiqSecondaryButton(
@@ -216,6 +251,150 @@ fun V2FindingCaptureScreen(
                 LaiqPrimaryButton(
                     text = "Done",
                     onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+
+    deleteTarget?.let { finding ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("Delete Finding?") },
+            text = {
+                Text(
+                    text = "This removes notes and photos for ${finding.itemLabel}.",
+                    color = LaiqColors.BodyText,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        deleteTarget = null
+                        onDeleteFinding(finding)
+                    },
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun PreviousFindingsStrip(
+    findings: List<V2FindingRecord>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelectFinding: (V2FindingRecord) -> Unit,
+    onDeleteFinding: (V2FindingRecord) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = LaiqColors.SurfaceTint,
+        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "Saved Finding For This Location",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Only records linked to this clicked plate or element are shown.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                }
+                OutlinedButton(
+                    onClick = { onExpandedChange(!expanded) },
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                    modifier = Modifier.widthIn(min = 88.dp),
+                ) {
+                    Text(
+                    text = if (expanded) "Hide" else "Preview",
+                        color = LaiqColors.BrandTeal,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+
+            if (expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    findings.forEach { finding ->
+                        FindingPreviewRow(
+                            finding = finding,
+                            onSelectFinding = onSelectFinding,
+                            onDeleteFinding = onDeleteFinding,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FindingPreviewRow(
+    finding: V2FindingRecord,
+    onSelectFinding: (V2FindingRecord) -> Unit,
+    onDeleteFinding: (V2FindingRecord) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "${finding.target.label} - ${finding.itemLabel}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = LaiqColors.BodyText,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "${finding.photos.size} photo(s) - ${finding.note.ifBlank { "No note yet" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LaiqColors.MutedText,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LaiqSecondaryButton(
+                    text = "Preview",
+                    onClick = { onSelectFinding(finding) },
+                    modifier = Modifier.weight(1f),
+                )
+                LaiqSecondaryButton(
+                    text = "Delete",
+                    onClick = { onDeleteFinding(finding) },
                     modifier = Modifier.weight(1f),
                 )
             }

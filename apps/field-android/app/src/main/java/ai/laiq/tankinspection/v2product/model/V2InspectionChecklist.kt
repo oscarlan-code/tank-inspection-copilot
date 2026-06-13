@@ -40,9 +40,6 @@ data class V2InspectionChecklistState(
 )
 
 object V2InspectionChecklistCatalog {
-    // The fixed-roof Pacific Energy sample field sheet intentionally jumps from 96 -> 144
-    // and 152 -> 166 because the floating-roof-only sections are omitted in that PDF variant.
-    // Keep the original item numbers so the mobile checklist matches the source document.
     val sections: List<V2ChecklistSectionDefinition> = listOf(
         V2ChecklistSectionDefinition(
             key = "diked_area",
@@ -185,6 +182,65 @@ object V2InspectionChecklistCatalog {
             ).toChecklistItems(),
         ),
         V2ChecklistSectionDefinition(
+            key = "roof_external_floater",
+            title = "Roof External Floater",
+            items = listOf(
+                97 to "Floating roof cleanliness (clean and free of debris):",
+                98 to "Roof plates (corrosion, pitting, holes) (API 653 4.2.1.2):",
+                99 to "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3):",
+                100 to "Levelness of floating roof:",
+                101 to "Standing water or product on floating roof deck:",
+                102 to "Water or product in the pontoon compartments:",
+                103 to "Site mechanical contractor to remove all pontoon manhole covers. On gasoline tanks only when tank full to maximum height:",
+                104 to "Flexibility and resilience of wedge type wiper seals:",
+                105 to "Cracks or tears in wedge type wiper seals:",
+                106 to "Wiper seal static cables:",
+                107 to "Mechanical shoes damaging shell or coating:",
+                108 to "Condition of the floating roof ground connections:",
+                109 to "Tightness of rim and column seals (C.2.11.1(o)):",
+                110 to "Primary shoe seal fabric pulling away from shell:",
+                111 to "Deterioration, holes, tears, and cracks in primary seal fabric:",
+                112 to "Binding with shell or columns:",
+                113 to "Roof rolling ladder (corrosion, weld failure):",
+                114 to "Roof rolling ladder handrail (corrosion, weld failure):",
+                115 to "Roof rolling ladder and handrail (coating or paint failure):",
+                116 to "Roof rolling ladder attachment to shell (corrosion, wear):",
+                117 to "Roof rolling ladder rails (welds, corrosion, wear):",
+                118 to "Roof rolling ladder wheels and securing pins to axles:",
+                119 to "Roof rolling ladder to roof static cable (frayed, connections):",
+                120 to "Roof rolling ladder to shell static cable (frayed, connections):",
+                121 to "Floating roof support legs (corrosion, pitting bending):",
+                122 to "Roof leg sleeves (bending, corrosion):",
+                123 to "Roof leg pins (corrosion, sticking):",
+                124 to "Roof leg reinforcement pads (bending cracking):",
+                125 to "All roof legs at same level:",
+                126 to "Emergency overflow screens clean and free of debris:",
+                127 to "Roof drain sumps clean and free of debris, corrosion:",
+                128 to "Pontoon manhole seals condition:",
+                129 to "Anti-rotation/guide poles rollers for grooving:",
+                130 to "Number of vacuum breakers (API 653 C.1.5.11) (API 650 C.3.9):",
+                131 to "Rim vent functional (C.1.5.12):",
+                132 to "Check gooseneck vent on pontoon cover not plugged (C.1.5.13(c)):",
+                133 to "Pull back weather shield and measure gap 10 m intervals (C.1.4.7). Mechanical contractor to be made available for pulling back shield:",
+                134 to "When tank out of service U/T thickness readings or hammer test lower section of outer pontoon rim:",
+            ).toChecklistItems(),
+        ),
+        V2ChecklistSectionDefinition(
+            key = "roof_external_floater_cont",
+            title = "Roof External Floater - Cont'd",
+            items = listOf(
+                135 to "UT thickness reading of roof plates as per client request:",
+                136 to "Check for vapour rim around underside of roof:",
+                137 to "Check pontoon cover lock down devices:",
+                138 to "Check rim seal mechanisms and seal shoes:",
+                139 to "Adequate opening of vacuum breakers:",
+                140 to "Hammer test pipes of roof drain:",
+                141 to "Inlet/Outlet nozzles. Record if elbow up or down:",
+                142 to "Note elbow-up lines direct to roof and not rim seal gap:",
+                143 to "Check the condition of flexible roof drain hose:",
+            ).toChecklistItems(),
+        ),
+        V2ChecklistSectionDefinition(
             key = "fixed_roof_internal",
             title = "Fixed Roof Internal",
             items = listOf(
@@ -197,6 +253,25 @@ object V2InspectionChecklistCatalog {
                 150 to "Shell clips/brackets condition:",
                 151 to "Column support verticality:",
                 152 to "Roof venting nozzles trimmed flush (API 650 Fig. 5-19 and 20):",
+            ).toChecklistItems(),
+        ),
+        V2ChecklistSectionDefinition(
+            key = "roof_internal_floater",
+            title = "Roof Internal Floater",
+            items = listOf(
+                153 to "Floater panels vapour tight (API 650 H.4.2):",
+                154 to "Evidence of leaking panels (water spots on internal floater):",
+                155 to "Rim or skirt fitted around all opening (API 650 H.4.5):",
+                156 to "Tightness of rim and column seals:",
+                157 to "Foam logs fill roof rim space:",
+                158 to "Foam logs or fabric deteriorating:",
+                159 to "Roof/shell static cables (API 650 H.4.6.5):",
+                160 to "Damage or slack in anti-rotational cable:",
+                161 to "Damage to ladder or column wells and covers:",
+                162 to "Floating cover legs:",
+                163 to "Roof-mounted vents (clean, free of debris):",
+                164 to "When tank out-of-service check shell for grooving, pitting, etc. (C.1.2.2):",
+                165 to "Check the channel roof columns not separating:",
             ).toChecklistItems(),
         ),
         V2ChecklistSectionDefinition(

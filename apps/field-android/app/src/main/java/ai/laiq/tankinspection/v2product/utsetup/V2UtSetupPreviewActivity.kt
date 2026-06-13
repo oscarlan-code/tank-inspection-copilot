@@ -3,9 +3,14 @@ package ai.laiq.tankinspection.v2product.utsetup
 import android.content.Intent
 import android.os.Bundle
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
+import ai.laiq.tankinspection.presentation.v2product.common.V2DownstreamDataWarningDialog
 import ai.laiq.tankinspection.presentation.v2product.utsetup.V2UtSetupScreen
+import ai.laiq.tankinspection.v2product.model.V2DownstreamDataImpact
+import ai.laiq.tankinspection.v2product.model.V2DraftState
+import ai.laiq.tankinspection.v2product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v2product.model.selectedTargets
 import ai.laiq.tankinspection.v2product.model.withReconciledUtSetup
+import ai.laiq.tankinspection.v2product.elementsetup.V2ElementPlacementPreviewActivity
 import ai.laiq.tankinspection.v2product.preview.V2PreviewSession
 import ai.laiq.tankinspection.v2product.storage.V2WorkflowScreen
 import ai.laiq.tankinspection.v2product.utmeasurement.V2UtMeasurementPreviewActivity
@@ -29,12 +34,30 @@ class V2UtSetupPreviewActivity : ComponentActivity() {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var draftState by remember { mutableStateOf(V2PreviewSession.draftState) }
+                    var pendingDraftState by remember { mutableStateOf<V2DraftState?>(null) }
+                    var pendingImpact by remember { mutableStateOf<V2DownstreamDataImpact?>(null) }
                     val approvedLayoutTargets = draftState.layoutScope.selectedTargets()
                         .filter { target -> target in draftState.layoutMapSetup.approvedTargets }
 
                     fun goBackToElementPlacement() {
                         V2PreviewSession.updateDraftState(draftState)
+                        startActivity(
+                            Intent(this, V2ElementPlacementPreviewActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            },
+                        )
                         finish()
+                    }
+
+                    fun applyDraftState(nextDraftState: V2DraftState) {
+                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
+                        if (impact != null) {
+                            pendingDraftState = nextDraftState
+                            pendingImpact = impact
+                        } else {
+                            draftState = nextDraftState
+                            V2PreviewSession.updateDraftState(nextDraftState)
+                        }
                     }
 
                     BackHandler { goBackToElementPlacement() }
@@ -43,8 +66,7 @@ class V2UtSetupPreviewActivity : ComponentActivity() {
                         approvedLayoutTargets = approvedLayoutTargets,
                         state = draftState.utSetup,
                         onStateChange = {
-                            draftState = draftState.withReconciledUtSetup(it)
-                            V2PreviewSession.updateDraftState(draftState)
+                            applyDraftState(draftState.withReconciledUtSetup(it))
                         },
                         onBack = { goBackToElementPlacement() },
                         onContinue = {
@@ -52,6 +74,23 @@ class V2UtSetupPreviewActivity : ComponentActivity() {
                             startActivity(Intent(this, V2UtMeasurementPreviewActivity::class.java))
                         },
                     )
+                    pendingImpact?.let { impact ->
+                        V2DownstreamDataWarningDialog(
+                            impact = impact,
+                            onDismiss = {
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                            onConfirm = {
+                                pendingDraftState?.let { nextDraftState ->
+                                    draftState = nextDraftState
+                                    V2PreviewSession.updateDraftState(nextDraftState)
+                                }
+                                pendingImpact = null
+                                pendingDraftState = null
+                            },
+                        )
+                    }
                 }
             }
         }
