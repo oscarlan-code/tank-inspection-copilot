@@ -142,6 +142,30 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const evalRunsPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/evals$/);
+    if (request.method === "GET" && evalRunsPath) {
+      const reportJobId = decodeURIComponent(evalRunsPath[1]);
+      writeJson(response, 200, {
+        reportJobId,
+        evalRuns: reportStore.loadEvalRuns(reportJobId),
+      });
+      return;
+    }
+
+    const sectionEvalPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/sections\/([^/]+)\/evals\/latest$/);
+    if (request.method === "GET" && sectionEvalPath) {
+      const reportJobId = decodeURIComponent(sectionEvalPath[1]);
+      const sectionId = decodeURIComponent(sectionEvalPath[2]);
+      const evalRun = reportStore.loadLatestEvalRun(reportJobId, sectionId);
+      if (!evalRun) {
+        writeJson(response, 404, { error: `No eval run found for ${sectionId}.` });
+        return;
+      }
+
+      writeJson(response, 200, evalRun);
+      return;
+    }
+
     const manualInputsPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/manual-inputs$/);
     if (request.method === "PATCH" && manualInputsPath) {
       const reportJobId = decodeURIComponent(manualInputsPath[1]);
@@ -181,6 +205,7 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const reply = await reportStore.replyToSectionChat(reportJobId, sectionId, {
         userPrompt: body.userPrompt ?? body.prompt ?? "",
+        conversationHistory: body.conversationHistory ?? body.history ?? [],
       });
       writeJson(response, 200, reply);
       return;

@@ -17,11 +17,11 @@ export function getAiStatus() {
     modelId: available ? configuredModelId : null,
     configured: available,
     statusLabel: available
-      ? `Codex CLI worker${configuredModelId ? ` (${configuredModelId})` : ""}`
-      : "Deterministic fallback (Codex CLI unavailable)",
+      ? `LAIQ AI Engine worker${configuredModelId ? ` (${configuredModelId})` : ""}`
+      : "Deterministic fallback (LAIQ AI Engine worker unavailable)",
     detail: available
-      ? "Section generation and section chat will attempt `codex exec` first and fall back only if the CLI run fails."
-      : "The backend could not find a working `codex` executable on PATH, so deterministic fallback mode is active.",
+      ? "Section generation and section chat will attempt the configured LAIQ AI Engine worker first and fall back only if the worker run fails."
+      : "The backend could not find the configured LAIQ AI Engine worker on PATH, so deterministic fallback mode is active.",
     checkedAtIso: new Date().toISOString(),
   };
 }
@@ -32,7 +32,7 @@ export async function runStructuredCodexJob({
 }) {
   const status = getAiStatus();
   if (!status.configured) {
-    throw new Error("Codex CLI is not available on PATH for the report-platform worker.");
+    throw new Error("LAIQ AI Engine worker is not available on PATH for the report-platform worker.");
   }
 
   const workingDir = await mkdtemp(join(tmpdir(), "report-platform-codex-"));
@@ -109,7 +109,7 @@ function runCodexExec({
 
       reject(
         new Error(
-          `Codex CLI worker failed with exit code ${code}.${stderr ? ` stderr: ${compactWhitespace(stderr)}` : ""}`,
+          `LAIQ AI Engine worker failed with exit code ${code}.${stderr ? ` stderr: ${compactWhitespace(stderr)}` : ""}`,
         ),
       );
     });

@@ -90,13 +90,14 @@ export async function sendSectionChat(
   report: WorkspaceReport,
   sectionId: string,
   userPrompt: string,
+  conversationHistory: Array<{ role: string; content: string }> = [],
 ): Promise<ApiSectionChatReply> {
   const response = await fetch(buildSectionUrl(report.apiLinks.sectionChatPath, report.id, sectionId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ userPrompt }),
+    body: JSON.stringify({ userPrompt, conversationHistory }),
   });
 
   await assertOk(response, "Unable to send section chat prompt.");

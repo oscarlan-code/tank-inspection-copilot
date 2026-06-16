@@ -55,6 +55,28 @@ export type ChatMessage = {
 
 export type LayoutMarkerType = "finding" | "element" | "weld";
 
+export type LayoutEvidenceKind = "measurement" | "finding" | "element";
+
+export type LayoutEvidenceAttachment = {
+  attachmentId: string;
+  displayName: string;
+  relativePath: string;
+  mediaType: string;
+  fileExists: boolean;
+  kind: string;
+};
+
+export type LayoutEvidenceItem = {
+  id: string;
+  kind: LayoutEvidenceKind;
+  title: string;
+  subtitle?: string;
+  values?: string[];
+  note?: string;
+  attachments?: LayoutEvidenceAttachment[];
+  source: string;
+};
+
 export type LayoutMarker = {
   id: string;
   label: string;
@@ -62,6 +84,7 @@ export type LayoutMarker = {
   x: number;
   y: number;
   source: string;
+  evidence?: LayoutEvidenceItem[];
 };
 
 export type LayoutPlate = {
@@ -74,6 +97,7 @@ export type LayoutPlate = {
   width: number;
   height: number;
   source: string;
+  evidence?: LayoutEvidenceItem[];
 };
 
 export type LayoutDrawingBlock = {
@@ -85,6 +109,38 @@ export type LayoutDrawingBlock = {
   updatedAtLabel: string;
 };
 
+export type LayoutSurfaceType = "roof" | "shell" | "floor";
+
+export type AndroidLayoutMapConfig = {
+  surfaceType: LayoutSurfaceType;
+  referenceMode: string;
+  referenceNote?: string | null;
+  roof?: {
+    template: string;
+    rowCount: number;
+    widestRowPlateCount: number;
+    hasCenterOpening: boolean;
+    hasAnnularRing: boolean;
+    annularSectionCount: number;
+  };
+  shell?: {
+    courseCount: number;
+    platesPerCourse: number;
+    laneCount: number;
+    plateOffset: string;
+    offsetStartRow: string;
+    thirdOffsetStart: string | null;
+  };
+  floor?: {
+    template: string;
+    rowCount: number;
+    widestRowPlateCount: number;
+    plateCount: number;
+    hasAnnularRing: boolean;
+    annularSectionCount: number;
+  };
+};
+
 export type LayoutMapData = {
   id: string;
   title: string;
@@ -93,9 +149,11 @@ export type LayoutMapData = {
   legend: string[];
   markers: LayoutMarker[];
   plates: LayoutPlate[];
+  evidenceByKey?: Record<string, LayoutEvidenceItem[]>;
   gridRows: number;
   gridColumns: number;
   drawingBlock: LayoutDrawingBlock;
+  appMap?: AndroidLayoutMapConfig;
   selectedMarkerId?: string;
   overrideCount: number;
 };
@@ -155,6 +213,7 @@ export type ReportSection = {
   aiHint: string;
   templateExpectation: string;
   sourceSummary: string;
+  rawAppData?: string;
   missingFields: MissingField[];
   layoutMap?: LayoutMapData;
 };

@@ -7,6 +7,7 @@ import {
   generateSectionDraft,
   getAiStatus,
 } from "./generation.mjs";
+import { evaluateGeneratedSection } from "./eval.mjs";
 import { classifyReportPackage } from "./report-classification.mjs";
 
 export function createReportStore({ dbFilePath }) {
@@ -24,8 +25,10 @@ export function createReportStore({ dbFilePath }) {
     generateSection,
     getHealth,
     importAndroidV2ProductExport,
+    loadEvalRuns,
     loadBootstrapReport,
     loadReportJobState,
+    loadLatestEvalRun,
     replyToSectionChat,
     saveLayoutOverride,
     saveManualInputs,
@@ -308,6 +311,15 @@ export function createReportStore({ dbFilePath }) {
         LIMIT 1`,
       )
       .get(reportJobId);
+    const latestEvalRun = db
+      .prepare(
+        `SELECT eval_json
+        FROM report_eval_runs
+        WHERE report_job_id = ?
+        ORDER BY created_at_iso DESC
+        LIMIT 1`,
+      )
+      .get(reportJobId);
 
     const exportPackage = JSON.parse(row.raw_package_json);
     const latestOrchestration = latestGenerationRun?.orchestration_json
@@ -376,6 +388,7 @@ export function createReportStore({ dbFilePath }) {
             generatedAtIso: latestGenerationRun.created_at_iso,
           }
         : undefined,
+      evalRun: latestEvalRun?.eval_json ? JSON.parse(latestEvalRun.eval_json) : undefined,
       aiStatus: getAiStatus(),
     };
   }
@@ -476,6 +489,13 @@ export function createReportStore({ dbFilePath }) {
       sectionId,
       userInstruction,
     });
+    const evalRun = evaluateGeneratedSection({
+      reportState,
+      sectionId,
+      generationRun: generation.generationRun,
+      generatedContent: generation.draft.content,
+      orchestration: generation.orchestration,
+    });
     const nowIso = generation.generationRun.generatedAtIso;
     const actor = actorUserId || getReportJobActorUserId(reportJobId);
 
@@ -553,6 +573,32 @@ export function createReportStore({ dbFilePath }) {
         nowIso,
       );
 
+      db.prepare(
+        `INSERT INTO report_eval_runs (
+          eval_run_id,
+          run_id,
+          report_job_id,
+          section_id,
+          evaluator_key,
+          score,
+          outcome_code,
+          summary,
+          eval_json,
+          created_at_iso
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        evalRun.evalRunId,
+        generation.generationRun.runId,
+        reportJobId,
+        sectionId,
+        evalRun.evaluatorKey,
+        evalRun.score,
+        evalRun.outcomeCode,
+        evalRun.summary,
+        JSON.stringify(evalRun),
+        evalRun.createdAtIso,
+      );
+
       db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
         generation.generationRun.statusCode,
         nowIso,
@@ -563,11 +609,40 @@ export function createReportStore({ dbFilePath }) {
     return {
       ...loadReportJobState(reportJobId),
       generationRun: generation.generationRun,
+      evalRun,
       aiStatus: getAiStatus(),
     };
   }
 
-  async function replyToSectionChat(reportJobId, sectionId, { userPrompt }) {
+  function loadEvalRuns(reportJobId) {
+    ensureReportJobExists(reportJobId);
+    return db
+      .prepare(
+        `SELECT eval_json
+        FROM report_eval_runs
+        WHERE report_job_id = ?
+        ORDER BY created_at_iso DESC`,
+      )
+      .all(reportJobId)
+      .map((row) => JSON.parse(row.eval_json));
+  }
+
+  function loadLatestEvalRun(reportJobId, sectionId) {
+    ensureReportJobExists(reportJobId);
+    const row = db
+      .prepare(
+        `SELECT eval_json
+        FROM report_eval_runs
+        WHERE report_job_id = ? AND section_id = ?
+        ORDER BY created_at_iso DESC
+        LIMIT 1`,
+      )
+      .get(reportJobId, sectionId);
+
+    return row?.eval_json ? JSON.parse(row.eval_json) : null;
+  }
+
+  async function replyToSectionChat(reportJobId, sectionId, { userPrompt, conversationHistory = [] }) {
     ensureReportJobExists(reportJobId);
     const reportState = loadReportJobState(reportJobId);
     if (!reportState) {
@@ -578,6 +653,7 @@ export function createReportStore({ dbFilePath }) {
       reportState,
       sectionId,
       userPrompt: String(userPrompt ?? ""),
+      conversationHistory,
     });
   }
 
@@ -897,6 +973,25 @@ function ensureSchema(db) {
 
     CREATE INDEX IF NOT EXISTS idx_report_generation_runs_job_created
       ON report_generation_runs (report_job_id, created_at_iso DESC);
+
+    CREATE TABLE IF NOT EXISTS report_eval_runs (
+      eval_run_id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL REFERENCES report_generation_runs (run_id),
+      report_job_id TEXT NOT NULL REFERENCES report_jobs (report_job_id),
+      section_id TEXT NOT NULL,
+      evaluator_key TEXT NOT NULL,
+      score REAL NOT NULL,
+      outcome_code TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      eval_json TEXT NOT NULL,
+      created_at_iso TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_report_eval_runs_job_created
+      ON report_eval_runs (report_job_id, created_at_iso DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_report_eval_runs_section_created
+      ON report_eval_runs (report_job_id, section_id, created_at_iso DESC);
   `);
 
   ensureColumn(db, "report_generation_runs", "provider_code", "ALTER TABLE report_generation_runs ADD COLUMN provider_code TEXT");

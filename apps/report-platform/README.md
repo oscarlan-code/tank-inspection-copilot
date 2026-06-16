@@ -45,8 +45,8 @@ Current app-import mock fixture for report generation:
 - `apps/report-platform/src/fixtures/v2-product-export-shell-internal.json`
 - Source role: aligned Android V2 Product export fixture for V10
 - Reference PDF: `/Users/oscar/Public/irs/Sample Reports/22PE1-4 TK V10 Internal & External Inspection Report.pdf`
-- Contains: tenant/workspace/user metadata, layout targets/configs, 23 elements, 136 UT rows, 195 checklist items, 13 checklist section notes, 9 findings, and 0 attachments.
-- UT split: 68 external roof rows, 32 shell rows, and 36 floor rows.
+- Contains: tenant/workspace/user metadata, layout targets/configs, 23 elements, 141 UT rows, 195 checklist items, 13 checklist section notes, 15 findings, and 25 attachments.
+- UT split: 68 external roof rows, 38 shell rows, and 35 floor rows.
 
 The report-platform API seeds this fixture through:
 - `GET /api/v1/report-jobs/bootstrap/v10-api-standard`
@@ -124,6 +124,7 @@ Topology and orchestration:
 - `apps/report-platform/CODEX_ROLES_AND_TOOLING.md`
 - `apps/report-platform/REPORT_GENERATION_AND_LAYOUTMAP_ORCHESTRATION.md`
 - `apps/report-platform/PRECEDENT_KB_ARCHITECTURE.md`
+- `apps/report-platform/EVAL_SYSTEM.md`
 
 Backend and storage architecture:
 - `apps/report-platform/BACKEND_STORAGE_ARCHITECTURE.md`

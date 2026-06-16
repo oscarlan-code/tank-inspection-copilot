@@ -55,6 +55,182 @@ export function buildDefaultPlates(gridRows: number, gridColumns: number): Layou
   );
 }
 
+export function buildAndroidCircularPlateCells(
+  rowCount: number,
+  widestRowPlateCount: number,
+  source: string,
+): LayoutPlate[] {
+  const rows = Math.max(Math.floor(rowCount), 1);
+  const widest = Math.max(Math.floor(widestRowPlateCount), 1);
+  const radius = 0.42;
+  const center = 0.5;
+  const rowHeight = (2 * radius) / rows;
+  const nominalPlateWidth = (2 * radius) / widest;
+  const cells: LayoutPlate[] = [];
+  let nextPlateNumber = 1;
+
+  for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+    const rowNumber = rowIndex + 1;
+    const topNorm = center - radius + rowIndex * rowHeight;
+    const bottomNorm = topNorm + rowHeight;
+    const rowCenter = (topNorm + bottomNorm) / 2;
+    const dy = rowCenter - center;
+    const xSpan = Math.sqrt(Math.max(0, radius * radius - dy * dy));
+    const rowLeft = center - xSpan;
+    const rowRight = center + xSpan;
+    const staggerOffset = rowIndex % 2 === 0 ? 0 : nominalPlateWidth / 2;
+    const nominalStart = center - radius - staggerOffset;
+    const nominalEnd = center + radius + nominalPlateWidth;
+    const rowCells: Array<{ left: number; right: number }> = [];
+    let segmentStart = nominalStart;
+
+    while (segmentStart < nominalEnd) {
+      const segmentEnd = segmentStart + nominalPlateWidth;
+      const visibleLeft = Math.max(segmentStart, rowLeft);
+      const visibleRight = Math.min(segmentEnd, rowRight);
+
+      if (visibleRight - visibleLeft > nominalPlateWidth * 0.04) {
+        rowCells.push({ left: segmentStart, right: segmentEnd });
+      }
+
+      segmentStart = segmentEnd;
+    }
+
+    rowCells.forEach((cell, position) => {
+      const plateNumber =
+        rowNumber % 2 === 1
+          ? nextPlateNumber + position
+          : nextPlateNumber + (rowCells.length - 1 - position);
+
+      cells.push(
+        clampPlate({
+          id: plateNumber.toString(),
+          label: plateNumber.toString(),
+          row: rowNumber,
+          column: position + 1,
+          x: cell.left,
+          y: topNorm,
+          width: cell.right - cell.left,
+          height: bottomNorm - topNorm,
+          source,
+        }),
+      );
+    });
+
+    nextPlateNumber += rowCells.length;
+  }
+
+  return cells;
+}
+
+export function buildAndroidShellPlateSegments(
+  courseCount: number,
+  platesPerCourse: number,
+  offsetMode: string | null | undefined,
+  offsetStartRow: string | null | undefined,
+  thirdOffsetStart: string | null | undefined,
+): LayoutPlate[] {
+  const rows = Math.max(Math.floor(courseCount), 1);
+  const plateCount = Math.max(Math.floor(platesPerCourse), 1);
+  const rowHeight = 1 / rows;
+  const cellWidth = 1 / plateCount;
+  const segments: LayoutPlate[] = [];
+
+  for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+    const course = rows - rowIndex;
+    const y = rowIndex * rowHeight;
+    const offsetFraction = shellOffsetFraction(course, offsetMode, offsetStartRow, thirdOffsetStart);
+
+    if (offsetFraction > 0 && plateCount > 1) {
+      const leadingRight = cellWidth * offsetFraction;
+      const trailingLeft = 1 - cellWidth * (1 - offsetFraction);
+
+      segments.push(
+        shellPlateSegment(`course-${course}-lead`, course, 0, 0, leadingRight, y, rowHeight),
+      );
+      for (let plateIndex = 0; plateIndex < plateCount - 1; plateIndex += 1) {
+        const x = cellWidth * offsetFraction + plateIndex * cellWidth;
+        segments.push(
+          shellPlateSegment(`course-${course}-plate-${plateIndex + 1}`, course, plateIndex + 1, x, cellWidth, y, rowHeight),
+        );
+      }
+      segments.push(
+        shellPlateSegment(`course-${course}-trail`, course, plateCount, trailingLeft, 1 - trailingLeft, y, rowHeight),
+      );
+    } else {
+      for (let plateIndex = 0; plateIndex < plateCount; plateIndex += 1) {
+        segments.push(
+          shellPlateSegment(
+            `course-${course}-plate-${plateIndex + 1}`,
+            course,
+            plateIndex + 1,
+            plateIndex * cellWidth,
+            cellWidth,
+            y,
+            rowHeight,
+          ),
+        );
+      }
+    }
+  }
+
+  return segments;
+}
+
+export function shellRegionMarkerPosition(laneId: string | null | undefined, course: number | null | undefined, laneCount: number, courseCount: number) {
+  const laneMatch = /^L(\d+)$/i.exec(laneId ?? "");
+  const laneNumber = laneMatch ? Number(laneMatch[1]) : null;
+
+  if (!laneNumber || !course) return null;
+
+  return {
+    x: clamp((laneNumber - 0.5) / Math.max(laneCount, 1), 0.04, 0.96),
+    y: clamp((Math.max(courseCount, 1) - course + 0.5) / Math.max(courseCount, 1), 0.05, 0.95),
+  };
+}
+
+function shellPlateSegment(
+  id: string,
+  course: number,
+  column: number,
+  x: number,
+  width: number,
+  y: number,
+  rowHeight: number,
+): LayoutPlate {
+  return clampPlate({
+    id,
+    label: "",
+    row: course,
+    column,
+    x,
+    y,
+    width,
+    height: rowHeight * 0.95,
+    source: "android:shell-ut-segment",
+  });
+}
+
+function shellOffsetFraction(
+  courseNo: number,
+  offsetMode: string | null | undefined,
+  offsetStartRow: string | null | undefined,
+  thirdOffsetStart: string | null | undefined,
+): number {
+  if (offsetMode === "third_plate") {
+    const startStep = thirdOffsetStart === "one_third" ? 1 : thirdOffsetStart === "two_thirds" ? 2 : 0;
+    return ((startStep + courseNo - 1) % 3) / 3;
+  }
+
+  if (offsetMode === "half_plate") {
+    const shouldOffset =
+      offsetStartRow === "odd" ? courseNo % 2 === 1 : courseNo % 2 === 0;
+    return shouldOffset ? 0.5 : 0;
+  }
+
+  return 0;
+}
+
 export function markerToStagePosition(marker: LayoutMarker) {
   return {
     x: MAP_STAGE.shell.x + clamp(marker.x, 0.02, 0.98) * MAP_STAGE.shell.width,
@@ -101,13 +277,14 @@ export function clampMarker(marker: LayoutMarker): LayoutMarker {
 }
 
 export function clampPlate(plate: LayoutPlate): LayoutPlate {
-  const width = clamp(plate.width, 0.04, 0.35);
-  const height = clamp(plate.height, 0.05, 0.32);
+  const isAndroidGeometry = plate.source.startsWith("android:");
+  const width = clamp(plate.width, isAndroidGeometry ? 0.001 : 0.04, isAndroidGeometry ? 1 : 0.35);
+  const height = clamp(plate.height, isAndroidGeometry ? 0.001 : 0.05, isAndroidGeometry ? 1 : 0.32);
 
   return {
     ...plate,
-    x: clamp(plate.x, 0, 0.98 - width),
-    y: clamp(plate.y, 0.02, 0.96 - height),
+    x: clamp(plate.x, 0, 1 - width),
+    y: clamp(plate.y, isAndroidGeometry ? 0 : 0.02, 1 - height),
     width,
     height,
   };

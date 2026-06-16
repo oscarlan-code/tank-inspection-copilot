@@ -14,9 +14,17 @@ export function normalizeSectionContent(value: string): string {
 }
 
 export function sanitizeSectionContent(value: string): string {
-  return DOMPurify.sanitize(normalizeSectionContent(value), {
+  return DOMPurify.sanitize(ensureReportTableClasses(normalizeSectionContent(value)), {
+    ADD_ATTR: ["class"],
+    ADD_TAGS: ["table", "thead", "tbody", "tr", "th", "td"],
     USE_PROFILES: { html: true },
   });
+}
+
+function ensureReportTableClasses(value: string): string {
+  return value
+    .replace(/<div(?![^>]*class=)([^>]*)>\s*<table/gi, '<div class="report-table-wrap"$1><table')
+    .replace(/<table(?![^>]*class=)([^>]*)>/gi, '<table class="report-measurement-table"$1>');
 }
 
 function plainTextToHtml(value: string): string {

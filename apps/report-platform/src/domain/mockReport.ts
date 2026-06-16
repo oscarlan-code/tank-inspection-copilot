@@ -1,4 +1,9 @@
-import { buildDefaultPlates, ensureLayoutMapData } from "../lib/layoutMapGeometry";
+import {
+  buildAndroidCircularPlateCells,
+  buildAndroidShellPlateSegments,
+  ensureLayoutMapData,
+  shellRegionMarkerPosition,
+} from "../lib/layoutMapGeometry";
 import { validateV2ProductExportPackage } from "../lib/validateV2ProductExport";
 import {
   API_STANDARD_PRIMARY_REPORT,
@@ -9,6 +14,7 @@ import { classifyReportPackage } from "./reportClassification";
 import type {
   AssistantAction,
   ChatMessage,
+  LayoutEvidenceItem,
   LayoutMapData,
   LayoutMarker,
   MissingField,
@@ -18,7 +24,9 @@ import type {
   WorkspaceReport,
 } from "./types";
 import type {
+  V2ProductExportAttachment,
   V2ProductExportChecklistSectionNote,
+  V2ProductExportElement,
   V2ProductExportFinding,
   V2ProductExportLayoutConfig,
   V2ProductExportPackage,
@@ -44,6 +52,12 @@ type SketchSectionSpec = {
   title: string;
   shortLabel: string;
   drawing: string;
+};
+
+type ExportedLayoutMaps = {
+  roof?: LayoutMapData;
+  shell?: LayoutMapData;
+  floor?: LayoutMapData;
 };
 
 export type WorkspaceBootstrap = {
@@ -79,6 +93,48 @@ export type ApiGenerationRun = {
   usedLiveModel?: boolean;
   fallbackReason?: string | null;
   assistantSummary?: string | null;
+};
+
+export type ApiEvalRun = {
+  evalRunId: string;
+  generationRunId: string;
+  reportJobId: string | null;
+  sectionId: string;
+  evaluatorKey: string;
+  createdAtIso: string;
+  score: number;
+  grade: string;
+  outcomeCode: string;
+  summary: string;
+  dataLeakPolicy: {
+    generationPromptIsolation: string;
+    expectedFailureRule: string;
+    noLeakRule: string;
+  };
+  missingUserInputs: {
+    missingManualFields: Array<{
+      fieldKey: string;
+      label: string;
+    }>;
+    expectedBadUntilResolved: boolean;
+    capApplied: number | null;
+  };
+  leakage: {
+    riskScore: number;
+    statusCode: string;
+    copiedPhraseCount: number;
+    copiedPhrasePreviews: string[];
+    referenceOnlyFacts: string[];
+    notes: string[];
+  };
+  dimensions: Array<{
+    key: string;
+    label: string;
+    score: number;
+    statusCode: string;
+    notes: string[];
+  }>;
+  tuningHints: string[];
 };
 
 export type ApiSectionChatReply = {
@@ -117,6 +173,7 @@ export type ApiReportJobState = {
     updatedAtIso: string;
   }>;
   generationRun?: ApiGenerationRun;
+  evalRun?: ApiEvalRun;
   aiStatus?: ApiAiStatus;
 };
 
@@ -135,6 +192,9 @@ const fixtureManualSupplement: ManualReportSupplement = {
 
 const defaultApiBaseUrl = "";
 const v10ApiStandardBootstrapPath = "/api/v1/report-jobs/bootstrap/v10-api-standard";
+const androidMockSeedPath =
+  "apps/field-android/app/src/main/java/ai/laiq/tankinspection/v2product/preview/V2ProductMockTaskSeed.kt";
+const reportFixturePath = "apps/report-platform/src/fixtures/v2-product-export-shell-internal.json";
 let workspaceBootstrapPromise: Promise<WorkspaceBootstrap> | null = null;
 
 function buildApiStandardFixturePackage(exportPackage: V2ProductExportPackage): V2ProductExportPackage {
@@ -239,8 +299,12 @@ function buildWorkspaceReport(
   apiBaseUrl: string,
   reportJobId?: string,
 ): WorkspaceReport {
-  const shellConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "shell");
-  const shellLayoutMap = buildShellLayoutMap(exportPackage, shellConfig, manualSupplement);
+  const layoutMaps = buildExportedLayoutMaps(exportPackage, manualSupplement);
+
+  const sections = [
+    buildCoverSection(exportPackage, manualSupplement),
+    ...buildApiStandardTocSections(exportPackage, manualSupplement, layoutMaps),
+  ].map((section) => attachRawAppData(section, exportPackage));
 
   return {
     id: reportJobId ?? `report-job-${exportPackage.inspectionId}`,
@@ -278,10 +342,7 @@ function buildWorkspaceReport(
       reportClassification: ReturnType<typeof classifyReportPackage>;
     },
     apiLinks: buildApiLinks(apiBaseUrl),
-    sections: [
-      buildCoverSection(exportPackage, manualSupplement),
-      ...buildApiStandardTocSections(exportPackage, manualSupplement, shellLayoutMap),
-    ],
+    sections,
   };
 }
 
@@ -377,6 +438,463 @@ This cover page is assembled from imported Android task facts plus report-side i
       }),
     ],
   };
+}
+
+function attachRawAppData(section: ReportSection, exportPackage: V2ProductExportPackage): ReportSection {
+  return {
+    ...section,
+    rawAppData: buildSectionRawAppData(section, exportPackage),
+  };
+}
+
+function buildSectionRawAppData(section: ReportSection, exportPackage: V2ProductExportPackage): string {
+  const targetKeys = inferSectionTargetKeys(section);
+  const sectionSearchText = `${section.id} ${section.title} ${section.sourceSummary}`.toLowerCase();
+  const isChecklistSection = section.id === "tank-inspection-checklist" || sectionSearchText.includes("checklist");
+  const isPhotoSection = section.id === "photographs" || section.kind === "attachment" || sectionSearchText.includes("photo");
+  const isRecommendationSection =
+    section.id.includes("recommendation") ||
+    section.id.includes("repair") ||
+    sectionSearchText.includes("recommendation");
+  const isDetailedEvidenceSection =
+    targetKeys.length > 0 ||
+    sectionSearchText.includes("thickness") ||
+    sectionSearchText.includes("measurement") ||
+    sectionSearchText.includes("finding") ||
+    sectionSearchText.includes("ndt") ||
+    sectionSearchText.includes("mfl") ||
+    section.kind === "map";
+  const isOverviewSection = !isDetailedEvidenceSection && !isChecklistSection;
+  const scopeFilter = <T extends { targetKey: string }>(items: T[]) => items.filter((item) => targetKeys.includes(item.targetKey));
+  const scopedUtMeasurements = scopeFilter(exportPackage.utMeasurements);
+  const scopedElements = scopeFilter(exportPackage.elements);
+  const scopedFindings =
+    targetKeys.length > 0
+      ? scopeFilter(exportPackage.findings)
+      : isRecommendationSection
+        ? exportPackage.findings
+        : [];
+  const scopedLayoutTargets = scopeFilter(exportPackage.layoutTargets);
+  const scopedLayoutConfigs = scopeFilter(exportPackage.layoutConfigs);
+  const checklistItems =
+    isChecklistSection
+      ? exportPackage.inspectionChecklistItems.slice(0, 32).map((item) => ({
+          sectionTitle: item.sectionTitle,
+          itemNumber: item.itemNumber,
+          itemPrompt: item.itemPrompt,
+          ratingLabel: item.ratingLabel,
+        }))
+      : [];
+  const scopedChecklistNotes = selectChecklistSectionNotes(section, exportPackage, targetKeys);
+
+  const selectedTargetLabel =
+    targetKeys.length > 0 ? targetKeys.join(", ") : "none; this section uses report/job metadata";
+  const overviewLines = [
+    `- Use this as an inspection-wide report section, not a raw data dump.`,
+    `- The app export identifies ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
+    `- Export contains ${exportPackage.utMeasurements.length} UT rows, ${exportPackage.findings.length} finding records, ${exportPackage.elements.length} positioned elements, and ${exportPackage.inspectionChecklistItems.length} checklist items.`,
+    `- Current validation result: ${exportPackage.validationResults.filter((result) => result.passed).length}/${exportPackage.validationResults.length} export checks passed.`,
+    `- Keep detailed UT tables, map geometry, photo selection, and final recommendation wording in their own report sections.`,
+  ].join("\n");
+  const validationLines = exportPackage.validationResults
+    .map((result) => `- ${result.ruleLabel}: ${result.passed ? "passed" : "needs review"} - ${result.message}`)
+    .join("\n");
+  const layoutLines =
+    scopedLayoutConfigs.length > 0
+      ? scopedLayoutConfigs
+          .map((config) =>
+            [
+              `- ${humanizeKey(config.targetKey)} layout:`,
+              config.shellCourseCount != null ? `${config.shellCourseCount} shell courses` : null,
+              config.shellPlatesPerCourse != null ? `${config.shellPlatesPerCourse} plates per course` : null,
+              config.shellLaneCount != null ? `${config.shellLaneCount} lanes` : null,
+              config.roofRowCount != null ? `${config.roofRowCount} roof rows` : null,
+              config.roofWidestRowPlateCount != null ? `${config.roofWidestRowPlateCount} widest-row roof plates` : null,
+              config.floorPlateCount != null ? `${config.floorPlateCount} floor plates` : null,
+              config.referenceMode ? `reference ${humanizeKey(config.referenceMode)}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          )
+          .join("\n")
+      : "- No matching layout config is exported for this report section.";
+  const elementLines =
+    scopedElements.length > 0
+      ? isOverviewSection
+        ? buildElementSummaryLines(scopedElements).join("\n")
+        : scopedElements
+            .slice(0, 16)
+            .map(
+              (element) =>
+                `- ${element.elementLabel} (${humanizeKey(element.elementTypeKey)}) on ${humanizeKey(
+                  element.targetKey,
+                )}, normalized location x=${element.normalizedX.toFixed(2)}, y=${element.normalizedY.toFixed(2)}`,
+            )
+            .join("\n")
+      : "- No matching element placements are exported for this section.";
+  const utLines =
+    scopedUtMeasurements.length > 0
+      ? isOverviewSection
+        ? buildUtTargetSummaryLines(scopedUtMeasurements).join("\n")
+        : scopedUtMeasurements.slice(0, 24).map(formatUtMeasurementPreview).join("\n")
+      : "- No matching UT rows are exported for this section.";
+  const findingLines =
+    scopedFindings.length > 0
+      ? scopedFindings
+          .slice(0, isOverviewSection ? 6 : 12)
+          .map(
+            (finding) =>
+              `- ${finding.itemLabel}: ${truncatePreviewText(finding.note, isOverviewSection ? 190 : 320)} Linked UT item: ${finding.linkedUtItemKey}.`,
+          )
+          .join("\n")
+      : "- No matching findings are exported for this section.";
+  const checklistLines =
+    checklistItems.length > 0
+      ? checklistItems
+          .map((item) => `- ${item.itemNumber}. ${item.itemPrompt} Result: ${item.ratingLabel ?? "not rated"}.`)
+          .join("\n")
+      : scopedChecklistNotes
+          .slice(0, 8)
+          .map((note) => `- ${note.sectionTitle}: ${note.note}`)
+          .join("\n");
+  const elementHeading = isOverviewSection
+    ? `Element placement summary (${scopedElements.length} matching rows)`
+    : `Element placements (${scopedElements.length} matching rows, first 16 shown)`;
+  const utHeading = isOverviewSection
+    ? `UT measurement summary (${scopedUtMeasurements.length} matching rows)`
+    : `UT measurements (${scopedUtMeasurements.length} matching rows, first 24 shown)`;
+  const findingHeading = isOverviewSection
+    ? `Findings summary (${scopedFindings.length} matching rows, first 6 shown)`
+    : `Findings (${scopedFindings.length} matching rows, first 12 shown)`;
+
+  if (isOverviewSection && !isPhotoSection) {
+    return [
+      "Source files",
+      `- Android mock seed: ${androidMockSeedPath}`,
+      `- App export fixture: ${reportFixturePath}`,
+      "",
+      "Selected report section",
+      `- Section ${section.number}: ${section.title}`,
+      `- Section type: ${section.kind}`,
+      "- Relevant exported targets: none; this section should not include raw UT rows, finding maps, or checklist dumps.",
+      "",
+      "Plain-English reading guide",
+      overviewLines,
+      "",
+      "Inspection package",
+      `- Package type/version: ${exportPackage.packageType} / schema ${exportPackage.schemaVersion}`,
+      `- Inspection reference: ${exportPackage.inspectionReference}`,
+      `- Exported at: ${exportPackage.exportedAtIso}`,
+      `- Inspector: ${exportPackage.profile.displayName} (${exportPackage.profile.roleLabel})`,
+      `- Tenant/workspace: ${exportPackage.profile.tenantName} / ${exportPackage.profile.workspaceName}`,
+      "",
+      "Tank identity and dimensions",
+      `- Client: ${exportPackage.task.client}`,
+      `- Tank: ${exportPackage.task.tankNumber}`,
+      `- Location: ${exportPackage.task.location}`,
+      `- Field/lease: ${exportPackage.inspectionRecord.fieldLeaseName}`,
+      `- Roof type: ${humanizeKey(exportPackage.inspectionRecord.externalRoofType ?? "not recorded")}`,
+      `- Diameter: ${formatMetric(exportPackage.inspectionRecord.diameterM)}`,
+      `- Height: ${formatMetric(exportPackage.inspectionRecord.heightM)}`,
+      `- Shell courses: ${exportPackage.inspectionRecord.shellCourseCount ?? "not recorded"}`,
+      "",
+      "Section-specific context",
+      ...buildOverviewSectionContextLines(section, exportPackage),
+      "",
+      "Export readiness checks relevant to this section",
+      validationLines,
+      "",
+      "Display note",
+      "- This section-level preview intentionally excludes unrelated raw evidence tables. Open the matching UT, checklist, map, photo, or recommendation section for those details.",
+    ].join("\n");
+  }
+
+  if (isPhotoSection) {
+    return [
+      "Source files",
+      `- Android mock seed: ${androidMockSeedPath}`,
+      `- App export fixture: ${reportFixturePath}`,
+      "",
+      "Selected report section",
+      `- Section ${section.number}: ${section.title}`,
+      `- Section type: ${section.kind}`,
+      "- Relevant exported targets: photo and attachment registry only.",
+      "",
+      "Plain-English reading guide",
+      "- Use only imported attachment/photo metadata for this section. Do not pull UT tables, checklist notes, or unrelated findings into the photo page draft.",
+      "",
+      "Inspection package",
+      `- Inspection reference: ${exportPackage.inspectionReference}`,
+      `- Client/tank: ${exportPackage.task.client} / Tank ${exportPackage.task.tankNumber}`,
+      "",
+      "Section-specific attachment context",
+      ...buildPhotoSectionContextLines(exportPackage),
+      "",
+      "Display note",
+      "- Final photo ordering, captions, and page layout remain report-side decisions.",
+    ].join("\n");
+  }
+
+  return [
+    "Source files",
+    `- Android mock seed: ${androidMockSeedPath}`,
+    `- App export fixture: ${reportFixturePath}`,
+    "",
+    "Selected report section",
+    `- Section ${section.number}: ${section.title}`,
+    `- Section type: ${section.kind}`,
+    `- Relevant exported targets: ${selectedTargetLabel}`,
+    "",
+    "Plain-English reading guide",
+    isOverviewSection
+      ? overviewLines
+      : "- Use these section-specific facts as the evidence base. Keep the final report wording concise and in the sample report format.",
+    "",
+    "Inspection package",
+    `- Package type/version: ${exportPackage.packageType} / schema ${exportPackage.schemaVersion}`,
+    `- Inspection reference: ${exportPackage.inspectionReference}`,
+    `- Exported at: ${exportPackage.exportedAtIso}`,
+    `- Inspector: ${exportPackage.profile.displayName} (${exportPackage.profile.roleLabel})`,
+    `- Tenant/workspace: ${exportPackage.profile.tenantName} / ${exportPackage.profile.workspaceName}`,
+    "",
+    "Tank identity and dimensions",
+    `- Client: ${exportPackage.task.client}`,
+    `- Tank: ${exportPackage.task.tankNumber}`,
+    `- Location: ${exportPackage.task.location}`,
+    `- Field/lease: ${exportPackage.inspectionRecord.fieldLeaseName}`,
+    `- Roof type: ${humanizeKey(exportPackage.inspectionRecord.externalRoofType ?? "not recorded")}`,
+    `- Diameter: ${formatMetric(exportPackage.inspectionRecord.diameterM)}`,
+    `- Height: ${formatMetric(exportPackage.inspectionRecord.heightM)}`,
+    `- Shell courses: ${exportPackage.inspectionRecord.shellCourseCount ?? "not recorded"}`,
+    "",
+    "Export readiness checks",
+    validationLines,
+    "",
+    `Layout configuration (${scopedLayoutConfigs.length} matching rows)`,
+    layoutLines,
+    "",
+    elementHeading,
+    elementLines,
+    "",
+    utHeading,
+    utLines,
+    "",
+    findingHeading,
+    findingLines,
+    "",
+    checklistItems.length > 0 ? "Checklist items (first 32 shown)" : "Section-related checklist notes",
+    checklistLines || "- No checklist notes are scoped to this section.",
+    "",
+    "Display note",
+    "- This is a readable pre-processed preview. The full immutable JSON export remains the source of truth.",
+  ].join("\n");
+}
+
+function buildOverviewSectionContextLines(section: ReportSection, exportPackage: V2ProductExportPackage): string[] {
+  if (section.id === "scope-of-inspection") {
+    return [
+      "- Generate the report scope only from task identity, inspection type, API-standard report family, and export readiness status.",
+      `- Field task scope: ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
+      `- Workflow screen captured by Android: ${humanizeKey(exportPackage.workflowScreen)}.`,
+      "- Mention that detailed roof, shell, floor, NDT, layout-map, photograph, and recommendation content is handled in later sections.",
+    ];
+  }
+
+  if (section.id === "inspection-maintenance-regime") {
+    return [
+      "- This section is mainly report-family standard wording.",
+      "- Use app export only to confirm the active client, tank, inspection reference, and report family.",
+      `- Checklist coverage available elsewhere: ${exportPackage.inspectionChecklistItems.length} completed checklist items.`,
+      "- Do not include detailed checklist answers in this maintenance-regime section.",
+    ];
+  }
+
+  if (section.id === "general-tank-information") {
+    return [
+      "- Use this section as a structured label-value tank information page.",
+      `- Client: ${exportPackage.inspectionRecord.client}`,
+      `- Tank number: ${exportPackage.inspectionRecord.tankNumber}`,
+      `- Location: ${exportPackage.inspectionRecord.location}`,
+      `- Reference mode: ${humanizeKey(exportPackage.inspectionRecord.referenceMode ?? "not recorded")}`,
+      `- Roof type: ${humanizeKey(exportPackage.inspectionRecord.externalRoofType ?? "not recorded")}`,
+      `- Remaining report-side fields: ${formatMissingFieldLabels(section)}.`,
+    ];
+  }
+
+  if (section.id === "test-information") {
+    return [
+      "- Use this section for test-method metadata only.",
+      `- Android export has ${exportPackage.utMeasurements.length} UT rows and ${exportPackage.findings.length} finding records available in their own sections.`,
+      "- Do not paste UT measurement rows into the test information section.",
+      `- Remaining report-side fields: ${formatMissingFieldLabels(section)}.`,
+    ];
+  }
+
+  return [
+    "- This section does not currently have dedicated structured evidence in the Android export.",
+    "- Use the report ToC title, template expectation, and missing-content panel as the working context.",
+    `- Remaining report-side fields: ${formatMissingFieldLabels(section)}.`,
+  ];
+}
+
+function buildPhotoSectionContextLines(exportPackage: V2ProductExportPackage): string[] {
+  const photoAttachments = exportPackage.attachments.filter(isPhotoAttachment);
+
+  if (photoAttachments.length === 0) {
+    return ["- No imported photo attachments are available for this section yet."];
+  }
+
+  return photoAttachments
+    .slice(0, 24)
+    .map((attachment, index) => `- Photo ${index + 1}: ${attachment.displayName} (${attachment.kind}).`);
+}
+
+function selectChecklistSectionNotes(
+  section: ReportSection,
+  exportPackage: V2ProductExportPackage,
+  targetKeys: string[],
+): V2ProductExportChecklistSectionNote[] {
+  if (section.id === "tank-inspection-checklist") {
+    return exportPackage.inspectionChecklistSectionNotes;
+  }
+
+  const sectionText = `${section.id} ${section.title}`.toLowerCase();
+  const includeKeywords = new Set<string>();
+
+  if (targetKeys.includes("external_roof") || sectionText.includes("roof")) {
+    includeKeywords.add("roof");
+  }
+  if (targetKeys.includes("shell") || sectionText.includes("shell")) {
+    includeKeywords.add("shell");
+    includeKeywords.add("access");
+  }
+  if (targetKeys.includes("floor") || sectionText.includes("floor") || sectionText.includes("bottom")) {
+    includeKeywords.add("floor");
+    includeKeywords.add("bottom");
+    includeKeywords.add("foundation");
+  }
+
+  if (includeKeywords.size === 0) return [];
+
+  return exportPackage.inspectionChecklistSectionNotes.filter((note) => {
+    const title = note.sectionTitle.toLowerCase();
+    return [...includeKeywords].some((keyword) => title.includes(keyword));
+  });
+}
+
+function formatMissingFieldLabels(section: ReportSection): string {
+  if (section.missingFields.length === 0) return "none detected for this section";
+  return section.missingFields.map((field) => field.label).join(", ");
+}
+
+function inferSectionTargetKeys(section: ReportSection): string[] {
+  const text = `${section.id} ${section.title} ${section.sourceSummary}`.toLowerCase();
+  const targets = new Set<string>();
+
+  if (text.includes("roof")) targets.add("external_roof");
+  if (text.includes("shell") || text.includes("weld") || text.includes("mpi") || text.includes("curb")) {
+    targets.add("shell");
+  }
+  if (text.includes("floor") || text.includes("bottom") || text.includes("mfl")) targets.add("floor");
+
+  return [...targets];
+}
+
+function summarizeUtMeasurement(measurement: V2ProductExportUtMeasurement) {
+  return {
+    targetKey: measurement.targetKey,
+    itemKey: measurement.itemKey,
+    itemLabel: measurement.itemLabel,
+    itemKind: measurement.itemKind,
+    laneId: measurement.laneId,
+    course: measurement.course,
+    plateId: measurement.plateId,
+    elementId: measurement.elementId,
+    confirmed: measurement.confirmed,
+    measured: measurement.measured,
+    readingsMm: [
+      measurement.value1,
+      measurement.value2,
+      measurement.value3,
+      measurement.value4,
+      measurement.value5,
+    ].filter((value): value is number => value != null),
+    reinforcementPadReading: measurement.reinforcementPadReading,
+  };
+}
+
+function formatUtMeasurementPreview(measurement: V2ProductExportUtMeasurement): string {
+  const summary = summarizeUtMeasurement(measurement);
+  const readings = summary.readingsMm.length > 0 ? `${summary.readingsMm.join(", ")} mm` : "no readings";
+  const location = [
+    summary.laneId ? `lane ${summary.laneId}` : null,
+    summary.course != null ? `course ${summary.course}` : null,
+    summary.plateId ? `plate ${summary.plateId}` : null,
+    summary.elementId ? `element ${summary.elementId}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `- ${summary.itemLabel} (${humanizeKey(summary.targetKey)}): ${readings}${
+    location ? `; ${location}` : ""
+  }${summary.reinforcementPadReading != null ? `; reinforcement pad ${summary.reinforcementPadReading} mm` : ""}.`;
+}
+
+function buildUtTargetSummaryLines(measurements: V2ProductExportUtMeasurement[]): string[] {
+  const groups = new Map<string, number[]>();
+
+  for (const measurement of measurements) {
+    const readings = [
+      measurement.value1,
+      measurement.value2,
+      measurement.value3,
+      measurement.value4,
+      measurement.value5,
+      measurement.reinforcementPadReading,
+    ].filter((value): value is number => value != null);
+    const group = groups.get(measurement.targetKey) ?? [];
+    group.push(...readings);
+    groups.set(measurement.targetKey, group);
+  }
+
+  return [...groups.entries()].map(([targetKey, readings]) => {
+    if (readings.length === 0) {
+      return `- ${humanizeKey(targetKey)}: ${measurements.filter((item) => item.targetKey === targetKey).length} UT rows; no numeric readings exported.`;
+    }
+
+    const rowCount = measurements.filter((item) => item.targetKey === targetKey).length;
+    const minimum = Math.min(...readings);
+    const maximum = Math.max(...readings);
+    const average = readings.reduce((sum, value) => sum + value, 0) / readings.length;
+
+    return `- ${humanizeKey(targetKey)}: ${rowCount} UT rows; readings ${minimum.toFixed(2)}-${maximum.toFixed(
+      2,
+    )} mm; average ${average.toFixed(2)} mm.`;
+  });
+}
+
+function buildElementSummaryLines(elements: V2ProductExportElement[]): string[] {
+  const groups = new Map<string, Map<string, number>>();
+
+  for (const element of elements) {
+    const targetGroup = groups.get(element.targetKey) ?? new Map<string, number>();
+    targetGroup.set(element.elementTypeKey, (targetGroup.get(element.elementTypeKey) ?? 0) + 1);
+    groups.set(element.targetKey, targetGroup);
+  }
+
+  return [...groups.entries()].map(([targetKey, typeCounts]) => {
+    const typeSummary = [...typeCounts.entries()]
+      .map(([typeKey, count]) => `${count} ${humanizeKey(typeKey).toLowerCase()}${count === 1 ? "" : "s"}`)
+      .join(", ");
+
+    return `- ${humanizeKey(targetKey)} positioned elements: ${typeSummary}.`;
+  });
+}
+
+function truncatePreviewText(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}...`;
 }
 
 function buildScopeSection(
@@ -609,7 +1127,7 @@ This section is report-side by design: the Android export supplies the factual b
 }
 
 function buildPhotographsSection(exportPackage: V2ProductExportPackage): ReportSection {
-  const photoAttachments = exportPackage.attachments.filter((attachment) => attachment.kind === "photo");
+  const photoAttachments = exportPackage.attachments.filter(isPhotoAttachment);
   const content = `6       PHOTOGRAPHS
 
 This section is reserved for selected report photographs and captions.
@@ -640,10 +1158,14 @@ Final photo ordering, caption formatting, and page layout belong to the report p
   };
 }
 
+function isPhotoAttachment(attachment: V2ProductExportAttachment): boolean {
+  return attachment.kind === "photo" || attachment.kind === "finding_photo";
+}
+
 function buildApiStandardTocSections(
   exportPackage: V2ProductExportPackage,
   manualSupplement: ManualReportSupplement,
-  shellLayoutMap: LayoutMapData | undefined,
+  layoutMaps: ExportedLayoutMaps,
 ): ReportSection[] {
   return API_STANDARD_REPORT_TOC.map((tocSection) => {
     if (tocSection.id === "scope-of-inspection") {
@@ -665,7 +1187,7 @@ function buildApiStandardTocSections(
       return alignSectionToToc(buildPhotographsSection(exportPackage), tocSection);
     }
     if (tocSection.kind === "map") {
-      return buildApiStandardMapSection(exportPackage, manualSupplement, shellLayoutMap, tocSection);
+      return buildApiStandardMapSection(exportPackage, manualSupplement, layoutMaps, tocSection);
     }
 
     return buildApiStandardPlaceholderSection(exportPackage, tocSection);
@@ -686,11 +1208,20 @@ function alignSectionToToc(section: ReportSection, tocSection: ApiStandardTocSec
 function buildApiStandardMapSection(
   exportPackage: V2ProductExportPackage,
   manualSupplement: ManualReportSupplement,
-  shellLayoutMap: LayoutMapData | undefined,
+  layoutMaps: ExportedLayoutMaps,
   tocSection: ApiStandardTocSection,
 ): ReportSection {
-  if (tocSection.layoutSurface === "shell") {
-    return buildMapSection(exportPackage, manualSupplement, shellLayoutMap, {
+  const layoutMap =
+    tocSection.layoutSurface === "roof"
+      ? layoutMaps.roof
+      : tocSection.layoutSurface === "floor"
+        ? layoutMaps.floor
+        : tocSection.layoutSurface === "shell"
+          ? layoutMaps.shell
+          : undefined;
+
+  if (layoutMap) {
+    return buildMapSection(exportPackage, manualSupplement, layoutMap, {
       id: tocSection.id,
       number: tocSection.number,
       title: tocSection.title,
@@ -701,11 +1232,11 @@ function buildApiStandardMapSection(
 
   const content = `${tocSection.number}       ${tocSection.title.toUpperCase()}
 
-This layout section is present in the API-standard sample report and is reserved for the ${tocSection.layoutSurface ?? "tank"} layout editor.
+This layout section is present in the API-standard sample report and is reserved for the ${tocSection.layoutSurface ?? "tank"} layout preview.
 
 Current Android export status: no structured ${tocSection.layoutSurface ?? "surface"} layout geometry was imported for this report section.
 
-The report platform should not invent plate dimensions, MFL platemaps, roof layout, or floor corrosion maps. Once the app export provides this geometry, the same editable layout-map workflow used for shell sections can be applied here.`;
+The report platform should not invent plate dimensions, MFL platemaps, roof layout, or floor corrosion maps. Once the app export provides this geometry, the preview should follow the Android V2 Product map model first; editing can be reintroduced only after parity is approved.`;
 
   return {
     id: tocSection.id,
@@ -839,27 +1370,28 @@ function buildSketchSections(
 function buildMapSection(
   exportPackage: V2ProductExportPackage,
   manualSupplement: ManualReportSupplement,
-  shellLayoutMap: LayoutMapData | undefined,
+  baseLayoutMap: LayoutMapData | undefined,
   spec: SketchSectionSpec,
 ): ReportSection {
-  const layoutMap = shellLayoutMap
+  const layoutMap = baseLayoutMap
     ? {
-        ...shellLayoutMap,
+        ...baseLayoutMap,
         id: spec.id,
         title: spec.title,
         drawingBlock: {
-          ...shellLayoutMap.drawingBlock,
+          ...baseLayoutMap.drawingBlock,
           drawing: spec.drawing,
         },
       }
     : undefined;
+  const surfaceLabel = layoutMap?.surfaceLabel ?? "layout";
   const content = `${spec.number}       ${spec.title.toUpperCase()}
 
-This sketch page is anchored to imported vertical tank shell layout metadata.
+This sketch page is anchored to imported vertical tank ${surfaceLabel.toLowerCase()} metadata.
 
-➢ Marker positions are derived from the exported shell layout metadata and finding labels.
+➢ Marker positions are derived from the exported layout metadata, UT-linked findings, and app element coordinates.
 
-➢ Shell elements are imported directly from Android element placement coordinates.
+➢ App elements are imported directly from Android placement coordinates.
 
 ➢ Reviewer sign-off items remain editable on the report platform without mutating the underlying field export.`;
 
@@ -873,12 +1405,12 @@ This sketch page is anchored to imported vertical tank shell layout metadata.
     edited: true,
     approved: false,
     reviewRequired: true,
-    description: `ToC section ${spec.number}, map-enabled sketch page compiled from exported shell geometry.`,
+    description: `ToC section ${spec.number}, map-enabled sketch page compiled from exported ${surfaceLabel.toLowerCase()} geometry.`,
     content,
     aiHint: "Only adjust captioning or report-side overrides. Do not rewrite imported geometry facts.",
-    templateExpectation: "Sketch title, printable shell map, legend, and drawing block tied to imported geometry.",
+    templateExpectation: "Sketch title, printable map, legend, and drawing block tied to imported geometry.",
     sourceSummary:
-      "Imported: shell layout config, elements, findings. Manual: checked-by and legend note. Derived: marker positioning from weld labels.",
+      `Imported: ${surfaceLabel.toLowerCase()} layout config, elements, findings. Manual: checked-by and legend note. Derived: marker positioning from export labels.`,
     missingFields: [
       makeField({
         id: "checkedBy",
@@ -982,34 +1514,41 @@ function buildShellLayoutMap(
   if (!shellConfig) return undefined;
 
   const gridRows = shellConfig.shellCourseCount ?? exportPackage.inspectionRecord.shellCourseCount ?? 8;
-  const gridColumns = shellConfig.shellPlatesPerCourse ?? exportPackage.inspectionRecord.shellLaneCount ?? 14;
+  const gridColumns = shellConfig.shellLaneCount ?? exportPackage.inspectionRecord.shellLaneCount ?? 4;
+  const platesPerCourse = shellConfig.shellPlatesPerCourse ?? 9;
+  const plateOffset = shellConfig.shellPlateOffset ?? "none";
+  const offsetStartRow = shellConfig.shellOffsetStartRow ?? "even";
+  const shellPlateSegments = buildAndroidShellPlateSegments(
+    gridRows,
+    platesPerCourse,
+    plateOffset,
+    offsetStartRow,
+    shellConfig.shellThirdOffsetStart,
+  );
+  const evidenceByKey = buildShellRegionEvidenceIndex(exportPackage, gridRows, gridColumns);
   const findingMarkers = exportPackage.findings
     .filter((finding) => finding.targetKey === "shell")
-    .map((finding, index) => buildFindingMarker(finding, gridRows, gridColumns, index))
+    .map((finding, index) => buildShellFindingMarker(finding, exportPackage, gridRows, gridColumns, index))
     .filter((marker): marker is LayoutMarker => marker != null);
-  const elementMarkers = exportPackage.elements
-    .filter((element) => element.targetKey === "shell")
-    .map((element) => ({
-      id: element.elementId,
-      label: element.elementLabel,
-      type: "element" as const,
-      x: clamp(element.normalizedX, 0.08, 0.92),
-      y: clamp(element.normalizedY, 0.12, 0.88),
-      source: `element:${element.elementTypeKey}`,
-    }));
+  const elementMarkers = buildTargetElementMarkers(exportPackage, "shell");
+  const markers = [...findingMarkers, ...elementMarkers];
 
   return {
     id: "shell-weld-7",
     title: "Findings / MPI Locations on Shell Internal - Horizontal Weld 7",
-    subtitle: "Imported shell geometry from Android V2 Product export plus editable report-side overrides",
+    subtitle: "Shell map: 8 courses, 4 UT lanes, 9 shell plates/course with half-plate offsets",
     surfaceLabel: "Shell internal sketch",
     legend: [
-      "Blue circles = imported finding positions derived from shell layout metadata",
-      "Blue outlined labels = imported shell elements from Android placement",
-      "Selected marker = current report-side override target",
+      "Red lane headers = Android shell UT lanes L1-L4",
+      "Light blue plate rectangles = shell plate segment background from app layout config",
+      "Blue markers = findings/elements imported from Android placement and UT links",
     ],
-    markers: [...findingMarkers, ...elementMarkers],
-    plates: buildDefaultPlates(gridRows, gridColumns),
+    markers,
+    plates: shellPlateSegments,
+    evidenceByKey: {
+      ...evidenceByKey,
+      ...buildMarkerEvidenceIndex(markers),
+    },
     gridRows,
     gridColumns,
     drawingBlock: {
@@ -1020,8 +1559,514 @@ function buildShellLayoutMap(
       referenceMode: humanizeKey(shellConfig.referenceMode ?? "tank_north"),
       updatedAtLabel: formatShortDate(exportPackage.exportedAtIso),
     },
+    appMap: {
+      surfaceType: "shell",
+      referenceMode: humanizeKey(shellConfig.referenceMode ?? "tank_north"),
+      referenceNote: shellConfig.referenceNote,
+      shell: {
+        courseCount: gridRows,
+        platesPerCourse,
+        laneCount: gridColumns,
+        plateOffset,
+        offsetStartRow,
+        thirdOffsetStart: shellConfig.shellThirdOffsetStart,
+      },
+    },
     overrideCount: 0,
   };
+}
+
+function buildExportedLayoutMaps(
+  exportPackage: V2ProductExportPackage,
+  manualSupplement: ManualReportSupplement,
+): ExportedLayoutMaps {
+  const roofConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "external_roof");
+  const shellConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "shell");
+  const floorConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "floor");
+
+  return {
+    roof: buildRoofLayoutMap(exportPackage, roofConfig, manualSupplement),
+    shell: buildShellLayoutMap(exportPackage, shellConfig, manualSupplement),
+    floor: buildFloorLayoutMap(exportPackage, floorConfig, manualSupplement),
+  };
+}
+
+function buildRoofLayoutMap(
+  exportPackage: V2ProductExportPackage,
+  roofConfig: V2ProductExportLayoutConfig | undefined,
+  manualSupplement: ManualReportSupplement,
+): LayoutMapData | undefined {
+  if (!roofConfig) return undefined;
+
+  const gridRows = roofConfig.roofRowCount ?? 6;
+  const gridColumns = roofConfig.roofWidestRowPlateCount ?? 11;
+  const plates = buildAndroidCircularPlateCells(gridRows, gridColumns, "android:RoofSurfaceMap:circular_plate").map(
+    (plate) => ({
+      ...plate,
+      evidence: buildRegionEvidence(exportPackage, "external_roof", plate.id),
+    }),
+  );
+  const markers = [
+    ...buildTargetFindingMarkers(exportPackage, "external_roof", plates),
+    ...buildTargetElementMarkers(exportPackage, "external_roof"),
+  ];
+
+  return {
+    id: "roof-plate-layout",
+    title: "Roof Plate Layout",
+    subtitle: `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
+    surfaceLabel: "Roof plate layout",
+    legend: [
+      "Circular clipped plate layout follows Android RoofSurfaceMap",
+      "Numbered cells = app roof plate numbering, including staggered reverse rows",
+      "Blue markers = imported findings/elements from Android export",
+    ],
+    markers,
+    plates,
+    evidenceByKey: {
+      ...buildPlateEvidenceIndex(plates),
+      ...buildMarkerEvidenceIndex(markers),
+    },
+    gridRows,
+    gridColumns,
+    drawingBlock: {
+      client: exportPackage.task.client,
+      project: `Tank ${exportPackage.task.tankNumber} External Roof Layout`,
+      drawing: "Section-9",
+      reference: manualSupplement.reportReference,
+      referenceMode: humanizeKey(roofConfig.referenceMode ?? "tank_north"),
+      updatedAtLabel: formatShortDate(exportPackage.exportedAtIso),
+    },
+    appMap: {
+      surfaceType: "roof",
+      referenceMode: humanizeKey(roofConfig.referenceMode ?? "tank_north"),
+      referenceNote: roofConfig.referenceNote,
+      roof: {
+        template: roofConfig.roofPattern ?? "circular_plate",
+        rowCount: gridRows,
+        widestRowPlateCount: gridColumns,
+        hasCenterOpening: roofConfig.roofHasCenterOpening ?? false,
+        hasAnnularRing: roofConfig.roofHasAnnularRing ?? false,
+        annularSectionCount: roofConfig.roofAnnularSectionCount ?? 0,
+      },
+    },
+    overrideCount: 0,
+  };
+}
+
+function buildFloorLayoutMap(
+  exportPackage: V2ProductExportPackage,
+  floorConfig: V2ProductExportLayoutConfig | undefined,
+  manualSupplement: ManualReportSupplement,
+): LayoutMapData | undefined {
+  if (!floorConfig) return undefined;
+
+  const floorPlateCount = floorConfig.floorPlateCount ?? 0;
+  const gridRows = floorConfig.floorPatternCountX ?? Math.max(1, Math.ceil(Math.sqrt(floorPlateCount || 36)));
+  const gridColumns =
+    floorConfig.floorPatternCountY ?? Math.max(1, Math.ceil((floorPlateCount || gridRows) / gridRows));
+  const plates = buildAndroidCircularPlateCells(gridRows, gridColumns, "android:RoofSurfaceMap:floor-circular_plate").map(
+    (plate) => ({
+      ...plate,
+      evidence: buildRegionEvidence(exportPackage, "floor", plate.id),
+    }),
+  );
+  const markers = [
+    ...buildTargetFindingMarkers(exportPackage, "floor", plates),
+    ...buildTargetElementMarkers(exportPackage, "floor"),
+  ];
+
+  return {
+    id: "floor-plate-layout",
+    title: "Floor Plate Layout With Platemaps Numbering System",
+    subtitle: `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
+    surfaceLabel: "Floor/bottom plate layout",
+    legend: [
+      "Circular clipped plate layout follows Android floor preview, which reuses RoofSurfaceMap",
+      "Numbered cells = app floor plate numbering",
+      "Blue markers = imported floor findings/elements from Android export",
+    ],
+    markers,
+    plates,
+    evidenceByKey: {
+      ...buildPlateEvidenceIndex(plates),
+      ...buildMarkerEvidenceIndex(markers),
+    },
+    gridRows,
+    gridColumns,
+    drawingBlock: {
+      client: exportPackage.task.client,
+      project: `Tank ${exportPackage.task.tankNumber} Floor Plate Layout`,
+      drawing: "Section-28",
+      reference: manualSupplement.reportReference,
+      referenceMode: humanizeKey(floorConfig.referenceMode ?? "tank_north"),
+      updatedAtLabel: formatShortDate(exportPackage.exportedAtIso),
+    },
+    appMap: {
+      surfaceType: "floor",
+      referenceMode: humanizeKey(floorConfig.referenceMode ?? "tank_north"),
+      referenceNote: floorConfig.referenceNote,
+      floor: {
+        template: floorConfig.floorTemplate ?? "circular_plate",
+        rowCount: gridRows,
+        widestRowPlateCount: gridColumns,
+        plateCount: floorPlateCount || plates.length,
+        hasAnnularRing: floorConfig.floorTemplate === "circular_plate_ar",
+        annularSectionCount: floorConfig.floorAnnularSectionCount ?? 0,
+      },
+    },
+    overrideCount: 0,
+  };
+}
+
+function buildTargetElementMarkers(exportPackage: V2ProductExportPackage, targetKey: string): LayoutMarker[] {
+  return exportPackage.elements
+    .filter((element) => element.targetKey === targetKey)
+    .map((element) => {
+      const position =
+        targetKey === "external_roof" || targetKey === "floor"
+          ? coerceCircularMarkerPosition(element.normalizedX, element.normalizedY)
+          : {
+              x: clamp(element.normalizedX, 0.08, 0.92),
+              y: clamp(element.normalizedY, 0.12, 0.88),
+            };
+
+      return {
+        id: element.elementId,
+        label: element.elementLabel,
+        type: "element" as const,
+        x: position.x,
+        y: position.y,
+        source: `element:${element.elementTypeKey}`,
+        evidence: buildElementEvidence(exportPackage, element),
+      };
+    });
+}
+
+function buildTargetFindingMarkers(
+  exportPackage: V2ProductExportPackage,
+  targetKey: string,
+  plates: LayoutMapData["plates"],
+): LayoutMarker[] {
+  return exportPackage.findings
+    .filter((finding) => finding.targetKey === targetKey)
+    .map((finding, index) => buildSurfaceFindingMarker(finding, exportPackage.elements, exportPackage.attachments, plates, index));
+}
+
+function buildSurfaceFindingMarker(
+  finding: V2ProductExportFinding,
+  elements: V2ProductExportElement[],
+  attachments: V2ProductExportAttachment[],
+  plates: LayoutMapData["plates"],
+  index: number,
+): LayoutMarker {
+  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
+  const evidence = buildFindingEvidenceBundle(finding, elements, attachments);
+  if (linkedElement) {
+    const position = coerceCircularMarkerPosition(linkedElement.normalizedX + 0.025, linkedElement.normalizedY + 0.025);
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: position.x,
+      y: position.y,
+      source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
+      evidence,
+    };
+  }
+
+  const plateNumber = extractPlateNumber(finding.linkedUtItemKey) ?? extractPlateNumber(finding.itemLabel);
+  if (plateNumber != null && plateNumber > 0) {
+    const matchingPlate = plates.find((plate) => plate.id === plateNumber.toString());
+    const x = matchingPlate ? matchingPlate.x + matchingPlate.width / 2 : 0.5;
+    const y = matchingPlate ? matchingPlate.y + matchingPlate.height / 2 : 0.5;
+
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: clamp(x, 0.08, 0.92),
+      y: clamp(y, 0.12, 0.88),
+      source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
+      evidence,
+    };
+  }
+
+  const position = coerceCircularMarkerPosition(0.14 + index * 0.08, 0.22 + index * 0.06);
+  return {
+    id: finding.findingId,
+    label: finding.itemLabel,
+    type: "finding",
+    x: position.x,
+    y: position.y,
+    source: `finding:${finding.findingId}`,
+    evidence,
+  };
+}
+
+function buildShellFindingMarker(
+  finding: V2ProductExportFinding,
+  exportPackage: V2ProductExportPackage,
+  courseCount: number,
+  laneCount: number,
+  index: number,
+): LayoutMarker {
+  const elements = exportPackage.elements;
+  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
+  const evidence = buildFindingEvidenceBundle(finding, elements, exportPackage.attachments);
+
+  if (linkedElement) {
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: clamp(linkedElement.normalizedX + 0.025, 0.08, 0.92),
+      y: clamp(linkedElement.normalizedY + 0.025, 0.12, 0.88),
+      source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
+      evidence,
+    };
+  }
+
+  const regionMatch = /:region:(L\d+)-C(\d+)/i.exec(finding.linkedUtItemKey ?? "");
+  const regionPosition = regionMatch
+    ? shellRegionMarkerPosition(regionMatch[1], Number(regionMatch[2]), laneCount, courseCount)
+    : null;
+
+  if (regionPosition) {
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: regionPosition.x,
+      y: regionPosition.y,
+      source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
+      evidence,
+    };
+  }
+
+  return {
+    id: finding.findingId,
+    label: finding.itemLabel,
+    type: "finding",
+    x: clamp(0.12 + index * 0.08, 0.08, 0.92),
+    y: clamp(0.2 + index * 0.04, 0.12, 0.88),
+    source: `finding:${finding.findingId}`,
+    evidence,
+  };
+}
+
+function buildShellRegionEvidenceIndex(
+  exportPackage: V2ProductExportPackage,
+  courseCount: number,
+  laneCount: number,
+): Record<string, LayoutEvidenceItem[]> {
+  return Array.from({ length: courseCount }).reduce<Record<string, LayoutEvidenceItem[]>>((acc, _, courseIndex) => {
+    const course = courseIndex + 1;
+    Array.from({ length: laneCount }).forEach((__, laneIndex) => {
+      const regionId = `L${laneIndex + 1}-C${course}`;
+      acc[regionId] = buildRegionEvidence(exportPackage, "shell", regionId);
+    });
+    return acc;
+  }, {});
+}
+
+function buildPlateEvidenceIndex(plates: LayoutMapData["plates"]): Record<string, LayoutEvidenceItem[]> {
+  return plates.reduce<Record<string, LayoutEvidenceItem[]>>((acc, plate) => {
+    acc[plate.id] = plate.evidence ?? [];
+    return acc;
+  }, {});
+}
+
+function buildMarkerEvidenceIndex(markers: LayoutMarker[]): Record<string, LayoutEvidenceItem[]> {
+  return markers.reduce<Record<string, LayoutEvidenceItem[]>>((acc, marker) => {
+    acc[marker.id] = marker.evidence ?? [];
+    return acc;
+  }, {});
+}
+
+function buildRegionEvidence(
+  exportPackage: V2ProductExportPackage,
+  targetKey: string,
+  regionId: string,
+): LayoutEvidenceItem[] {
+  const measurements = exportPackage.utMeasurements
+    .filter((measurement) => measurement.targetKey === targetKey && measurementMatchesRegion(measurement, targetKey, regionId))
+    .map(buildMeasurementEvidence);
+  const findings = exportPackage.findings
+    .filter((finding) => finding.targetKey === targetKey && findingMatchesRegion(finding, targetKey, regionId))
+    .map((finding) => buildFindingEvidence(finding, exportPackage.attachments));
+
+  return [...measurements, ...findings];
+}
+
+function buildElementEvidence(
+  exportPackage: V2ProductExportPackage,
+  element: V2ProductExportElement,
+): LayoutEvidenceItem[] {
+  const measurements = exportPackage.utMeasurements
+    .filter((measurement) => measurement.targetKey === element.targetKey && measurement.elementId === element.elementId)
+    .map(buildMeasurementEvidence);
+  const findings = exportPackage.findings
+    .filter((finding) => finding.targetKey === element.targetKey && finding.linkedUtItemKey?.endsWith(`:element:${element.elementId}`))
+    .map((finding) => buildFindingEvidence(finding, exportPackage.attachments));
+
+  return [
+    {
+      id: `element-${element.elementId}`,
+      kind: "element",
+      title: element.elementLabel,
+      subtitle: humanizeKey(element.elementTypeKey),
+      values: [`Position ${formatPercent(element.normalizedX)} / ${formatPercent(element.normalizedY)}`],
+      source: `app element:${element.elementId}`,
+    },
+    ...measurements,
+    ...findings,
+  ];
+}
+
+function buildFindingEvidenceBundle(
+  finding: V2ProductExportFinding,
+  elements: V2ProductExportElement[],
+  attachments: V2ProductExportAttachment[],
+): LayoutEvidenceItem[] {
+  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
+
+  return [
+    buildFindingEvidence(finding, attachments),
+    ...(linkedElement
+      ? [
+          {
+            id: `element-${linkedElement.elementId}`,
+            kind: "element" as const,
+            title: linkedElement.elementLabel,
+            subtitle: humanizeKey(linkedElement.elementTypeKey),
+            values: [`Position ${formatPercent(linkedElement.normalizedX)} / ${formatPercent(linkedElement.normalizedY)}`],
+            source: `app element:${linkedElement.elementId}`,
+          },
+        ]
+      : []),
+  ];
+}
+
+function buildMeasurementEvidence(measurement: V2ProductExportUtMeasurement): LayoutEvidenceItem {
+  const readings = [
+    measurement.value1,
+    measurement.value2,
+    measurement.value3,
+    measurement.value4,
+    measurement.value5,
+  ].filter((value): value is number => value != null);
+  const values = [
+    readings.length > 0 ? `Readings: ${readings.map(formatThickness).join(" / ")}` : "No numeric readings exported",
+    measurement.reinforcementPadReading != null ? `Reinforcement pad: ${formatThickness(measurement.reinforcementPadReading)}` : "",
+    measurement.confirmed ? "Confirmed in app" : "Not confirmed",
+  ].filter(Boolean);
+
+  return {
+    id: `measurement-${measurement.itemKey}`,
+    kind: "measurement",
+    title: measurement.itemLabel,
+    subtitle: measurement.itemKind === "region" ? "UT region measurement" : "UT element measurement",
+    values,
+    source: `app ut:${measurement.itemKey}`,
+  };
+}
+
+function buildFindingEvidence(
+  finding: V2ProductExportFinding,
+  attachments: V2ProductExportAttachment[] = [],
+): LayoutEvidenceItem {
+  const linkedAttachments = attachments
+    .filter((attachment) => attachment.findingId === finding.findingId)
+    .map((attachment) => ({
+      attachmentId: attachment.attachmentId,
+      displayName: attachment.displayName,
+      relativePath: attachment.relativePath,
+      mediaType: attachment.mediaType,
+      fileExists: attachment.fileExists,
+      kind: attachment.kind,
+    }));
+
+  return {
+    id: `finding-${finding.findingId}`,
+    kind: "finding",
+    title: finding.itemLabel,
+    subtitle: "Finding",
+    note: finding.note,
+    values: [
+      `Attachments: ${finding.attachmentCount}`,
+      finding.hasMissingAttachment ? "Missing attachment flagged" : "Attachment status clear",
+    ],
+    attachments: linkedAttachments,
+    source: `app finding:${finding.findingId}`,
+  };
+}
+
+function measurementMatchesRegion(
+  measurement: V2ProductExportUtMeasurement,
+  targetKey: string,
+  regionId: string,
+): boolean {
+  if (measurement.itemKey === `${targetKey}:region:${regionId}`) return true;
+  if (measurement.plateId === regionId) return true;
+
+  if (targetKey !== "shell") return false;
+
+  const laneNumber = extractLaneNumber(measurement.laneId) ?? extractLaneNumber(measurement.plateId);
+  return laneNumber != null && measurement.course != null && `L${laneNumber}-C${measurement.course}` === regionId;
+}
+
+function findingMatchesRegion(finding: V2ProductExportFinding, targetKey: string, regionId: string): boolean {
+  const linkedKey = finding.linkedUtItemKey ?? "";
+  if (linkedKey === `${targetKey}:region:${regionId}`) return true;
+  if (targetKey !== "shell") return false;
+
+  const match = /:region:(L\d+)-C(\d+)/i.exec(linkedKey);
+  return match ? `${match[1].toUpperCase()}-C${Number(match[2])}` === regionId : false;
+}
+
+function extractLaneNumber(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const match = /(?:lane-|^L)(\d+)$/i.exec(value.trim());
+  return match ? Number(match[1]) : null;
+}
+
+function coerceCircularMarkerPosition(x: number, y: number): { x: number; y: number } {
+  const center = 0.5;
+  const controlledRadius = 0.395;
+  const dx = x - center;
+  const dy = y - center;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance <= controlledRadius || distance === 0) {
+    return {
+      x: clamp(x, center - controlledRadius, center + controlledRadius),
+      y: clamp(y, center - controlledRadius, center + controlledRadius),
+    };
+  }
+
+  const scale = controlledRadius / distance;
+  return {
+    x: center + dx * scale,
+    y: center + dy * scale,
+  };
+}
+
+function formatThickness(value: number): string {
+  return `${value.toFixed(2)} mm`;
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function extractPlateNumber(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const match = /(?:plate|region)[:\s-]*(\d+)/i.exec(value) ?? /(\d+)/.exec(value);
+  return match ? Number(match[1]) : null;
 }
 
 function buildFindingMarker(
@@ -1093,7 +2138,7 @@ function buildMeasurementBullets(measurements: V2ProductExportUtMeasurement[]): 
 
 function buildInitialAssistantPrompt(section: ReportSection): string {
   if (section.kind === "map") {
-    return "This sketch is compiled from Android export geometry. I can help with legend wording, layout notes, or approval blockers, while the lower pane keeps direct marker adjustments under user control.";
+    return "This sketch is compiled from Android export geometry. I can help with legend wording, layout notes, or approval blockers, while the map geometry remains locked to the app export for parity review.";
   }
 
   if (section.kind === "attachment") {
@@ -1162,6 +2207,9 @@ function applyPersistedState(
     sections: report.sections.map((section) => {
       const sectionDraft = sectionDraftMap.get(section.id);
       const layoutOverride = layoutOverrideMap.get(section.id);
+      const compatibleLayoutOverride = isCompatibleLayoutOverride(section.layoutMap, layoutOverride)
+        ? layoutOverride
+        : undefined;
 
       return {
         ...section,
@@ -1170,14 +2218,25 @@ function applyPersistedState(
         edited: sectionDraft?.edited ?? section.edited,
         approved: sectionDraft?.approved ?? section.approved,
         reviewRequired: sectionDraft?.reviewRequired ?? section.reviewRequired,
-        layoutMap: layoutOverride
-          ? ensureLayoutMapData(layoutOverride)
+        layoutMap: compatibleLayoutOverride
+          ? ensureLayoutMapData(compatibleLayoutOverride)
           : section.layoutMap
             ? ensureLayoutMapData(section.layoutMap)
             : section.layoutMap,
       };
     }),
   };
+}
+
+function isCompatibleLayoutOverride(
+  baselineLayoutMap: LayoutMapData | undefined,
+  layoutOverride: LayoutMapData | undefined,
+): boolean {
+  if (!layoutOverride) return false;
+  if (!baselineLayoutMap?.appMap) return true;
+  if (!layoutOverride.appMap) return false;
+
+  return layoutOverride.appMap.surfaceType === baselineLayoutMap.appMap.surfaceType;
 }
 
 function assertValidAndroidExport(exportPackage: V2ProductExportPackage) {

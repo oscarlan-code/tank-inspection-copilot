@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Circle, Group, Layer, Rect, Stage, Text } from "react-konva";
-import type { LayoutMapData, LayoutMarker, LayoutPlate } from "../domain/types";
-import {
-  clampMarker,
-  clampPlate,
-  ensureLayoutMapData,
-  MAP_STAGE,
-  markerToStagePosition,
-  plateToStageRect,
-  stageToMarkerPosition,
-} from "../lib/layoutMapGeometry";
+import { useMemo, useState } from "react";
+import type {
+  AndroidLayoutMapConfig,
+  LayoutEvidenceAttachment,
+  LayoutEvidenceItem,
+  LayoutMapData,
+  LayoutMarker,
+  LayoutPlate,
+} from "../domain/types";
+import { buildAndroidShellPlateSegments, ensureLayoutMapData } from "../lib/layoutMapGeometry";
 
 type Props = {
   activeMarkerId: string | null;
@@ -20,6 +18,26 @@ type Props = {
   onPlateSelect: (plateId: string | null) => void;
 };
 
+const SVG_WIDTH = 1120;
+const SVG_HEIGHT = 720;
+const CIRCULAR_MAP = {
+  x: 56,
+  y: 60,
+  size: 640,
+};
+const SHELL_GRID = {
+  x: 88,
+  y: 132,
+  width: 820,
+  height: 420,
+};
+const DRAWING_BLOCK = {
+  x: 812,
+  y: 596,
+  width: 280,
+  height: 104,
+};
+
 export function LayoutMapEditor({
   activeMarkerId,
   activePlateId,
@@ -28,314 +46,584 @@ export function LayoutMapEditor({
   onMarkerSelect,
   onPlateSelect,
 }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(MAP_STAGE.width);
   const safeLayoutMap = useMemo(() => ensureLayoutMapData(layoutMap), [layoutMap]);
-  const scale = Math.min(1, containerWidth / MAP_STAGE.width);
   const selectedMarker = safeLayoutMap.markers.find((marker) => marker.id === activeMarkerId) ?? null;
   const selectedPlate = safeLayoutMap.plates.find((plate) => plate.id === activePlateId) ?? null;
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element || typeof ResizeObserver === "undefined") {
-      return undefined;
-    }
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const nextWidth = entries[0]?.contentRect.width;
-      if (nextWidth) {
-        setContainerWidth(nextWidth);
-      }
-    });
-
-    resizeObserver.observe(element);
-    setContainerWidth(element.clientWidth || MAP_STAGE.width);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  const applyMarkerUpdate = (markerId: string, nextMarker: LayoutMarker, summary: string) => {
-    onLayoutMapChange(
-      {
-        ...safeLayoutMap,
-        markers: safeLayoutMap.markers.map((marker) => (marker.id === markerId ? clampMarker(nextMarker) : marker)),
-      },
-      summary,
-    );
-  };
-
-  const applyPlateUpdate = (plateId: string, nextPlate: LayoutPlate, summary: string) => {
-    onLayoutMapChange(
-      {
-        ...safeLayoutMap,
-        plates: safeLayoutMap.plates.map((plate) => (plate.id === plateId ? clampPlate(nextPlate) : plate)),
-      },
-      summary,
-    );
-  };
+  const selectedPlateEvidence = activePlateId
+    ? selectedPlate?.evidence ?? safeLayoutMap.evidenceByKey?.[activePlateId] ?? []
+    : [];
+  const selectedMarkerEvidence = selectedMarker
+    ? selectedMarker.evidence ?? safeLayoutMap.evidenceByKey?.[selectedMarker.id] ?? []
+    : [];
+  const appMap = safeLayoutMap.appMap;
+  void onLayoutMapChange;
 
   return (
-    <div className="map-workspace">
+    <div className="map-workspace map-workspace-readonly">
       <div className="shell-sketch-card">
         <div className="shell-sketch-header">
           <div>
             <h4>{safeLayoutMap.title}</h4>
             <p>{safeLayoutMap.subtitle}</p>
           </div>
-          <div className="map-tool-chip-group">
-            <span className="status-badge status-review-required">Konva map editor</span>
-            <span className="status-badge status-generated">Android baseline locked</span>
-          </div>
         </div>
 
-        <div className="konva-stage-shell" ref={containerRef}>
-          <Stage height={MAP_STAGE.height * scale} scaleX={scale} scaleY={scale} width={MAP_STAGE.width * scale}>
-            <Layer>
-              <Rect
-                cornerRadius={18}
-                fill="#ffffff"
-                height={MAP_STAGE.shell.height + 34}
-                stroke="#0d4f90"
-                strokeWidth={2}
-                width={MAP_STAGE.shell.width + 34}
-                x={MAP_STAGE.shell.x - 17}
-                y={MAP_STAGE.shell.y - 18}
-              />
-
-              {safeLayoutMap.plates.map((plate) => {
-                const rect = plateToStageRect(plate);
-                const isSelected = plate.id === activePlateId;
-
-                return (
-                  <Rect
-                    cornerRadius={4}
-                    draggable
-                    fill={isSelected ? "#fdecee" : "#ffffff"}
-                    height={rect.height}
-                    key={plate.id}
-                    onClick={() => {
-                      onPlateSelect(plate.id);
-                      onMarkerSelect(null);
-                    }}
-                    onDragEnd={(event) => {
-                      onPlateSelect(plate.id);
-                      onMarkerSelect(null);
-                      applyPlateUpdate(
-                        plate.id,
-                        {
-                          ...plate,
-                          x: (event.target.x() - MAP_STAGE.shell.x) / MAP_STAGE.shell.width,
-                          y: (event.target.y() - MAP_STAGE.shell.y) / MAP_STAGE.shell.height,
-                        },
-                        `Moved plate ${plate.label}`,
-                      );
-                    }}
-                    stroke={isSelected ? "#ef4c57" : "#5d6d66"}
-                    strokeWidth={isSelected ? 2.4 : 1}
-                    width={rect.width}
-                    x={rect.x}
-                    y={rect.y}
-                  />
-                );
-              })}
-
-              {safeLayoutMap.plates.map((plate) => {
-                const rect = plateToStageRect(plate);
-                return (
-                  <Text
-                    fill="#54606d"
-                    fontFamily="Consolas, monospace"
-                    fontSize={10}
-                    key={`${plate.id}-label`}
-                    text={plate.label}
-                    width={rect.width}
-                    x={rect.x}
-                    y={rect.y + rect.height / 2 - 6}
-                    align="center"
-                  />
-                );
-              })}
-
-              {safeLayoutMap.markers.map((marker) => {
-                const position = markerToStagePosition(marker);
-                const isActive = marker.id === activeMarkerId;
-                const isElement = marker.type === "element";
-
-                return (
-                  <Group
-                    draggable
-                    key={marker.id}
-                    onClick={() => {
-                      onMarkerSelect(marker.id);
-                      onPlateSelect(null);
-                    }}
-                    onDragEnd={(event) => {
-                      const nextPosition = stageToMarkerPosition(event.target.x(), event.target.y());
-                      onMarkerSelect(marker.id);
-                      onPlateSelect(null);
-                      applyMarkerUpdate(
-                        marker.id,
-                        {
-                          ...marker,
-                          ...nextPosition,
-                        },
-                        `Moved marker ${marker.label}`,
-                      );
-                    }}
-                    x={position.x}
-                    y={position.y}
-                  >
-                    <Circle
-                      fill={isActive ? "rgba(239, 76, 87, 0.2)" : "rgba(234, 242, 251, 0.98)"}
-                      radius={isActive ? 15 : 12}
-                      stroke={isElement ? "#163250" : isActive ? "#ef4c57" : "#0d4f90"}
-                      strokeWidth={2}
-                    />
-                    <Text
-                      align="center"
-                      fill="#163250"
-                      fontSize={11}
-                      fontStyle="bold"
-                      offsetX={20}
-                      text={marker.label}
-                      width={40}
-                      y={18}
-                    />
-                  </Group>
-                );
-              })}
-
-              <Group>
-                <Rect
-                  cornerRadius={6}
-                  fill="#ffffff"
-                  height={MAP_STAGE.drawingBlock.height}
-                  stroke="#163250"
-                  strokeWidth={1.5}
-                  width={MAP_STAGE.drawingBlock.width}
-                  x={MAP_STAGE.drawingBlock.x}
-                  y={MAP_STAGE.drawingBlock.y}
+        <div className="android-map-shell">
+          <svg
+            aria-label={safeLayoutMap.title}
+            className="android-layout-svg"
+            role="img"
+            viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+          >
+            <defs>
+              <clipPath id={`circle-clip-${safeLayoutMap.id}`}>
+                <circle
+                  cx={CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}
+                  cy={CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}
+                  r={CIRCULAR_MAP.size * 0.42}
                 />
-                <Text fill="#163250" fontSize={12} text={`CLIENT: ${safeLayoutMap.drawingBlock.client}`} x={MAP_STAGE.drawingBlock.x + 14} y={MAP_STAGE.drawingBlock.y + 18} />
-                <Text fill="#163250" fontSize={12} text={`PROJECT: ${safeLayoutMap.drawingBlock.project}`} x={MAP_STAGE.drawingBlock.x + 14} y={MAP_STAGE.drawingBlock.y + 38} />
-                <Text fill="#163250" fontSize={12} text={`DRAWING: ${safeLayoutMap.drawingBlock.drawing}`} x={MAP_STAGE.drawingBlock.x + 14} y={MAP_STAGE.drawingBlock.y + 58} />
-                <Text fill="#163250" fontSize={12} text={`REF: ${safeLayoutMap.drawingBlock.reference}`} x={MAP_STAGE.drawingBlock.x + 14} y={MAP_STAGE.drawingBlock.y + 78} />
-              </Group>
-            </Layer>
-          </Stage>
+              </clipPath>
+            </defs>
+
+            <rect className="android-map-page" height={SVG_HEIGHT - 18} rx="22" width={SVG_WIDTH - 18} x="9" y="9" />
+
+            {appMap?.surfaceType === "shell" ? (
+              <ShellMapPreview
+                activeMarkerId={activeMarkerId}
+                activePlateId={activePlateId}
+                appMap={appMap}
+                layoutMap={safeLayoutMap}
+                onMarkerSelect={onMarkerSelect}
+                onPlateSelect={onPlateSelect}
+              />
+            ) : (
+              <CircularMapPreview
+                activeMarkerId={activeMarkerId}
+                activePlateId={activePlateId}
+                clipPathId={`circle-clip-${safeLayoutMap.id}`}
+                layoutMap={safeLayoutMap}
+                onMarkerSelect={onMarkerSelect}
+                onPlateSelect={onPlateSelect}
+              />
+            )}
+
+            <DrawingBlock layoutMap={safeLayoutMap} />
+          </svg>
         </div>
       </div>
 
-      <div className="map-controls">
-        <div className="map-metadata">
-          <h4>Editor State</h4>
-          <ul>
-            <li>
-              <strong>Surface:</strong> {safeLayoutMap.surfaceLabel}
-            </li>
-            <li>
-              <strong>Markers:</strong> {safeLayoutMap.markers.length}
-            </li>
-            <li>
-              <strong>Plates:</strong> {safeLayoutMap.plates.length}
-            </li>
-            <li>
-              <strong>Overrides:</strong> {safeLayoutMap.overrideCount}
-            </li>
-          </ul>
-        </div>
-
-        {selectedMarker ? (
-          <div className="map-inspector">
-            <h4>Selected Marker</h4>
-            <p>{selectedMarker.label}</p>
-            <span>{selectedMarker.source}</span>
-            <div className="inspector-actions">
-              <button
-                onClick={() =>
-                  applyMarkerUpdate(
-                    selectedMarker.id,
-                    { ...selectedMarker, x: selectedMarker.x - 0.02 },
-                    `Shifted marker ${selectedMarker.label} left`,
-                  )
-                }
-                type="button"
-              >
-                Nudge Left
-              </button>
-              <button
-                onClick={() =>
-                  applyMarkerUpdate(
-                    selectedMarker.id,
-                    { ...selectedMarker, x: selectedMarker.x + 0.02 },
-                    `Shifted marker ${selectedMarker.label} right`,
-                  )
-                }
-                type="button"
-              >
-                Nudge Right
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {selectedPlate ? (
-          <div className="map-inspector">
-            <h4>Selected Plate</h4>
-            <p>{selectedPlate.label}</p>
-            <span>{selectedPlate.source}</span>
-
-            <label className="slider-field">
-              <span>Width</span>
-              <input
-                max="35"
-                min="4"
-                onChange={(event) =>
-                  applyPlateUpdate(
-                    selectedPlate.id,
-                    {
-                      ...selectedPlate,
-                      width: Number(event.target.value) / 100,
-                    },
-                    `Resized plate ${selectedPlate.label} width`,
-                  )
-                }
-                type="range"
-                value={Math.round(selectedPlate.width * 100)}
-              />
-            </label>
-
-            <label className="slider-field">
-              <span>Height</span>
-              <input
-                max="32"
-                min="5"
-                onChange={(event) =>
-                  applyPlateUpdate(
-                    selectedPlate.id,
-                    {
-                      ...selectedPlate,
-                      height: Number(event.target.value) / 100,
-                    },
-                    `Resized plate ${selectedPlate.label} height`,
-                  )
-                }
-                type="range"
-                value={Math.round(selectedPlate.height * 100)}
-              />
-            </label>
-          </div>
-        ) : null}
-
-        <div className="map-legend">
-          <h4>Legend</h4>
-          <ul>
-            {safeLayoutMap.legend.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
+      <div className="map-controls map-evidence-panel">
+        <EvidenceInspector
+          evidence={selectedMarker ? selectedMarkerEvidence : selectedPlateEvidence}
+          label={selectedMarker?.label ?? selectedPlate?.label ?? activePlateId}
+          surfaceLabel={safeLayoutMap.surfaceLabel}
+        />
       </div>
     </div>
   );
+}
+
+function EvidenceInspector({
+  evidence,
+  label,
+  surfaceLabel,
+}: {
+  evidence: LayoutEvidenceItem[];
+  label: string | null;
+  surfaceLabel: string;
+}) {
+  const displayEvidence = evidence
+    .map(toDisplayEvidence)
+    .filter((item): item is DisplayEvidenceItem => item != null);
+  const locationItems = buildLocationItems(label, surfaceLabel, displayEvidence);
+  const measurementItems = displayEvidence.filter((item) => item.kind === "measurement");
+  const findingItems = displayEvidence.filter((item) => item.kind === "finding");
+
+  return (
+    <div className={`map-inspector ${label ? "" : "map-inspector-empty"}`}>
+      <EvidenceColumn
+        emptyText="Click a marker, numbered plate, or shell lane-course region to view its location details."
+        items={locationItems}
+        title="Location Information"
+      />
+      <EvidenceColumn
+        emptyText={label ? "No linked measurement is exported for this location." : "Select a location to view readings."}
+        items={measurementItems}
+        title="Measurements"
+      />
+      <EvidenceColumn
+        emptyText={label ? "No linked finding is exported for this location." : "Select a location to view findings and photos."}
+        items={findingItems}
+        title="Findings"
+      />
+    </div>
+  );
+}
+
+type DisplayEvidenceItem = {
+  id: string;
+  kind: LayoutEvidenceItem["kind"];
+  title: string;
+  subtitle?: string;
+  values: string[];
+  note?: string;
+  attachments?: LayoutEvidenceAttachment[];
+};
+
+function buildLocationItems(
+  label: string | null,
+  surfaceLabel: string,
+  displayEvidence: DisplayEvidenceItem[],
+): DisplayEvidenceItem[] {
+  if (!label) return [];
+
+  const exportedLocationItems = displayEvidence.filter((item) => item.kind === "element");
+  const baseLocation: DisplayEvidenceItem = {
+    id: `location-${label}`,
+    kind: "element",
+    title: label,
+    subtitle: surfaceLabel,
+    values: [`Location: ${label}`],
+  };
+
+  if (exportedLocationItems.length === 0) return [baseLocation];
+
+  return [
+    baseLocation,
+    ...exportedLocationItems.map((item) => ({
+      ...item,
+      values: item.values.filter((value) => !/^Location:/i.test(value)),
+    })),
+  ];
+}
+
+function EvidenceColumn({
+  emptyText,
+  items,
+  title,
+}: {
+  emptyText: string;
+  items: DisplayEvidenceItem[];
+  title: string;
+}) {
+  return (
+    <section className="map-evidence-column">
+      <h4>{title}</h4>
+      {items.length > 0 ? (
+        <div className="map-evidence-stack">
+          {items.map((item) => (
+            <article className={`map-evidence-card map-evidence-${item.kind}`} key={item.id}>
+              <div>
+                <strong>{item.title}</strong>
+                {item.subtitle ? <small>{item.subtitle}</small> : null}
+              </div>
+              {item.values.length > 0 ? (
+                <ul>
+                  {item.values.map((value) => (
+                    <li key={value}>{value}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {item.note ? <p>{item.note}</p> : null}
+              {item.attachments && item.attachments.length > 0 ? (
+                <div className="map-finding-photo-grid">
+                  {item.attachments.map((attachment) => (
+                    <FindingPhotoTile attachment={attachment} key={attachment.attachmentId} />
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="map-evidence-empty">{emptyText}</p>
+      )}
+    </section>
+  );
+}
+
+function FindingPhotoTile({ attachment }: { attachment: LayoutEvidenceAttachment }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const canPreviewImage = attachment.mediaType.startsWith("image/") && !hasImageError;
+  const imageSrc = `/${attachment.relativePath}`;
+
+  return (
+    <figure className="map-finding-photo-tile">
+      {canPreviewImage ? (
+        <img
+          alt={attachment.displayName}
+          loading="lazy"
+          onError={() => setHasImageError(true)}
+          src={imageSrc}
+        />
+      ) : (
+        <div className="map-finding-photo-placeholder">
+          <span>Photo</span>
+        </div>
+      )}
+      <figcaption>
+        <strong>{attachment.displayName}</strong>
+        <span>{attachment.relativePath}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+function toDisplayEvidence(item: LayoutEvidenceItem): DisplayEvidenceItem | null {
+  if (item.kind === "measurement") {
+    const values = (item.values ?? []).filter((value) =>
+      /^(Readings|Reinforcement pad):/i.test(value),
+    );
+
+    return values.length > 0
+      ? {
+          id: item.id,
+          kind: item.kind,
+          title: item.title,
+          subtitle: item.subtitle,
+          values,
+        }
+      : null;
+  }
+
+  if (item.kind === "finding") {
+    return item.note || item.attachments?.length
+      ? {
+          id: item.id,
+          kind: item.kind,
+          title: item.title,
+          subtitle: item.subtitle,
+          values: (item.values ?? []).filter((value) => /Missing attachment/i.test(value)),
+          note: item.note,
+          attachments: item.attachments,
+        }
+      : null;
+  }
+
+  const values = (item.values ?? []).filter((value) => /^Position\b/i.test(value));
+  return values.length > 0
+    ? {
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        subtitle: item.subtitle,
+        values,
+      }
+    : null;
+}
+
+function CircularMapPreview({
+  activeMarkerId,
+  activePlateId,
+  clipPathId,
+  layoutMap,
+  onMarkerSelect,
+  onPlateSelect,
+}: {
+  activeMarkerId: string | null;
+  activePlateId: string | null;
+  clipPathId: string;
+  layoutMap: LayoutMapData;
+  onMarkerSelect: (markerId: string | null) => void;
+  onPlateSelect: (plateId: string | null) => void;
+}) {
+  const center = CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2;
+  const radius = CIRCULAR_MAP.size * 0.42;
+
+  return (
+    <g>
+      <text className="android-map-title" x={CIRCULAR_MAP.x} y={38}>
+        {layoutMap.appMap?.surfaceType === "floor" ? "Floor Layout Map" : "Roof Layout Map"}
+      </text>
+      <text className="android-map-subtitle" x={CIRCULAR_MAP.x} y={58}>
+        Reference: 0 degree = {layoutMap.appMap?.referenceMode ?? layoutMap.drawingBlock.referenceMode}
+      </text>
+      <circle className="android-circular-fill" cx={center} cy={center} r={radius} />
+      <line className="android-reference-line" x1={center} x2={center} y1={center} y2={center - radius} />
+      <text className="android-zero-label" x={center - 8} y={center - radius - 10}>
+        0°
+      </text>
+
+      <g clipPath={`url(#${clipPathId})`}>
+        {layoutMap.plates.map((plate) => {
+          const rect = circularPlateRect(plate);
+          const isActive = plate.id === activePlateId;
+
+          return (
+            <rect
+              className={isActive ? "android-plate android-plate-active" : "android-plate"}
+              height={rect.height}
+              key={plate.id}
+              onClick={() => {
+                onPlateSelect(plate.id);
+                onMarkerSelect(null);
+              }}
+              rx="4"
+              width={rect.width}
+              x={rect.x}
+              y={rect.y}
+            />
+          );
+        })}
+      </g>
+
+      <circle className="android-circular-outline" cx={center} cy={center} r={radius} />
+
+      {layoutMap.plates.map((plate) => {
+        const rect = circularPlateRect(plate);
+        const labelX = rect.x + rect.width / 2;
+        const labelY = rect.y + rect.height / 2 + 4;
+
+        return (
+          <text className="android-plate-label" key={`${plate.id}-label`} x={labelX} y={labelY}>
+            {plate.label}
+          </text>
+        );
+      })}
+
+      <MapMarkers
+        activeMarkerId={activeMarkerId}
+        layoutMap={layoutMap}
+        mapBox={{
+          x: CIRCULAR_MAP.x,
+          y: CIRCULAR_MAP.y,
+          width: CIRCULAR_MAP.size,
+          height: CIRCULAR_MAP.size,
+        }}
+        onMarkerSelect={onMarkerSelect}
+        onPlateSelect={onPlateSelect}
+      />
+    </g>
+  );
+}
+
+function ShellMapPreview({
+  activeMarkerId,
+  activePlateId,
+  appMap,
+  layoutMap,
+  onMarkerSelect,
+  onPlateSelect,
+}: {
+  activeMarkerId: string | null;
+  activePlateId: string | null;
+  appMap: AndroidLayoutMapConfig;
+  layoutMap: LayoutMapData;
+  onMarkerSelect: (markerId: string | null) => void;
+  onPlateSelect: (plateId: string | null) => void;
+}) {
+  const shell = appMap.shell;
+  const courseCount = shell?.courseCount ?? layoutMap.gridRows;
+  const laneCount = shell?.laneCount ?? layoutMap.gridColumns;
+  const plates =
+    layoutMap.plates.length > 0
+      ? layoutMap.plates
+      : buildAndroidShellPlateSegments(
+          courseCount,
+          shell?.platesPerCourse ?? 9,
+          shell?.plateOffset ?? "none",
+          shell?.offsetStartRow ?? "even",
+          shell?.thirdOffsetStart ?? null,
+        );
+  const rowHeight = SHELL_GRID.height / courseCount;
+  const laneWidth = SHELL_GRID.width / laneCount;
+
+  return (
+    <g>
+      <text className="android-map-title" x={SHELL_GRID.x} y={42}>
+        Shell Surface Map
+      </text>
+      <text className="android-map-subtitle" x={SHELL_GRID.x} y={64}>
+        0 degree / 360 degree = {appMap.referenceMode}
+      </text>
+      <text className="android-map-subtitle android-shell-edge-label" x={SHELL_GRID.x + SHELL_GRID.width} y={64}>
+        360 degree
+      </text>
+
+      {Array.from({ length: courseCount }).map((_, rowIndex) => {
+        const course = courseCount - rowIndex;
+        const y = SHELL_GRID.y + rowIndex * rowHeight;
+
+        return (
+          <text className="android-course-label" key={`course-${course}`} x={SHELL_GRID.x - 44} y={y + rowHeight * 0.6}>
+            C{course}
+          </text>
+        );
+      })}
+
+      {Array.from({ length: laneCount }).map((_, laneIndex) => (
+        <text
+          className="android-lane-label"
+          key={`lane-${laneIndex}`}
+          x={SHELL_GRID.x + laneIndex * laneWidth + laneWidth / 2}
+          y={SHELL_GRID.y - 18}
+        >
+          {shellLaneDisplayLabel(laneIndex, laneCount)}
+        </text>
+      ))}
+
+      {plates.map((plate) => {
+        const rect = shellPlateRect(plate);
+        return (
+          <rect
+            className="android-shell-segment"
+            height={rect.height}
+            key={plate.id}
+            rx="6"
+            width={rect.width}
+            x={rect.x}
+            y={rect.y}
+          />
+        );
+      })}
+
+      {Array.from({ length: courseCount }).flatMap((_, rowIndex) => {
+        const course = courseCount - rowIndex;
+        const y = SHELL_GRID.y + rowIndex * rowHeight;
+
+        return Array.from({ length: laneCount }).map((__, laneIndex) => {
+          const regionId = `L${laneIndex + 1}-C${course}`;
+          const isActive = activePlateId === regionId;
+
+          return (
+            <g key={regionId}>
+              <rect
+                className={isActive ? "android-shell-region android-shell-region-active" : "android-shell-region"}
+                height={rowHeight - 2}
+                onClick={() => {
+                  onPlateSelect(regionId);
+                  onMarkerSelect(null);
+                }}
+                width={laneWidth}
+                x={SHELL_GRID.x + laneIndex * laneWidth}
+                y={y}
+              />
+              <text
+                className={isActive ? "android-shell-region-label android-shell-region-label-active" : "android-shell-region-label"}
+                x={SHELL_GRID.x + laneIndex * laneWidth + laneWidth / 2}
+                y={y + rowHeight / 2 + 4}
+              >
+                {shellRegionDisplayLabel(laneIndex, laneCount, course)}
+              </text>
+            </g>
+          );
+        });
+      })}
+
+      <MapMarkers
+        activeMarkerId={activeMarkerId}
+        layoutMap={layoutMap}
+        mapBox={SHELL_GRID}
+        onMarkerSelect={onMarkerSelect}
+        onPlateSelect={onPlateSelect}
+      />
+    </g>
+  );
+}
+
+function MapMarkers({
+  activeMarkerId,
+  layoutMap,
+  mapBox,
+  onMarkerSelect,
+  onPlateSelect,
+}: {
+  activeMarkerId: string | null;
+  layoutMap: LayoutMapData;
+  mapBox: { x: number; y: number; width: number; height: number };
+  onMarkerSelect: (markerId: string | null) => void;
+  onPlateSelect: (plateId: string | null) => void;
+}) {
+  return (
+    <g>
+      {layoutMap.markers.map((marker) => {
+        const point = markerPoint(marker, mapBox);
+        const isActive = marker.id === activeMarkerId;
+
+        return (
+          <g
+            className={marker.type === "element" ? "android-marker android-marker-element" : "android-marker"}
+            key={marker.id}
+            onClick={() => {
+              onMarkerSelect(marker.id);
+              onPlateSelect(null);
+            }}
+          >
+            <circle
+              className={isActive ? "android-marker-circle android-marker-circle-active" : "android-marker-circle"}
+              cx={point.x}
+              cy={point.y}
+              r={isActive ? 12 : 9}
+            />
+            <text className="android-marker-label" x={point.x + 12} y={point.y - 10}>
+              {compactMarkerLabel(marker.label)}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function DrawingBlock({ layoutMap }: { layoutMap: LayoutMapData }) {
+  return (
+    <g className="android-drawing-block">
+      <rect height={DRAWING_BLOCK.height} rx="8" width={DRAWING_BLOCK.width} x={DRAWING_BLOCK.x} y={DRAWING_BLOCK.y} />
+      <text x={DRAWING_BLOCK.x + 14} y={DRAWING_BLOCK.y + 24}>
+        CLIENT: {layoutMap.drawingBlock.client}
+      </text>
+      <text x={DRAWING_BLOCK.x + 14} y={DRAWING_BLOCK.y + 44}>
+        PROJECT: {layoutMap.drawingBlock.project}
+      </text>
+      <text x={DRAWING_BLOCK.x + 14} y={DRAWING_BLOCK.y + 64}>
+        DRAWING: {layoutMap.drawingBlock.drawing}
+      </text>
+      <text x={DRAWING_BLOCK.x + 14} y={DRAWING_BLOCK.y + 84}>
+        REF: {layoutMap.drawingBlock.reference}
+      </text>
+    </g>
+  );
+}
+
+function circularPlateRect(plate: LayoutPlate) {
+  return {
+    x: CIRCULAR_MAP.x + plate.x * CIRCULAR_MAP.size,
+    y: CIRCULAR_MAP.y + plate.y * CIRCULAR_MAP.size,
+    width: plate.width * CIRCULAR_MAP.size,
+    height: plate.height * CIRCULAR_MAP.size,
+  };
+}
+
+function shellPlateRect(plate: LayoutPlate) {
+  return {
+    x: SHELL_GRID.x + plate.x * SHELL_GRID.width,
+    y: SHELL_GRID.y + plate.y * SHELL_GRID.height,
+    width: plate.width * SHELL_GRID.width,
+    height: plate.height * SHELL_GRID.height,
+  };
+}
+
+function markerPoint(marker: LayoutMarker, mapBox: { x: number; y: number; width: number; height: number }) {
+  return {
+    x: mapBox.x + marker.x * mapBox.width,
+    y: mapBox.y + marker.y * mapBox.height,
+  };
+}
+
+function shellLaneDisplayLabel(laneIndex: number, laneCount: number): string {
+  if (laneCount === 4) return ["N", "E", "S", "W"][Math.min(Math.max(laneIndex, 0), 3)] ?? `L${laneIndex + 1}`;
+  if (laneIndex === 0) return "L1 (N)";
+  return `L${laneIndex + 1}`;
+}
+
+function shellRegionDisplayLabel(laneIndex: number, laneCount: number, course: number): string {
+  if (laneCount === 4) return `${shellLaneDisplayLabel(laneIndex, laneCount)}-C${course}`;
+  return `L${laneIndex + 1}-C${course}`;
+}
+
+function compactMarkerLabel(label: string): string {
+  return label
+    .replace(/^Roof Plate\s+/i, "P")
+    .replace(/^Strake\s+/i, "S")
+    .replace(/\s*\/\s*/g, "/");
 }
