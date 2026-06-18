@@ -26,7 +26,9 @@ import {
 } from "../lib/reportContent";
 import {
   approveSection as approveSectionApi,
+  downloadFinalReportDocx,
   generateSection as generateSectionApi,
+  resetReportDrafts as resetReportDraftsApi,
   saveLayoutOverride as saveLayoutOverrideApi,
   saveManualInputs as saveManualInputsApi,
   saveSectionDraft as saveSectionDraftApi,
@@ -39,16 +41,11 @@ type ImportSummaryWithClassification = WorkspaceReport["importSummary"] & {
 };
 
 function deriveStatus(section: ReportSection, generatedPreviewSectionIds?: Set<string>): SectionStatus {
-  const hasMissing = section.missingFields.some((field) => !field.value.trim());
   const hasGeneratedPreview = generatedPreviewSectionIds == null || generatedPreviewSectionIds.has(section.id);
 
   if (section.approved) return "approved";
-  if (hasMissing) return "missing info";
   if (!hasGeneratedPreview) return "not started";
-  if (section.reviewRequired) return "review required";
-  if (section.edited) return "edited";
-  if (section.generated) return "generated";
-  return "not started";
+  return "editing";
 }
 
 function cloneReport(report: WorkspaceReport): WorkspaceReport {
@@ -102,6 +99,38 @@ function buildDefaultRawGenerationInput(section: ReportSection): string {
   ].join("\n");
 }
 
+function getReportTocSections(report: WorkspaceReport | null): ReportSection[] {
+  return report?.sections.filter((section) => section.id !== "cover") ?? [];
+}
+
+function formatTocTitle(section: ReportSection): string {
+  return section.title.toUpperCase();
+}
+
+function formatTocNumber(section: ReportSection): string {
+  const appendixMatch = /^appendix\s+(.+)$/i.exec(section.number.trim());
+  return appendixMatch ? `Appx ${appendixMatch[1].toUpperCase()}` : section.number;
+}
+
+function resetReportOutputState(report: WorkspaceReport): WorkspaceReport {
+  return {
+    ...report,
+    sections: report.sections.map((section) => ({
+      ...section,
+      content: "",
+      generated: false,
+      edited: false,
+      approved: false,
+      reviewRequired: false,
+    })),
+  };
+}
+
+function getSectionPageLabel(section: ReportSection): string {
+  const match = section.description.match(/\bpage\s+(\d+)/i);
+  return match ? match[1] : "";
+}
+
 function formatEvalPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
@@ -136,6 +165,14 @@ function App() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChatBusy, setIsChatBusy] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedExportSectionIds, setSelectedExportSectionIds] = useState<Set<string>>(() => new Set());
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    current: number;
+    total: number;
+    label: string;
+  } | null>(null);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
 
   const handleLoadMockupData = async () => {
@@ -145,9 +182,11 @@ function App() {
 
     try {
       const bootstrap = await loadWorkspaceBootstrap();
-      const nextReport = cloneReport(bootstrap.report);
+      const resetState = await resetReportDraftsApi(bootstrap.report);
+      const resetHydration = hydrateWorkspaceFromApiState(resetState, getHydrationApiBaseUrl(bootstrap.report));
+      const nextReport = resetReportOutputState(cloneReport(resetHydration.baselineReport));
       setReport(nextReport);
-      setBaselineReport(cloneReport(bootstrap.baselineReport));
+      setBaselineReport(cloneReport(nextReport));
 
       const defaultSection =
         nextReport.sections.find((section) => section.id === "scope-of-inspection")?.id ??
@@ -163,8 +202,11 @@ function App() {
       );
       setGeneratedPreviewSectionIds(new Set());
       setEvalRuns({});
+      setGenerationProgress(null);
+      setIsExportDialogOpen(false);
+      setSelectedExportSectionIds(new Set());
       setFlashMessage(
-        "Loaded V10 mockup export and prepared readable app-data previews. LAIQ AI Engine is idle until you click Generate or send chat.",
+        "Loaded V10 mockup export as evidence only. Click Generate Report Sections to create section outputs one by one.",
       );
       setActiveMarkerId(null);
       setActivePlateId(null);
@@ -192,10 +234,7 @@ function App() {
     if (!report) {
       return {
         "not started": 0,
-        generated: 0,
-        edited: 0,
-        "missing info": 0,
-        "review required": 0,
+        editing: 0,
         approved: 0,
       } satisfies Record<SectionStatus, number>;
     }
@@ -208,14 +247,20 @@ function App() {
       },
       {
         "not started": 0,
-        generated: 0,
-        edited: 0,
-        "missing info": 0,
-        "review required": 0,
+        editing: 0,
         approved: 0,
       },
     );
   }, [generatedPreviewSectionIds, report]);
+
+  const reportTocSections = useMemo(() => getReportTocSections(report), [report]);
+  const approvedExportSections = useMemo(
+    () => reportTocSections.filter((section) => section.approved),
+    [reportTocSections],
+  );
+  const selectedExportCount = approvedExportSections.filter((section) =>
+    selectedExportSectionIds.has(section.id),
+  ).length;
 
   const currentChat = selectedSection ? chats[selectedSection.id] ?? [] : [];
   const selectedRawGenerationInput = rawGenerationInputs[selectedSection?.id ?? ""] ?? "";
@@ -409,100 +454,126 @@ function App() {
     }
   };
 
-  const handleGenerate = async () => {
-    setFlashMessage(`Generating ${selectedSection.title} from imported field facts and report-side inputs...`);
-    setIsGenerating(true);
+  const openExportDialog = () => {
+    const approvedIds = new Set(approvedExportSections.map((section) => section.id));
+    setSelectedExportSectionIds(approvedIds);
+    setIsExportDialogOpen(true);
+    setFlashMessage(
+      approvedIds.size > 0
+        ? `Select approved sections to export. ${approvedIds.size} approved section${approvedIds.size === 1 ? "" : "s"} are available.`
+        : "No approved sections are available for DOCX export yet.",
+    );
+  };
+
+  const toggleExportSection = (sectionId: string) => {
+    setSelectedExportSectionIds((current) => {
+      const next = new Set(current);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  };
+
+  const handleExportSelectedDocx = async () => {
+    const sectionIds = approvedExportSections
+      .filter((section) => selectedExportSectionIds.has(section.id))
+      .map((section) => section.id);
+
+    if (sectionIds.length === 0) {
+      setFlashMessage("Tick at least one approved section before exporting DOCX.");
+      return;
+    }
+
+    setIsExportingDocx(true);
+    setFlashMessage(`Exporting ${sectionIds.length} approved section${sectionIds.length === 1 ? "" : "s"} to DOCX...`);
 
     try {
-      await saveManualInputsApi(report, selectedSection);
-      const payload = await generateSectionApi(report, selectedSection.id, selectedRawGenerationInput);
-      const hydrated = hydrateWorkspaceFromApiState(payload, getHydrationApiBaseUrl(report));
-      const nextSection = hydrated.report.sections.find((section) => section.id === selectedSection.id);
-
-      if (nextSection) {
-        updateSection(selectedSection.id, () => nextSection);
-      }
-      setBaselineReport(cloneReport(hydrated.baselineReport));
-      setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
-      if (payload.aiStatus) {
-        setAiStatus(payload.aiStatus);
-      }
-      if (payload.evalRun) {
-        setEvalRuns((current) => ({
-          ...current,
-          [selectedSection.id]: payload.evalRun as ApiEvalRun,
-        }));
-      }
-      setSelectedSectionId(selectedSection.id);
-      setActiveMarkerId(null);
-      setActivePlateId(null);
-      setChats((current) => {
-        const generationRun = payload.generationRun;
-        const details = generationRun
-          ? [
-              generationRun.providerCode
-                ? `Worker: ${generationRun.providerCode}${generationRun.modelId ? ` (${generationRun.modelId})` : ""}.`
-                : "Worker: unknown.",
-              `Template: ${generationRun.templateKey}.`,
-              generationRun.calculationKeys.length > 0
-                ? `Calculations: ${generationRun.calculationKeys.join(", ")}.`
-                : "Calculations: none.",
-              generationRun.mapArtifactKeys.length > 0
-                ? `Map artifacts: ${generationRun.mapArtifactKeys.join(", ")}.`
-                : "Map artifacts: none.",
-              generationRun.assistantSummary ?? "",
-              payload.evalRun
-                ? `Eval: ${Math.round(payload.evalRun.score * 100)}% (${payload.evalRun.outcomeCode}).`
-                : "Eval: not returned.",
-              generationRun.warnings.length > 0
-                ? `Warnings: ${generationRun.warnings.join(" ")}`
-                : "Warnings: none.",
-            ].join(" ")
-          : "Section generation completed.";
-
-        return {
-          ...current,
-          [selectedSection.id]: [
-            ...(current[selectedSection.id] ?? []),
-            {
-              id: `a-gen-${Date.now()}`,
-              role: "assistant",
-              content: `I regenerated this section through the report orchestration engine. ${details}`,
-            },
-          ],
-        };
-      });
-
-      const generationRun = payload.generationRun;
-      const warningSuffix =
-        generationRun && generationRun.warnings.length > 0
-          ? ` Warnings: ${generationRun.warnings.join(" ")}`
-          : "";
-      const blockerSuffix =
-        generationRun && generationRun.blockers.length > 0
-          ? ` Blockers: ${generationRun.blockers.join(" ")}`
-          : "";
-      const workerSuffix =
-        generationRun?.providerCode != null
-          ? ` Worker: ${generationRun.providerCode}${generationRun.modelId ? ` (${generationRun.modelId})` : ""}.`
-          : "";
-      const fallbackSuffix =
-        generationRun?.fallbackReason != null ? ` Fallback reason: ${generationRun.fallbackReason}` : "";
-      const evalSuffix =
-        payload.evalRun != null
-          ? ` Eval: ${Math.round(payload.evalRun.score * 100)}% ${payload.evalRun.outcomeCode}. ${payload.evalRun.summary}`
-          : "";
-
-      setFlashMessage(
-        `Generated ${selectedSection.title} via ${generationRun?.templateKey ?? "the backend orchestration engine"}.` +
-          workerSuffix +
-          warningSuffix +
-          blockerSuffix +
-          fallbackSuffix +
-          evalSuffix,
-      );
+      await downloadFinalReportDocx(report, sectionIds);
+      setIsExportDialogOpen(false);
+      setFlashMessage(`DOCX export created with ${sectionIds.length} approved selected section${sectionIds.length === 1 ? "" : "s"}.`);
     } catch (error) {
-      setFlashMessage(`Unable to generate ${selectedSection.title}: ${formatErrorMessage(error)}`);
+      setFlashMessage(`Unable to export DOCX: ${formatErrorMessage(error)}`);
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleGenerateAllSections = async () => {
+    if (!report) return;
+
+    const sectionsToGenerate = getReportTocSections(report);
+    if (sectionsToGenerate.length === 0) {
+      setFlashMessage("No report sections are available to generate.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setEvalRuns({});
+    setGeneratedPreviewSectionIds(new Set());
+    setIsExportDialogOpen(false);
+
+    let workingReport = report;
+
+    try {
+      for (let index = 0; index < sectionsToGenerate.length; index += 1) {
+        const sectionId = sectionsToGenerate[index].id;
+        const section = workingReport.sections.find((item) => item.id === sectionId) ?? sectionsToGenerate[index];
+        const label = `${index + 1}/${sectionsToGenerate.length} · ${section.title}`;
+
+        setGenerationProgress({
+          current: index,
+          total: sectionsToGenerate.length,
+          label: `Generating ${label}`,
+        });
+        setSelectedSectionId(section.id);
+        setFlashMessage(`Generating section ${label}.`);
+
+        await saveManualInputsApi(workingReport, section);
+        const userInstruction = rawGenerationInputs[section.id] ?? buildDefaultRawGenerationInput(section);
+        const payload = await generateSectionApi(workingReport, section.id, userInstruction);
+        const hydrated = hydrateWorkspaceFromApiState(payload, getHydrationApiBaseUrl(workingReport));
+        const generatedSection = hydrated.report.sections.find((item) => item.id === section.id);
+
+        if (generatedSection) {
+          workingReport = {
+            ...workingReport,
+            sections: workingReport.sections.map((item) =>
+              item.id === generatedSection.id
+                ? {
+                    ...generatedSection,
+                    approved: false,
+                  }
+                : item,
+            ),
+          };
+          setReport(cloneReport(workingReport));
+        }
+
+        setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
+        setGeneratedPreviewSectionIds((current) => new Set(current).add(section.id));
+
+        if (payload.aiStatus) {
+          setAiStatus(payload.aiStatus);
+        }
+        if (payload.evalRun) {
+          setEvalRuns((current) => ({
+            ...current,
+            [section.id]: payload.evalRun as ApiEvalRun,
+          }));
+        }
+      }
+
+      setGenerationProgress({
+        current: sectionsToGenerate.length,
+        total: sectionsToGenerate.length,
+        label: "All report sections generated. Review each section and approve the final output.",
+      });
+      setFlashMessage("Generated all report sections one by one. Review the yellow sections and approve them when ready.");
+    } catch (error) {
+      setFlashMessage(`Generation stopped: ${formatErrorMessage(error)}`);
     } finally {
       setIsGenerating(false);
     }
@@ -814,10 +885,39 @@ function App() {
             <span className="meta-label">Tank</span>
             <strong>{report.tank}</strong>
           </div>
+          <button
+            className="topbar-generate-button"
+            disabled={isGenerating}
+            onClick={handleGenerateAllSections}
+            type="button"
+          >
+            {isGenerating ? "Generating..." : "Generate Report Sections"}
+            <span>{generationProgress?.label ?? "Runs section by section"}</span>
+          </button>
+          <button
+            className="topbar-export-button"
+            disabled={approvedExportSections.length === 0 || isExportingDocx}
+            onClick={openExportDialog}
+            type="button"
+          >
+            {isExportingDocx ? "Exporting..." : "Generate Final DOCX"}
+            <span>{approvedExportSections.length} approved</span>
+          </button>
         </div>
       </header>
 
       <div className="flash-banner">{flashMessage}</div>
+      {generationProgress ? (
+        <div className="generation-progress-line" aria-label="Report generation progress">
+          <div
+            className="generation-progress-fill"
+            style={{
+              width: `${Math.round((generationProgress.current / Math.max(generationProgress.total, 1)) * 100)}%`,
+            }}
+          />
+          <span>{generationProgress.label}</span>
+        </div>
+      ) : null}
       <section className="import-strip">
         <div className="import-card">
           <span className="meta-label">Source</span>
@@ -850,10 +950,10 @@ function App() {
         <aside className="panel sidebar">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">Tasks</p>
-              <h2>Report Sections</h2>
+              <p className="eyebrow">Table of Contents</p>
+              <h2>22PE1-4 Sections</h2>
             </div>
-            <span className="count-pill">{report.sections.length}</span>
+            <span className="count-pill">{reportTocSections.length}</span>
           </div>
 
           <div className="status-summary">
@@ -867,9 +967,10 @@ function App() {
           </div>
 
           <div className="section-list">
-            {report.sections.map((section) => {
+            {reportTocSections.map((section) => {
               const status = deriveStatus(section, generatedPreviewSectionIds);
               const isActive = section.id === selectedSection.id;
+              const pageLabel = getSectionPageLabel(section);
               return (
                 <button
                   className={`section-item ${isActive ? "section-item-active" : ""}`}
@@ -877,12 +978,17 @@ function App() {
                   onClick={() => selectReportSection(section)}
                   type="button"
                 >
-                  <div className="section-item-top">
-                    <span className="section-number">{section.number}</span>
-                    <span className={`status-badge status-${status.replace(/\s+/g, "-")}`}>{status}</span>
+                  <div className="toc-row">
+                    <span className="section-number">{formatTocNumber(section)}</span>
+                    <strong>{formatTocTitle(section)}</strong>
+                    <span className="toc-leader" />
+                    {pageLabel ? <span className="toc-page">{pageLabel}</span> : null}
+                    <span
+                      aria-label={`Section status: ${status}`}
+                      className={`toc-status-dot status-${status.replace(/\s+/g, "-")}`}
+                      title={status}
+                    />
                   </div>
-                  <strong>{section.title}</strong>
-                  <p>{section.description}</p>
                 </button>
               );
             })}
@@ -931,11 +1037,8 @@ function App() {
                   value={selectedRawGenerationInput}
                 />
                 <div className="raw-generation-actions">
-                  <button className="toolbar-button toolbar-button-primary" disabled={isGenerating} onClick={handleGenerate} type="button">
-                    {isGenerating ? "Generating…" : "Generate Section From This Data"}
-                  </button>
                   <small>
-                    LAIQ AI Engine receives this editable prompt/data block only when you click Generate.
+                    This section prompt/data block is used by the global Generate Report Sections queue.
                   </small>
                 </div>
               </div>
@@ -948,22 +1051,35 @@ function App() {
                   <h3>Generated Report Content</h3>
                   <p>{selectedSection.templateExpectation}</p>
                 </div>
-                <div className="mode-toggle">
+                <div className="output-card-actions">
+                  <span className={`output-approval-pill ${selectedSection.approved ? "output-approval-pill-approved" : ""}`}>
+                    {selectedSection.approved ? "Approved" : "Pending approval"}
+                  </span>
+                  <div className="mode-toggle">
+                    <button
+                      className={editorMode === "preview" ? "mode-active" : ""}
+                      disabled={!hasGeneratedPreview}
+                      onClick={() => setEditorMode("preview")}
+                      type="button"
+                    >
+                      Preview
+                    </button>
+                    <button
+                      className={editorMode === "edit" ? "mode-active" : ""}
+                      disabled={!hasGeneratedPreview}
+                      onClick={() => setEditorMode("edit")}
+                      type="button"
+                    >
+                      Edit
+                    </button>
+                  </div>
                   <button
-                    className={editorMode === "preview" ? "mode-active" : ""}
-                    disabled={!hasGeneratedPreview}
-                    onClick={() => setEditorMode("preview")}
+                    className="toolbar-button toolbar-button-primary approve-output-button"
+                    disabled={!hasGeneratedPreview || selectedSection.approved}
+                    onClick={handleApprove}
                     type="button"
                   >
-                    Preview
-                  </button>
-                  <button
-                    className={editorMode === "edit" ? "mode-active" : ""}
-                    disabled={!hasGeneratedPreview}
-                    onClick={() => setEditorMode("edit")}
-                    type="button"
-                  >
-                    Edit
+                    Approve Output
                   </button>
                 </div>
               </div>
@@ -1002,14 +1118,14 @@ function App() {
                 <div className="draft-empty-state">
                   <h4>No generated draft yet</h4>
                   <p>
-                    Review or edit the prompt and readable app-data preview above, then click Generate Section From
-                    This Data. The generated report section will appear here for editing and approval.
+                    Review or edit the prompt and readable app-data preview above, then use Generate Report Sections.
+                    This section will appear here after the queue generates it.
                   </p>
                 </div>
               ) : editorMode === "preview" ? (
                 <div className="report-preview">
                   <div className="report-heading">
-                    <span className="report-heading-number">{selectedSection.number}</span>
+                    <span className="report-heading-number">{formatTocNumber(selectedSection)}</span>
                     <span>{selectedSection.title}</span>
                   </div>
                   <div
@@ -1034,7 +1150,7 @@ function App() {
                   </p>
                 </div>
                 {visibleLayoutMap ? (
-                  <span className="status-badge status-generated">
+                  <span className="layout-surface-pill">
                     {formatLayoutSurfaceTab(activeLayoutSurface)}
                   </span>
                 ) : null}
@@ -1160,6 +1276,69 @@ function App() {
           </section>
         </aside>
       </main>
+
+      {isExportDialogOpen ? (
+        <div className="export-dialog-backdrop" role="presentation">
+          <section className="export-dialog-card panel" aria-label="Export approved sections to DOCX">
+            <div className="export-dialog-header">
+              <div>
+                <p className="eyebrow">Final DOCX Export</p>
+                <h3>Select Approved Sections</h3>
+                <p>
+                  Only approved sections are available here. The DOCX will include only the sections you tick.
+                </p>
+              </div>
+              <button
+                className="dialog-close-button"
+                disabled={isExportingDocx}
+                onClick={() => setIsExportDialogOpen(false)}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            {approvedExportSections.length === 0 ? (
+              <div className="export-empty-state">
+                <strong>No approved sections yet.</strong>
+                <p>Generate a section, review it, then click Approve Output before exporting DOCX.</p>
+              </div>
+            ) : (
+              <div className="export-section-list">
+                {approvedExportSections.map((section) => (
+                  <label className="export-section-row" key={section.id}>
+                    <input
+                      checked={selectedExportSectionIds.has(section.id)}
+                      disabled={isExportingDocx}
+                      onChange={() => toggleExportSection(section.id)}
+                      type="checkbox"
+                    />
+                    <span className="export-section-number">{formatTocNumber(section)}</span>
+                    <strong>{formatTocTitle(section)}</strong>
+                    <span className="toc-leader" />
+                    <span className="toc-page">{getSectionPageLabel(section)}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="export-dialog-actions">
+              <span>
+                {selectedExportCount} of {approvedExportSections.length} approved section
+                {approvedExportSections.length === 1 ? "" : "s"} selected
+              </span>
+              <button
+                className="toolbar-button toolbar-button-primary"
+                disabled={isExportingDocx || selectedExportCount === 0}
+                onClick={handleExportSelectedDocx}
+                type="button"
+              >
+                {isExportingDocx ? "Exporting..." : "Export Selected DOCX"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

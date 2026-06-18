@@ -30,6 +30,7 @@ export function createReportStore({ dbFilePath }) {
     loadReportJobState,
     loadLatestEvalRun,
     replyToSectionChat,
+    resetReportDrafts,
     saveLayoutOverride,
     saveManualInputs,
     saveSectionDraft,
@@ -409,6 +410,26 @@ export function createReportStore({ dbFilePath }) {
       }
 
       touchReportJob(reportJobId, nowIso);
+    });
+
+    return loadReportJobState(reportJobId);
+  }
+
+  function resetReportDrafts(reportJobId) {
+    ensureReportJobExists(reportJobId);
+    const nowIso = new Date().toISOString();
+
+    inTransaction(() => {
+      db.prepare("DELETE FROM report_eval_runs WHERE report_job_id = ?").run(reportJobId);
+      db.prepare("DELETE FROM report_generation_runs WHERE report_job_id = ?").run(reportJobId);
+      db.prepare("DELETE FROM report_review_decisions WHERE report_job_id = ?").run(reportJobId);
+      db.prepare("DELETE FROM report_layout_overrides WHERE report_job_id = ?").run(reportJobId);
+      db.prepare("DELETE FROM report_section_drafts WHERE report_job_id = ?").run(reportJobId);
+      db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
+        "draft",
+        nowIso,
+        reportJobId,
+      );
     });
 
     return loadReportJobState(reportJobId);

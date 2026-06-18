@@ -19,6 +19,7 @@
     "@tiptap/extension-underline": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
+    "docx": "^9.7.1",
     "dompurify": "^3.2.6",
     "konva": "^10.0.12",
     "react": "^18.3.1",

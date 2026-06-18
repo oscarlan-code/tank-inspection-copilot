@@ -31,6 +31,7 @@ import type {
   V2ProductExportLayoutConfig,
   V2ProductExportPackage,
   V2ProductExportUtMeasurement,
+  V2ProductExportVoiceNarrative,
 } from "./v2ProductExport";
 
 type ManualReportSupplement = {
@@ -386,12 +387,14 @@ function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {
     apiBaseUrl: normalizedBase || "same-origin /api",
     importInspectionPath: buildApiUrl(apiBaseUrl, "/api/v1/imports/android-v2-product"),
     loadReportJobPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId"),
+    resetDraftsPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/reset-drafts"),
     saveSectionDraftPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId"),
     saveManualInputsPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/manual-inputs"),
     saveLayoutOverridePath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/layout-overrides/:sectionId"),
     generateSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/generate"),
     sectionChatPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/chat"),
     approveSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/approve"),
+    exportDocxPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/exports/final-report.docx"),
   };
 }
 
@@ -476,6 +479,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
         : [];
   const scopedLayoutTargets = scopeFilter(exportPackage.layoutTargets);
   const scopedLayoutConfigs = scopeFilter(exportPackage.layoutConfigs);
+  const scopedVoiceNarratives = selectVoiceNarrativesForSection(section, exportPackage, targetKeys);
   const checklistItems =
     isChecklistSection
       ? exportPackage.inspectionChecklistItems.slice(0, 32).map((item) => ({
@@ -492,7 +496,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
   const overviewLines = [
     `- Use this as an inspection-wide report section, not a raw data dump.`,
     `- The app export identifies ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
-    `- Export contains ${exportPackage.utMeasurements.length} UT rows, ${exportPackage.findings.length} finding records, ${exportPackage.elements.length} positioned elements, and ${exportPackage.inspectionChecklistItems.length} checklist items.`,
+    `- Export contains ${exportPackage.utMeasurements.length} UT rows, ${exportPackage.findings.length} finding records, ${exportPackage.elements.length} positioned elements, ${exportPackage.inspectionChecklistItems.length} checklist items, and ${(exportPackage.voiceNarratives ?? []).length} voice-transcript narrative notes.`,
     `- Current validation result: ${exportPackage.validationResults.filter((result) => result.passed).length}/${exportPackage.validationResults.length} export checks passed.`,
     `- Keep detailed UT tables, map geometry, photo selection, and final recommendation wording in their own report sections.`,
   ].join("\n");
@@ -557,6 +561,19 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
           .slice(0, 8)
           .map((note) => `- ${note.sectionTitle}: ${note.note}`)
           .join("\n");
+  const voiceNarrativeLines =
+    scopedVoiceNarratives.length > 0
+      ? scopedVoiceNarratives
+          .slice(0, 12)
+          .map(
+            (note) =>
+              `- ${note.sectionTitle} (${note.speakerName}, ${note.capturedAtIso}): ${truncatePreviewText(
+                note.transcriptText,
+                360,
+              )}`,
+          )
+          .join("\n")
+      : "- No voice-transcript narrative notes are scoped to this section.";
   const elementHeading = isOverviewSection
     ? `Element placement summary (${scopedElements.length} matching rows)`
     : `Element placements (${scopedElements.length} matching rows, first 16 shown)`;
@@ -600,6 +617,9 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
       "",
       "Section-specific context",
       ...buildOverviewSectionContextLines(section, exportPackage),
+      "",
+      `Voice-transcript narrative notes (${scopedVoiceNarratives.length} matching rows)`,
+      voiceNarrativeLines,
       "",
       "Export readiness checks relevant to this section",
       validationLines,
@@ -673,6 +693,9 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
     `Layout configuration (${scopedLayoutConfigs.length} matching rows)`,
     layoutLines,
     "",
+    `Voice-transcript narrative notes (${scopedVoiceNarratives.length} matching rows, first 12 shown)`,
+    voiceNarrativeLines,
+    "",
     elementHeading,
     elementLines,
     "",
@@ -696,6 +719,7 @@ function buildOverviewSectionContextLines(section: ReportSection, exportPackage:
       "- Generate the report scope only from task identity, inspection type, API-standard report family, and export readiness status.",
       `- Field task scope: ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
       `- Workflow screen captured by Android: ${humanizeKey(exportPackage.workflowScreen)}.`,
+      `- Voice-transcript narrative notes available for report drafting: ${(exportPackage.voiceNarratives ?? []).length}.`,
       "- Mention that detailed roof, shell, floor, NDT, layout-map, photograph, and recommendation content is handled in later sections.",
     ];
   }
@@ -780,6 +804,41 @@ function selectChecklistSectionNotes(
     const title = note.sectionTitle.toLowerCase();
     return [...includeKeywords].some((keyword) => title.includes(keyword));
   });
+}
+
+function selectVoiceNarrativesForSection(
+  section: ReportSection,
+  exportPackage: V2ProductExportPackage,
+  targetKeys: string[],
+): V2ProductExportVoiceNarrative[] {
+  const notes = exportPackage.voiceNarratives ?? [];
+
+  if (section.id === "inspection-report") {
+    return notes;
+  }
+
+  const sectionText = `${section.id} ${section.title}`.toLowerCase();
+  const normalizedTitle = normalizeEvidenceKey(section.title);
+
+  return notes.filter((note) => {
+    const noteKey = normalizeEvidenceKey(`${note.sectionKey} ${note.sectionTitle}`);
+    const titleMatches = normalizedTitle.length > 0 && noteKey.includes(normalizedTitle);
+    const textMatches =
+      sectionText.includes(note.sectionKey.replace(/_/g, "-")) ||
+      sectionText.includes(note.sectionKey.replace(/_/g, " ")) ||
+      noteKey
+        .split(" ")
+        .filter((part) => part.length > 4)
+        .some((part) => sectionText.includes(part));
+    const targetMatches =
+      targetKeys.length > 0 && note.linkedTargetKeys.some((targetKey) => targetKeys.includes(targetKey));
+
+    return titleMatches || textMatches || targetMatches;
+  });
+}
+
+function normalizeEvidenceKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function formatMissingFieldLabels(section: ReportSection): string {
@@ -1034,23 +1093,7 @@ function buildInspectionReportSection(
   exportPackage: V2ProductExportPackage,
   manualSupplement: ManualReportSupplement,
 ): ReportSection {
-  const checklistHighlights = buildChecklistHighlights(exportPackage.inspectionChecklistSectionNotes);
-  const shellMeasurementBullets = buildMeasurementBullets(
-    exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "shell"),
-  );
-  const findingLabels = exportPackage.findings.map((finding) => finding.itemLabel).join(", ");
-
-  const content = `INTERNAL & EXTERNAL INSPECTION
-
-The API-standard report workspace reviews the vertical aboveground storage tank as an internal and external inspection package. The current Android export confirms ${exportPackage.findings.length} reportable finding locations tied to the imported shell scope.
-
-${shellMeasurementBullets.join("\n")}
-
-Finding locations imported from the app include ${findingLabels}. These tagged positions should be carried forward into the relevant shell, NDT, repair, and photo sections without redrawing the underlying field geometry.
-
-${checklistHighlights}
-
-The current section is intentionally incomplete on the report side until the final client-facing engineering implication paragraph is reviewed and approved.`;
+  const content = buildInspectionReportNarrative(exportPackage, manualSupplement);
 
   return {
     id: "inspection-report",
@@ -1064,10 +1107,12 @@ The current section is intentionally incomplete on the report side until the fin
     reviewRequired: false,
     description: "ToC section 4, internal/external inspection narrative and imported finding summary.",
     content,
-    aiHint: "Use formal engineering language and keep the factual statements anchored to imported evidence.",
-    templateExpectation: "Blue section heading, uppercase subheading, arrow bullets, and compact engineering prose.",
+    aiHint:
+      "Use the sample report Inspection Report structure: uppercase subsection headings, arrow bullets, photo references where available, and no invented findings.",
+    templateExpectation:
+      "Sample-report narrative page with DIKED AREA, FOUNDATION, SHELL, SHELL APPURTENANCES, ACCESS STRUCTURE, FIXED ROOF, ROOF APPURTENANCES, ROOF INTERNAL, SHELL INTERNAL, and FLOOR INTERNAL subsections.",
     sourceSummary:
-      "Imported: findings, shell UT rows, checklist notes. Manual: concluding engineering implication paragraph. Derived: merged narrative draft.",
+      "Imported: findings, shell UT rows, checklist notes, and voice-to-text narrative notes. Manual: concluding engineering implication paragraph. Derived: sample-report narrative draft.",
     missingFields: [
       makeField({
         id: "engineeringImplication",
@@ -1158,6 +1203,100 @@ Final photo ordering, caption formatting, and page layout belong to the report p
   };
 }
 
+function buildTankInspectionChecklistSection(exportPackage: V2ProductExportPackage): ReportSection {
+  const content = buildChecklistTableHtml(exportPackage);
+
+  return {
+    id: "tank-inspection-checklist",
+    number: "7",
+    title: "Tank Inspection Checklist",
+    shortLabel: "Checklist",
+    kind: "structured",
+    generated: true,
+    edited: false,
+    approved: false,
+    reviewRequired: false,
+    description: "ToC section 7, interactive checklist table seeded from Android V2 Product checklist export.",
+    content,
+    aiHint:
+      "Render the checklist as the sample report response grid. Do not summarize away the individual checklist rows.",
+    templateExpectation:
+      "Checklist table grouped by section with response columns 1, 2, 3, 4, IA, NE, and N/A.",
+    sourceSummary:
+      "Imported: all checklist item prompts and selected responses from Android V2 Product. Manual: reviewer can change final response selections.",
+    missingFields: [],
+  };
+}
+
+function buildChecklistTableHtml(exportPackage: V2ProductExportPackage): string {
+  const ratingColumns = ["1", "2", "3", "4", "IA", "NE", "N/A"];
+  const groupedItems = new Map<string, typeof exportPackage.inspectionChecklistItems>();
+
+  for (const item of exportPackage.inspectionChecklistItems) {
+    const key = item.sectionTitle;
+    groupedItems.set(key, [...(groupedItems.get(key) ?? []), item]);
+  }
+
+  const groups = [...groupedItems.entries()]
+    .map(([sectionTitle, items]) => {
+      const rows = items
+        .map((item) => {
+          const responseCells = ratingColumns
+            .map((rating) => {
+              const selected = item.ratingKey === rating || item.ratingLabel === rating || mapRatingLabelToCode(item.ratingLabel) === rating;
+              return `<td class="checklist-response-cell">${selected ? "●" : ""}</td>`;
+            })
+            .join("");
+
+          return `<tr><td class="checklist-item-number">${escapeReportHtml(item.itemNumber)}</td><td>${escapeReportHtml(
+            item.itemPrompt,
+          )}</td>${responseCells}</tr>`;
+        })
+        .join("");
+
+      return [
+        `<tr class="checklist-section-row"><th colspan="${ratingColumns.length + 2}">${escapeReportHtml(
+          sectionTitle.toUpperCase(),
+        )}</th></tr>`,
+        `<tr><th>No.</th><th>Inspection Item</th>${ratingColumns
+          .map((rating) => `<th>${escapeReportHtml(rating)}</th>`)
+          .join("")}</tr>`,
+        rows,
+      ].join("");
+    })
+    .join("");
+
+  return [
+    "<h3>7 TANK INSPECTION CHECKLIST</h3>",
+    "<p>Checklist responses are imported from the Android V2 Product export. The response grid follows the sample report columns and is intended to become an editable table in the report platform.</p>",
+    `<div class="report-table-wrap"><table class="report-measurement-table checklist-report-table"><tbody>${groups}</tbody></table></div>`,
+    "<p><em>Legend: 1 Good Condition; 2 Satisfactory Condition; 3 Requires Repair/Action; 4 Poor, Requires Immediate Attention; IA In-accessible; NE None Evident; N/A Not applicable.</em></p>",
+  ].join("");
+}
+
+function mapRatingLabelToCode(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  if (normalized.includes("good")) return "1";
+  if (normalized.includes("satisfactory")) return "2";
+  if (normalized.includes("repair")) return "3";
+  if (normalized.includes("poor")) return "4";
+  if (normalized.includes("in-accessible") || normalized.includes("inaccessible")) return "IA";
+  if (normalized.includes("none evident")) return "NE";
+  if (normalized.includes("not applicable")) return "N/A";
+  if (normalized.includes("not to code")) return "3";
+  return null;
+}
+
+function escapeReportHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function isPhotoAttachment(attachment: V2ProductExportAttachment): boolean {
   return attachment.kind === "photo" || attachment.kind === "finding_photo";
 }
@@ -1182,6 +1321,9 @@ function buildApiStandardTocSections(
     }
     if (tocSection.id === "repair-recommendations") {
       return alignSectionToToc(buildRecommendationSection(exportPackage, manualSupplement), tocSection);
+    }
+    if (tocSection.id === "tank-inspection-checklist") {
+      return alignSectionToToc(buildTankInspectionChecklistSection(exportPackage), tocSection);
     }
     if (tocSection.id === "photographs") {
       return alignSectionToToc(buildPhotographsSection(exportPackage), tocSection);
@@ -1221,13 +1363,18 @@ function buildApiStandardMapSection(
           : undefined;
 
   if (layoutMap) {
-    return buildMapSection(exportPackage, manualSupplement, layoutMap, {
+    const section = buildMapSection(exportPackage, manualSupplement, layoutMap, {
       id: tocSection.id,
       number: tocSection.number,
       title: tocSection.title,
       shortLabel: tocSection.shortLabel,
       drawing: `Section-${tocSection.number}`,
     });
+
+    return {
+      ...section,
+      description: `ToC section ${tocSection.number}, page ${tocSection.pageStart} in ${API_STANDARD_PRIMARY_REPORT.sourceReportName}.`,
+    };
   }
 
   const content = `${tocSection.number}       ${tocSection.title.toUpperCase()}
@@ -2100,6 +2247,150 @@ function buildFindingMarker(
   };
 }
 
+function buildInspectionReportNarrative(
+  exportPackage: V2ProductExportPackage,
+  manualSupplement: ManualReportSupplement,
+): string {
+  const voiceNotes = exportPackage.voiceNarratives ?? [];
+  const shellMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "shell");
+  const roofMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "external_roof");
+  const floorMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "floor");
+  const shellFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "shell")
+    .map((finding) => finding.itemLabel);
+  const roofFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "external_roof")
+    .map((finding) => finding.itemLabel);
+  const floorFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "floor")
+    .map((finding) => finding.itemLabel);
+
+  return [
+    "INTERNAL & EXTERNAL INSPECTION",
+    "",
+    buildInspectionSubsection("DIKED AREA", [
+      ...buildVoiceBullets(voiceNotes, "diked_area"),
+      ...buildChecklistNoteBullets(exportPackage, "diked_area"),
+    ]),
+    "",
+    buildInspectionSubsection("FOUNDATION", [
+      ...buildVoiceBullets(voiceNotes, "tank_foundation"),
+      ...buildChecklistNoteBullets(exportPackage, "tank_foundation"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL", [
+      ...buildVoiceBullets(voiceNotes, "shell_external"),
+      `➢ Imported shell UT readings cover ${shellMeasurements.length} shell rows. ${formatMeasurementRangeSentence(shellMeasurements)}`,
+      shellFindingLabels.length > 0
+        ? `➢ Imported shell finding locations include ${shellFindingLabels.join(", ")}. These locations should remain traceable to layout map markers and related photo evidence.`
+        : "➢ No shell finding locations were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "shell_external"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL APPURTENANCES", [
+      ...buildVoiceBullets(voiceNotes, "shell_appurtenances"),
+      `➢ Imported shell element records include ${countElementsByType(exportPackage, "shell", "nozzle")} shell nozzles and ${countElementsByType(exportPackage, "shell", "stair")} stair/access related markers.`,
+      ...buildChecklistNoteBullets(exportPackage, "shell_appurtenances"),
+    ]),
+    "",
+    buildInspectionSubsection("ACCESS STRUCTURE", [
+      ...buildVoiceBullets(voiceNotes, "access_structure"),
+      ...buildChecklistNoteBullets(exportPackage, "access_structure"),
+    ]),
+    "",
+    buildInspectionSubsection("FIXED ROOF (DOME)", [
+      ...buildVoiceBullets(voiceNotes, "fixed_roof_cone_dome"),
+      `➢ Imported roof plate readings cover ${roofMeasurements.filter((measurement) => measurement.itemKind === "region").length} roof plate rows and ${roofMeasurements.filter((measurement) => measurement.itemKind === "element").length} roof nozzle/appurtenance rows. ${formatMeasurementRangeSentence(roofMeasurements)}`,
+      roofFindingLabels.length > 0
+        ? `➢ Imported roof finding locations include ${roofFindingLabels.join(", ")}.`
+        : "➢ No roof findings were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "fixed_roof_cone_dome"),
+    ]),
+    "",
+    buildInspectionSubsection("ROOF APPURTENANCES", [
+      ...buildVoiceBullets(voiceNotes, "roof_appurtenances"),
+      `➢ Imported roof element records include ${countElementsByType(exportPackage, "external_roof", "nozzle")} roof nozzles, ${countElementsByType(exportPackage, "external_roof", "manhole")} manhole marker, and ${countElementsByType(exportPackage, "external_roof", "vent")} vent marker.`,
+      ...buildChecklistNoteBullets(exportPackage, "roof_appurtenances"),
+    ]),
+    "",
+    buildInspectionSubsection("ROOF INTERNAL", [
+      ...buildVoiceBullets(voiceNotes, "fixed_roof_internal"),
+      ...buildChecklistNoteBullets(exportPackage, "fixed_roof_internal"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL INTERNAL", [
+      ...buildVoiceBullets(voiceNotes, "shell_internal"),
+      shellFindingLabels.length > 0
+        ? `➢ Selected shell internal locations are linked to imported finding markers ${shellFindingLabels.join(", ")}.`
+        : "➢ Selected shell internal finding markers are pending confirmation.",
+      ...buildChecklistNoteBullets(exportPackage, "shell_internal"),
+    ]),
+    "",
+    buildInspectionSubsection("FLOOR INTERNAL (CONE DOWN)", [
+      ...buildVoiceBullets(voiceNotes, "floor_internal"),
+      `➢ Imported floor UT readings cover ${floorMeasurements.length} floor rows. ${formatMeasurementRangeSentence(floorMeasurements)}`,
+      floorFindingLabels.length > 0
+        ? `➢ Imported floor finding locations include ${floorFindingLabels.join(", ")}.`
+        : "➢ No floor findings were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "floor_internal"),
+    ]),
+    "",
+    "ENGINEERING IMPLICATION",
+    "",
+    `➢ ${formatSentenceValue(manualSupplement.engineeringImplication)}.`,
+    "",
+    "Note: Voice-transcript notes are used as narrative evidence for drafting only. Final wording, photo numbering, and API 653 acceptability remain subject to inspector/reviewer approval.",
+  ].join("\n");
+}
+
+function buildInspectionSubsection(title: string, bullets: string[]): string {
+  const cleanBullets = bullets.filter((line) => line.trim().length > 0);
+  return [
+    title,
+    "",
+    ...(cleanBullets.length > 0 ? cleanBullets : ["➢ Pending confirmation from inspector narrative input."]),
+  ].join("\n");
+}
+
+function buildVoiceBullets(notes: V2ProductExportVoiceNarrative[], sectionKey: string): string[] {
+  return notes
+    .filter((note) => note.sectionKey === sectionKey)
+    .map((note) => `➢ ${note.transcriptText}`);
+}
+
+function buildChecklistNoteBullets(exportPackage: V2ProductExportPackage, sectionKey: string): string[] {
+  return exportPackage.inspectionChecklistSectionNotes
+    .filter((note) => note.sectionKey === sectionKey)
+    .map((note) => `➢ Checklist note: ${note.note}`);
+}
+
+function countElementsByType(
+  exportPackage: V2ProductExportPackage,
+  targetKey: string,
+  elementTypeKey: string,
+): number {
+  return exportPackage.elements.filter(
+    (element) => element.targetKey === targetKey && element.elementTypeKey === elementTypeKey,
+  ).length;
+}
+
+function formatMeasurementRangeSentence(measurements: V2ProductExportUtMeasurement[]): string {
+  const values = measurements.flatMap((measurement) => [
+    measurement.value1,
+    measurement.value2,
+    measurement.value3,
+    measurement.value4,
+    measurement.value5,
+    measurement.reinforcementPadReading,
+  ]).filter((value): value is number => value != null);
+
+  if (values.length === 0) {
+    return "Measurement range is pending confirmation.";
+  }
+
+  return `Recorded values range from ${Math.min(...values).toFixed(2)} mm to ${Math.max(...values).toFixed(2)} mm.`;
+}
+
 function buildChecklistHighlights(notes: V2ProductExportChecklistSectionNote[]): string {
   if (notes.length === 0) {
     return "No checklist section notes were exported for this package.";
@@ -2154,6 +2445,11 @@ function buildInitialAssistantPrompt(section: ReportSection): string {
 
 function formatMetric(value: number | null): string {
   return value == null ? "Not recorded" : `${value.toFixed(3)} m`;
+}
+
+function formatSentenceValue(value: string | null | undefined): string {
+  const normalized = String(value ?? "").trim() || "Pending confirmation";
+  return normalized.replace(/[.]+$/, "");
 }
 
 function formatShortDate(value: string): string {

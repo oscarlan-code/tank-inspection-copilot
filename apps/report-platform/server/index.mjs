@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createReportStore } from "./store.mjs";
 import { buildApiStandardFixturePackage } from "./api-standard-fixture.mjs";
+import { buildFinalReportDocx } from "./docx-export.mjs";
 import {
   buildPrecedentAudit,
   getPrecedentKbStatus,
@@ -175,6 +176,14 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const resetDraftsPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/reset-drafts$/);
+    if (request.method === "POST" && resetDraftsPath) {
+      const reportJobId = decodeURIComponent(resetDraftsPath[1]);
+      const state = reportStore.resetReportDrafts(reportJobId);
+      writeJson(response, 200, state);
+      return;
+    }
+
     const sectionPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/sections\/([^/]+)$/);
     if (request.method === "PATCH" && sectionPath) {
       const reportJobId = decodeURIComponent(sectionPath[1]);
@@ -231,6 +240,37 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const docxExportPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/exports\/final-report\.docx$/);
+    if ((request.method === "GET" || request.method === "POST") && docxExportPath) {
+      const reportJobId = decodeURIComponent(docxExportPath[1]);
+      const state = reportStore.loadReportJobState(reportJobId);
+      if (!state) {
+        writeJson(response, 404, { error: `Report job ${reportJobId} was not found.` });
+        return;
+      }
+
+      const body = request.method === "POST" ? await readJsonBody(request) : {};
+      let exportResult;
+      try {
+        exportResult = await buildFinalReportDocx(state, {
+          sectionIds: Array.isArray(body.sectionIds) ? body.sectionIds : [],
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to export DOCX.";
+        const statusCode = /select at least one approved section/i.test(message) ? 400 : 500;
+        writeJson(response, statusCode, { error: message });
+        return;
+      }
+      writeBinary(response, 200, exportResult.buffer, {
+        "Content-Disposition": `attachment; filename="${exportResult.filename}"`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "X-LAIQ-Approved-Sections": String(exportResult.approvalSummary.approvedCount),
+        "X-LAIQ-Exported-Sections": String(exportResult.approvalSummary.exportedCount),
+        "X-LAIQ-Pending-Sections": String(exportResult.approvalSummary.pendingCount),
+      });
+      return;
+    }
+
     writeJson(response, 404, { error: `Route not found: ${request.method} ${pathname}` });
   } catch (error) {
     writeJson(response, 500, {
@@ -268,4 +308,14 @@ function writeJson(response, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
   });
   response.end(body);
+}
+
+function writeBinary(response, statusCode, payload, headers = {}) {
+  response.writeHead(statusCode, {
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Access-Control-Allow-Origin": "*",
+    ...headers,
+  });
+  response.end(payload);
 }

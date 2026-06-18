@@ -179,6 +179,20 @@ export type V2ProductExportChecklistSectionNote = {
   updatedAtIso: string;
 };
 
+export type V2ProductExportVoiceNarrative = {
+  inspectionId: string;
+  narrativeId: string;
+  sectionKey: string;
+  sectionTitle: string;
+  speakerUserId: string;
+  speakerName: string;
+  capturedAtIso: string;
+  transcriptText: string;
+  linkedTargetKeys: string[];
+  linkedFindingIds: string[];
+  confidence: number;
+};
+
 export type V2ProductExportFinding = {
   inspectionId: string;
   findingId: string;
@@ -230,6 +244,7 @@ export type V2ProductExportPackage = {
   utMeasurements: V2ProductExportUtMeasurement[];
   inspectionChecklistItems: V2ProductExportChecklistItem[];
   inspectionChecklistSectionNotes: V2ProductExportChecklistSectionNote[];
+  voiceNarratives?: V2ProductExportVoiceNarrative[];
   findings: V2ProductExportFinding[];
   attachments: V2ProductExportAttachment[];
 };

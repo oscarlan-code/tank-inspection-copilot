@@ -38,6 +38,19 @@ export async function saveManualInputs(
   await assertOk(response, "Unable to save report-side manual inputs.");
 }
 
+export async function resetReportDrafts(report: WorkspaceReport): Promise<ApiReportJobState> {
+  const response = await fetch(buildReportUrl(report.apiLinks.resetDraftsPath, report.id), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  await assertOk(response, "Unable to reset report draft state.");
+  return (await response.json()) as ApiReportJobState;
+}
+
 export async function saveLayoutOverride(
   report: WorkspaceReport,
   sectionId: string,
@@ -104,6 +117,32 @@ export async function sendSectionChat(
   return (await response.json()) as ApiSectionChatReply;
 }
 
+export async function downloadFinalReportDocx(
+  report: WorkspaceReport,
+  sectionIds: string[],
+): Promise<void> {
+  const response = await fetch(buildReportUrl(report.apiLinks.exportDocxPath, report.id), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ sectionIds }),
+  });
+
+  await assertOk(response, "Unable to export final report DOCX.");
+  const blob = await response.blob();
+  const filename = getFilenameFromDisposition(response.headers.get("Content-Disposition")) ??
+    `${report.reference}-approved-sections.docx`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 function buildReportUrl(template: string, reportJobId: string): string {
   return template.replace(":reportJobId", encodeURIComponent(reportJobId));
 }
@@ -117,4 +156,11 @@ async function assertOk(response: Response, fallbackMessage: string): Promise<vo
 
   const body = await response.text();
   throw new Error(body || `${fallbackMessage} HTTP ${response.status}`);
+}
+
+function getFilenameFromDisposition(disposition: string | null): string | null {
+  if (!disposition) return null;
+
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  return match ? decodeURIComponent(match[1]) : null;
 }

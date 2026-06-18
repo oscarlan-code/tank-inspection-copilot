@@ -76,6 +76,14 @@ const SECTION_TEMPLATES = {
     requiredManualFields: ["recommendationOwner"],
     compose: composeRecommendationSection,
   },
+  "tank-inspection-checklist": {
+    templateKey: "api653-standard.tank-inspection-checklist.v1",
+    title: "Tank Inspection Checklist",
+    kind: "structured",
+    templateExpectation: "Checklist table grouped by section with response columns 1, 2, 3, 4, IA, NE, and N/A.",
+    requiredManualFields: [],
+    compose: composeTankInspectionChecklistSection,
+  },
   photographs: {
     templateKey: "shell-internal.photographs.v1",
     title: "Photographs",
@@ -571,6 +579,10 @@ function buildStandardTocTemplate(sectionId) {
 
 async function tryGenerateSectionWithCodexCli(context) {
   const aiStatus = getAiStatus();
+  if (context.sectionId === "tank-inspection-checklist") {
+    return null;
+  }
+
   if (!aiStatus.configured) {
     return null;
   }
@@ -625,6 +637,7 @@ function buildSectionGenerationPrompt(context) {
     precedentPack: context.precedentPack,
     reportClassification: context.reportClassification,
     importedFacts: buildImportedFactsSummary(context.exportPackage),
+    inspectionWideContext: buildInspectionWideContext(context.exportPackage),
   };
 
   return `You are the LAIQ report writing engine for tank inspection reports.
@@ -670,6 +683,7 @@ function buildAssistantChatPrompt(context, userPrompt, conversationHistory = [])
     requiredManualInputs: buildRequiredManualInputState(context),
     reportClassification: context.reportClassification,
     importedFacts: buildImportedFactsSummary(context.exportPackage),
+    inspectionWideContext: buildInspectionWideContext(context.exportPackage),
     conversationHistory,
   };
 
@@ -677,7 +691,7 @@ function buildAssistantChatPrompt(context, userPrompt, conversationHistory = [])
 
 Answer briefly and practically.
 Continue the conversation using the prior turns when they are supplied.
-Stay anchored to the supplied section context only.
+Stay anchored to the supplied current-section context and inspection-wide context only.
 Do not invent missing facts.
 If the request is unclear, impossible, outside the current section, or cannot be completed safely, ask one focused follow-up question and return no actions.
 If Android layout geometry is locked, explain the lock and offer a safe alternative such as caption, evidence, or report wording refinement.
@@ -1244,6 +1258,9 @@ function normalizeAssistantActions(actions) {
 
 function buildImportedFactsSummary(exportPackage) {
   const reportClassification = classifyReportPackage(exportPackage);
+  const measurementCounts = buildMeasurementCounts(exportPackage);
+  const elementCounts = buildElementCounts(exportPackage);
+
   return {
     inspectionReference: exportPackage.inspectionReference,
     client: exportPackage.task.client,
@@ -1253,6 +1270,14 @@ function buildImportedFactsSummary(exportPackage) {
     findingCount: exportPackage.findings.length,
     attachmentCount: exportPackage.attachments.length,
     measurementCount: exportPackage.utMeasurements.length,
+    voiceNarrativeCount: (exportPackage.voiceNarratives ?? []).length,
+    checklistItemCount: exportPackage.inspectionChecklistItems.length,
+    roofPlateUtRows: measurementCounts["external_roof|region"] ?? 0,
+    roofElementUtRows: measurementCounts["external_roof|element"] ?? 0,
+    shellPlateUtRows: measurementCounts["shell|region"] ?? 0,
+    shellElementUtRows: measurementCounts["shell|element"] ?? 0,
+    floorPlateUtRows: measurementCounts["floor|region"] ?? 0,
+    elementCounts,
     workflowScreen: exportPackage.workflowScreen,
     tenantName: exportPackage.profile.tenantName,
     workspaceName: exportPackage.profile.workspaceName,
@@ -1260,6 +1285,116 @@ function buildImportedFactsSummary(exportPackage) {
     primaryCodes: reportClassification.primaryCodes.map((code) => code.label),
     supportingCodes: reportClassification.supportingCodes.map((code) => code.label),
   };
+}
+
+function buildInspectionWideContext(exportPackage) {
+  return {
+    identity: {
+      inspectionReference: exportPackage.inspectionReference,
+      client: exportPackage.task.client,
+      tankNumber: exportPackage.task.tankNumber,
+      location: exportPackage.inspectionRecord.location,
+      fieldLeaseName: exportPackage.inspectionRecord.fieldLeaseName,
+      inspector: exportPackage.inspectionRecord.inspector,
+      tankType: "Vertical aboveground storage tank",
+      exportedAtIso: exportPackage.exportedAtIso,
+    },
+    layoutConfigs: exportPackage.layoutConfigs.map((config) => ({
+      targetKey: config.targetKey,
+      referenceMode: config.referenceMode,
+      roofRowCount: config.roofRowCount,
+      roofWidestRowPlateCount: config.roofWidestRowPlateCount,
+      shellCourseCount: config.shellCourseCount,
+      shellPlatesPerCourse: config.shellPlatesPerCourse,
+      shellLaneCount: config.shellLaneCount,
+      floorPlateCount: config.floorPlateCount,
+      floorPatternCountX: config.floorPatternCountX,
+      floorPatternCountY: config.floorPatternCountY,
+    })),
+    measurementSummary: buildMeasurementSummaryByScope(exportPackage),
+    elementSummary: buildElementSummaryByScope(exportPackage),
+    findingNotes: exportPackage.findings.map((finding) => ({
+      findingId: finding.findingId,
+      targetKey: finding.targetKey,
+      itemLabel: finding.itemLabel,
+      linkedUtItemKey: finding.linkedUtItemKey,
+      note: finding.note,
+      attachmentCount: finding.attachmentCount,
+      hasMissingAttachment: finding.hasMissingAttachment,
+    })),
+    checklistSectionNotes: exportPackage.inspectionChecklistSectionNotes.map((note) => ({
+      sectionKey: note.sectionKey,
+      sectionTitle: note.sectionTitle,
+      note: note.note,
+    })),
+    voiceNarratives: (exportPackage.voiceNarratives ?? []).map((note) => ({
+      sectionKey: note.sectionKey,
+      sectionTitle: note.sectionTitle,
+      speakerName: note.speakerName,
+      capturedAtIso: note.capturedAtIso,
+      transcriptText: note.transcriptText,
+      linkedTargetKeys: note.linkedTargetKeys,
+      linkedFindingIds: note.linkedFindingIds,
+      confidence: note.confidence,
+    })),
+  };
+}
+
+function buildMeasurementCounts(exportPackage) {
+  return exportPackage.utMeasurements.reduce((counts, measurement) => {
+    const key = `${measurement.targetKey}|${measurement.itemKind}`;
+    counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function buildElementCounts(exportPackage) {
+  return exportPackage.elements.reduce((counts, element) => {
+    const key = `${element.targetKey}|${element.elementTypeKey}`;
+    counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function buildMeasurementSummaryByScope(exportPackage) {
+  const scopedRows = new Map();
+
+  for (const measurement of exportPackage.utMeasurements) {
+    const key = `${measurement.targetKey}|${measurement.itemKind}`;
+    const current = scopedRows.get(key) ?? [];
+    current.push(measurement);
+    scopedRows.set(key, current);
+  }
+
+  return [...scopedRows.entries()].map(([scopeKey, rows]) => {
+    const values = rows.flatMap((row) => getMeasurementValuesIncludingReinforcement(row));
+    return {
+      scopeKey,
+      rowCount: rows.length,
+      measuredRowCount: rows.filter((row) => row.measured).length,
+      minValueMm: values.length > 0 ? Math.min(...values) : null,
+      maxValueMm: values.length > 0 ? Math.max(...values) : null,
+      averageValueMm: values.length > 0 ? sum(values) / values.length : null,
+      sampleLabels: rows.slice(0, 12).map((row) => row.itemLabel),
+    };
+  });
+}
+
+function buildElementSummaryByScope(exportPackage) {
+  const grouped = new Map();
+
+  for (const element of exportPackage.elements) {
+    const key = `${element.targetKey}|${element.elementTypeKey}`;
+    const current = grouped.get(key) ?? [];
+    current.push(element);
+    grouped.set(key, current);
+  }
+
+  return [...grouped.entries()].map(([scopeKey, elements]) => ({
+    scopeKey,
+    count: elements.length,
+    labels: elements.slice(0, 18).map((element) => element.elementLabel),
+  }));
 }
 
 function buildCalculationOutputs(sectionId, exportPackage) {
@@ -1537,6 +1672,10 @@ This standard report-family section remains applicable to ${exportPackage.task.c
 
 function composeGeneralInfoSection({ exportPackage, manualInputs }) {
   const record = exportPackage.inspectionRecord;
+  const shellConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "shell");
+  const roofConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "external_roof");
+  const floorConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "floor");
+  const measurementCounts = buildMeasurementCounts(exportPackage);
 
   return `3       GENERAL TANK INFORMATION
 
@@ -1554,45 +1693,147 @@ Roof Type: ${humanizeKey(record.externalRoofType ?? "not_recorded")}
 Reference Mode: ${humanizeKey(record.referenceMode ?? "not_recorded")}
 Diameter / Height: ${formatMetric(record.diameterM)} / ${formatMetric(record.heightM)}
 Shell Course Count: ${record.shellCourseCount ?? "Not recorded"}
+Shell Plates Per Course: ${shellConfig?.shellPlatesPerCourse ?? "Not recorded"}
+Roof Plate UT Rows: ${measurementCounts["external_roof|region"] ?? 0}
+Roof Nozzle/Appurtenance UT Rows: ${measurementCounts["external_roof|element"] ?? 0}
+Shell Plate UT Rows: ${measurementCounts["shell|region"] ?? 0}
+Shell Nozzle UT Rows: ${measurementCounts["shell|element"] ?? 0}
+Floor Plate Count / UT Rows: ${floorConfig?.floorPlateCount ?? "Not recorded"} / ${measurementCounts["floor|region"] ?? 0}
+Roof Layout Rows / Widest Plate Row: ${roofConfig?.roofRowCount ?? "Not recorded"} / ${roofConfig?.roofWidestRowPlateCount ?? "Not recorded"}
 
 This section remains a structured fact page so the report issue can stay aligned with the Android handoff and the sample report family.`;
 }
 
-function composeInspectionReportSection({ calculations, manualInputs }) {
-  const findingSummary = findOutput(calculations, "finding_summary");
-  const utSummary = findOutput(calculations, "shell_ut_summary");
-  const checklistSummary = findOutput(calculations, "checklist_summary");
-  const attachmentSummary = findOutput(calculations, "attachment_summary");
-  const measurementBullets =
-    utSummary.bandSummaries.length > 0
-      ? utSummary.bandSummaries
-          .slice(0, 5)
-          .map(
-            (summary) =>
-              `- ${summary.itemLabel}: imported UT band ${formatNumber(summary.minValueMm)} mm to ${formatNumber(summary.maxValueMm)} mm.`,
-          )
-          .join("\n")
-      : "- No measured shell UT rows were imported for this package.";
-  const checklistParagraph =
-    checklistSummary.notes.length > 0
-      ? checklistSummary.notes.map((note) => `${note.sectionTitle}: ${note.note}`).join(" ")
-      : "No checklist section notes were exported for this inspection package.";
+function composeInspectionReportSection({ exportPackage, manualInputs }) {
+  const voiceNotes = exportPackage.voiceNarratives ?? [];
+  const shellMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "shell");
+  const roofMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "external_roof");
+  const floorMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "floor");
+  const shellFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "shell")
+    .map((finding) => finding.itemLabel);
+  const roofFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "external_roof")
+    .map((finding) => finding.itemLabel);
+  const floorFindingLabels = exportPackage.findings
+    .filter((finding) => finding.targetKey === "floor")
+    .map((finding) => finding.itemLabel);
 
-  return `4       INSPECTION REPORT
+  return [
+    "4       INSPECTION REPORT",
+    "",
+    "INTERNAL & EXTERNAL INSPECTION",
+    "",
+    buildInspectionSubsection("DIKED AREA", [
+      ...buildVoiceBullets(voiceNotes, "diked_area"),
+      ...buildChecklistNoteBullets(exportPackage, "diked_area"),
+    ]),
+    "",
+    buildInspectionSubsection("FOUNDATION", [
+      ...buildVoiceBullets(voiceNotes, "tank_foundation"),
+      ...buildChecklistNoteBullets(exportPackage, "tank_foundation"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL", [
+      ...buildVoiceBullets(voiceNotes, "shell_external"),
+      `➢ Imported shell UT readings cover ${shellMeasurements.length} shell rows. ${formatMeasurementRangeSentence(shellMeasurements)}`,
+      shellFindingLabels.length > 0
+        ? `➢ Imported shell finding locations include ${shellFindingLabels.join(", ")}. These locations should remain traceable to layout map markers and related photo evidence.`
+        : "➢ No shell finding locations were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "shell_external"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL APPURTENANCES", [
+      ...buildVoiceBullets(voiceNotes, "shell_appurtenances"),
+      `➢ Imported shell element records include ${countElementsByType(exportPackage, "shell", "nozzle")} shell nozzles and ${countElementsByType(exportPackage, "shell", "stair")} stair/access related markers.`,
+      ...buildChecklistNoteBullets(exportPackage, "shell_appurtenances"),
+    ]),
+    "",
+    buildInspectionSubsection("ACCESS STRUCTURE", [
+      ...buildVoiceBullets(voiceNotes, "access_structure"),
+      ...buildChecklistNoteBullets(exportPackage, "access_structure"),
+    ]),
+    "",
+    buildInspectionSubsection("FIXED ROOF (DOME)", [
+      ...buildVoiceBullets(voiceNotes, "fixed_roof_cone_dome"),
+      `➢ Imported roof plate readings cover ${roofMeasurements.filter((measurement) => measurement.itemKind === "region").length} roof plate rows and ${roofMeasurements.filter((measurement) => measurement.itemKind === "element").length} roof nozzle/appurtenance rows. ${formatMeasurementRangeSentence(roofMeasurements)}`,
+      roofFindingLabels.length > 0
+        ? `➢ Imported roof finding locations include ${roofFindingLabels.join(", ")}.`
+        : "➢ No roof findings were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "fixed_roof_cone_dome"),
+    ]),
+    "",
+    buildInspectionSubsection("ROOF APPURTENANCES", [
+      ...buildVoiceBullets(voiceNotes, "roof_appurtenances"),
+      `➢ Imported roof element records include ${countElementsByType(exportPackage, "external_roof", "nozzle")} roof nozzles, ${countElementsByType(exportPackage, "external_roof", "manhole")} manhole marker, and ${countElementsByType(exportPackage, "external_roof", "vent")} vent marker.`,
+      ...buildChecklistNoteBullets(exportPackage, "roof_appurtenances"),
+    ]),
+    "",
+    buildInspectionSubsection("ROOF INTERNAL", [
+      ...buildVoiceBullets(voiceNotes, "fixed_roof_internal"),
+      ...buildChecklistNoteBullets(exportPackage, "fixed_roof_internal"),
+    ]),
+    "",
+    buildInspectionSubsection("SHELL INTERNAL", [
+      ...buildVoiceBullets(voiceNotes, "shell_internal"),
+      shellFindingLabels.length > 0
+        ? `➢ Selected shell internal locations are linked to imported finding markers ${shellFindingLabels.join(", ")}.`
+        : "➢ Selected shell internal finding markers are pending confirmation.",
+      ...buildChecklistNoteBullets(exportPackage, "shell_internal"),
+    ]),
+    "",
+    buildInspectionSubsection("FLOOR INTERNAL (CONE DOWN)", [
+      ...buildVoiceBullets(voiceNotes, "floor_internal"),
+      `➢ Imported floor UT readings cover ${floorMeasurements.length} floor rows. ${formatMeasurementRangeSentence(floorMeasurements)}`,
+      floorFindingLabels.length > 0
+        ? `➢ Imported floor finding locations include ${floorFindingLabels.join(", ")}.`
+        : "➢ No floor findings were imported for this section.",
+      ...buildChecklistNoteBullets(exportPackage, "floor_internal"),
+    ]),
+    "",
+    "ENGINEERING IMPLICATION",
+    "",
+    `➢ ${formatSentenceValue(manualInputs.engineeringImplication)}.`,
+    "",
+    "Note: Voice-transcript notes are drafting evidence only. Final wording, photo numbering, repair assessment, and API 653 acceptability remain subject to inspector/reviewer approval.",
+  ].join("\n");
+}
 
-INTERNAL & EXTERNAL
+function buildInspectionSubsection(title, bullets) {
+  const cleanBullets = bullets.filter((line) => String(line ?? "").trim().length > 0);
+  return [
+    title,
+    "",
+    ...(cleanBullets.length > 0 ? cleanBullets : ["➢ Pending confirmation from inspector narrative input."]),
+  ].join("\n");
+}
 
-The API-standard report workspace reviews the vertical aboveground storage tank as an internal and external inspection package. The imported Android handoff currently records ${findingSummary.findingCount} reportable shell finding locations at ${joinWords(findingSummary.labels)} with ${attachmentSummary.photoCount} supporting photo attachment${attachmentSummary.photoCount === 1 ? "" : "s"} and ${attachmentSummary.documentCount} supporting document attachment${attachmentSummary.documentCount === 1 ? "" : "s"}.
+function buildVoiceBullets(notes, sectionKey) {
+  return notes
+    .filter((note) => note.sectionKey === sectionKey)
+    .map((note) => `➢ ${note.transcriptText}`);
+}
 
-${measurementBullets}
+function buildChecklistNoteBullets(exportPackage, sectionKey) {
+  return exportPackage.inspectionChecklistSectionNotes
+    .filter((note) => note.sectionKey === sectionKey)
+    .map((note) => `➢ Checklist note: ${note.note}`);
+}
 
-- Overall imported shell UT range: ${formatNumber(utSummary.minValueMm)} mm to ${formatNumber(utSummary.maxValueMm)} mm across ${utSummary.rowCount} measured location${utSummary.rowCount === 1 ? "" : "s"}.
+function countElementsByType(exportPackage, targetKey, elementTypeKey) {
+  return exportPackage.elements.filter(
+    (element) => element.targetKey === targetKey && element.elementTypeKey === elementTypeKey,
+  ).length;
+}
 
-Finding notes imported from the field package must be carried through into the relevant shell, NDT, repair, and photograph sections without altering the baseline field evidence.
+function formatMeasurementRangeSentence(measurements) {
+  const values = measurements.flatMap((measurement) => getMeasurementValuesIncludingReinforcement(measurement));
 
-${checklistParagraph}
+  if (values.length === 0) {
+    return "Measurement range is pending confirmation.";
+  }
 
-Engineering implication: ${formatSentenceValue(manualInputs.engineeringImplication)}.`;
+  return `Recorded values range from ${Math.min(...values).toFixed(2)} mm to ${Math.max(...values).toFixed(2)} mm.`;
 }
 
 function composeRecommendationSection({ calculations, manualInputs }) {
@@ -1617,6 +1858,73 @@ ON-LINE
 ➢ Current shell UT evidence spans ${formatNumber(utSummary.minValueMm)} mm to ${formatNumber(utSummary.maxValueMm)} mm and should remain referenced directly from the imported worksheet values.
 
 This section is intentionally report-side: the Android export supplies the factual basis, while the final recommendation wording remains under controlled cloud review.`;
+}
+
+function composeTankInspectionChecklistSection({ exportPackage }) {
+  return buildChecklistTableHtml(exportPackage);
+}
+
+function buildChecklistTableHtml(exportPackage) {
+  const ratingColumns = ["1", "2", "3", "4", "IA", "NE", "N/A"];
+  const groupedItems = new Map();
+
+  for (const item of exportPackage.inspectionChecklistItems) {
+    const key = item.sectionTitle;
+    groupedItems.set(key, [...(groupedItems.get(key) ?? []), item]);
+  }
+
+  const groups = [...groupedItems.entries()]
+    .map(([sectionTitle, items]) => {
+      const rows = items
+        .map((item) => {
+          const responseCells = ratingColumns
+            .map((rating) => {
+              const selected =
+                item.ratingKey === rating ||
+                item.ratingLabel === rating ||
+                mapRatingLabelToCode(item.ratingLabel) === rating;
+              return `<td class="checklist-response-cell">${selected ? "●" : ""}</td>`;
+            })
+            .join("");
+
+          return `<tr><td class="checklist-item-number">${escapeHtml(item.itemNumber)}</td><td>${escapeHtml(
+            item.itemPrompt,
+          )}</td>${responseCells}</tr>`;
+        })
+        .join("");
+
+      return [
+        `<tr class="checklist-section-row"><th colspan="${ratingColumns.length + 2}">${escapeHtml(
+          String(sectionTitle).toUpperCase(),
+        )}</th></tr>`,
+        `<tr><th>No.</th><th>Inspection Item</th>${ratingColumns
+          .map((rating) => `<th>${escapeHtml(rating)}</th>`)
+          .join("")}</tr>`,
+        rows,
+      ].join("");
+    })
+    .join("");
+
+  return [
+    "<h3>7 TANK INSPECTION CHECKLIST</h3>",
+    "<p>Checklist responses are imported from the Android V2 Product export. The response grid follows the sample report columns and should remain editable before final issue.</p>",
+    `<div class="report-table-wrap"><table class="report-measurement-table checklist-report-table"><tbody>${groups}</tbody></table></div>`,
+    "<p><em>Legend: 1 Good Condition; 2 Satisfactory Condition; 3 Requires Repair/Action; 4 Poor, Requires Immediate Attention; IA In-accessible; NE None Evident; N/A Not applicable.</em></p>",
+  ].join("");
+}
+
+function mapRatingLabelToCode(value) {
+  if (!value) return null;
+  const normalized = String(value).toLowerCase();
+  if (normalized.includes("good")) return "1";
+  if (normalized.includes("satisfactory")) return "2";
+  if (normalized.includes("repair")) return "3";
+  if (normalized.includes("poor")) return "4";
+  if (normalized.includes("in-accessible") || normalized.includes("inaccessible")) return "IA";
+  if (normalized.includes("none evident")) return "NE";
+  if (normalized.includes("not applicable")) return "N/A";
+  if (normalized.includes("not to code")) return "3";
+  return null;
 }
 
 function composePhotographsSection({ calculations }) {
@@ -1777,6 +2085,17 @@ function getMeasurementValues(measurement) {
     measurement.value3,
     measurement.value4,
     measurement.value5,
+  ].filter((value) => typeof value === "number");
+}
+
+function getMeasurementValuesIncludingReinforcement(measurement) {
+  return [
+    measurement.value1,
+    measurement.value2,
+    measurement.value3,
+    measurement.value4,
+    measurement.value5,
+    measurement.reinforcementPadReading,
   ].filter((value) => typeof value === "number");
 }
 

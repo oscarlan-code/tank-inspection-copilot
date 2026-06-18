@@ -1,13 +1,7 @@
 export type SectionKind = "structured" | "narrative" | "map" | "attachment";
 export type WorkspaceDataSourceMode = "fixture" | "api";
 
-export type SectionStatus =
-  | "not started"
-  | "generated"
-  | "edited"
-  | "missing info"
-  | "review required"
-  | "approved";
+export type SectionStatus = "not started" | "editing" | "approved";
 
 export type MissingFieldInput = "text" | "textarea" | "date" | "select";
 
@@ -190,12 +184,14 @@ export type WorkspaceApiLinks = {
   apiBaseUrl: string;
   importInspectionPath: string;
   loadReportJobPath: string;
+  resetDraftsPath: string;
   saveSectionDraftPath: string;
   saveManualInputsPath: string;
   saveLayoutOverridePath: string;
   generateSectionPath: string;
   sectionChatPath: string;
   approveSectionPath: string;
+  exportDocxPath: string;
 };
 
 export type ReportSection = {
