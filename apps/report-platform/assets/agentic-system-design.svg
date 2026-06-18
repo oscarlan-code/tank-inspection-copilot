@@ -1,0 +1,320 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1250" viewBox="0 0 1800 1250" role="img" aria-labelledby="title desc">
+  <title id="title">LAIQ Agentic Report Generation System</title>
+  <desc id="desc">Agentic system design showing report inputs, report director, control agents, vertical section agents, deterministic tool agents, QA agents, human approval, and final export.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b2f54" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrowNavy" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#0b4778"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#f2475a"/>
+    </marker>
+    <marker id="arrowMuted" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#7890aa"/>
+    </marker>
+    <style>
+      .bg { fill: #f5f8fc; }
+      .panel { fill: #ffffff; stroke: #cfdae8; stroke-width: 2; filter: url(#shadow); }
+      .lane { fill: #eef5fb; stroke: #d4e0ee; stroke-width: 2; }
+      .lane-red { fill: #fff0f2; stroke: #ffd0d7; stroke-width: 2; }
+      .lane-green { fill: #effaf4; stroke: #cbe9d7; stroke-width: 2; }
+      .lane-gold { fill: #fff8e8; stroke: #ecdcae; stroke-width: 2; }
+      .box { fill: #ffffff; stroke: #c8d7e8; stroke-width: 2; }
+      .box-blue { fill: #f8fbff; stroke: #0b4778; stroke-width: 2.5; }
+      .box-red { fill: #fff8f9; stroke: #f2475a; stroke-width: 2.5; }
+      .box-green { fill: #f8fffb; stroke: #2d9b62; stroke-width: 2.5; }
+      .box-gold { fill: #fffdf5; stroke: #b08b22; stroke-width: 2.5; }
+      .pill { fill: #0b4778; }
+      .pill-red { fill: #f2475a; }
+      .title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 42px; font-weight: 800; fill: #10375f; }
+      .subtitle { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 500; fill: #5a6d84; }
+      .lane-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 800; letter-spacing: 2.5px; fill: #0b4778; text-transform: uppercase; }
+      .lane-title-red { fill: #c73042; }
+      .lane-title-green { fill: #187548; }
+      .lane-title-gold { fill: #8a6a10; }
+      .box-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 800; fill: #12365a; }
+      .box-title-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 800; fill: #12365a; }
+      .box-text { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 500; fill: #51667e; }
+      .box-text-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; fill: #51667e; }
+      .white { fill: #ffffff; }
+      .arrow { fill: none; stroke: #0b4778; stroke-width: 4; marker-end: url(#arrowNavy); }
+      .arrow-red { fill: none; stroke: #f2475a; stroke-width: 4; marker-end: url(#arrowRed); }
+      .arrow-muted { fill: none; stroke: #7890aa; stroke-width: 3; marker-end: url(#arrowMuted); }
+      .arrow-dash { fill: none; stroke: #7890aa; stroke-width: 3; stroke-dasharray: 8 8; marker-end: url(#arrowMuted); }
+      .connector { fill: none; stroke: #c0cede; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1800" height="1250"/>
+
+  <rect x="46" y="34" width="1708" height="112" rx="32" fill="#ffffff" stroke="#d4e0ee" stroke-width="2" filter="url(#shadow)"/>
+  <g transform="translate(78 62)">
+    <rect x="0" y="0" width="58" height="58" rx="15" fill="#ffffff" stroke="#d4e0ee" stroke-width="2"/>
+    <rect x="13" y="13" width="32" height="32" rx="7" fill="none" stroke="#0b4778" stroke-width="5"/>
+    <circle cx="20" cy="20" r="4.8" fill="#0b4778"/>
+    <circle cx="34" cy="20" r="4.8" fill="#f2475a"/>
+    <circle cx="34" cy="34" r="4.8" fill="#f2475a"/>
+    <circle cx="44" cy="24" r="4.8" fill="#f2475a"/>
+    <path d="M20 20 L20 34 L34 34" fill="none" stroke="#0b4778" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text class="title" x="160" y="78">LAIQ Agentic Report Generation System</text>
+  <text class="subtitle" x="160" y="116">Controlled agents turn app export, inspector context, precedent knowledge, and deterministic tools into approved report sections.</text>
+  <rect class="pill-red" x="1450" y="62" width="250" height="46" rx="23"/>
+  <text class="white" x="1482" y="92" font-family="Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="800">Human approved output</text>
+
+  <!-- Inputs -->
+  <rect class="lane" x="50" y="190" width="270" height="742" rx="28"/>
+  <text class="lane-title" x="82" y="232">INPUT SOURCES</text>
+
+  <rect class="box-blue" x="80" y="262" width="210" height="94" rx="20"/>
+  <text class="box-title-sm" x="102" y="296">LAIQ Inspection App</text>
+  <text class="box-text-sm" x="102" y="323">Field export, UT rows,</text>
+  <text class="box-text-sm" x="102" y="344">findings, layout metadata</text>
+
+  <rect class="box" x="80" y="382" width="210" height="94" rx="20"/>
+  <text class="box-title-sm" x="102" y="416">Inspector Voice</text>
+  <text class="box-text-sm" x="102" y="443">Site narrative, limits,</text>
+  <text class="box-text-sm" x="102" y="464">observations, context</text>
+
+  <rect class="box" x="80" y="502" width="210" height="94" rx="20"/>
+  <text class="box-title-sm" x="102" y="536">Manual Inputs</text>
+  <text class="box-text-sm" x="102" y="563">Client fields, dates,</text>
+  <text class="box-text-sm" x="102" y="584">approvers, clarifications</text>
+
+  <rect class="box-gold" x="80" y="622" width="210" height="114" rx="20"/>
+  <text class="box-title-sm" x="102" y="656">Precedent KB</text>
+  <text class="box-text-sm" x="102" y="683">Approved historical</text>
+  <text class="box-text-sm" x="102" y="704">reports and section</text>
+  <text class="box-text-sm" x="102" y="725">format patterns</text>
+
+  <rect class="box-gold" x="80" y="762" width="210" height="114" rx="20"/>
+  <text class="box-title-sm" x="102" y="796">Standards KB</text>
+  <text class="box-text-sm" x="102" y="823">API 653, API 650,</text>
+  <text class="box-text-sm" x="102" y="844">API 575, EEMUA 159,</text>
+  <text class="box-text-sm" x="102" y="865">internal rules</text>
+
+  <!-- Orchestrator -->
+  <rect class="lane-red" x="380" y="190" width="410" height="214" rx="28"/>
+  <text class="lane-title lane-title-red" x="412" y="232">LEVEL 0 ORCHESTRATION</text>
+  <rect class="box-red" x="422" y="262" width="326" height="104" rx="24"/>
+  <text class="box-title" x="452" y="299">Report Director Agent</text>
+  <text class="box-text" x="452" y="327">Owns generation run, selected</text>
+  <text class="box-text" x="452" y="350">sections, audit, approval gates</text>
+
+  <!-- Control agents -->
+  <rect class="lane" x="380" y="438" width="410" height="494" rx="28"/>
+  <text class="lane-title" x="412" y="480">LEVEL 1 CONTROL AGENTS</text>
+
+  <rect class="box" x="410" y="510" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="432" y="539">Classification</text>
+  <text class="box-text-sm" x="432" y="563">Report family and</text>
+  <text class="box-text-sm" x="432" y="581">standard basis</text>
+
+  <rect class="box" x="600" y="510" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="622" y="539">Section Planner</text>
+  <text class="box-text-sm" x="622" y="563">TOC, section type,</text>
+  <text class="box-text-sm" x="622" y="581">required evidence</text>
+
+  <rect class="box" x="410" y="618" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="432" y="647">Evidence Builder</text>
+  <text class="box-text-sm" x="432" y="671">App, voice, manual,</text>
+  <text class="box-text-sm" x="432" y="689">KB, tool outputs</text>
+
+  <rect class="box" x="600" y="618" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="622" y="647">Retrieval Curator</text>
+  <text class="box-text-sm" x="622" y="671">Tenant-safe report</text>
+  <text class="box-text-sm" x="622" y="689">and standards packs</text>
+
+  <rect class="box" x="410" y="726" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="432" y="755">Tool Dispatcher</text>
+  <text class="box-text-sm" x="432" y="779">Calls calculators,</text>
+  <text class="box-text-sm" x="432" y="797">maps, tables, DOCX</text>
+
+  <rect class="box" x="600" y="726" width="160" height="78" rx="18"/>
+  <text class="box-title-sm" x="622" y="755">Missing Input</text>
+  <text class="box-text-sm" x="622" y="779">Plain questions, no</text>
+  <text class="box-text-sm" x="622" y="797">fake pending fields</text>
+
+  <rect class="box-blue" x="452" y="834" width="266" height="68" rx="18"/>
+  <text class="box-title-sm" x="484" y="863">Human Review Controller</text>
+  <text class="box-text-sm" x="484" y="887">Not started, editing, approved</text>
+
+  <!-- Vertical agents -->
+  <rect class="lane" x="850" y="190" width="470" height="742" rx="28"/>
+  <text class="lane-title" x="882" y="232">LEVEL 2 VERTICAL SECTION AGENTS</text>
+  <text class="box-text" x="882" y="260">Each agent owns one report section family.</text>
+
+  <rect class="box-blue" x="880" y="290" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="902" y="319">Metadata</text>
+  <text class="box-text-sm" x="902" y="343">Cover, client, tank,</text>
+  <text class="box-text-sm" x="902" y="361">dates, revision</text>
+
+  <rect class="box" x="1100" y="290" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="1122" y="319">Scope / Regime</text>
+  <text class="box-text-sm" x="1122" y="343">API-style scope and</text>
+  <text class="box-text-sm" x="1122" y="361">maintenance context</text>
+
+  <rect class="box-blue" x="880" y="392" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="902" y="421">Tank Info</text>
+  <text class="box-text-sm" x="902" y="445">Structured tank and</text>
+  <text class="box-text-sm" x="902" y="463">layout facts</text>
+
+  <rect class="box" x="1100" y="392" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="1122" y="421">Narrative</text>
+  <text class="box-text-sm" x="1122" y="445">Voice notes, findings,</text>
+  <text class="box-text-sm" x="1122" y="463">checklist evidence</text>
+
+  <rect class="box-green" x="880" y="494" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="902" y="523">UT Measurements</text>
+  <text class="box-text-sm" x="902" y="547">Roof, shell, floor</text>
+  <text class="box-text-sm" x="902" y="565">tables and summaries</text>
+
+  <rect class="box-green" x="1100" y="494" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="1122" y="523">Layout Maps</text>
+  <text class="box-text-sm" x="1122" y="547">Roof, shell, floor</text>
+  <text class="box-text-sm" x="1122" y="565">figures and captions</text>
+
+  <rect class="box" x="880" y="596" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="902" y="625">Findings / NDT</text>
+  <text class="box-text-sm" x="902" y="649">MPI, MFL, visual,</text>
+  <text class="box-text-sm" x="902" y="667">repair markers</text>
+
+  <rect class="box" x="1100" y="596" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="1122" y="625">Photos / Checklist</text>
+  <text class="box-text-sm" x="1122" y="649">Captions, evidence,</text>
+  <text class="box-text-sm" x="1122" y="667">interactive checklist</text>
+
+  <rect class="box-red" x="880" y="698" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="902" y="727">Recommendations</text>
+  <text class="box-text-sm" x="902" y="751">API assessment and</text>
+  <text class="box-text-sm" x="902" y="769">repair logic</text>
+
+  <rect class="box" x="1100" y="698" width="190" height="78" rx="18"/>
+  <text class="box-title-sm" x="1122" y="727">Appendices</text>
+  <text class="box-text-sm" x="1122" y="751">Worksheets, maps,</text>
+  <text class="box-text-sm" x="1122" y="769">supporting records</text>
+
+  <rect class="box-blue" x="920" y="812" width="330" height="76" rx="20"/>
+  <text class="box-title-sm" x="952" y="842">Output Contract Per Section</text>
+  <text class="box-text-sm" x="952" y="866">Inputs, allowed tools, forbidden actions, eval rubric</text>
+
+  <!-- QA -->
+  <rect class="lane-green" x="1380" y="190" width="370" height="742" rx="28"/>
+  <text class="lane-title lane-title-green" x="1412" y="232">LEVEL 4 QA AND EVAL</text>
+
+  <rect class="box-green" x="1412" y="262" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="291">Evidence Grounding</text>
+  <text class="box-text-sm" x="1440" y="315">Every claim must cite real evidence</text>
+
+  <rect class="box" x="1412" y="358" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="387">Missing Data Judge</text>
+  <text class="box-text-sm" x="1440" y="411">Ask only real missing-field questions</text>
+
+  <rect class="box" x="1412" y="454" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="483">Format Compliance</text>
+  <text class="box-text-sm" x="1440" y="507">Headings, bullets, tables, spacing</text>
+
+  <rect class="box" x="1412" y="550" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="579">Standards Reasoning</text>
+  <text class="box-text-sm" x="1440" y="603">Use explicit rules, no overclaiming</text>
+
+  <rect class="box" x="1412" y="646" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="675">No-Leak Evaluation</text>
+  <text class="box-text-sm" x="1440" y="699">Gold report is not hidden input</text>
+
+  <rect class="box" x="1412" y="742" width="306" height="72" rx="18"/>
+  <text class="box-title-sm" x="1440" y="771">Regression Eval</text>
+  <text class="box-text-sm" x="1440" y="795">Score by section and version</text>
+
+  <rect class="box-red" x="1412" y="842" width="306" height="60" rx="18"/>
+  <text class="box-title-sm" x="1440" y="879">Human Approval Gate</text>
+
+  <!-- Tool agents bottom -->
+  <rect class="lane-gold" x="50" y="982" width="1270" height="210" rx="28"/>
+  <text class="lane-title lane-title-gold" x="82" y="1024">LEVEL 3 TOOL AGENTS - CONTROLLED DETERMINISTIC SERVICES</text>
+
+  <rect class="box-gold" x="82" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="105" y="1083">App Import</text>
+  <text class="box-text-sm" x="105" y="1110">Validate and</text>
+  <text class="box-text-sm" x="105" y="1128">normalize export</text>
+
+  <rect class="box-gold" x="240" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="263" y="1083">Voice Parser</text>
+  <text class="box-text-sm" x="263" y="1110">Segment and</text>
+  <text class="box-text-sm" x="263" y="1128">route notes</text>
+
+  <rect class="box-gold" x="398" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="421" y="1083">KB Search</text>
+  <text class="box-text-sm" x="421" y="1110">Hybrid vector</text>
+  <text class="box-text-sm" x="421" y="1128">and lexical</text>
+
+  <rect class="box-gold" x="556" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="579" y="1083">Tables</text>
+  <text class="box-text-sm" x="579" y="1110">UT rows, min,</text>
+  <text class="box-text-sm" x="579" y="1128">max, average</text>
+
+  <rect class="box-gold" x="714" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="737" y="1083">Calculators</text>
+  <text class="box-text-sm" x="737" y="1110">Versioned</text>
+  <text class="box-text-sm" x="737" y="1128">formulas</text>
+
+  <rect class="box-gold" x="872" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="895" y="1083">Map Render</text>
+  <text class="box-text-sm" x="895" y="1110">SVG and PNG</text>
+  <text class="box-text-sm" x="895" y="1128">figures</text>
+
+  <rect class="box-gold" x="1030" y="1052" width="135" height="92" rx="18"/>
+  <text class="box-title-sm" x="1053" y="1083">Formatting</text>
+  <text class="box-text-sm" x="1053" y="1110">Styles, bullets,</text>
+  <text class="box-text-sm" x="1053" y="1128">line spacing</text>
+
+  <rect class="box-gold" x="1188" y="1052" width="100" height="92" rx="18"/>
+  <text class="box-title-sm" x="1210" y="1083">Export</text>
+  <text class="box-text-sm" x="1210" y="1110">DOCX</text>
+  <text class="box-text-sm" x="1210" y="1128">PDF later</text>
+
+  <!-- Outputs -->
+  <rect class="lane-red" x="1380" y="982" width="370" height="210" rx="28"/>
+  <text class="lane-title lane-title-red" x="1412" y="1024">APPROVED OUTPUT</text>
+  <rect class="box-red" x="1412" y="1052" width="306" height="92" rx="20"/>
+  <text class="box-title" x="1440" y="1087">Approved Report Snapshot</text>
+  <text class="box-text" x="1440" y="1116">Selected approved sections only</text>
+  <text class="box-text" x="1440" y="1138">DOCX now, PDF later</text>
+
+  <!-- Main arrows -->
+  <path class="arrow" d="M 320 312 L 422 312"/>
+  <path class="arrow" d="M 320 432 L 380 432 L 380 312 L 422 312"/>
+  <path class="arrow" d="M 320 552 L 356 552 L 356 312 L 422 312"/>
+  <path class="arrow-muted" d="M 320 680 L 356 680 L 356 642 L 410 642"/>
+  <path class="arrow-muted" d="M 320 820 L 356 820 L 356 642 L 410 642"/>
+
+  <path class="arrow-red" d="M 585 366 L 585 438"/>
+  <path class="arrow" d="M 790 682 L 850 682"/>
+  <path class="arrow" d="M 1320 548 L 1380 548"/>
+  <path class="arrow-red" d="M 1565 902 L 1565 982"/>
+  <path class="arrow-red" d="M 1320 1088 L 1380 1088"/>
+
+  <!-- Tool connector arrows -->
+  <path class="arrow-muted" d="M 585 932 L 585 982"/>
+  <path class="arrow-muted" d="M 1085 932 L 1085 982"/>
+  <path class="arrow-muted" d="M 1098 982 L 1098 932"/>
+
+  <!-- Feedback loops -->
+  <path class="arrow-dash" d="M 1412 872 C 1290 945 1130 956 990 902"/>
+  <text class="box-text-sm" x="1132" y="944">review feedback / regenerate section</text>
+  <path class="arrow-dash" d="M 1565 982 C 1620 936 1620 884 1718 872"/>
+  <text class="box-text-sm" x="1602" y="934">approval state</text>
+
+  <!-- Legend -->
+  <rect x="50" y="154" width="772" height="24" rx="12" fill="#ffffff" stroke="#d4e0ee"/>
+  <circle cx="78" cy="166" r="7" fill="#f2475a"/>
+  <text class="box-text-sm" x="94" y="171">orchestration and approval</text>
+  <circle cx="282" cy="166" r="7" fill="#0b4778"/>
+  <text class="box-text-sm" x="298" y="171">section reasoning and control</text>
+  <circle cx="526" cy="166" r="7" fill="#b08b22"/>
+  <text class="box-text-sm" x="542" y="171">deterministic tools and KB</text>
+  <circle cx="744" cy="166" r="7" fill="#2d9b62"/>
+  <text class="box-text-sm" x="760" y="171">QA and validation</text>
+</svg>

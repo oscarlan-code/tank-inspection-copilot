@@ -16,6 +16,7 @@ It focuses on the internal working model of the AI engine itself.
 Supporting references:
 
 - `apps/report-platform/FULL_SYSTEM_DIAGRAM.md`
+- `apps/report-platform/AGENTIC_SYSTEM_DESIGN.md`
 - `apps/report-platform/CODEX_ROLES_AND_TOOLING.md`
 - `apps/report-platform/AI_QUALITY_AND_LAYOUTMAP.md`
 
