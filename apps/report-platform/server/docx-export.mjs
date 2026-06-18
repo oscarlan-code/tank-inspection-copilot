@@ -1,8 +1,11 @@
+import { Resvg } from "@resvg/resvg-js";
 import {
   AlignmentType,
   BorderStyle,
   Document,
   HeadingLevel,
+  ImageRun,
+  LineRuleType,
   Packer,
   PageBreak,
   Paragraph,
@@ -12,6 +15,7 @@ import {
   TextRun,
   WidthType,
 } from "docx";
+import { buildLayoutFigureSvg } from "./layout-map-figure.mjs";
 import {
   API_STANDARD_PRIMARY_REPORT,
   API_STANDARD_REPORT_TOC,
@@ -23,6 +27,13 @@ const BRAND_RED = "EF4C57";
 const SOFT_BLUE = "EAF2FB";
 const SOFT_RED = "FDECEE";
 const LINE = "D6DFEB";
+const NORMAL_PAGE_MARGIN_TWIPS = 1440;
+const NARRATIVE_LINE_SPACING = 360;
+const TABLE_LINE_SPACING = 240;
+const TRANSPARENT_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+  "base64",
+);
 
 export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}) {
   if (!reportState?.reportJob || !reportState?.exportPackage) {
@@ -80,27 +91,116 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
       default: {
         document: {
           run: {
-            font: "Aptos",
+            font: "Arial",
             size: 21,
             color: "163250",
           },
           paragraph: {
             spacing: {
               after: 120,
+              line: NARRATIVE_LINE_SPACING,
+              lineRule: LineRuleType.AUTO,
             },
           },
         },
       },
+      paragraphStyles: [
+        {
+          id: "Normal",
+          name: "Normal",
+          run: {
+            font: "Arial",
+            size: 21,
+            color: "163250",
+          },
+          paragraph: {
+            spacing: {
+              after: 120,
+              line: NARRATIVE_LINE_SPACING,
+              lineRule: LineRuleType.AUTO,
+            },
+          },
+        },
+        {
+          id: "Heading1",
+          name: "Heading 1",
+          basedOn: "Normal",
+          next: "Normal",
+          quickFormat: true,
+          run: {
+            font: "Arial",
+            bold: true,
+            color: BRAND_BLUE_DARK,
+            size: 28,
+          },
+          paragraph: {
+            keepNext: true,
+            outlineLevel: 0,
+            spacing: {
+              before: 120,
+              after: 180,
+              line: NARRATIVE_LINE_SPACING,
+              lineRule: LineRuleType.AUTO,
+            },
+          },
+        },
+        {
+          id: "Heading2",
+          name: "Heading 2",
+          basedOn: "Normal",
+          next: "Normal",
+          quickFormat: true,
+          run: {
+            font: "Arial",
+            bold: true,
+            color: BRAND_BLUE,
+            size: 24,
+          },
+          paragraph: {
+            keepNext: true,
+            outlineLevel: 1,
+            spacing: {
+              before: 120,
+              after: 140,
+              line: NARRATIVE_LINE_SPACING,
+              lineRule: LineRuleType.AUTO,
+            },
+          },
+        },
+        {
+          id: "Heading3",
+          name: "Heading 3",
+          basedOn: "Normal",
+          next: "Normal",
+          quickFormat: true,
+          run: {
+            font: "Arial",
+            bold: true,
+            color: BRAND_BLUE_DARK,
+            size: 22,
+          },
+          paragraph: {
+            keepNext: true,
+            outlineLevel: 2,
+            spacing: {
+              before: 100,
+              after: 100,
+              line: NARRATIVE_LINE_SPACING,
+              lineRule: LineRuleType.AUTO,
+            },
+          },
+        },
+      ],
     },
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: 720,
-              right: 720,
-              bottom: 720,
-              left: 720,
+              top: NORMAL_PAGE_MARGIN_TWIPS,
+              right: NORMAL_PAGE_MARGIN_TWIPS,
+              bottom: NORMAL_PAGE_MARGIN_TWIPS,
+              left: NORMAL_PAGE_MARGIN_TWIPS,
             },
           },
         },
@@ -204,7 +304,7 @@ function buildTableOfContents(selectedTocSections) {
 }
 
 function buildReportSection({ reportState, tocSection, draft, approved }) {
-  const content = String(draft?.content ?? "").trim();
+  const content = stripDuplicateSectionHeading(String(draft?.content ?? "").trim(), tocSection);
   const children = [
     paragraph(`${tocSection.number}  ${tocSection.title.toUpperCase()}`, {
       heading: HeadingLevel.HEADING_1,
@@ -258,8 +358,9 @@ function buildLayoutMapSection(reportState, tocSection) {
   const targetKey = surface === "roof" ? "external_roof" : surface;
   const exportPackage = reportState.exportPackage;
   const config = exportPackage.layoutConfigs.find((item) => item.targetKey === targetKey);
+  const figure = buildLayoutFigureSvg(reportState, tocSection);
 
-  if (!config) {
+  if (!config || !figure) {
     return [
       paragraph("Layout map source data is not available for this section.", {
         color: BRAND_RED,
@@ -271,6 +372,7 @@ function buildLayoutMapSection(reportState, tocSection) {
   const surfaceMeasurements = exportPackage.utMeasurements.filter((item) => item.targetKey === targetKey);
   const surfaceFindings = exportPackage.findings.filter((item) => item.targetKey === targetKey);
   const surfaceElements = exportPackage.elements.filter((item) => item.targetKey === targetKey);
+  const figurePng = renderLayoutFigurePng(figure.svg);
 
   return [
     paragraph(`${formatSurfaceLabel(surface)} Layout Map`, {
@@ -283,6 +385,34 @@ function buildLayoutMapSection(reportState, tocSection) {
       "Position note: this layout block is intentionally placed in the same ToC region as the sample report, adjacent to the related UT / finding section.",
       { italics: true, color: "52677E" },
     ),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 80 },
+      children: [
+        new ImageRun({
+          type: "svg",
+          data: Buffer.from(figure.svg, "utf8"),
+          fallback: {
+            type: "png",
+            data: figurePng,
+          },
+          transformation: {
+            width: 620,
+            height: Math.round(620 * (figure.height / figure.width)),
+          },
+          altText: {
+            title: figure.title,
+            description: `${formatSurfaceLabel(surface)} layout figure generated from Android V2 Product layout data.`,
+          },
+        }),
+      ],
+    }),
+    paragraph(`Figure: ${figure.title} generated from Android V2 Product layout data.`, {
+      alignment: AlignmentType.CENTER,
+      color: "52677E",
+      italics: true,
+      spacingAfter: 140,
+    }),
     keyValueTable([
       ["Surface", formatSurfaceLabel(surface)],
       ["Reference", config.referenceNote ?? config.referenceMode ?? "Pending confirmation"],
@@ -290,9 +420,6 @@ function buildLayoutMapSection(reportState, tocSection) {
       ["Findings linked", String(surfaceFindings.length)],
       ["Elements linked", String(surfaceElements.length)],
     ]),
-    ...(surface === "shell"
-      ? [buildShellMapTable(config, surfaceMeasurements, surfaceFindings)]
-      : [buildPlateMapTable(surface, config, surfaceMeasurements, surfaceFindings)]),
     ...buildLayoutEvidenceTable(surfaceElements, surfaceFindings),
   ];
 }
@@ -408,6 +535,23 @@ function buildLayoutEvidenceTable(elements, findings) {
   ];
 }
 
+function renderLayoutFigurePng(svg) {
+  try {
+    return new Resvg(svg, {
+      background: "white",
+      fitTo: {
+        mode: "width",
+        value: 1400,
+      },
+      font: {
+        loadSystemFonts: true,
+      },
+    }).render().asPng();
+  } catch {
+    return TRANSPARENT_PNG;
+  }
+}
+
 function contentToDocxBlocks(content) {
   const blocks = [];
   const tableRegex = /<table[\s\S]*?<\/table>/gi;
@@ -462,12 +606,18 @@ function textToParagraphs(value) {
     .filter(Boolean)
     .map((line) => {
       const isHeading = isHeadingLine(line);
-      const isBullet = /^[-•➢]/.test(line);
+      const bullet = parseReportBullet(line);
+      if (bullet) {
+        return reportBulletParagraph(bullet.text, {
+          symbol: bullet.symbol,
+          spacingAfter: 95,
+        });
+      }
+
       return paragraph(line, {
         heading: isHeading ? HeadingLevel.HEADING_3 : undefined,
         bold: isHeading,
         color: isHeading ? BRAND_BLUE_DARK : "163250",
-        indentLeft: isBullet ? 260 : 0,
         spacingAfter: isHeading ? 90 : 100,
       });
     });
@@ -478,7 +628,7 @@ function htmlToText(value) {
     String(value ?? "")
       .replace(/<br\s*\/?>/gi, "\n")
       .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
-      .replace(/<li[^>]*>/gi, "- ")
+      .replace(/<li[^>]*>/gi, "➢ ")
       .replace(/<[^>]+>/g, "")
       .replace(/\u00a0/g, " ")
       .replace(/[ \t]+\n/g, "\n")
@@ -494,6 +644,8 @@ function paragraph(text, options = {}) {
     spacing: {
       before: options.spacingBefore ?? 0,
       after: options.spacingAfter ?? 120,
+      line: options.lineSpacing ?? NARRATIVE_LINE_SPACING,
+      lineRule: LineRuleType.AUTO,
     },
     indent: options.indentLeft ? { left: options.indentLeft } : undefined,
     children: [
@@ -503,6 +655,33 @@ function paragraph(text, options = {}) {
         italics: Boolean(options.italics),
         size: options.size,
         color: options.color,
+      }),
+    ],
+  });
+}
+
+function reportBulletParagraph(text, options = {}) {
+  return new Paragraph({
+    spacing: {
+      before: options.spacingBefore ?? 0,
+      after: options.spacingAfter ?? 100,
+      line: options.lineSpacing ?? NARRATIVE_LINE_SPACING,
+      lineRule: LineRuleType.AUTO,
+    },
+    indent: {
+      left: options.indentLeft ?? 520,
+      hanging: options.hanging ?? 280,
+    },
+    children: [
+      new TextRun({
+        text: `${options.symbol ?? "➢"} `,
+        color: options.color ?? "163250",
+        font: "Arial",
+      }),
+      new TextRun({
+        text: String(text ?? ""),
+        color: options.color ?? "163250",
+        font: "Arial",
       }),
     ],
   });
@@ -551,6 +730,7 @@ function cell(value, options = {}) {
         bold: options.bold,
         color: options.bold ? BRAND_BLUE_DARK : "163250",
         spacingAfter: 20,
+        lineSpacing: TABLE_LINE_SPACING,
       }),
     ),
   });
@@ -571,6 +751,41 @@ function pageBreak() {
   return new Paragraph({
     children: [new PageBreak()],
   });
+}
+
+function parseReportBullet(line) {
+  const match = /^(➢|•|-|\*)\s*(.+)$/u.exec(String(line ?? "").trim());
+  if (!match) return null;
+
+  return {
+    symbol: "➢",
+    text: match[2].trim(),
+  };
+}
+
+function stripDuplicateSectionHeading(content, tocSection) {
+  if (!content || !tocSection) return content;
+
+  const lines = content.split(/\n/);
+  const firstContentLineIndex = lines.findIndex((line) => line.trim().length > 0);
+  if (firstContentLineIndex < 0) return content;
+
+  const firstLine = lines[firstContentLineIndex].trim();
+  const expected = normalizeSectionHeading(`${tocSection.number} ${tocSection.title}`);
+  const actual = normalizeSectionHeading(firstLine);
+  if (actual !== expected) return content;
+
+  lines.splice(firstContentLineIndex, 1);
+  return lines.join("\n").replace(/^\s+/, "").trim();
+}
+
+function normalizeSectionHeading(value) {
+  return String(value ?? "")
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function isHeadingLine(line) {

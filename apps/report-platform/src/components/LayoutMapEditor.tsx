@@ -16,6 +16,8 @@ type Props = {
   onLayoutMapChange: (nextLayoutMap: LayoutMapData, summary: string) => void;
   onMarkerSelect: (markerId: string | null) => void;
   onPlateSelect: (plateId: string | null) => void;
+  showEvidenceInspector?: boolean;
+  variant?: "workspace" | "reportFigure";
 };
 
 const SVG_WIDTH = 1120;
@@ -45,6 +47,8 @@ export function LayoutMapEditor({
   onLayoutMapChange,
   onMarkerSelect,
   onPlateSelect,
+  showEvidenceInspector = true,
+  variant = "workspace",
 }: Props) {
   const safeLayoutMap = useMemo(() => ensureLayoutMapData(layoutMap), [layoutMap]);
   const selectedMarker = safeLayoutMap.markers.find((marker) => marker.id === activeMarkerId) ?? null;
@@ -59,7 +63,7 @@ export function LayoutMapEditor({
   void onLayoutMapChange;
 
   return (
-    <div className="map-workspace map-workspace-readonly">
+    <div className={`map-workspace map-workspace-readonly map-workspace-${variant}`}>
       <div className="shell-sketch-card">
         <div className="shell-sketch-header">
           <div>
@@ -112,13 +116,15 @@ export function LayoutMapEditor({
         </div>
       </div>
 
-      <div className="map-controls map-evidence-panel">
-        <EvidenceInspector
-          evidence={selectedMarker ? selectedMarkerEvidence : selectedPlateEvidence}
-          label={selectedMarker?.label ?? selectedPlate?.label ?? activePlateId}
-          surfaceLabel={safeLayoutMap.surfaceLabel}
-        />
-      </div>
+      {showEvidenceInspector ? (
+        <div className="map-controls map-evidence-panel">
+          <EvidenceInspector
+            evidence={selectedMarker ? selectedMarkerEvidence : selectedPlateEvidence}
+            label={selectedMarker?.label ?? selectedPlate?.label ?? activePlateId}
+            surfaceLabel={safeLayoutMap.surfaceLabel}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

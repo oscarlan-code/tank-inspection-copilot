@@ -6,6 +6,10 @@ import Underline from "@tiptap/extension-underline";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import FontFamily from "@tiptap/extension-font-family";
+import Table from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
 import { Extension } from "@tiptap/core";
 import { normalizeSectionContent } from "../lib/reportContent";
 
@@ -63,6 +67,12 @@ export function RichTextSectionEditor({ content, onChange }: Props) {
       FontFamily,
       FontSize,
       Underline,
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
@@ -139,6 +149,15 @@ export function RichTextSectionEditor({ content, onChange }: Props) {
           type="button"
         >
           Bullet
+        </button>
+        <button
+          className={editor.isActive("table") ? "toolbar-chip toolbar-chip-active" : "toolbar-chip"}
+          onClick={() =>
+            editor.chain().focus().insertTable({ rows: 4, cols: 4, withHeaderRow: true }).run()
+          }
+          type="button"
+        >
+          Table
         </button>
         <button
           className={

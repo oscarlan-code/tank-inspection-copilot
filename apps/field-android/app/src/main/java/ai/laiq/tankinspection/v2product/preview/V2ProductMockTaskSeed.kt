@@ -7,6 +7,7 @@ import ai.laiq.tankinspection.v2product.model.V2DraftState
 import ai.laiq.tankinspection.v2product.model.V2ElementPlacementState
 import ai.laiq.tankinspection.v2product.model.V2ElementSetup
 import ai.laiq.tankinspection.v2product.model.V2ElementType
+import ai.laiq.tankinspection.v2product.model.V2FindingPhoto
 import ai.laiq.tankinspection.v2product.model.V2FindingRecord
 import ai.laiq.tankinspection.v2product.model.V2FindingState
 import ai.laiq.tankinspection.v2product.model.V2FloorTemplate
@@ -360,6 +361,7 @@ private fun v10UtMeasurementsCompleted(): V2UtMeasurementState =
         entriesByItemKey = (
             v10RoofPlateUtEntries() +
                 v10RoofNozzleUtEntries() +
+                v10ShellNozzleUtEntries() +
                 v10ShellStrakeUtEntries() +
                 v10FloorUtEntries()
             ).toMap(),
@@ -465,6 +467,33 @@ private fun roofNozzleEntry(
         readings = readings,
     )
 
+private fun v10ShellNozzleUtEntries(): List<Pair<String, V2UtMeasurementEntry>> =
+    listOf(
+        shellNozzleEntry("s1", "S1", "24 in", listOf("12.30", "12.15", "10.80", "11.26"), "13.91"),
+        shellNozzleEntry("s2", "S2", "1.5 in", listOf("3.45", "3.33", "3.02", "3.25")),
+        shellNozzleEntry("s3", "S3", "4 in", listOf("6.01", "6.33", "6.45", "6.24"), "13.64"),
+        shellNozzleEntry("s4", "S4", "6 in", listOf("7.34", "7.11", "6.89", "7.26"), "13.32"),
+        shellNozzleEntry("s5", "S5", "8 in", listOf("", "", "", "7.41"), "13.41"),
+        shellNozzleEntry("s6", "S6", "24 in", listOf("13.89", "13.92", "13.24", "13.96"), "13.85"),
+    )
+
+private fun shellNozzleEntry(
+    idSuffix: String,
+    label: String,
+    nozzleSize: String,
+    readings: List<String>,
+    reinforcementPadReading: String = "",
+): Pair<String, V2UtMeasurementEntry> =
+    measuredElementEntry(
+        target = V2LayoutTarget.SHELL,
+        itemKey = "shell:element:shell_nozzle_$idSuffix",
+        itemLabel = label,
+        elementType = V2ElementType.NOZZLE,
+        nozzleSize = nozzleSize,
+        reinforcementPadReading = reinforcementPadReading,
+        readings = readings,
+    )
+
 private fun v10ShellStrakeUtEntries(): List<Pair<String, V2UtMeasurementEntry>> {
     fun entry(
         strake: Int,
@@ -560,12 +589,19 @@ private fun v10FindingStateInProgress(): V2FindingState =
         findingsByItemKey = buildMap {
             val measurements = v10UtMeasurementsCompleted().entriesByItemKey
             listOf(
-                measurements.getValue("shell:region:L3-C6") to
-                    "Area 1 south-sector shell buckling zone confirmed around the 5th/6th strake weld band. Localized metal loss was marked for follow-up repair planning.",
-                measurements.getValue("external_roof:region:53") to
-                    "Coating failure with corrosion initiation was observed at the roof-to-curb angle near roof sketch plate 53.",
-            ).forEach { (entry, note) ->
-                putAll(listOf(findingEntry(entry, note)))
+                findingEntry(
+                    measurements.getValue("shell:region:L3-C6"),
+                    "Area 1 south-southwest shell buckling zone at the 5th/6th course weld. External UT scan recorded localized thinning with minimum thickness around 2.28 mm; internal inspection confirmed MPI indications and repair marking.",
+                    "Photo 7 - Area 1 external buckling and patch plates",
+                    "Photo 13 - Area 1 UT scanning low-thickness zone",
+                ),
+                findingEntry(
+                    measurements.getValue("external_roof:region:53"),
+                    "Roof-to-curb angle adjacent to roof sketch plate 53 had coating failure and corrosion initiation after coating removal. No leak was detected at this location during the inspection.",
+                    "Photo 28 - Roof-to-curb coating failure near plate 53",
+                ),
+            ).forEach { finding ->
+                putAll(listOf(finding))
             }
         },
     )
@@ -575,31 +611,113 @@ private fun v10FindingStateReady(): V2FindingState =
         findingsByItemKey = buildMap {
             val measurements = v10UtMeasurementsCompleted().entriesByItemKey
             listOf(
-                measurements.getValue("shell:region:L3-C6") to
-                    "Area 1 south-southwest shell buckling zone along the 5th/6th strake weld showed metal loss and MPI-confirmed linear indications requiring repair planning.",
-                measurements.getValue("shell:region:L4-C6") to
-                    "Area 2 west-southwest shell buckling zone included a through-hole near the previously soft-patched leak location.",
-                measurements.getValue("shell:region:L3-C5") to
-                    "Area 3 shell internal weld band contained significant localized metal loss and a continuous MPI-confirmed indication.",
-                measurements.getValue("shell:region:L4-C5") to
-                    "Area 4 shell internal weld band contained approximately 2 m of continuous MPI-confirmed indication and localized pitting.",
-                measurements.getValue("shell:region:L4-C3") to
-                    "Area 5 showed slight metal loss at the horizontal weld between the 2nd and 3rd strakes with no cracks detected.",
-                measurements.getValue("external_roof:region:53") to
-                    "Coating failure and corrosion initiation were observed at the south-sector roof-to-curb angle adjacent to roof sketch plate 53.",
-                measurements.getValue("external_roof:element:external_roof_nozzle_r1") to
-                    "Roof nozzle R1 includes recorded N/E/S/W UT readings and the reinforcement pad thickness captured from the report data.",
-                measurements.getValue("floor:region:24") to
-                    "Floor coating bubbling and historical weld-filled pitting were noted in accessible bottom plate areas with some indications attributed to underside corrosion.",
-                findingOnlyElementEntry(
+                findingEntry(
+                    measurements.getValue("shell:region:L3-C6"),
+                    "Area 1 south-southwest shell buckling zone at the 5th/6th course weld. External UT scan recorded average remaining thickness of about 5.45 mm on Strake 5 and 5.65 mm on Strake 6, with localized minimum thickness around 2.28 mm. Internal visual inspection detected two approximately 30 mm MPI-confirmed linear indications and the area was marked for weld build-up or patch repair.",
+                    "Photo 7 - Area 1 buckling and non-code overlapping patch",
+                    "Photo 13 - Area 1 external UT scan low-thickness area",
+                    "Photo 14 - Internal pitting confirmed and marked for weld fill",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:region:L4-C6"),
+                    "Area 2 west-southwest shell buckling zone at the 5th/6th course weld. Visual inspection found two approximately 50 mm paint cracks near soft-patched leak locations and a separate approximately 5 mm through-hole about 500 mm from the temporarily sealed pinhole. External UT scan recorded minimum thickness around 4.79 mm; MPI on the opened external weld band did not detect linear indications.",
+                    "Photo 8 - Area 2 external buckling zone",
+                    "Photo 9 - Paint cracking near soft patch",
+                    "Photo 44 - Internal through-hole near previous pinhole",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:region:L3-C5"),
+                    "Area 3 shell internal horizontal weld between the 4th and 5th courses contained significant localized metal loss up to approximately 4 mm. Continuous linear indications approximately 2 m long were confirmed by MPI, and scattered pitting up to approximately 3.5 mm was observed. External UT scan recorded minimum thickness around 3.76 mm.",
+                    "Photo 45 - Area 3 MPI indication at horizontal weld",
+                    "Photo 46 - Area 3 metal loss along weld band",
+                    "Photo 47 - Area 3 scattered pitting up to 3.5 mm",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:region:L4-C5"),
+                    "Area 4 shell internal horizontal weld between the 4th and 5th courses contained significant localized metal loss up to approximately 4 mm. Continuous MPI-confirmed indications extended approximately 2 m along the weld, with scattered pitting up to approximately 3 mm. External UT scan recorded minimum thickness around 3.72 mm.",
+                    "Photo 48 - Area 4 continuous MPI indication",
+                    "Photo 49 - Area 4 scattered pitting up to 3 mm",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:region:L4-C3"),
+                    "Area 5 shell internal horizontal weld between the 2nd and 3rd courses showed slight metal loss. No cracks were detected during MPI, and external UT scan recorded minimum thickness around 5.00 mm.",
+                    "Photo 50 - Area 5 slight metal loss, no cracks detected",
+                ),
+                findingEntry(
+                    measurements.getValue("external_roof:region:53"),
+                    "Coating failure with subsequent corrosion was detected along the roof-to-curb angle weld at the south sector adjacent to roof sketch plate 53. Coating removal showed corrosion initiation at the shell-to-curb angle joint, but no leak was detected during inspection.",
+                    "Photo 28 - Roof-to-curb corrosion adjacent to plate 53",
+                    "Photo 17 - Vapor-space coating bubbling at shell-to-curb angle",
+                ),
+                findingEntry(
+                    measurements.getValue("external_roof:element:external_roof_nozzle_r1"),
+                    "Roof nozzle R1 has complete N/E/S/W UT readings and reinforcement pad thickness recorded from the report table. General roof nozzle condition was satisfactory, with only minor coating failures and surface corrosion reported on some roof nozzles.",
+                    "Photo 38 - Roof nozzle coating failure and surface corrosion",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:element:shell_nozzle_s1"),
+                    "Shell nozzle S1 has 12/3/6/9 o'clock UT readings and reinforcement pad thickness captured from the report table. Shell nozzles were generally satisfactory, but all reinforcement pads were reported without tell-tale holes.",
+                    "Photo 18 - Shell nozzle general condition",
+                    "Photo 19 - Shell nozzle reinforcement pad without tell-tale hole",
+                ),
+                findingEntry(
+                    measurements.getValue("shell:element:shell_nozzle_s5"),
+                    "Shell nozzle S5 has patched readings on three clock positions and a 9 o'clock reading of 7.41 mm. Reinforcement pad thickness was recorded as 13.41 mm; absence of tell-tale holes remains a report recommendation item.",
+                    "Photo 19 - Shell nozzle reinforcement pad without tell-tale hole",
+                ),
+                findingEntry(
+                    measurements.getValue("floor:region:24"),
+                    "Floor coating bubbling and historical weld-filled pitting were noted in accessible bottom plate areas. MFL indications of 40 percent and above were mainly attributed to remnant welds, weld fills, existing topside corrosion, and some underside corrosion. UT backup on high indications included bottom plate readings in the 5.28 mm to 6.25 mm range.",
+                    "Photo 54 - Floor coating bubbling with light corrosion",
+                    "Photo 55 - Weld-filled topside pitting on floor plates",
+                ),
+                findingEntry(
+                    measurements.getValue("floor:region:30"),
+                    "Floor plate 30 represents an MFL/UT backup area with localized underside corrosion indication. The exported UT readings capture the report-aligned lower band of bottom plate measurements while the final repair disposition remains report-side.",
+                    "Photo 56 - Existing coated pit depth range with no active corrosion",
+                ),
+                findingEntry(
+                    findingOnlyElementEntry(
+                        target = V2LayoutTarget.EXTERNAL_ROOF,
+                        itemKey = "external_roof:element:external_roof_manhole_1",
+                        itemLabel = "MH-1",
+                        elementType = V2ElementType.MANHOLE,
+                    ),
+                    "Roof manhole did not contain a reinforcement plate as recommended by API 650. Final recommendation is to add reinforcement around the roof manhole in accordance with API 650 clause 5.8.4.",
+                    "Photo 37 - Roof manhole without reinforcement plate",
+                ),
+                findingEntry(
+                    findingOnlyElementEntry(
+                        target = V2LayoutTarget.EXTERNAL_ROOF,
+                        itemKey = "external_roof:element:external_roof_vent_1",
+                        itemLabel = "VT-1",
+                        elementType = V2ElementType.VENT,
+                    ),
+                    "Roof venting nozzles were not trimmed flush as recommended by API 650 Figures 5-19 and 5-20. Future vent installations should be trimmed flush during repair or replacement.",
+                    "Photo 41 - Roof venting nozzle not trimmed flush",
+                ),
+                findingEntry(
+                    findingOnlyElementEntry(
+                        target = V2LayoutTarget.SHELL,
+                        itemKey = "shell:element:shell_stair_origin",
+                        itemLabel = "ST-O",
+                        elementType = V2ElementType.STAIR,
+                    ),
+                    "Several shell-mounted stairway treads were welded within shell plate butt-welded joints, contrary to API 650 attachment spacing guidance. Coating condition was generally satisfactory with minor failures on stringers and handrails.",
+                    "Photo 23 - Stairway tread welded within shell butt joint",
+                ),
+                findingEntry(
+                    findingOnlyElementEntry(
                     target = V2LayoutTarget.FLOOR,
                     itemKey = "floor:element:floor_sump_1",
                     itemLabel = "SU-1",
                     elementType = V2ElementType.SUMP,
-                ) to
-                    "Sump lip, wall, and bottom observations were captured from the floor inspection range notes.",
-            ).forEach { (entry, note) ->
-                putAll(listOf(findingEntry(entry, note)))
+                    ),
+                    "Centre sump was visually satisfactory. UT scanning recorded lip thickness 7.75 mm to 10.89 mm, wall thickness 8.59 mm to 10.83 mm, and bottom thickness 7.76 mm to 11.13 mm.",
+                    "Photo 57 - Centre sump visually satisfactory",
+                ),
+            ).forEach { finding ->
+                putAll(listOf(finding))
             }
         },
     )
@@ -773,12 +891,35 @@ private fun findingOnlyElementEntry(
 private fun findingEntry(
     entry: V2UtMeasurementEntry,
     note: String,
+    vararg photoCaptions: String,
 ): Pair<String, V2FindingRecord> =
-    entry.itemKey to V2FindingRecord(
-        itemKey = entry.itemKey,
-        target = entry.target,
-        itemLabel = entry.itemLabel,
-        itemKind = entry.kind,
-        elementType = entry.elementType,
-        note = note,
+    photoCaptions.mapIndexed { index, caption ->
+        mockFindingPhoto(entry.itemKey, index + 1, caption)
+    }.let { photos ->
+        entry.itemKey to V2FindingRecord(
+            itemKey = entry.itemKey,
+            target = entry.target,
+            itemLabel = entry.itemLabel,
+            itemKind = entry.kind,
+            elementType = entry.elementType,
+            note = note,
+            photos = photos,
+            selectedPhotoId = photos.firstOrNull()?.id,
+        )
+    }
+
+private fun mockFindingPhoto(
+    itemKey: String,
+    index: Int,
+    caption: String,
+): V2FindingPhoto {
+    val safeKey = itemKey.lowercase()
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+    val id = "mock-$safeKey-$index"
+    return V2FindingPhoto(
+        id = id,
+        relativePath = "v2-findings/mock/$id.png",
+        displayName = caption,
     )
+}

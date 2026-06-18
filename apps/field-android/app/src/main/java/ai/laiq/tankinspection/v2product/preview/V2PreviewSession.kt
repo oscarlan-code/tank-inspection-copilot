@@ -1,9 +1,15 @@
 package ai.laiq.tankinspection.v2product.preview
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
 import ai.laiq.tankinspection.v2product.model.V2DraftState
 import ai.laiq.tankinspection.v2product.model.V2ElementPlacementState
 import ai.laiq.tankinspection.v2product.model.V2ElementSetup
+import ai.laiq.tankinspection.v2product.model.V2FindingPhoto
 import ai.laiq.tankinspection.v2product.model.V2GeneralTankInfo
 import ai.laiq.tankinspection.v2product.model.V2InspectionChecklistState
 import ai.laiq.tankinspection.v2product.model.V2LayoutMapSetup
@@ -22,6 +28,7 @@ import ai.laiq.tankinspection.v2product.storage.V2WorkflowScreen
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import kotlin.math.min
 import kotlinx.coroutines.runBlocking
 
 object V2PreviewSession {
@@ -29,7 +36,7 @@ object V2PreviewSession {
     private const val LEGACY_DRAFT_STATE_KEY = "draft_state_json"
     private const val ACTIVE_INSPECTION_ID_KEY = "active_inspection_id"
     private const val ACTIVE_SCREEN_KEY = "active_screen_key"
-    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260611_complete_report_data"
+    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260616_findings_and_nozzle_pads"
     private const val STORAGE_DIR_NAME = "v2-product-session"
     private const val TASKS_DIR_NAME = "tasks"
     private const val DRAFT_FILE_NAME = "draft-state.json"
@@ -242,6 +249,7 @@ object V2PreviewSession {
                     seedOrRefreshMockTask(store, v2ProductApiStandardV10Seed())
                 } else {
                     v2ProductMockTaskSeeds().forEach { seed ->
+                        materializeMockFindingPhotos(seed.state)
                         val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
                         persistTaskSnapshot(identity.inspectionId, seed.state)
                     }
@@ -269,6 +277,7 @@ object V2PreviewSession {
             }
 
         if (matchingSummaries.isEmpty()) {
+            materializeMockFindingPhotos(seed.state)
             val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
             persistTaskSnapshot(identity.inspectionId, seed.state)
             return
@@ -276,8 +285,115 @@ object V2PreviewSession {
 
         matchingSummaries.forEach { summary ->
             val identity = store.getTaskIdentity(summary.inspectionId) ?: return@forEach
+            materializeMockFindingPhotos(seed.state)
             store.saveNow(seed.state, identity, seed.workflowScreen)
             persistTaskSnapshot(identity.inspectionId, seed.state)
+        }
+    }
+
+    private fun materializeMockFindingPhotos(state: V2DraftState) {
+        val filesRoot = appContext?.filesDir ?: return
+        state.findingState.findingsByItemKey.values
+            .flatMap { finding -> finding.photos }
+            .forEach { photo ->
+                val file = File(filesRoot, photo.relativePath)
+                if (file.exists() && file.length() > 0L) return@forEach
+                runCatching { writeMockFindingPhoto(file, photo) }
+                    .onFailure { error -> lastPersistenceError = error }
+            }
+    }
+
+    private fun writeMockFindingPhoto(
+        file: File,
+        photo: V2FindingPhoto,
+    ) {
+        file.parentFile?.mkdirs()
+        val width = 1200
+        val height = 800
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val hashColor = photo.id.fold(0) { acc, char -> acc + char.code }
+        val baseColor = Color.rgb(
+            32 + hashColor % 42,
+            82 + hashColor % 58,
+            108 + hashColor % 46,
+        )
+        canvas.drawColor(baseColor)
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.argb(44, 255, 255, 255)
+        canvas.drawRect(48f, 48f, width - 48f, height - 48f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 6f
+        paint.color = Color.argb(180, 255, 255, 255)
+        canvas.drawRect(72f, 72f, width - 72f, height - 72f, paint)
+        paint.style = Paint.Style.FILL
+
+        paint.color = Color.WHITE
+        paint.textSize = 52f
+        paint.isFakeBoldText = true
+        canvas.drawText("LAIQ MOCK FIELD PHOTO", 108f, 150f, paint)
+
+        paint.textSize = 34f
+        paint.isFakeBoldText = false
+        canvas.drawText("V10 API 653 inspection evidence placeholder", 108f, 210f, paint)
+
+        paint.textSize = 44f
+        paint.isFakeBoldText = true
+        drawWrappedText(
+            canvas = canvas,
+            text = photo.displayName,
+            x = 108f,
+            y = 340f,
+            maxWidth = width - 216f,
+            lineHeight = 58f,
+            paint = paint,
+            maxLines = 5,
+        )
+
+        paint.textSize = 28f
+        paint.isFakeBoldText = false
+        paint.color = Color.argb(220, 255, 255, 255)
+        canvas.drawText("Seeded for V2 Product demo and report-generation fixture.", 108f, height - 120f, paint)
+
+        FileOutputStream(file, false).use { output ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+            output.fd.sync()
+        }
+        bitmap.recycle()
+    }
+
+    private fun drawWrappedText(
+        canvas: Canvas,
+        text: String,
+        x: Float,
+        y: Float,
+        maxWidth: Float,
+        lineHeight: Float,
+        paint: Paint,
+        maxLines: Int,
+    ) {
+        val words = text.split(Regex("\\s+")).filter { word -> word.isNotBlank() }
+        val lines = mutableListOf<String>()
+        var currentLine = ""
+        words.forEach { word ->
+            val candidate = if (currentLine.isBlank()) word else "$currentLine $word"
+            if (paint.measureText(candidate) <= maxWidth) {
+                currentLine = candidate
+            } else {
+                if (currentLine.isNotBlank()) lines += currentLine
+                currentLine = word
+            }
+        }
+        if (currentLine.isNotBlank()) lines += currentLine
+
+        val clippedLines = lines.take(maxLines).toMutableList()
+        if (lines.size > maxLines && clippedLines.isNotEmpty()) {
+            val lastIndex = clippedLines.lastIndex
+            clippedLines[lastIndex] = clippedLines[lastIndex].trimEnd('.', ',') + "..."
+        }
+        clippedLines.take(min(maxLines, clippedLines.size)).forEachIndexed { index, line ->
+            canvas.drawText(line, x, y + index * lineHeight, paint)
         }
     }
 

@@ -1418,6 +1418,19 @@ function buildApiStandardPlaceholderSection(
   exportPackage: V2ProductExportPackage,
   tocSection: ApiStandardTocSection,
 ): ReportSection {
+  const appSourceSummary = getAppSourcedSectionSummary(exportPackage, tocSection.id);
+  const missingFields = appSourceSummary
+    ? []
+    : [
+        makeField({
+          id: `${tocSection.id}-content-source`,
+          label: `${tocSection.title} Source Data`,
+          input: "textarea",
+          suggestion: "Confirm imported worksheet/calculation data or provide approved report-side content for this section.",
+          reason: "This API-standard section needs section-specific values before final issue.",
+          source: "Report-side manual input or future Android export field",
+        }),
+      ];
   const content = `${tocSection.number}       ${tocSection.title.toUpperCase()}
 
 This section follows the API-standard sample report ToC and is generated as a controlled placeholder from the current Android V2 Product export.
@@ -1429,8 +1442,11 @@ Imported baseline available now:
 - Imported findings: ${exportPackage.findings.length}
 - Imported UT rows: ${exportPackage.utMeasurements.length}
 - Imported attachments: ${exportPackage.attachments.length}
+${appSourceSummary ? `- Section app source: ${appSourceSummary}` : ""}
 
-The final section content must be completed using approved report-side inputs, calculations, worksheets, or future Android export fields that correspond to this exact ToC section.`;
+${appSourceSummary
+  ? "This section is sourced from the Android V2 Product export and does not require a separate report-side source-data confirmation."
+  : "The final section content must be completed using approved report-side inputs, calculations, worksheets, or future Android export fields that correspond to this exact ToC section."}`;
 
   return {
     id: tocSection.id,
@@ -1447,18 +1463,49 @@ The final section content must be completed using approved report-side inputs, c
     aiHint: "Use the API-standard sample report for formatting, but do not invent missing worksheet values or calculations.",
     templateExpectation: "Match the sample report section order, heading style, and table/page-block conventions.",
     sourceSummary:
-      "Imported: Android V2 Product package baseline. Manual: worksheet values, calculations, and final report-side approval where missing.",
-    missingFields: [
-      makeField({
-        id: `${tocSection.id}-content-source`,
-        label: `${tocSection.title} Source Data`,
-        input: "textarea",
-        suggestion: "Confirm imported worksheet/calculation data or provide approved report-side content for this section.",
-        reason: "This API-standard section needs section-specific values before final issue.",
-        source: "Report-side manual input or future Android export field",
-      }),
-    ],
+      appSourceSummary
+        ? `Imported: ${appSourceSummary}. Manual: final wording approval only.`
+        : "Imported: Android V2 Product package baseline. Manual: worksheet values, calculations, and final report-side approval where missing.",
+    missingFields,
   };
+}
+
+function getAppSourcedSectionSummary(
+  exportPackage: V2ProductExportPackage,
+  sectionId: string,
+): string | null {
+  const scopes: Record<string, { targetKey: string; itemKind: string; label: string }> = {
+    "roof-plate-thickness-measurements": {
+      targetKey: "external_roof",
+      itemKind: "region",
+      label: "roof plate UT readings",
+    },
+    "roof-nozzle-reinforcement-pad-thickness-measurements": {
+      targetKey: "external_roof",
+      itemKind: "element",
+      label: "roof nozzle and reinforcement pad UT readings",
+    },
+    "shell-plate-thickness-measurements": {
+      targetKey: "shell",
+      itemKind: "region",
+      label: "shell plate UT readings",
+    },
+    "shell-nozzle-reinforcement-pad-thickness-measurements": {
+      targetKey: "shell",
+      itemKind: "element",
+      label: "shell nozzle and reinforcement pad UT readings",
+    },
+  };
+  const scope = scopes[sectionId];
+  if (!scope) return null;
+
+  const rowCount = exportPackage.utMeasurements.filter(
+    (measurement) => measurement.targetKey === scope.targetKey && measurement.itemKind === scope.itemKind,
+  ).length;
+
+  return rowCount > 0
+    ? `${rowCount} ${scope.label} from Android export ${exportPackage.inspectionReference}`
+    : null;
 }
 
 function buildSketchSections(
@@ -2437,7 +2484,10 @@ function buildInitialAssistantPrompt(section: ReportSection): string {
   }
 
   if (section.kind === "structured") {
-    return "This section is driven mostly by imported facts. The fastest path to approval is filling the remaining report-side fields in the missing-content panel.";
+    const hasOpenInputs = section.missingFields.some((field) => !field.value.trim());
+    return hasOpenInputs
+      ? "This section combines imported facts with report-side inputs. Fill the missing-content panel first, then ask me to generate or refine the section."
+      : "This section is already backed by the Android V2 Product export. I can help generate, table-format, or refine the report output without asking for another source-data field.";
   }
 
   return "This section blends imported field facts with report-side wording. I can help tighten the prose, surface missing inputs, and keep the narrative aligned with the sample report family.";

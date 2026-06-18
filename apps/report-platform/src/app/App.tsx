@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { LayoutMapEditor } from "../components/LayoutMapEditor";
 import { RichTextSectionEditor } from "../components/RichTextSectionEditor";
 import {
@@ -22,7 +29,6 @@ import type {
 import { ensureLayoutMapData } from "../lib/layoutMapGeometry";
 import {
   normalizeSectionContent,
-  sanitizeSectionContent,
 } from "../lib/reportContent";
 import {
   approveSection as approveSectionApi,
@@ -35,7 +41,6 @@ import {
   sendSectionChat as sendSectionChatApi,
 } from "../lib/reportApi";
 
-type EditorMode = "preview" | "edit";
 type ImportSummaryWithClassification = WorkspaceReport["importSummary"] & {
   reportClassification: ReportClassification;
 };
@@ -53,6 +58,10 @@ function cloneReport(report: WorkspaceReport): WorkspaceReport {
 }
 
 const LAYOUT_SURFACE_ORDER: LayoutSurfaceType[] = ["roof", "shell", "floor"];
+const MIN_SIDE_PANEL_WIDTH = 240;
+const MAX_SIDE_PANEL_WIDTH = 560;
+const DEFAULT_LEFT_PANEL_WIDTH = 340;
+const DEFAULT_RIGHT_PANEL_WIDTH = 340;
 
 function formatLayoutSurfaceTab(surface: LayoutSurfaceType | undefined) {
   if (surface === "roof") return "Roof";
@@ -63,6 +72,10 @@ function formatLayoutSurfaceTab(surface: LayoutSurfaceType | undefined) {
 
 function formatErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected backend error.";
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function getHydrationApiBaseUrl(report: WorkspaceReport) {
@@ -146,11 +159,27 @@ function normalizeAssistantChatContent(content: string, sectionTitle: string) {
   return `I need one more detail before I can act on ${sectionTitle}. Should I refine wording, apply formatting, inspect missing inputs, or review layout-map evidence?`;
 }
 
+function rawInputStorageKey(reportId: string) {
+  return `laiq-report-raw-inputs:${reportId}`;
+}
+
+function loadSavedRawGenerationInputs(reportId: string): Record<string, string> {
+  try {
+    const raw = window.localStorage.getItem(rawInputStorageKey(reportId));
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRawGenerationInputs(reportId: string, inputs: Record<string, string>) {
+  window.localStorage.setItem(rawInputStorageKey(reportId), JSON.stringify(inputs));
+}
+
 function App() {
   const [report, setReport] = useState<WorkspaceReport | null>(null);
   const [baselineReport, setBaselineReport] = useState<WorkspaceReport | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState("");
-  const [editorMode, setEditorMode] = useState<EditorMode>("preview");
   const [chatInput, setChatInput] = useState("");
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>({});
   const [flashMessage, setFlashMessage] = useState("Load the V10 Android V2 Product mockup export to begin.");
@@ -165,14 +194,19 @@ function App() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChatBusy, setIsChatBusy] = useState(false);
+  const [isGenerationDialogOpen, setIsGenerationDialogOpen] = useState(false);
+  const [selectedGenerationSectionIds, setSelectedGenerationSectionIds] = useState<Set<string>>(() => new Set());
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedExportSectionIds, setSelectedExportSectionIds] = useState<Set<string>>(() => new Set());
   const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [isRawDataExpanded, setIsRawDataExpanded] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<{
     current: number;
     total: number;
     label: string;
   } | null>(null);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
+  const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
 
   const handleLoadMockupData = async () => {
@@ -195,18 +229,25 @@ function App() {
 
       setSelectedSectionId(defaultSection);
       setChats(buildInitialChats(nextReport));
+      const defaultRawInputs = Object.fromEntries(
+        nextReport.sections.map((section) => [section.id, buildDefaultRawGenerationInput(section)]),
+      );
       setRawGenerationInputs(
-        Object.fromEntries(
-          nextReport.sections.map((section) => [section.id, buildDefaultRawGenerationInput(section)]),
-        ),
+        {
+          ...defaultRawInputs,
+          ...loadSavedRawGenerationInputs(nextReport.id),
+        },
       );
       setGeneratedPreviewSectionIds(new Set());
       setEvalRuns({});
       setGenerationProgress(null);
+      setIsGenerationDialogOpen(false);
+      setSelectedGenerationSectionIds(new Set());
       setIsExportDialogOpen(false);
       setSelectedExportSectionIds(new Set());
+      setIsRawDataExpanded(false);
       setFlashMessage(
-        "Loaded V10 mockup export as evidence only. Click Generate Report Sections to create section outputs one by one.",
+        "Loaded V10 mockup export as evidence only. Click Generate Sections and choose which sections to create.",
       );
       setActiveMarkerId(null);
       setActivePlateId(null);
@@ -254,6 +295,9 @@ function App() {
   }, [generatedPreviewSectionIds, report]);
 
   const reportTocSections = useMemo(() => getReportTocSections(report), [report]);
+  const selectedGenerationCount = reportTocSections.filter((section) =>
+    selectedGenerationSectionIds.has(section.id),
+  ).length;
   const approvedExportSections = useMemo(
     () => reportTocSections.filter((section) => section.approved),
     [reportTocSections],
@@ -296,6 +340,14 @@ function App() {
     [activeLayoutSection],
   );
   const activeLayoutSurface = visibleLayoutMap?.appMap?.surfaceType;
+  const workspaceGridStyle = useMemo(
+    () =>
+      ({
+        "--left-panel-width": `${leftPanelWidth}px`,
+        "--right-panel-width": `${rightPanelWidth}px`,
+      }) as CSSProperties,
+    [leftPanelWidth, rightPanelWidth],
+  );
 
   useEffect(() => {
     const chatThread = chatThreadRef.current;
@@ -338,7 +390,7 @@ function App() {
             <button className="toolbar-button toolbar-button-primary" disabled={isLoadingData} onClick={handleLoadMockupData} type="button">
               {isLoadingData ? "Loading Mockup Data…" : "Load Mockup Data"}
             </button>
-            <small>No LAIQ AI Engine generation runs until you click Generate or use the chat panel.</small>
+            <small>No LAIQ AI Engine generation runs until you click Generate Sections or use the chat panel.</small>
           </div>
         </section>
       </div>
@@ -362,9 +414,44 @@ function App() {
     );
   };
 
+  const beginPanelResize = (
+    panel: "left" | "right",
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = panel === "left" ? leftPanelWidth : rightPanelWidth;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth =
+        panel === "left"
+          ? startWidth + delta
+          : startWidth - delta;
+      const maxWidth = Math.min(MAX_SIDE_PANEL_WIDTH, Math.max(MIN_SIDE_PANEL_WIDTH, window.innerWidth * 0.42));
+      const clampedWidth = clampNumber(nextWidth, MIN_SIDE_PANEL_WIDTH, maxWidth);
+
+      if (panel === "left") {
+        setLeftPanelWidth(clampedWidth);
+      } else {
+        setRightPanelWidth(clampedWidth);
+      }
+    };
+
+    const handlePointerUp = () => {
+      document.body.classList.remove("is-resizing-panels");
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    document.body.classList.add("is-resizing-panels");
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
+  };
+
   const selectReportSection = (section: ReportSection) => {
     setSelectedSectionId(section.id);
-    setEditorMode("preview");
+    setIsRawDataExpanded(false);
     setActiveMarkerId(null);
     setActivePlateId(null);
     if (section.layoutMap?.appMap?.surfaceType) {
@@ -417,6 +504,15 @@ function App() {
     }));
   };
 
+  const handleSaveRawGenerationInput = () => {
+    try {
+      saveRawGenerationInputs(report.id, rawGenerationInputs);
+      setFlashMessage(`Saved LAIQ AI Engine input for ${selectedSection.title}.`);
+    } catch (error) {
+      setFlashMessage(`Unable to save LAIQ AI Engine input: ${formatErrorMessage(error)}`);
+    }
+  };
+
   const handleApprove = async () => {
     if (!hasGeneratedPreview) {
       setFlashMessage("Generate this section before approving it.");
@@ -465,6 +561,47 @@ function App() {
     );
   };
 
+  const openGenerationDialog = () => {
+    const defaultIds = new Set(
+      reportTocSections
+        .filter((section) => !section.approved)
+        .map((section) => section.id),
+    );
+    setSelectedGenerationSectionIds(defaultIds);
+    setIsGenerationDialogOpen(true);
+    setIsExportDialogOpen(false);
+    setFlashMessage(
+      defaultIds.size > 0
+        ? `Select report sections to generate. ${defaultIds.size} non-approved section${defaultIds.size === 1 ? "" : "s"} selected by default.`
+        : "All visible report sections are approved. Select a section only if you want to regenerate it.",
+    );
+  };
+
+  const closeGenerationDialog = () => {
+    setIsGenerationDialogOpen(false);
+    if (!isGenerating) {
+      setFlashMessage("Generation queue closed. Choose a section or reopen Generate Sections when ready.");
+    }
+  };
+
+  const toggleGenerationSection = (sectionId: string) => {
+    setSelectedGenerationSectionIds((current) => {
+      const next = new Set(current);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  };
+
+  const setAllGenerationSections = (selected: boolean) => {
+    setSelectedGenerationSectionIds(
+      selected ? new Set(reportTocSections.map((section) => section.id)) : new Set(),
+    );
+  };
+
   const toggleExportSection = (sectionId: string) => {
     setSelectedExportSectionIds((current) => {
       const next = new Set(current);
@@ -501,18 +638,33 @@ function App() {
     }
   };
 
-  const handleGenerateAllSections = async () => {
+  const handleGenerateSelectedSections = async () => {
     if (!report) return;
 
-    const sectionsToGenerate = getReportTocSections(report);
+    const sectionsToGenerate = reportTocSections.filter((section) =>
+      selectedGenerationSectionIds.has(section.id),
+    );
     if (sectionsToGenerate.length === 0) {
-      setFlashMessage("No report sections are available to generate.");
+      setFlashMessage("Select at least one report section before starting generation.");
       return;
     }
 
     setIsGenerating(true);
-    setEvalRuns({});
-    setGeneratedPreviewSectionIds(new Set());
+    setEvalRuns((current) => {
+      const next = { ...current };
+      for (const section of sectionsToGenerate) {
+        delete next[section.id];
+      }
+      return next;
+    });
+    setGeneratedPreviewSectionIds((current) => {
+      const next = new Set(current);
+      for (const section of sectionsToGenerate) {
+        next.delete(section.id);
+      }
+      return next;
+    });
+    setIsGenerationDialogOpen(false);
     setIsExportDialogOpen(false);
 
     let workingReport = report;
@@ -569,9 +721,9 @@ function App() {
       setGenerationProgress({
         current: sectionsToGenerate.length,
         total: sectionsToGenerate.length,
-        label: "All report sections generated. Review each section and approve the final output.",
+        label: "Selected report sections generated. Review each section and approve the final output.",
       });
-      setFlashMessage("Generated all report sections one by one. Review the yellow sections and approve them when ready.");
+      setFlashMessage("Generated the selected report sections one by one. Review the yellow sections and approve them when ready.");
     } catch (error) {
       setFlashMessage(`Generation stopped: ${formatErrorMessage(error)}`);
     } finally {
@@ -717,9 +869,17 @@ function App() {
         }
       }
 
+      const controlledModeLabels: Record<string, string> = {
+        deterministic_guard: "clarification guard",
+        deterministic_state_guard: "helpdesk guard",
+        deterministic_table_formatter: "table formatter",
+      };
+      const controlledModeLabel = controlledModeLabels[reply.providerCode];
       const modeMessage = reply.usedLiveModel
         ? `LAIQ AI Engine replied for ${selectedSection.title}${reply.modelId ? ` using ${reply.modelId}` : ""}.`
-        : `LAIQ AI Engine used fallback mode for ${selectedSection.title}. ${reply.fallbackReason ?? ""}`.trim();
+        : controlledModeLabel
+          ? `LAIQ AI Engine used controlled ${controlledModeLabel} mode for ${selectedSection.title}.`
+          : `LAIQ AI Engine used fallback mode for ${selectedSection.title}. ${reply.fallbackReason ?? ""}`.trim();
       const actionMessage =
         actions.length > 0
           ? ` Applied ${appliedActionCount}/${actions.length} controlled tool action${actions.length === 1 ? "" : "s"}.`
@@ -761,7 +921,7 @@ function App() {
 
   const handleApplyAssistantAction = async (action: AssistantAction): Promise<boolean> => {
     if (action.type === "replace_section_content" || action.type === "apply_text_style") {
-      if (!hasGeneratedPreview) {
+      if (action.type === "apply_text_style" && !hasGeneratedPreview) {
         setFlashMessage("Generate this section before LAIQ AI Engine can edit the report draft.");
         return false;
       }
@@ -774,6 +934,7 @@ function App() {
       const nextSection: ReportSection = {
         ...selectedSection,
         content: nextContent,
+        generated: true,
         edited: true,
         approved: false,
       };
@@ -781,9 +942,11 @@ function App() {
       updateSection(selectedSection.id, (section) => ({
         ...section,
         content: nextContent,
+        generated: true,
         edited: true,
         approved: false,
       }));
+      setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
 
       try {
         await saveSectionDraftApi(report, nextSection);
@@ -888,11 +1051,10 @@ function App() {
           <button
             className="topbar-generate-button"
             disabled={isGenerating}
-            onClick={handleGenerateAllSections}
+            onClick={openGenerationDialog}
             type="button"
           >
-            {isGenerating ? "Generating..." : "Generate Report Sections"}
-            <span>{generationProgress?.label ?? "Runs section by section"}</span>
+            {isGenerating ? "Generating" : "Generate"}
           </button>
           <button
             className="topbar-export-button"
@@ -900,8 +1062,7 @@ function App() {
             onClick={openExportDialog}
             type="button"
           >
-            {isExportingDocx ? "Exporting..." : "Generate Final DOCX"}
-            <span>{approvedExportSections.length} approved</span>
+            {isExportingDocx ? "Exporting" : "Final DOCX"}
           </button>
         </div>
       </header>
@@ -946,7 +1107,7 @@ function App() {
         </div>
       </section>
 
-      <main className="workspace-grid">
+      <main className="workspace-grid" style={workspaceGridStyle}>
         <aside className="panel sidebar">
           <div className="panel-header">
             <div>
@@ -995,6 +1156,14 @@ function App() {
           </div>
         </aside>
 
+        <div
+          aria-label="Resize report section list"
+          className="workspace-resizer workspace-resizer-left"
+          onPointerDown={(event) => beginPanelResize("left", event)}
+          role="separator"
+          tabIndex={0}
+        />
+
         <section className="panel workspace-main">
           <div className="panel-header">
             <div>
@@ -1004,14 +1173,6 @@ function App() {
             <div className="toolbar">
               <button className="toolbar-button" disabled={!hasGeneratedPreview} onClick={handleSaveDraft} type="button">
                 Save Draft
-              </button>
-              <button
-                className="toolbar-button toolbar-button-primary"
-                disabled={!hasGeneratedPreview}
-                onClick={handleApprove}
-                type="button"
-              >
-                Approve
               </button>
             </div>
           </div>
@@ -1024,124 +1185,48 @@ function App() {
                   <h3>Prompt + Readable App Data Preview</h3>
                   <p className="source-note">{selectedSection.sourceSummary}</p>
                 </div>
-              </div>
-
-              <div className="raw-generation-card">
-                <div className="mini-card-header">
-                  <strong>Editable LAIQ AI Engine input for this section</strong>
-                  <span>{report.importSummary.inspectionReference}</span>
-                </div>
-                <textarea
-                  onChange={(event) => handleRawGenerationInputChange(event.target.value)}
-                  placeholder="Load mockup data to prepare readable app evidence for this section."
-                  value={selectedRawGenerationInput}
-                />
-                <div className="raw-generation-actions">
-                  <small>
-                    This section prompt/data block is used by the global Generate Report Sections queue.
-                  </small>
-                </div>
-              </div>
-            </section>
-
-            <section className="panel-subsection text-pane">
-              <div className="subsection-header">
-                <div>
-                  <p className="eyebrow">Step 2 · AI Draft</p>
-                  <h3>Generated Report Content</h3>
-                  <p>{selectedSection.templateExpectation}</p>
-                </div>
-                <div className="output-card-actions">
-                  <span className={`output-approval-pill ${selectedSection.approved ? "output-approval-pill-approved" : ""}`}>
-                    {selectedSection.approved ? "Approved" : "Pending approval"}
-                  </span>
-                  <div className="mode-toggle">
-                    <button
-                      className={editorMode === "preview" ? "mode-active" : ""}
-                      disabled={!hasGeneratedPreview}
-                      onClick={() => setEditorMode("preview")}
-                      type="button"
-                    >
-                      Preview
-                    </button>
-                    <button
-                      className={editorMode === "edit" ? "mode-active" : ""}
-                      disabled={!hasGeneratedPreview}
-                      onClick={() => setEditorMode("edit")}
-                      type="button"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                  <button
-                    className="toolbar-button toolbar-button-primary approve-output-button"
-                    disabled={!hasGeneratedPreview || selectedSection.approved}
-                    onClick={handleApprove}
-                    type="button"
-                  >
-                    Approve Output
+                <div className="raw-data-actions">
+                  <button className="toolbar-button" onClick={() => setIsRawDataExpanded((current) => !current)} type="button">
+                    {isRawDataExpanded ? "Hide" : "Preview / Edit"}
+                  </button>
+                  <button className="toolbar-button toolbar-button-primary" onClick={handleSaveRawGenerationInput} type="button">
+                    Save Input
                   </button>
                 </div>
               </div>
 
-              {hasGeneratedPreview && selectedEvalRun ? (
-                <div className={`eval-result-card eval-result-${selectedEvalRun.outcomeCode.replace(/_/g, "-")}`}>
-                  <div className="eval-result-main">
-                    <div>
-                      <p className="eyebrow">Eval Guard</p>
-                      <h4>{humanizeEvalCode(selectedEvalRun.outcomeCode)}</h4>
-                      <p>{selectedEvalRun.summary}</p>
-                    </div>
-                    <strong>{formatEvalPercent(selectedEvalRun.score)}</strong>
+              {isRawDataExpanded ? (
+                <div className="raw-generation-card">
+                  <div className="mini-card-header">
+                    <strong>Editable LAIQ AI Engine input for this section</strong>
+                    <span>{report.importSummary.inspectionReference}</span>
                   </div>
-                  <div className="eval-result-grid">
-                    <span>
-                      Grade
-                      <strong>{selectedEvalRun.grade}</strong>
-                    </span>
-                    <span>
-                      Leak risk
-                      <strong>{selectedEvalRun.leakage.statusCode}</strong>
-                    </span>
-                    <span>
-                      Missing inputs
-                      <strong>{selectedEvalRun.missingUserInputs.missingManualFields.length}</strong>
-                    </span>
-                  </div>
-                  {selectedEvalRun.tuningHints.length > 0 ? (
-                    <p className="eval-tuning-hint">{selectedEvalRun.tuningHints[0]}</p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {!hasGeneratedPreview ? (
-                <div className="draft-empty-state">
-                  <h4>No generated draft yet</h4>
-                  <p>
-                    Review or edit the prompt and readable app-data preview above, then use Generate Report Sections.
-                    This section will appear here after the queue generates it.
-                  </p>
-                </div>
-              ) : editorMode === "preview" ? (
-                <div className="report-preview">
-                  <div className="report-heading">
-                    <span className="report-heading-number">{formatTocNumber(selectedSection)}</span>
-                    <span>{selectedSection.title}</span>
-                  </div>
-                  <div
-                    className="report-preview-body"
-                    dangerouslySetInnerHTML={{ __html: sanitizeSectionContent(selectedSection.content) }}
+                  <textarea
+                    onChange={(event) => handleRawGenerationInputChange(event.target.value)}
+                    placeholder="Load mockup data to prepare readable app evidence for this section."
+                    value={selectedRawGenerationInput}
                   />
+                  <div className="raw-generation-actions">
+                    <small>
+                      This section prompt/data block is used by the selected Generate Sections queue.
+                    </small>
+                  </div>
                 </div>
               ) : (
-                <RichTextSectionEditor content={selectedSection.content} onChange={handleContentChange} />
+                <div className="raw-generation-collapsed">
+                  <strong>Evidence is ready for this section.</strong>
+                  <p>
+                    Hidden to save workspace height. Open Preview / Edit if you want to tune the prompt or readable
+                    app-data block before generation.
+                  </p>
+                </div>
               )}
             </section>
 
             <section className="panel-subsection map-pane">
               <div className="subsection-header">
                 <div>
-                  <p className="eyebrow">Step 3 · Layout Tool</p>
+                  <p className="eyebrow">Step 2 · Layout Tool</p>
                   <h3>App Layout Maps</h3>
                   <p>
                     {visibleLayoutMap
@@ -1190,8 +1275,114 @@ function App() {
                 </div>
               )}
             </section>
+
+            <section className="panel-subsection text-pane">
+              <div className="subsection-header">
+                <div>
+                  <p className="eyebrow">Step 3 · AI Draft</p>
+                  <h3>Generated Report Content</h3>
+                  <p>{selectedSection.templateExpectation}</p>
+                </div>
+                <div className="output-card-actions">
+                  <span className={`output-approval-pill ${selectedSection.approved ? "output-approval-pill-approved" : ""}`}>
+                    {selectedSection.approved ? "Approved" : "Pending approval"}
+                  </span>
+                </div>
+              </div>
+
+              {hasGeneratedPreview && selectedEvalRun ? (
+                <div className={`eval-result-card eval-result-${selectedEvalRun.outcomeCode.replace(/_/g, "-")}`}>
+                  <div className="eval-result-main">
+                    <div>
+                      <p className="eyebrow">Eval Guard</p>
+                      <h4>{humanizeEvalCode(selectedEvalRun.outcomeCode)}</h4>
+                      <p>{selectedEvalRun.summary}</p>
+                    </div>
+                    <strong>{formatEvalPercent(selectedEvalRun.score)}</strong>
+                  </div>
+                  <div className="eval-result-grid">
+                    <span>
+                      Grade
+                      <strong>{selectedEvalRun.grade}</strong>
+                    </span>
+                    <span>
+                      Leak risk
+                      <strong>{selectedEvalRun.leakage.statusCode}</strong>
+                    </span>
+                    <span>
+                      Missing inputs
+                      <strong>{selectedEvalRun.missingUserInputs.missingManualFields.length}</strong>
+                    </span>
+                  </div>
+                  {selectedEvalRun.tuningHints.length > 0 ? (
+                    <p className="eval-tuning-hint">{selectedEvalRun.tuningHints[0]}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!hasGeneratedPreview ? (
+                <div className="draft-empty-state">
+                  <h4>No generated draft yet</h4>
+                  <p>
+                    Choose this section from Generate Sections. After generation, the editable report output will appear
+                    here for review and approval.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {safeLayoutMap && selectedSection.kind === "map" ? (
+                    <div className="generated-map-figure-card">
+                      <div className="generated-map-figure-header">
+                        <div>
+                          <p className="eyebrow">DOCX Figure</p>
+                          <h4>Layout map included with this approved section</h4>
+                        </div>
+                        <span>Exports with DOCX</span>
+                      </div>
+                      <LayoutMapEditor
+                        activeMarkerId={activeMarkerId}
+                        activePlateId={activePlateId}
+                        layoutMap={safeLayoutMap}
+                        onLayoutMapChange={persistLayoutMap}
+                        onMarkerSelect={setActiveMarkerId}
+                        onPlateSelect={setActivePlateId}
+                        showEvidenceInspector={false}
+                        variant="reportFigure"
+                      />
+                    </div>
+                  ) : null}
+                  <RichTextSectionEditor content={selectedSection.content} onChange={handleContentChange} />
+                  <div className="content-approval-footer">
+                    <div>
+                      <strong>{selectedSection.approved ? "Output approved" : "Ready after review?"}</strong>
+                      <span>
+                        {unresolvedMissingCount > 0
+                          ? `${unresolvedMissingCount} missing field${unresolvedMissingCount === 1 ? "" : "s"} must be completed before approval.`
+                          : "Approve this generated section after reviewing the wording, tables, and evidence."}
+                      </span>
+                    </div>
+                    <button
+                      className="toolbar-button toolbar-button-primary approve-output-button"
+                      disabled={!hasGeneratedPreview || selectedSection.approved}
+                      onClick={handleApprove}
+                      type="button"
+                    >
+                      Approve Output
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
           </div>
         </section>
+
+        <div
+          aria-label="Resize LAIQ AI Engine panel"
+          className="workspace-resizer workspace-resizer-right"
+          onPointerDown={(event) => beginPanelResize("right", event)}
+          role="separator"
+          tabIndex={0}
+        />
 
         <aside className="rightbar" aria-label="AI command and missing content panel">
           <section className="panel ai-command-panel">
@@ -1200,7 +1391,7 @@ function App() {
                 <p className="eyebrow">AI Command</p>
                 <h3>LAIQ AI Engine</h3>
                 <p className="source-note">
-                  Idle until you send feedback or click Generate.
+                  Idle until you send feedback or click Generate Sections.
                 </p>
               </div>
               <span className={`ai-state-pill ${isChatBusy ? "ai-state-pill-busy" : ""}`}>
@@ -1277,6 +1468,77 @@ function App() {
         </aside>
       </main>
 
+      {isGenerationDialogOpen ? (
+        <div className="export-dialog-backdrop" role="presentation">
+          <section className="export-dialog-card panel" aria-label="Select sections for report generation">
+            <div className="export-dialog-header">
+              <div>
+                <p className="eyebrow">Report Generation Queue</p>
+                <h3>Select Sections To Generate</h3>
+                <p>
+                  LAIQ AI Engine will generate only the sections you tick, one by one, using the saved readable app
+                  data and precedent format rules.
+                </p>
+              </div>
+              <button
+                className="dialog-close-button"
+                disabled={isGenerating}
+                onClick={closeGenerationDialog}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="dialog-secondary-actions">
+              <button className="toolbar-button" disabled={isGenerating} onClick={() => setAllGenerationSections(true)} type="button">
+                Select All
+              </button>
+              <button className="toolbar-button" disabled={isGenerating} onClick={() => setAllGenerationSections(false)} type="button">
+                Clear
+              </button>
+            </div>
+
+            <div className="export-section-list generation-section-list">
+              {reportTocSections.map((section) => {
+                const status = deriveStatus(section, generatedPreviewSectionIds);
+                return (
+                  <label className="export-section-row generation-section-row" key={section.id}>
+                    <input
+                      checked={selectedGenerationSectionIds.has(section.id)}
+                      disabled={isGenerating}
+                      onChange={() => toggleGenerationSection(section.id)}
+                      type="checkbox"
+                    />
+                    <span className="export-section-number">{formatTocNumber(section)}</span>
+                    <strong>{formatTocTitle(section)}</strong>
+                    <span className="toc-leader" />
+                    <span className={`generation-section-status status-${status.replace(/\s+/g, "-")}`}>
+                      {status}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="export-dialog-actions">
+              <span>
+                {selectedGenerationCount} of {reportTocSections.length} section
+                {reportTocSections.length === 1 ? "" : "s"} selected
+              </span>
+              <button
+                className="toolbar-button toolbar-button-primary"
+                disabled={isGenerating || selectedGenerationCount === 0}
+                onClick={handleGenerateSelectedSections}
+                type="button"
+              >
+                {isGenerating ? "Generating..." : "Generate Selected"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {isExportDialogOpen ? (
         <div className="export-dialog-backdrop" role="presentation">
           <section className="export-dialog-card panel" aria-label="Export approved sections to DOCX">
@@ -1351,10 +1613,14 @@ function MissingFieldInlineEditor({
   onChange: (value: string) => void;
 }) {
   const isMissing = !field.value.trim();
+  const hasSuggestion = Boolean(field.suggestion?.trim());
 
   return (
     <label className={`missing-inline-row ${isMissing ? "missing-inline-row-open" : "missing-inline-row-complete"}`}>
       <span>{field.label}</span>
+      <small>
+        {field.source} · {field.reason}
+      </small>
       {field.input === "textarea" ? (
         <textarea onChange={(event) => onChange(event.target.value)} value={field.value} />
       ) : field.input === "select" ? (
@@ -1369,6 +1635,11 @@ function MissingFieldInlineEditor({
       ) : (
         <input onChange={(event) => onChange(event.target.value)} type="text" value={field.value} />
       )}
+      {hasSuggestion ? (
+        <button className="missing-suggestion-button" onClick={() => onChange(field.suggestion ?? "")} type="button">
+          Use suggestion: {field.suggestion}
+        </button>
+      ) : null}
     </label>
   );
 }
