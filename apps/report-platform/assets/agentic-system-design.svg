@@ -1,56 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1250" viewBox="0 0 1800 1250" role="img" aria-labelledby="title desc">
-  <title id="title">LAIQ Agentic Report Generation System</title>
-  <desc id="desc">Agentic system design showing report inputs, report director, control agents, vertical section agents, deterministic tool agents, QA agents, human approval, and final export.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1180" viewBox="0 0 1800 1180" role="img" aria-labelledby="title desc">
+  <title id="title">LAIQ Report Generation Compiler Runtime</title>
+  <desc id="desc">Compiler-style report generation architecture showing deterministic spine, frozen tools, constrained prose workers, evaluators, approval, and export.</desc>
   <defs>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b2f54" flood-opacity="0.12"/>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b2f54" flood-opacity="0.13"/>
     </filter>
-    <marker id="arrowNavy" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
-      <path d="M 0 0 L 14 7 L 0 14 z" fill="#0b4778"/>
+    <marker id="arrowBlue" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L14,7 L0,14 Z" fill="#0b4778"/>
     </marker>
     <marker id="arrowRed" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
-      <path d="M 0 0 L 14 7 L 0 14 z" fill="#f2475a"/>
+      <path d="M0,0 L14,7 L0,14 Z" fill="#f2475a"/>
     </marker>
     <marker id="arrowMuted" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
-      <path d="M 0 0 L 14 7 L 0 14 z" fill="#7890aa"/>
+      <path d="M0,0 L14,7 L0,14 Z" fill="#7890aa"/>
     </marker>
     <style>
       .bg { fill: #f5f8fc; }
-      .panel { fill: #ffffff; stroke: #cfdae8; stroke-width: 2; filter: url(#shadow); }
-      .lane { fill: #eef5fb; stroke: #d4e0ee; stroke-width: 2; }
-      .lane-red { fill: #fff0f2; stroke: #ffd0d7; stroke-width: 2; }
-      .lane-green { fill: #effaf4; stroke: #cbe9d7; stroke-width: 2; }
-      .lane-gold { fill: #fff8e8; stroke: #ecdcae; stroke-width: 2; }
+      .card { fill: #ffffff; stroke: #cfdae8; stroke-width: 2; filter: url(#shadow); }
+      .panel-blue { fill: #eef5fb; stroke: #cddcec; stroke-width: 2; }
+      .panel-red { fill: #fff0f2; stroke: #ffd0d7; stroke-width: 2; }
+      .panel-gold { fill: #fff8e8; stroke: #ecdcae; stroke-width: 2; }
+      .panel-green { fill: #effaf4; stroke: #cbe9d7; stroke-width: 2; }
       .box { fill: #ffffff; stroke: #c8d7e8; stroke-width: 2; }
       .box-blue { fill: #f8fbff; stroke: #0b4778; stroke-width: 2.5; }
       .box-red { fill: #fff8f9; stroke: #f2475a; stroke-width: 2.5; }
-      .box-green { fill: #f8fffb; stroke: #2d9b62; stroke-width: 2.5; }
       .box-gold { fill: #fffdf5; stroke: #b08b22; stroke-width: 2.5; }
-      .pill { fill: #0b4778; }
-      .pill-red { fill: #f2475a; }
+      .box-green { fill: #f8fffb; stroke: #2d9b62; stroke-width: 2.5; }
       .title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 42px; font-weight: 800; fill: #10375f; }
       .subtitle { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 500; fill: #5a6d84; }
-      .lane-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 800; letter-spacing: 2.5px; fill: #0b4778; text-transform: uppercase; }
-      .lane-title-red { fill: #c73042; }
-      .lane-title-green { fill: #187548; }
-      .lane-title-gold { fill: #8a6a10; }
-      .box-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 800; fill: #12365a; }
-      .box-title-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 800; fill: #12365a; }
-      .box-text { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 500; fill: #51667e; }
-      .box-text-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; fill: #51667e; }
-      .white { fill: #ffffff; }
-      .arrow { fill: none; stroke: #0b4778; stroke-width: 4; marker-end: url(#arrowNavy); }
+      .section-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 800; letter-spacing: 2.4px; fill: #0b4778; }
+      .section-title-red { fill: #c73042; }
+      .section-title-gold { fill: #8a6a10; }
+      .section-title-green { fill: #187548; }
+      .box-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 800; fill: #12365a; }
+      .box-title-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 800; fill: #12365a; }
+      .text { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 500; fill: #51667e; }
+      .text-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 12.5px; font-weight: 500; fill: #51667e; }
+      .white { fill: #ffffff; font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 800; }
+      .arrow { fill: none; stroke: #0b4778; stroke-width: 4; marker-end: url(#arrowBlue); }
       .arrow-red { fill: none; stroke: #f2475a; stroke-width: 4; marker-end: url(#arrowRed); }
       .arrow-muted { fill: none; stroke: #7890aa; stroke-width: 3; marker-end: url(#arrowMuted); }
       .arrow-dash { fill: none; stroke: #7890aa; stroke-width: 3; stroke-dasharray: 8 8; marker-end: url(#arrowMuted); }
-      .connector { fill: none; stroke: #c0cede; stroke-width: 2; }
+      .spine-line { fill: none; stroke: #0b4778; stroke-width: 5; stroke-linecap: round; }
+      .badge { fill: #0b4778; }
+      .badge-red { fill: #f2475a; }
+      .badge-gold { fill: #b08b22; }
+      .badge-green { fill: #2d9b62; }
     </style>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1800" height="1250"/>
+  <rect class="bg" x="0" y="0" width="1800" height="1180"/>
 
-  <rect x="46" y="34" width="1708" height="112" rx="32" fill="#ffffff" stroke="#d4e0ee" stroke-width="2" filter="url(#shadow)"/>
-  <g transform="translate(78 62)">
+  <rect class="card" x="46" y="34" width="1708" height="116" rx="32"/>
+  <g transform="translate(78 63)">
     <rect x="0" y="0" width="58" height="58" rx="15" fill="#ffffff" stroke="#d4e0ee" stroke-width="2"/>
     <rect x="13" y="13" width="32" height="32" rx="7" fill="none" stroke="#0b4778" stroke-width="5"/>
     <circle cx="20" cy="20" r="4.8" fill="#0b4778"/>
@@ -59,262 +61,187 @@
     <circle cx="44" cy="24" r="4.8" fill="#f2475a"/>
     <path d="M20 20 L20 34 L34 34" fill="none" stroke="#0b4778" stroke-width="4" stroke-linecap="round"/>
   </g>
-  <text class="title" x="160" y="78">LAIQ Agentic Report Generation System</text>
-  <text class="subtitle" x="160" y="116">Controlled agents turn app export, inspector context, precedent knowledge, and deterministic tools into approved report sections.</text>
-  <rect class="pill-red" x="1450" y="62" width="250" height="46" rx="23"/>
-  <text class="white" x="1482" y="92" font-family="Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="800">Human approved output</text>
+  <text class="title" x="160" y="80">LAIQ Report Generation Compiler Runtime</text>
+  <text class="subtitle" x="160" y="118">Deterministic spine + frozen tools + constrained prose workers + eval harness. Not a team of 38 live chatbots.</text>
+  <rect class="badge-red" x="1434" y="64" width="270" height="46" rx="23"/>
+  <text class="white" x="1464" y="93">V2 agentic design</text>
 
   <!-- Inputs -->
-  <rect class="lane" x="50" y="190" width="270" height="742" rx="28"/>
-  <text class="lane-title" x="82" y="232">INPUT SOURCES</text>
+  <rect class="panel-blue" x="54" y="208" width="260" height="392" rx="28"/>
+  <text class="section-title" x="84" y="250">INPUT SOURCES</text>
+  <rect class="box-blue" x="82" y="280" width="204" height="68" rx="18"/>
+  <text class="box-title-sm" x="104" y="309">App Export</text>
+  <text class="text-sm" x="104" y="332">facts, UT rows, maps</text>
+  <rect class="box" x="82" y="370" width="204" height="68" rx="18"/>
+  <text class="box-title-sm" x="104" y="399">Voice Transcript</text>
+  <text class="text-sm" x="104" y="422">site narrative evidence</text>
+  <rect class="box" x="82" y="460" width="204" height="68" rx="18"/>
+  <text class="box-title-sm" x="104" y="489">Manual Inputs</text>
+  <text class="text-sm" x="104" y="512">report-side fields</text>
 
-  <rect class="box-blue" x="80" y="262" width="210" height="94" rx="20"/>
-  <text class="box-title-sm" x="102" y="296">LAIQ Inspection App</text>
-  <text class="box-text-sm" x="102" y="323">Field export, UT rows,</text>
-  <text class="box-text-sm" x="102" y="344">findings, layout metadata</text>
+  <rect class="panel-gold" x="54" y="632" width="260" height="276" rx="28"/>
+  <text class="section-title section-title-gold" x="84" y="674">CURATED KB</text>
+  <rect class="box-gold" x="82" y="704" width="204" height="68" rx="18"/>
+  <text class="box-title-sm" x="104" y="733">Precedent Reports</text>
+  <text class="text-sm" x="104" y="756">style and structure only</text>
+  <rect class="box-gold" x="82" y="794" width="204" height="68" rx="18"/>
+  <text class="box-title-sm" x="104" y="823">Standards Guidance</text>
+  <text class="text-sm" x="104" y="846">rules, not copied text</text>
 
-  <rect class="box" x="80" y="382" width="210" height="94" rx="20"/>
-  <text class="box-title-sm" x="102" y="416">Inspector Voice</text>
-  <text class="box-text-sm" x="102" y="443">Site narrative, limits,</text>
-  <text class="box-text-sm" x="102" y="464">observations, context</text>
+  <!-- Deterministic spine -->
+  <rect class="panel-red" x="370" y="208" width="820" height="700" rx="28"/>
+  <text class="section-title section-title-red" x="402" y="250">A. DETERMINISTIC SPINE - NO LLM</text>
+  <text class="text" x="402" y="278">Owns state, validation, evidence, tools, rendering, approval, and export.</text>
 
-  <rect class="box" x="80" y="502" width="210" height="94" rx="20"/>
-  <text class="box-title-sm" x="102" y="536">Manual Inputs</text>
-  <text class="box-text-sm" x="102" y="563">Client fields, dates,</text>
-  <text class="box-text-sm" x="102" y="584">approvers, clarifications</text>
+  <path class="spine-line" d="M445 350 L1110 350"/>
+  <path class="arrow-red" d="M314 402 L370 402"/>
+  <path class="arrow-muted" d="M314 756 L370 756"/>
 
-  <rect class="box-gold" x="80" y="622" width="210" height="114" rx="20"/>
-  <text class="box-title-sm" x="102" y="656">Precedent KB</text>
-  <text class="box-text-sm" x="102" y="683">Approved historical</text>
-  <text class="box-text-sm" x="102" y="704">reports and section</text>
-  <text class="box-text-sm" x="102" y="725">format patterns</text>
+  <rect class="box-red" x="410" y="310" width="128" height="80" rx="18"/>
+  <text class="box-title-sm" x="432" y="340">Orchestrator</text>
+  <text class="text-sm" x="432" y="363">state machine</text>
+  <text class="text-sm" x="432" y="381">section DAG</text>
 
-  <rect class="box-gold" x="80" y="762" width="210" height="114" rx="20"/>
-  <text class="box-title-sm" x="102" y="796">Standards KB</text>
-  <text class="box-text-sm" x="102" y="823">API 653, API 650,</text>
-  <text class="box-text-sm" x="102" y="844">API 575, EEMUA 159,</text>
-  <text class="box-text-sm" x="102" y="865">internal rules</text>
+  <rect class="box-red" x="565" y="310" width="128" height="80" rx="18"/>
+  <text class="box-title-sm" x="587" y="340">Adapter</text>
+  <text class="text-sm" x="587" y="363">schema check</text>
+  <text class="text-sm" x="587" y="381">normalize</text>
 
-  <!-- Orchestrator -->
-  <rect class="lane-red" x="380" y="190" width="410" height="214" rx="28"/>
-  <text class="lane-title lane-title-red" x="412" y="232">LEVEL 0 ORCHESTRATION</text>
-  <rect class="box-red" x="422" y="262" width="326" height="104" rx="24"/>
-  <text class="box-title" x="452" y="299">Report Director Agent</text>
-  <text class="box-text" x="452" y="327">Owns generation run, selected</text>
-  <text class="box-text" x="452" y="350">sections, audit, approval gates</text>
+  <rect class="box-red" x="720" y="310" width="128" height="80" rx="18"/>
+  <text class="box-title-sm" x="742" y="340">Planner</text>
+  <text class="text-sm" x="742" y="363">section class</text>
+  <text class="text-sm" x="742" y="381">template</text>
 
-  <!-- Control agents -->
-  <rect class="lane" x="380" y="438" width="410" height="494" rx="28"/>
-  <text class="lane-title" x="412" y="480">LEVEL 1 CONTROL AGENTS</text>
+  <rect class="box-red" x="875" y="310" width="128" height="80" rx="18"/>
+  <text class="box-title-sm" x="897" y="340">Evidence Pack</text>
+  <text class="text-sm" x="897" y="363">evidence IDs</text>
+  <text class="text-sm" x="897" y="381">scoped context</text>
 
-  <rect class="box" x="410" y="510" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="432" y="539">Classification</text>
-  <text class="box-text-sm" x="432" y="563">Report family and</text>
-  <text class="box-text-sm" x="432" y="581">standard basis</text>
+  <rect class="box-red" x="1030" y="310" width="128" height="80" rx="18"/>
+  <text class="box-title-sm" x="1052" y="340">Dispatch</text>
+  <text class="text-sm" x="1052" y="363">tools and</text>
+  <text class="text-sm" x="1052" y="381">provenance</text>
 
-  <rect class="box" x="600" y="510" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="622" y="539">Section Planner</text>
-  <text class="box-text-sm" x="622" y="563">TOC, section type,</text>
-  <text class="box-text-sm" x="622" y="581">required evidence</text>
+  <rect class="box-red" x="520" y="436" width="200" height="82" rx="20"/>
+  <text class="box-title" x="546" y="470">Renderer</text>
+  <text class="text" x="546" y="494">preview and export share</text>
+  <text class="text" x="546" y="514">the same layout model</text>
 
-  <rect class="box" x="410" y="618" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="432" y="647">Evidence Builder</text>
-  <text class="box-text-sm" x="432" y="671">App, voice, manual,</text>
-  <text class="box-text-sm" x="432" y="689">KB, tool outputs</text>
+  <rect class="box-red" x="840" y="436" width="200" height="82" rx="20"/>
+  <text class="box-title" x="866" y="470">Exporter</text>
+  <text class="text" x="866" y="494">approved + selected</text>
+  <text class="text" x="866" y="514">sections only</text>
 
-  <rect class="box" x="600" y="618" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="622" y="647">Retrieval Curator</text>
-  <text class="box-text-sm" x="622" y="671">Tenant-safe report</text>
-  <text class="box-text-sm" x="622" y="689">and standards packs</text>
+  <rect class="box-blue" x="420" y="572" width="320" height="122" rx="22"/>
+  <text class="box-title" x="450" y="606">Section Class Router</text>
+  <text class="text" x="450" y="633">A app-structured -> tools</text>
+  <text class="text" x="450" y="656">B voice/manual -> prose worker</text>
+  <text class="text" x="450" y="679">C template/standard -> prose worker</text>
 
-  <rect class="box" x="410" y="726" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="432" y="755">Tool Dispatcher</text>
-  <text class="box-text-sm" x="432" y="779">Calls calculators,</text>
-  <text class="box-text-sm" x="432" y="797">maps, tables, DOCX</text>
+  <rect class="box-blue" x="800" y="572" width="320" height="122" rx="22"/>
+  <text class="box-title" x="830" y="606">Hybrid Judgment Routing</text>
+  <text class="text" x="830" y="633">D recommendations/API assessment</text>
+  <text class="text" x="830" y="656">rules and calculations first</text>
+  <text class="text" x="830" y="679">LLM explains approved result only</text>
 
-  <rect class="box" x="600" y="726" width="160" height="78" rx="18"/>
-  <text class="box-title-sm" x="622" y="755">Missing Input</text>
-  <text class="box-text-sm" x="622" y="779">Plain questions, no</text>
-  <text class="box-text-sm" x="622" y="797">fake pending fields</text>
+  <rect class="box-green" x="520" y="742" width="520" height="94" rx="22"/>
+  <text class="box-title" x="550" y="778">Approval State Machine</text>
+  <text class="text" x="550" y="805">not started -> editing -> approved</text>
+  <text class="text" x="550" y="827">approved content is locked; regeneration returns section to editing</text>
 
-  <rect class="box-blue" x="452" y="834" width="266" height="68" rx="18"/>
-  <text class="box-title-sm" x="484" y="863">Human Review Controller</text>
-  <text class="box-text-sm" x="484" y="887">Not started, editing, approved</text>
+  <!-- Frozen tools -->
+  <rect class="panel-gold" x="1240" y="208" width="506" height="378" rx="28"/>
+  <text class="section-title section-title-gold" x="1272" y="250">B. FROZEN DETERMINISTIC TOOLS</text>
+  <text class="text" x="1272" y="278">Codex writes at build time. Runtime calls plain versioned functions.</text>
 
-  <!-- Vertical agents -->
-  <rect class="lane" x="850" y="190" width="470" height="742" rx="28"/>
-  <text class="lane-title" x="882" y="232">LEVEL 2 VERTICAL SECTION AGENTS</text>
-  <text class="box-text" x="882" y="260">Each agent owns one report section family.</text>
+  <rect class="box-gold" x="1272" y="310" width="200" height="70" rx="18"/>
+  <text class="box-title-sm" x="1294" y="338">UT Table Compiler</text>
+  <text class="text-sm" x="1294" y="361">values -> min/max/avg</text>
 
-  <rect class="box-blue" x="880" y="290" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="902" y="319">Metadata</text>
-  <text class="box-text-sm" x="902" y="343">Cover, client, tank,</text>
-  <text class="box-text-sm" x="902" y="361">dates, revision</text>
+  <rect class="box-gold" x="1510" y="310" width="200" height="70" rx="18"/>
+  <text class="box-title-sm" x="1532" y="338">Layout Renderer</text>
+  <text class="text-sm" x="1532" y="361">SVG/PNG, owns geometry</text>
 
-  <rect class="box" x="1100" y="290" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="1122" y="319">Scope / Regime</text>
-  <text class="box-text-sm" x="1122" y="343">API-style scope and</text>
-  <text class="box-text-sm" x="1122" y="361">maintenance context</text>
+  <rect class="box-gold" x="1272" y="405" width="200" height="70" rx="18"/>
+  <text class="box-title-sm" x="1294" y="433">Calculator</text>
+  <text class="text-sm" x="1294" y="456">versioned formulas</text>
 
-  <rect class="box-blue" x="880" y="392" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="902" y="421">Tank Info</text>
-  <text class="box-text-sm" x="902" y="445">Structured tank and</text>
-  <text class="box-text-sm" x="902" y="463">layout facts</text>
+  <rect class="box-gold" x="1510" y="405" width="200" height="70" rx="18"/>
+  <text class="box-title-sm" x="1532" y="433">Checklist Builder</text>
+  <text class="text-sm" x="1532" y="456">195 rows -> tables</text>
 
-  <rect class="box" x="1100" y="392" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="1122" y="421">Narrative</text>
-  <text class="box-text-sm" x="1122" y="445">Voice notes, findings,</text>
-  <text class="box-text-sm" x="1122" y="463">checklist evidence</text>
+  <rect class="box-gold" x="1390" y="500" width="200" height="58" rx="18"/>
+  <text class="box-title-sm" x="1412" y="528">DOCX Assembler</text>
+  <text class="text-sm" x="1412" y="549">styles, tables, figures</text>
 
-  <rect class="box-green" x="880" y="494" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="902" y="523">UT Measurements</text>
-  <text class="box-text-sm" x="902" y="547">Roof, shell, floor</text>
-  <text class="box-text-sm" x="902" y="565">tables and summaries</text>
+  <!-- LLM -->
+  <rect class="panel-blue" x="1240" y="628" width="506" height="280" rx="28"/>
+  <text class="section-title" x="1272" y="670">C. LAIQ AI ENGINE - CONSTRAINED PROSE</text>
+  <text class="text" x="1272" y="698">Only live LLM surface. It never owns numbers or geometry.</text>
 
-  <rect class="box-green" x="1100" y="494" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="1122" y="523">Layout Maps</text>
-  <text class="box-text-sm" x="1122" y="547">Roof, shell, floor</text>
-  <text class="box-text-sm" x="1122" y="565">figures and captions</text>
+  <rect class="box-blue" x="1272" y="730" width="200" height="88" rx="18"/>
+  <text class="box-title-sm" x="1294" y="758">Generation Mode</text>
+  <text class="text-sm" x="1294" y="781">scope, narrative, regime,</text>
+  <text class="text-sm" x="1294" y="801">captions, explanations</text>
 
-  <rect class="box" x="880" y="596" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="902" y="625">Findings / NDT</text>
-  <text class="box-text-sm" x="902" y="649">MPI, MFL, visual,</text>
-  <text class="box-text-sm" x="902" y="667">repair markers</text>
+  <rect class="box-blue" x="1510" y="730" width="200" height="88" rx="18"/>
+  <text class="box-title-sm" x="1532" y="758">Refinement Mode</text>
+  <text class="text-sm" x="1532" y="781">chat action space:</text>
+  <text class="text-sm" x="1532" y="801">reword, format, callTool</text>
 
-  <rect class="box" x="1100" y="596" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="1122" y="625">Photos / Checklist</text>
-  <text class="box-text-sm" x="1122" y="649">Captions, evidence,</text>
-  <text class="box-text-sm" x="1122" y="667">interactive checklist</text>
+  <rect class="box-red" x="1332" y="842" width="320" height="42" rx="18"/>
+  <text class="text" x="1358" y="868" fill="#12365a">Every factual claim must cite an evidence ID</text>
 
-  <rect class="box-red" x="880" y="698" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="902" y="727">Recommendations</text>
-  <text class="box-text-sm" x="902" y="751">API assessment and</text>
-  <text class="box-text-sm" x="902" y="769">repair logic</text>
+  <!-- Evaluators -->
+  <rect class="panel-green" x="54" y="948" width="1136" height="172" rx="28"/>
+  <text class="section-title section-title-green" x="84" y="990">D. EVALUATORS</text>
 
-  <rect class="box" x="1100" y="698" width="190" height="78" rx="18"/>
-  <text class="box-title-sm" x="1122" y="727">Appendices</text>
-  <text class="box-text-sm" x="1122" y="751">Worksheets, maps,</text>
-  <text class="box-text-sm" x="1122" y="769">supporting records</text>
+  <rect class="box-green" x="84" y="1022" width="248" height="64" rx="18"/>
+  <text class="box-title-sm" x="106" y="1050">Runtime Grounding Gate</text>
+  <text class="text-sm" x="106" y="1073">claims -> evidence IDs</text>
 
-  <rect class="box-blue" x="920" y="812" width="330" height="76" rx="20"/>
-  <text class="box-title-sm" x="952" y="842">Output Contract Per Section</text>
-  <text class="box-text-sm" x="952" y="866">Inputs, allowed tools, forbidden actions, eval rubric</text>
+  <rect class="box-green" x="360" y="1022" width="248" height="64" rx="18"/>
+  <text class="box-title-sm" x="382" y="1050">Format Gate</text>
+  <text class="text-sm" x="382" y="1073">headings, tables, figures</text>
 
-  <!-- QA -->
-  <rect class="lane-green" x="1380" y="190" width="370" height="742" rx="28"/>
-  <text class="lane-title lane-title-green" x="1412" y="232">LEVEL 4 QA AND EVAL</text>
+  <rect class="box-green" x="636" y="1022" width="248" height="64" rx="18"/>
+  <text class="box-title-sm" x="658" y="1050">Missing-Data Gate</text>
+  <text class="text-sm" x="658" y="1073">real gaps, no fake pending</text>
 
-  <rect class="box-green" x="1412" y="262" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="291">Evidence Grounding</text>
-  <text class="box-text-sm" x="1440" y="315">Every claim must cite real evidence</text>
+  <rect class="box-green" x="912" y="1022" width="248" height="64" rx="18"/>
+  <text class="box-title-sm" x="934" y="1050">Offline CI Harness</text>
+  <text class="text-sm" x="934" y="1073">no-leak + regression scorecard</text>
 
-  <rect class="box" x="1412" y="358" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="387">Missing Data Judge</text>
-  <text class="box-text-sm" x="1440" y="411">Ask only real missing-field questions</text>
+  <!-- Output -->
+  <rect class="panel-red" x="1240" y="948" width="506" height="172" rx="28"/>
+  <text class="section-title section-title-red" x="1272" y="990">APPROVED OUTPUT</text>
+  <rect class="box-red" x="1272" y="1022" width="200" height="64" rx="18"/>
+  <text class="box-title-sm" x="1294" y="1050">Human Approval</text>
+  <text class="text-sm" x="1294" y="1073">section by section</text>
+  <rect class="box-red" x="1510" y="1022" width="200" height="64" rx="18"/>
+  <text class="box-title-sm" x="1532" y="1050">Final Export</text>
+  <text class="text-sm" x="1532" y="1073">DOCX now, PDF later</text>
 
-  <rect class="box" x="1412" y="454" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="483">Format Compliance</text>
-  <text class="box-text-sm" x="1440" y="507">Headings, bullets, tables, spacing</text>
+  <!-- Arrows -->
+  <path class="arrow" d="M1190 396 L1240 396"/>
+  <path class="arrow" d="M1190 742 L1240 742"/>
+  <path class="arrow-muted" d="M1492 586 L1492 628"/>
+  <path class="arrow-muted" d="M780 908 L780 948"/>
+  <path class="arrow-red" d="M1190 1034 L1240 1034"/>
+  <path class="arrow-red" d="M1472 1054 L1510 1054"/>
+  <path class="arrow-dash" d="M1492 948 C1518 930 1518 904 1492 884"/>
+  <text class="text-sm" x="1532" y="928">gate after every AI edit</text>
 
-  <rect class="box" x="1412" y="550" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="579">Standards Reasoning</text>
-  <text class="box-text-sm" x="1440" y="603">Use explicit rules, no overclaiming</text>
-
-  <rect class="box" x="1412" y="646" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="675">No-Leak Evaluation</text>
-  <text class="box-text-sm" x="1440" y="699">Gold report is not hidden input</text>
-
-  <rect class="box" x="1412" y="742" width="306" height="72" rx="18"/>
-  <text class="box-title-sm" x="1440" y="771">Regression Eval</text>
-  <text class="box-text-sm" x="1440" y="795">Score by section and version</text>
-
-  <rect class="box-red" x="1412" y="842" width="306" height="60" rx="18"/>
-  <text class="box-title-sm" x="1440" y="879">Human Approval Gate</text>
-
-  <!-- Tool agents bottom -->
-  <rect class="lane-gold" x="50" y="982" width="1270" height="210" rx="28"/>
-  <text class="lane-title lane-title-gold" x="82" y="1024">LEVEL 3 TOOL AGENTS - CONTROLLED DETERMINISTIC SERVICES</text>
-
-  <rect class="box-gold" x="82" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="105" y="1083">App Import</text>
-  <text class="box-text-sm" x="105" y="1110">Validate and</text>
-  <text class="box-text-sm" x="105" y="1128">normalize export</text>
-
-  <rect class="box-gold" x="240" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="263" y="1083">Voice Parser</text>
-  <text class="box-text-sm" x="263" y="1110">Segment and</text>
-  <text class="box-text-sm" x="263" y="1128">route notes</text>
-
-  <rect class="box-gold" x="398" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="421" y="1083">KB Search</text>
-  <text class="box-text-sm" x="421" y="1110">Hybrid vector</text>
-  <text class="box-text-sm" x="421" y="1128">and lexical</text>
-
-  <rect class="box-gold" x="556" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="579" y="1083">Tables</text>
-  <text class="box-text-sm" x="579" y="1110">UT rows, min,</text>
-  <text class="box-text-sm" x="579" y="1128">max, average</text>
-
-  <rect class="box-gold" x="714" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="737" y="1083">Calculators</text>
-  <text class="box-text-sm" x="737" y="1110">Versioned</text>
-  <text class="box-text-sm" x="737" y="1128">formulas</text>
-
-  <rect class="box-gold" x="872" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="895" y="1083">Map Render</text>
-  <text class="box-text-sm" x="895" y="1110">SVG and PNG</text>
-  <text class="box-text-sm" x="895" y="1128">figures</text>
-
-  <rect class="box-gold" x="1030" y="1052" width="135" height="92" rx="18"/>
-  <text class="box-title-sm" x="1053" y="1083">Formatting</text>
-  <text class="box-text-sm" x="1053" y="1110">Styles, bullets,</text>
-  <text class="box-text-sm" x="1053" y="1128">line spacing</text>
-
-  <rect class="box-gold" x="1188" y="1052" width="100" height="92" rx="18"/>
-  <text class="box-title-sm" x="1210" y="1083">Export</text>
-  <text class="box-text-sm" x="1210" y="1110">DOCX</text>
-  <text class="box-text-sm" x="1210" y="1128">PDF later</text>
-
-  <!-- Outputs -->
-  <rect class="lane-red" x="1380" y="982" width="370" height="210" rx="28"/>
-  <text class="lane-title lane-title-red" x="1412" y="1024">APPROVED OUTPUT</text>
-  <rect class="box-red" x="1412" y="1052" width="306" height="92" rx="20"/>
-  <text class="box-title" x="1440" y="1087">Approved Report Snapshot</text>
-  <text class="box-text" x="1440" y="1116">Selected approved sections only</text>
-  <text class="box-text" x="1440" y="1138">DOCX now, PDF later</text>
-
-  <!-- Main arrows -->
-  <path class="arrow" d="M 320 312 L 422 312"/>
-  <path class="arrow" d="M 320 432 L 380 432 L 380 312 L 422 312"/>
-  <path class="arrow" d="M 320 552 L 356 552 L 356 312 L 422 312"/>
-  <path class="arrow-muted" d="M 320 680 L 356 680 L 356 642 L 410 642"/>
-  <path class="arrow-muted" d="M 320 820 L 356 820 L 356 642 L 410 642"/>
-
-  <path class="arrow-red" d="M 585 366 L 585 438"/>
-  <path class="arrow" d="M 790 682 L 850 682"/>
-  <path class="arrow" d="M 1320 548 L 1380 548"/>
-  <path class="arrow-red" d="M 1565 902 L 1565 982"/>
-  <path class="arrow-red" d="M 1320 1088 L 1380 1088"/>
-
-  <!-- Tool connector arrows -->
-  <path class="arrow-muted" d="M 585 932 L 585 982"/>
-  <path class="arrow-muted" d="M 1085 932 L 1085 982"/>
-  <path class="arrow-muted" d="M 1098 982 L 1098 932"/>
-
-  <!-- Feedback loops -->
-  <path class="arrow-dash" d="M 1412 872 C 1290 945 1130 956 990 902"/>
-  <text class="box-text-sm" x="1132" y="944">review feedback / regenerate section</text>
-  <path class="arrow-dash" d="M 1565 982 C 1620 936 1620 884 1718 872"/>
-  <text class="box-text-sm" x="1602" y="934">approval state</text>
-
-  <!-- Legend -->
-  <rect x="50" y="154" width="772" height="24" rx="12" fill="#ffffff" stroke="#d4e0ee"/>
-  <circle cx="78" cy="166" r="7" fill="#f2475a"/>
-  <text class="box-text-sm" x="94" y="171">orchestration and approval</text>
-  <circle cx="282" cy="166" r="7" fill="#0b4778"/>
-  <text class="box-text-sm" x="298" y="171">section reasoning and control</text>
-  <circle cx="526" cy="166" r="7" fill="#b08b22"/>
-  <text class="box-text-sm" x="542" y="171">deterministic tools and KB</text>
-  <circle cx="744" cy="166" r="7" fill="#2d9b62"/>
-  <text class="box-text-sm" x="760" y="171">QA and validation</text>
+  <!-- Guardrail ribbon -->
+  <rect x="370" y="156" width="1376" height="28" rx="14" fill="#ffffff" stroke="#d4e0ee"/>
+  <circle cx="398" cy="170" r="7" fill="#f2475a"/>
+  <text class="text-sm" x="414" y="175">LLM never emits numbers</text>
+  <circle cx="604" cy="170" r="7" fill="#b08b22"/>
+  <text class="text-sm" x="620" y="175">tools own tables/calculations/maps</text>
+  <circle cx="882" cy="170" r="7" fill="#2d9b62"/>
+  <text class="text-sm" x="898" y="175">every claim cites evidence</text>
+  <circle cx="1114" cy="170" r="7" fill="#0b4778"/>
+  <text class="text-sm" x="1130" y="175">tenant isolation below the model</text>
+  <circle cx="1408" cy="170" r="7" fill="#7890aa"/>
+  <text class="text-sm" x="1424" y="175">offline no-leak regression harness</text>
 </svg>

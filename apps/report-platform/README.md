@@ -25,7 +25,7 @@ The current V1 Beta baseline includes:
 - sample-report-oriented formatting controls for headings, paragraphs, bullets, tables, and map sections
 - precedent KB and standards KB indexing baseline
 - generation logic audit script for measurement, map, and chat-guard regressions
-- agentic system design for orchestration, vertical section agents, tool agents, and QA/eval agents
+- v2 agentic system design: deterministic spine, frozen tools, constrained prose workers, and runtime/offline evaluators
 
 V1 Beta is not the final production platform yet. It is the first stable product baseline for training, testing, section-by-section evaluation, and workflow refinement.
 
@@ -155,7 +155,7 @@ Current KB/eval baseline:
 - precedent retrieval is intended to provide section style, format, and pattern guidance
 - standards retrieval is intended to provide controlled technical guidance, not copied report text
 - generation audit checks deterministic measurement, map, and chat-guard logic
-- agentic-system design defines future section agents, tool agents, and QA/eval agents
+- agentic-system design defines the deterministic spine, frozen tools, constrained prose workers, and runtime/offline evaluator split
 
 ### Backend And API Baseline
 
@@ -493,10 +493,12 @@ This milestone is now the active baseline for training and testing.
 
 Next development focus:
 
-- implement the formal agent registry and section-agent contracts
-- build evidence packs for every section
-- expand the eval harness using sample-report gold sections
-- refine voice-transcript-to-report generation
-- strengthen KB retrieval by section type, report family, and standard basis
-- continue improving DOCX formatting against the sample report
-- add production-grade backend storage, authz, and multi-tenant role enforcement behind the approved V1 Beta workflow
+- build the eval harness first: gold fixtures, hard no-leak barrier, and per-section scorecards
+- harden the app-export adapter and schema validator against the V10 fixture and canonical schema target
+- implement three pilot sections end to end: roof UT table, inspection narrative, and scope of inspection
+- build section evidence packs with stable evidence IDs and grounding gates
+- freeze deterministic tool contracts for UT tables, layout maps, calculations, checklist tables, and DOCX assembly
+- refine voice-transcript-to-report generation through the constrained prose-worker path
+- strengthen KB retrieval by section type, report family, standard basis, tenant scope, and approval status
+- continue improving DOCX formatting against the sample report while avoiding overfitting to one tank
+- add production-grade backend storage, authz, tenant isolation, sandboxing, and run observability behind the approved V1 Beta workflow
