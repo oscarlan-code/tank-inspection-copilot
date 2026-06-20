@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -57,6 +58,12 @@
             android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2product.taskhome.V2TaskHomeActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.scratch.ProductScratchPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.taskhome.ProductTaskHomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -64,6 +71,39 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.generalinfo.ProductGeneralTankInformationPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.layoutscope.ProductLayoutScopePreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.layoutsetup.ProductLayoutMapSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.elementsetup.ProductElementSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.elementsetup.ProductElementPlacementPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.utsetup.ProductUtSetupPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.utmeasurement.ProductUtMeasurementPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.checklist.ProductInspectionChecklistPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.finding.ProductFindingCapturePreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.rooflayout.ProductRoofLayoutMapPreviewActivity"
+            android:exported="false" />
+        <activity
+            android:name="ai.laiq.tankinspection.v3product.voice.ProductVoicePreviewActivity"
+            android:exported="false" />
         <activity
             android:name="ai.laiq.tankinspection.v2product.generalinfo.V2GeneralTankInformationPreviewActivity"
             android:exported="false" />

@@ -1,0 +1,95 @@
+flowchart LR
+  subgraph Hardware["Field Hardware Sources"]
+    MIC["Smart Microphone<br/>Voice findings + audio"]
+    UT["UT Probe / Crawler<br/>Thickness readings + OCR fallback"]
+    TAG["RFID / NFC / QR Tags<br/>Plate, element, or section identity"]
+    THERM["Thermal / IR Camera<br/>Thermograms + derived metrics"]
+    AR["AR / HUD / Smart Glasses<br/>Hands-free checklist + overlays"]
+    DRONE["Drone / LiDAR Survey<br/>External imagery + spatial evidence"]
+  end
+
+  subgraph Adapter["Hardware Adapter Layer"]
+    REG["Device Registry<br/>deviceId, type, calibration, adapter version"]
+    HUB["Edge Gateway / Adapter SDK<br/>BLE, USB, Wi-Fi, file import"]
+    QA["Capture Normalizer<br/>timestamps, target binding, confidence, checksum"]
+  end
+
+  subgraph Android["Android V3 Product App"]
+    CAPTURE["Capture Screens<br/>layout, elements, UT, checklist, findings"]
+    ROOM[("Room Storage<br/>offline-first inspection state")]
+    VALIDATE["Export Readiness Gates<br/>scope, layout approval, attachments"]
+    EXPORTER["V3 Product Exporter<br/>schemaVersion 3"]
+  end
+
+  subgraph Package["Canonical Export Package"]
+    PKG["JSON + Attachments<br/>utMeasurements, findings, attachments,<br/>layoutTargets, layoutConfigs, elements"]
+  end
+
+  subgraph Storage["Storage And Evidence Stores"]
+    FILES[("Android Attachment Files<br/>photos, audio, thermal, imports")]
+    IMPORTSTORE[("Report Import Store<br/>package JSON + manifest")]
+    REPORTDB[("Report DB<br/>jobs, sections, reviews, provenance")]
+    OBJECTS[("Object Storage<br/>attachments, previews, final PDFs")]
+    VECTOR[("Vector Index<br/>authorized precedent embeddings")]
+  end
+
+  subgraph Report["Report Platform And AI Engine"]
+    IMPORT["Import Adapter<br/>validate V3 package + attachments"]
+    JOB["Normalized Report Job<br/>tenant, workspace, inspection, provenance"]
+    FACTS["Fact Pack Builder<br/>current inspection facts only"]
+    KB["Knowledge Base Retrieval<br/>authorized precedent + section patterns"]
+    AI["AI Section Generator<br/>drafting + evidence validation"]
+    PREVIEW["Preview Composer<br/>editable browser report"]
+    PDF["PDF Composer<br/>final report output"]
+  end
+
+  MIC --> HUB
+  UT --> HUB
+  TAG --> HUB
+  THERM --> HUB
+  AR --> HUB
+  DRONE --> HUB
+
+  REG --> HUB
+  HUB --> QA
+  QA -->|"normalized hardware events"| CAPTURE
+  CAPTURE --> ROOM
+  CAPTURE --> FILES
+  ROOM --> VALIDATE
+  VALIDATE --> EXPORTER
+  EXPORTER --> PKG
+
+  PKG --> IMPORT
+  PKG --> IMPORTSTORE
+  IMPORT --> JOB
+  IMPORT --> REPORTDB
+  IMPORT --> OBJECTS
+  JOB --> FACTS
+  JOB --> REPORTDB
+  VECTOR --> KB
+  KB --> AI
+  FACTS --> AI
+  AI --> PREVIEW
+  AI --> REPORTDB
+  PREVIEW --> PDF
+  PREVIEW --> OBJECTS
+  PDF --> OBJECTS
+
+  PKG -.->|"tenantId, workspaceId, inspectionId, inspectionReference"| JOB
+  PKG -.->|"utMeasurements, findings, attachments"| FACTS
+  PKG -.->|"layoutTargets, layoutConfigs, elements"| FACTS
+  AI -.->|"draft provenance + validation notes"| JOB
+
+  classDef hardware fill:#eff6ff,stroke:#2563eb,color:#172554,stroke-width:1px;
+  classDef adapter fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1px;
+  classDef android fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-width:1px;
+  classDef package fill:#f0fdf4,stroke:#16a34a,color:#14532d,stroke-width:1px;
+  classDef storage fill:#f8fafc,stroke:#475569,color:#0f172a,stroke-width:1px;
+  classDef report fill:#f5f3ff,stroke:#7c3aed,color:#2e1065,stroke-width:1px;
+
+  class MIC,UT,TAG,THERM,AR,DRONE hardware;
+  class REG,HUB,QA adapter;
+  class CAPTURE,ROOM,VALIDATE,EXPORTER android;
+  class PKG package;
+  class FILES,IMPORTSTORE,REPORTDB,OBJECTS,VECTOR storage;
+  class IMPORT,JOB,FACTS,KB,AI,PREVIEW,PDF report;
