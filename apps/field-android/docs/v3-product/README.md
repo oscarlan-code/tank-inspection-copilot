@@ -408,6 +408,18 @@ Emulator smoke review:
 env JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/oscar/Library/Android/sdk ANDROID_SDK_ROOT=/Users/oscar/Library/Android/sdk ANDROID_SERIAL=emulator-5554 ADB=/Users/oscar/Library/Android/sdk/platform-tools/adb SKIP_JVM_REVIEW=1 ./scripts/review-app.sh
 ```
 
+V3 robustness review, Android-only with report-platform handoff deferred:
+
+```bash
+env STRESS_ITERATIONS=1 FIXTURE_STRESS_ITERATIONS=20 RUN_LINT=1 RUN_DEVICE_STRESS=0 REPORT_HANDOFF_MODE=deferred ./scripts/v3-product-robustness-review.sh
+```
+
+V3 robustness review, strict report-platform handoff mode for report-generation work:
+
+```bash
+env REPORT_HANDOFF_MODE=strict RUN_REPORT_PLATFORM=1 ./scripts/v3-product-robustness-review.sh
+```
+
 Physical device install:
 
 ```bash
