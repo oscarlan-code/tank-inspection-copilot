@@ -15,9 +15,11 @@ import ai.laiq.tankinspection.v3product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v3product.model.roofSummaryLabel
 import ai.laiq.tankinspection.v3product.model.selectedTargets
 import ai.laiq.tankinspection.v3product.model.tankBadgeLabel
+import ai.laiq.tankinspection.v3product.model.withActiveWorkflowTarget
 import ai.laiq.tankinspection.v3product.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v3product.model.withReconciledLayoutMapSetup
 import ai.laiq.tankinspection.v3product.model.withSelectedTarget
+import ai.laiq.tankinspection.v3product.model.withTargetApproval
 import ai.laiq.tankinspection.v3product.preview.ProductPreviewSession
 import ai.laiq.tankinspection.v3product.storage.ProductWorkflowScreen
 import ai.laiq.tankinspection.v3product.voice.ProductVoiceCaptureHost
@@ -36,95 +38,138 @@ class ProductLayoutMapSetupPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ProductPreviewSession.attach(applicationContext)
-        ProductPreviewSession.setActiveWorkflowScreen(ProductWorkflowScreen.LAYOUT_MAP_SETUP)
         val requestedTarget = intent.getStringExtra(EXTRA_TARGET)
             ?.let { key -> ProductLayoutTarget.entries.firstOrNull { it.key == key } }
         val requestedSurface = intent.getStringExtra(EXTRA_SURFACE)
             ?.let { key -> ProductLayoutSurface.entries.firstOrNull { it.key == key } }
+        ProductPreviewSession.draftState.let { current ->
+            val selectedTargets = current.layoutScope.selectedTargets()
+            val surfaceTarget = requestedSurface?.let { surface ->
+                selectedTargets.firstOrNull { target -> target.surface == surface }
+            }
+            val targetForEntry = (requestedTarget ?: surfaceTarget)
+                ?.takeIf { target -> target in selectedTargets }
+            if (targetForEntry != null) {
+                ProductPreviewSession.updateDraftState(current.withActiveWorkflowTarget(targetForEntry))
+            }
+        }
+        ProductPreviewSession.setActiveWorkflowScreen(ProductWorkflowScreen.LAYOUT_MAP_SETUP)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     ProductVoiceCaptureHost(screen = ProductWorkflowScreen.LAYOUT_MAP_SETUP) {
                         var draftState by remember {
-                        mutableStateOf(
-                            ProductPreviewSession.draftState.let { current ->
-                                val selectedTargets = current.layoutScope.selectedTargets()
-                                val surfaceTarget = requestedSurface?.let { surface ->
-                                    selectedTargets.firstOrNull { it.surface == surface }
-                                }
-                                val nextTarget = requestedTarget ?: surfaceTarget
-                                val nextSetup = current.layoutMapSetup.withFirstAvailableTarget(selectedTargets)
-                                    .let { setup ->
-                                        if (nextTarget != null && nextTarget in selectedTargets) {
-                                            setup.withSelectedTarget(nextTarget)
-                                        } else {
-                                            setup
-                                        }
+                            mutableStateOf(
+                                ProductPreviewSession.draftState.let { current ->
+                                    val selectedTargets = current.layoutScope.selectedTargets()
+                                    val surfaceTarget = requestedSurface?.let { surface ->
+                                        selectedTargets.firstOrNull { it.surface == surface }
                                     }
-                                current.copy(layoutMapSetup = nextSetup)
-                            },
-                        )
-                    }
+                                    val nextTarget = requestedTarget ?: surfaceTarget
+                                    val nextSetup = current.layoutMapSetup.withFirstAvailableTarget(selectedTargets)
+                                        .let { setup ->
+                                            if (nextTarget != null && nextTarget in selectedTargets) {
+                                                setup.withSelectedTarget(nextTarget)
+                                            } else {
+                                                setup
+                                            }
+                                        }
+                                    current.copy(layoutMapSetup = nextSetup)
+                                        .withActiveWorkflowTarget(nextSetup.selectedTarget)
+                                },
+                            )
+                        }
                         var pendingDraftState by remember { mutableStateOf<ProductDraftState?>(null) }
                         var pendingImpact by remember { mutableStateOf<ProductDownstreamDataImpact?>(null) }
 
-	                    fun openLayoutScope() {
-	                        ProductPreviewSession.updateDraftState(draftState)
-	                        startActivity(
-                            Intent(this, ProductLayoutScopePreviewActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                            },
-                        )
-	                        finish()
-	                    }
-
-	                    val selectedTargets = draftState.layoutScope.selectedTargets()
-
-                    fun applyDraftState(nextDraftState: ProductDraftState) {
-                        val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
-                        if (impact != null) {
-                            pendingDraftState = nextDraftState
-                            pendingImpact = impact
-                        } else {
-                            draftState = nextDraftState
-                            ProductPreviewSession.updateDraftState(nextDraftState)
+                        fun commitDraftState(nextDraftState: ProductDraftState) {
+                            val synchronizedDraftState =
+                                nextDraftState.withActiveWorkflowTarget(nextDraftState.layoutMapSetup.selectedTarget)
+                            draftState = synchronizedDraftState
+                            ProductPreviewSession.updateDraftState(synchronizedDraftState)
                         }
-                    }
 
-	                    BackHandler { openLayoutScope() }
-	                    ProductLayoutMapSetupScreen(
-                        state = draftState.layoutMapSetup,
-                        layoutTargets = selectedTargets,
-                        tankLabel = draftState.tankBadgeLabel(),
-                        roofLabel = draftState.roofSummaryLabel(),
-                        onStateChange = {
-                            applyDraftState(draftState.withReconciledLayoutMapSetup(it))
-                        },
-	                        onBack = { openLayoutScope() },
-	                        onContinue = { approvedSetup ->
-	                            val nextDraftState = draftState.copy(layoutMapSetup = approvedSetup)
-	                            draftState = nextDraftState
-	                            ProductPreviewSession.updateDraftState(nextDraftState)
-	                            startActivity(Intent(this, ProductElementSetupPreviewActivity::class.java))
-	                        },
-	                    )
-                    pendingImpact?.let { impact ->
-                        ProductDownstreamDataWarningDialog(
-                            impact = impact,
-                            onDismiss = {
-                                pendingImpact = null
-                                pendingDraftState = null
+                        fun openLayoutScope() {
+                            commitDraftState(draftState)
+                            startActivity(
+                                Intent(this, ProductLayoutScopePreviewActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                },
+                            )
+                            finish()
+                        }
+
+                        val selectedTargets = draftState.layoutScope.selectedTargets()
+
+                        fun applyDraftState(nextDraftState: ProductDraftState) {
+                            val synchronizedDraftState =
+                                nextDraftState.withActiveWorkflowTarget(nextDraftState.layoutMapSetup.selectedTarget)
+                            val impact = draftState.downstreamDataImpactComparedTo(synchronizedDraftState)
+                            if (impact != null) {
+                                pendingDraftState = synchronizedDraftState
+                                pendingImpact = impact
+                            } else {
+                                commitDraftState(synchronizedDraftState)
+                            }
+                        }
+
+                        BackHandler { openLayoutScope() }
+                        ProductLayoutMapSetupScreen(
+                            state = draftState.layoutMapSetup,
+                            layoutTargets = selectedTargets,
+                            tankLabel = draftState.tankBadgeLabel(),
+                            roofLabel = draftState.roofSummaryLabel(),
+                            onStateChange = {
+                                applyDraftState(draftState.withReconciledLayoutMapSetup(it))
                             },
-                            onConfirm = {
-                                pendingDraftState?.let { nextDraftState ->
-                                    draftState = nextDraftState
-                                    ProductPreviewSession.updateDraftState(nextDraftState)
+                            onApproveLayout = { approvedSetup ->
+                                val activeTarget = approvedSetup.selectedTarget
+                                val latestDraftState = ProductPreviewSession.draftState
+                                val latestApprovedSetup = latestDraftState.layoutMapSetup
+                                    .withSelectedTarget(activeTarget)
+                                    .withTargetApproval(activeTarget, approved = true)
+                                commitDraftState(latestDraftState.copy(layoutMapSetup = latestApprovedSetup))
+                            },
+                            onBack = { openLayoutScope() },
+                            onContinue = { approvedSetup ->
+                                val activeTarget = approvedSetup.selectedTarget
+                                val latestDraftState = ProductPreviewSession.draftState
+                                val latestSetupForActiveTarget =
+                                    latestDraftState.layoutMapSetup.withSelectedTarget(activeTarget)
+                                if (activeTarget !in latestSetupForActiveTarget.approvedTargets) {
+                                    commitDraftState(
+                                        latestDraftState.copy(
+                                            layoutMapSetup = latestSetupForActiveTarget.withTargetApproval(
+                                                activeTarget,
+                                                approved = true,
+                                            ),
+                                        ),
+                                    )
+                                    return@ProductLayoutMapSetupScreen
                                 }
-                                pendingImpact = null
-                                pendingDraftState = null
+                                commitDraftState(latestDraftState.copy(layoutMapSetup = latestSetupForActiveTarget))
+                                startActivity(
+                                    Intent(this, ProductElementSetupPreviewActivity::class.java)
+                                        .putExtra(EXTRA_TARGET, activeTarget.key),
+                                )
                             },
                         )
-                    }
+                        pendingImpact?.let { impact ->
+                            ProductDownstreamDataWarningDialog(
+                                impact = impact,
+                                onDismiss = {
+                                    pendingImpact = null
+                                    pendingDraftState = null
+                                },
+                                onConfirm = {
+                                    pendingDraftState?.let { nextDraftState ->
+                                        commitDraftState(nextDraftState)
+                                    }
+                                    pendingImpact = null
+                                    pendingDraftState = null
+                                },
+                            )
+                        }
                     }
                 }
             }

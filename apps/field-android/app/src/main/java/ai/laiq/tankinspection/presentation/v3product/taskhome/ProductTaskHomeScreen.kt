@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 data class ProductTaskHomeUiState(
     val isLoading: Boolean = true,
@@ -633,7 +634,7 @@ private val UPDATED_AT_FORMATTER: DateTimeFormatter =
 
 private fun formatByteSize(value: Long): String =
     when {
-        value >= 1_048_576L -> String.format("%.1f MB", value / 1_048_576.0)
-        value >= 1_024L -> String.format("%.1f KB", value / 1_024.0)
+        value >= 1_048_576L -> String.format(Locale.US, "%.1f MB", value / 1_048_576.0)
+        value >= 1_024L -> String.format(Locale.US, "%.1f KB", value / 1_024.0)
         else -> "$value B"
     }

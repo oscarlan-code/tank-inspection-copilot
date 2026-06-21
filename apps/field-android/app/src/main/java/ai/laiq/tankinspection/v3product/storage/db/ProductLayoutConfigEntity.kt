@@ -31,5 +31,6 @@ data class ProductLayoutConfigEntity(
     val floorAnnularSectionCount: Int?,
     val floorPatternCountX: Int?,
     val floorPatternCountY: Int?,
+    val customCircularLayoutJson: String?,
     val updatedAtIso: String,
 )

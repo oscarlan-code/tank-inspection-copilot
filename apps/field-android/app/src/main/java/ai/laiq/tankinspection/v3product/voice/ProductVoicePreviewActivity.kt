@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.widget.Toast
 import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqFieldTheme
 import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.io.File
@@ -115,11 +117,12 @@ private fun ProductVoicePreviewScreen(
     onBack: () -> Unit,
     onDelete: (ProductVoiceNote) -> Unit,
 ) {
+    val context = LocalContext.current
     var playingId by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
     fun stopPlayback() {
-        mediaPlayer?.release()
+        runCatching { mediaPlayer?.release() }
         mediaPlayer = null
         playingId = null
     }
@@ -128,13 +131,19 @@ private fun ProductVoicePreviewScreen(
         stopPlayback()
         val file = File(filesDir, note.relativePath)
         if (!file.exists() || file.length() == 0L) return
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(file.absolutePath)
-            setOnCompletionListener { stopPlayback() }
-            prepare()
-            start()
+        val player = MediaPlayer()
+        runCatching {
+            player.setDataSource(file.absolutePath)
+            player.setOnCompletionListener { stopPlayback() }
+            player.prepare()
+            player.start()
+        }.onSuccess {
+            mediaPlayer = player
+            playingId = note.id
+        }.onFailure {
+            runCatching { player.release() }
+            Toast.makeText(context, "Unable to play this voice note.", Toast.LENGTH_SHORT).show()
         }
-        playingId = note.id
     }
 
     DisposableEffect(Unit) {

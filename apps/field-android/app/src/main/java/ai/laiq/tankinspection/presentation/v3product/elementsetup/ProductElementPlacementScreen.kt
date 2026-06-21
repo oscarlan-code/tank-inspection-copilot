@@ -12,6 +12,8 @@ import ai.laiq.tankinspection.presentation.components.LaiqTextField
 import ai.laiq.tankinspection.presentation.v3product.common.ProductCollapsibleSectionCard
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBar
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBarHeight
+import ai.laiq.tankinspection.presentation.v3product.common.normalizedFor
+import ai.laiq.tankinspection.presentation.v3product.common.toRoofPlateCells
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
 import ai.laiq.tankinspection.v3product.model.ProductElementPlacementState
 import ai.laiq.tankinspection.v3product.model.ProductElementType
@@ -23,6 +25,7 @@ import ai.laiq.tankinspection.v3product.model.ProductLayoutTarget
 import ai.laiq.tankinspection.v3product.model.ProductPlacedElement
 import ai.laiq.tankinspection.v3product.model.ProductShellOffsetStartRow
 import ai.laiq.tankinspection.v3product.model.ProductShellThirdOffsetStart
+import ai.laiq.tankinspection.v3product.model.customCircularLayoutFor
 import ai.laiq.tankinspection.v3product.model.placementsFor
 import ai.laiq.tankinspection.v3product.model.supports
 import ai.laiq.tankinspection.v3product.model.withMovedElement
@@ -104,6 +107,8 @@ private data class ElementDragState(
     val elementType: ProductElementType,
     val label: String,
     val mapPosition: Offset,
+    val rawMapPosition: Offset = mapPosition,
+    val validDrop: Boolean = true,
     val elementId: String? = null,
     val rootPosition: Offset? = null,
 )
@@ -119,7 +124,6 @@ fun ProductElementPlacementScreen(
     onContinue: (ProductElementPlacementState) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val latestState by rememberUpdatedState(state)
     val selectedTarget = when {
         visibleTargets.isEmpty() -> ProductLayoutTarget.EXTERNAL_ROOF
         state.selectedTarget in visibleTargets -> state.selectedTarget
@@ -131,22 +135,42 @@ fun ProductElementPlacementScreen(
         ?: ProductElementType.NOZZLE
     val selectedPlacements = state.placementsFor(selectedTarget)
     val selectedTargetApproved = selectedTarget in state.approvedTargets
+    val latestState by rememberUpdatedState(state)
     val scrollState = rememberScrollState()
     var placementScopeExpanded by remember { mutableStateOf(false) }
 
+    fun selectedTargetFor(placementState: ProductElementPlacementState): ProductLayoutTarget =
+        when {
+            visibleTargets.isEmpty() -> ProductLayoutTarget.EXTERNAL_ROOF
+            placementState.selectedTarget in visibleTargets -> placementState.selectedTarget
+            else -> visibleTargets.first()
+        }
+
+    fun nextTargetNeedingApproval(
+        placementState: ProductElementPlacementState,
+        fromTarget: ProductLayoutTarget,
+    ): ProductLayoutTarget? {
+        val selectedIndex = visibleTargets.indexOf(fromTarget).coerceAtLeast(0)
+        val orderedTargets = visibleTargets.drop(selectedIndex + 1) + visibleTargets.take(selectedIndex)
+        return orderedTargets.firstOrNull { target -> target !in placementState.approvedTargets }
+    }
+
     fun approveOrContinue() {
-        val approvedState = if (selectedTargetApproved) {
-            latestState
+        val actionState = latestState
+        val actionSelectedTarget = selectedTargetFor(actionState)
+        val actionSelectedTargetApproved = actionSelectedTarget in actionState.approvedTargets
+        val approvedState = if (actionSelectedTargetApproved) {
+            actionState
         } else {
-            latestState.withTargetApproval(selectedTarget, approved = true)
+            actionState
+                .withSelectedTarget(actionSelectedTarget)
+                .withTargetApproval(actionSelectedTarget, approved = true)
         }
-        val nextUnapprovedTarget = visibleTargets.firstOrNull { target ->
-            target != selectedTarget && target !in approvedState.approvedTargets
-        }
+        val nextUnapprovedTarget = nextTargetNeedingApproval(approvedState, actionSelectedTarget)
         if (nextUnapprovedTarget != null) {
             onStateChange(approvedState.withSelectedTarget(nextUnapprovedTarget))
         } else {
-            onContinue(approvedState)
+            onContinue(approvedState.withSelectedTarget(actionSelectedTarget))
         }
     }
 
@@ -269,8 +293,11 @@ fun ProductElementPlacementScreen(
         if (visibleTargets.isNotEmpty()) {
             ProductStickyActionBar(
                 primaryText = when {
-                    !selectedTargetApproved -> "Approve Layout"
-                    visibleTargets.any { target -> target !in state.approvedTargets } -> "Next Layout"
+                    !selectedTargetApproved && visibleTargets.any { target ->
+                        target != selectedTarget && target !in state.approvedTargets
+                    } -> "Approve & Next"
+                    !selectedTargetApproved -> "Approve & Continue"
+                    visibleTargets.any { target -> target !in state.approvedTargets } -> "Next Placement"
                     else -> "Continue"
                 },
                 onPrimaryClick = ::approveOrContinue,
@@ -354,13 +381,28 @@ private fun ElementPlacementWorkspace(
         )
     }
 
+    fun isInsidePlacementRegion(position: Offset, region: PlacementRegion? = placementRegion()): Boolean =
+        region?.contains(position) ?: position.isInsideMap(mapSize, mapEdgePaddingPx)
+
+    fun previewPlacementPosition(position: Offset, region: PlacementRegion? = placementRegion()): Offset =
+        region?.coerce(position) ?: position.coerceInsideMap(mapSize, mapEdgePaddingPx)
+
     fun updateAddDrag(rootPosition: Offset) {
-        val mapPosition = rootPositionToMapPosition(rootPosition) ?: Offset.Zero
+        val rawMapPosition = rootPositionToMapPosition(rootPosition)
+        val activePlacementRegion = placementRegion()
+        val validDrop = rawMapPosition?.let { position ->
+            isInsidePlacementRegion(position, activePlacementRegion)
+        } == true
+        val previewPosition = rawMapPosition?.let { position ->
+            if (validDrop) position else previewPlacementPosition(position, activePlacementRegion)
+        } ?: Offset.Zero
         dragState = ElementDragState(
             source = ElementDragSource.ADD_HANDLE,
             elementType = selectedElementType,
             label = "New ${selectedElementType.shortLabel}",
-            mapPosition = mapPosition.coerceInsideMap(mapSize, mapEdgePaddingPx),
+            mapPosition = previewPosition,
+            rawMapPosition = rawMapPosition ?: Offset.Zero,
+            validDrop = validDrop,
             rootPosition = rootPosition,
         )
     }
@@ -372,16 +414,12 @@ private fun ElementPlacementWorkspace(
             val activePlacementRegion = placementRegion()
             when (finalDragState.source) {
                 ElementDragSource.ADD_HANDLE -> {
-                    val rawMapPosition = finalDragState.rootPosition?.let { rootPosition ->
-                        rootPositionToMapPosition(rootPosition)
-                    }
-                    val droppedInsideLayout = rawMapPosition?.let { position ->
-                        activePlacementRegion?.contains(position) == true
-                    } == true
+                    val rawMapPosition = finalDragState.rawMapPosition
+                    val droppedInsideLayout = finalDragState.validDrop &&
+                        isInsidePlacementRegion(rawMapPosition, activePlacementRegion)
                     if (droppedInsideLayout) {
-                        val addPosition = rawMapPosition ?: return
                         val normalized = normalizeMapPosition(
-                            activePlacementRegion?.coerce(addPosition) ?: addPosition,
+                            rawMapPosition,
                             mapSize,
                         )
                         onAddElement(
@@ -395,10 +433,10 @@ private fun ElementPlacementWorkspace(
 
                 ElementDragSource.PLACED_ELEMENT -> {
                     val elementId = finalDragState.elementId
-                    if (elementId != null) {
-                        val constrainedPosition = activePlacementRegion?.coerce(finalDragState.mapPosition)
-                            ?: finalDragState.mapPosition.coerceInsideMap(mapSize, mapEdgePaddingPx)
-                        val normalized = normalizeMapPosition(constrainedPosition, mapSize)
+                    val droppedInsideLayout = finalDragState.validDrop &&
+                        isInsidePlacementRegion(finalDragState.rawMapPosition, activePlacementRegion)
+                    if (elementId != null && droppedInsideLayout) {
+                        val normalized = normalizeMapPosition(finalDragState.rawMapPosition, mapSize)
                         onMoveElement(
                             selectedTarget,
                             elementId,
@@ -528,9 +566,17 @@ private fun ElementPlacementWorkspace(
                                             if (!dragStarted && totalDrag.getDistance() >= placedDragStartThresholdPx) {
                                                 dragStarted = true
                                                 change.consume()
+                                                val rawPosition = initialDragState.mapPosition + totalDrag
+                                                val activePlacementRegion = placementRegion()
+                                                val validDrop = isInsidePlacementRegion(rawPosition, activePlacementRegion)
                                                 dragState = initialDragState.copy(
-                                                    mapPosition = (initialDragState.mapPosition + totalDrag)
-                                                        .coerceInsideMap(mapSize, mapEdgePaddingPx),
+                                                    mapPosition = if (validDrop) {
+                                                        rawPosition
+                                                    } else {
+                                                        previewPlacementPosition(rawPosition, activePlacementRegion)
+                                                    },
+                                                    rawMapPosition = rawPosition,
+                                                    validDrop = validDrop,
                                                     rootPosition = initialDragState.rootPosition?.let { rootPosition ->
                                                         rootPosition + totalDrag
                                                     },
@@ -539,9 +585,17 @@ private fun ElementPlacementWorkspace(
                                                 change.consume()
                                                 val activeDrag = dragState
                                                 if (activeDrag != null) {
+                                                    val rawPosition = activeDrag.rawMapPosition + delta
+                                                    val activePlacementRegion = placementRegion()
+                                                    val validDrop = isInsidePlacementRegion(rawPosition, activePlacementRegion)
                                                     dragState = activeDrag.copy(
-                                                        mapPosition = (activeDrag.mapPosition + delta)
-                                                            .coerceInsideMap(mapSize, mapEdgePaddingPx),
+                                                        mapPosition = if (validDrop) {
+                                                            rawPosition
+                                                        } else {
+                                                            previewPlacementPosition(rawPosition, activePlacementRegion)
+                                                        },
+                                                        rawMapPosition = rawPosition,
+                                                        validDrop = validDrop,
                                                         rootPosition = activeDrag.rootPosition?.let { rootPosition ->
                                                             rootPosition + delta
                                                         },
@@ -619,7 +673,11 @@ private fun ElementPlacementWorkspace(
                         }
                     }
 
-                    dragState?.let { activeDrag ->
+                    dragState
+                        ?.takeIf { activeDrag ->
+                            activeDrag.source == ElementDragSource.PLACED_ELEMENT || activeDrag.validDrop
+                        }
+                        ?.let { activeDrag ->
                         val flipHorizontal = shouldFlipMarkerCallout(activeDrag.mapPosition, mapSize)
                         val anchorXpx = markerAnchorXFor(
                             flipHorizontal = flipHorizontal,
@@ -637,6 +695,8 @@ private fun ElementPlacementWorkspace(
                                     markerAnchorXpx = anchorXpx,
                                     markerAnchorYpx = markerAnchorYpx,
                                 )
+                            }.graphicsLayer {
+                                alpha = if (activeDrag.validDrop) 1f else 0.42f
                             },
                         )
                     }
@@ -987,6 +1047,7 @@ private fun ElementPlacementMapBackground(
     layoutMapSetup: ProductLayoutMapSetup,
     modifier: Modifier = Modifier,
 ) {
+    val customLayout = layoutMapSetup.customCircularLayoutFor(target)
     when (target.surface) {
         ProductLayoutSurface.ROOF -> RoofSurfaceMap(
             template = layoutMapSetup.roofPattern,
@@ -1009,6 +1070,17 @@ private fun ElementPlacementMapBackground(
             } else {
                 0
             },
+            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+            customPlateCells = customLayout
+                ?.normalizedFor(
+                    layoutMapSetup.roofRowCount.toPositiveInt(4),
+                    layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10),
+                )
+                ?.toRoofPlateCells(
+                    target,
+                    layoutMapSetup.roofRowCount.toPositiveInt(4),
+                    layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10),
+                ),
             referenceLabel = layoutMapSetup.referenceMode.label,
             mapTitle = "",
             modifier = modifier,
@@ -1035,6 +1107,17 @@ private fun ElementPlacementMapBackground(
             } else {
                 0
             },
+            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+            customPlateCells = customLayout
+                ?.normalizedFor(
+                    layoutMapSetup.floorPatternCountX.toPositiveInt(4),
+                    layoutMapSetup.floorPatternCountY.toPositiveInt(12),
+                )
+                ?.toRoofPlateCells(
+                    target,
+                    layoutMapSetup.floorPatternCountX.toPositiveInt(4),
+                    layoutMapSetup.floorPatternCountY.toPositiveInt(12),
+                ),
             referenceLabel = layoutMapSetup.referenceMode.label,
             mapTitle = "",
             modifier = modifier,
@@ -1376,6 +1459,14 @@ private fun Offset.coerceInsideMap(
         y = if (yRangeHasRoom) y.coerceIn(paddingPx, mapSize.height - paddingPx) else mapSize.height / 2f,
     )
 }
+
+private fun Offset.isInsideMap(
+    mapSize: Size,
+    paddingPx: Float,
+): Boolean =
+    mapSize.isUsable() &&
+        x in paddingPx..(mapSize.width - paddingPx) &&
+        y in paddingPx..(mapSize.height - paddingPx)
 
 private fun Offset.distanceTo(other: Offset): Float =
     hypot(x - other.x, y - other.y)

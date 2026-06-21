@@ -1,6 +1,9 @@
 package ai.laiq.tankinspection.v3product.storage
 
 import ai.laiq.tankinspection.v3product.model.ProductDraftState
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlate
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateRow
 import ai.laiq.tankinspection.v3product.model.ProductElementType
 import ai.laiq.tankinspection.v3product.model.ProductFindingRecord
 import ai.laiq.tankinspection.v3product.model.ProductInspectionChecklistCatalog
@@ -9,6 +12,7 @@ import ai.laiq.tankinspection.v3product.model.ProductLayoutTarget
 import ai.laiq.tankinspection.v3product.model.ProductUtItemKind
 import ai.laiq.tankinspection.v3product.model.ProductUtMeasurementEntry
 import ai.laiq.tankinspection.v3product.model.completedItemCount
+import ai.laiq.tankinspection.v3product.model.customCircularLayoutFor
 import ai.laiq.tankinspection.v3product.model.isComplete
 import ai.laiq.tankinspection.v3product.model.placementsFor
 import ai.laiq.tankinspection.v3product.model.requiredValidationErrors
@@ -64,6 +68,7 @@ class ProductStore(
         .addMigrations(ProductFieldDatabase.MIGRATION_1_2, ProductFieldDatabase.MIGRATION_2_3)
         .addMigrations(ProductFieldDatabase.MIGRATION_3_4, ProductFieldDatabase.MIGRATION_4_5)
         .addMigrations(ProductFieldDatabase.MIGRATION_5_6, ProductFieldDatabase.MIGRATION_6_7)
+        .addMigrations(ProductFieldDatabase.MIGRATION_7_8)
         .build()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val saveMutex = Mutex()
@@ -683,6 +688,7 @@ class ProductStore(
                     .takeIf { target.surface == ProductLayoutSurface.FLOOR },
                 floorPatternCountX = layoutMapSetup.floorPatternCountX.toPositiveIntOrNull().takeIf { target.surface == ProductLayoutSurface.FLOOR },
                 floorPatternCountY = layoutMapSetup.floorPatternCountY.toPositiveIntOrNull().takeIf { target.surface == ProductLayoutSurface.FLOOR },
+                customCircularLayoutJson = layoutMapSetup.customCircularLayoutFor(target)?.toCustomCircularLayoutJson(),
                 updatedAtIso = nowIso,
             )
         }
@@ -1517,6 +1523,25 @@ private fun ai.laiq.tankinspection.v3product.storage.db.ProductLayoutTargetEntit
         .put("utApproved", utApproved)
         .put("updatedAtIso", updatedAtIso)
 
+private fun ProductCustomCircularPlateLayout.toCustomCircularLayoutJson(): String =
+    JSONObject()
+        .put("annularRotationDeg", annularRotationDeg)
+        .put("rows", JSONArray().apply { rows.forEach { row -> put(row.toJson()) } })
+        .toString()
+
+private fun ProductCustomCircularPlateRow.toJson(): JSONObject =
+    JSONObject()
+        .put("rowNumber", rowNumber)
+        .put("shiftRatio", shiftRatio)
+        .put("plates", JSONArray().apply { plates.forEach { plate -> put(plate.toJson()) } })
+
+private fun ProductCustomCircularPlate.toJson(): JSONObject =
+    JSONObject()
+        .put("widthWeight", widthWeight)
+        .put("splitGroupKey", splitGroupKey)
+        .put("splitPartIndex", splitPartIndex)
+        .put("splitPartCount", splitPartCount)
+
 private fun ProductLayoutConfigEntity.toJson(): JSONObject =
     JSONObject()
         .put("inspectionId", inspectionId)
@@ -1543,6 +1568,7 @@ private fun ProductLayoutConfigEntity.toJson(): JSONObject =
         .put("floorAnnularSectionCount", floorAnnularSectionCount)
         .put("floorPatternCountX", floorPatternCountX)
         .put("floorPatternCountY", floorPatternCountY)
+        .put("customCircularLayout", customCircularLayoutJson?.let { JSONObject(it) })
         .put("updatedAtIso", updatedAtIso)
 
 private fun ProductElementEntity.toJson(): JSONObject =

@@ -10,6 +10,9 @@ import ai.laiq.tankinspection.v3product.model.ProductFloorTemplate
 import ai.laiq.tankinspection.v3product.model.ProductAnnotationPoint
 import ai.laiq.tankinspection.v3product.model.ProductAnnotationStroke
 import ai.laiq.tankinspection.v3product.model.ProductChecklistRating
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlate
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateRow
 import ai.laiq.tankinspection.v3product.model.ProductFindingPhoto
 import ai.laiq.tankinspection.v3product.model.ProductFindingRecord
 import ai.laiq.tankinspection.v3product.model.ProductFindingState
@@ -241,6 +244,7 @@ object ProductDraftJsonCodec {
             .put("floorAnnularSectionCount", floorAnnularSectionCount)
             .put("floorPatternCountX", floorPatternCountX)
             .put("floorPatternCountY", floorPatternCountY)
+            .put("customCircularLayoutsByTarget", customCircularLayoutsByTarget.toCustomCircularLayoutsJson())
             .put("approvedTargets", approvedTargets.toTargetArray())
 
     private fun JSONObject.toLayoutMapSetup(defaults: ProductLayoutMapSetup): ProductLayoutMapSetup =
@@ -273,6 +277,10 @@ object ProductDraftJsonCodec {
             floorAnnularSectionCount = optString("floorAnnularSectionCount", defaults.floorAnnularSectionCount),
             floorPatternCountX = optString("floorPatternCountX", defaults.floorPatternCountX),
             floorPatternCountY = optString("floorPatternCountY", defaults.floorPatternCountY),
+            customCircularLayoutsByTarget = optCustomCircularLayoutMap(
+                "customCircularLayoutsByTarget",
+                defaults.customCircularLayoutsByTarget,
+            ),
             approvedTargets = optTargetSet("approvedTargets", defaults.approvedTargets),
         )
 
@@ -634,6 +642,80 @@ object ProductDraftJsonCodec {
             centerOpeningPlateCount = optString("centerOpeningPlateCount", defaults.centerOpeningPlateCount),
             hasAnnularRing = optBoolean("hasAnnularRing", defaults.hasAnnularRing),
             annularSectionCount = optString("annularSectionCount", defaults.annularSectionCount),
+        )
+
+    private fun Map<ProductLayoutTarget, ProductCustomCircularPlateLayout>.toCustomCircularLayoutsJson(): JSONObject =
+        JSONObject().apply {
+            forEach { (target, layout) -> put(target.key, layout.toJson()) }
+        }
+
+    private fun ProductCustomCircularPlateLayout.toJson(): JSONObject =
+        JSONObject()
+            .put("annularRotationDeg", annularRotationDeg)
+            .put("rows", JSONArray().apply { rows.forEach { row -> put(row.toJson()) } })
+
+    private fun ProductCustomCircularPlateRow.toJson(): JSONObject =
+        JSONObject()
+            .put("rowNumber", rowNumber)
+            .put("shiftRatio", shiftRatio)
+            .put("plates", JSONArray().apply { plates.forEach { plate -> put(plate.toJson()) } })
+
+    private fun ProductCustomCircularPlate.toJson(): JSONObject =
+        JSONObject()
+            .put("widthWeight", widthWeight)
+            .putNullable("splitGroupKey", splitGroupKey)
+            .put("splitPartIndex", splitPartIndex)
+            .put("splitPartCount", splitPartCount)
+
+    private fun JSONObject.optCustomCircularLayoutMap(
+        key: String,
+        defaults: Map<ProductLayoutTarget, ProductCustomCircularPlateLayout>,
+    ): Map<ProductLayoutTarget, ProductCustomCircularPlateLayout> {
+        val json = optJSONObject(key) ?: return defaults
+        return buildMap {
+            json.keys().forEach { targetKey ->
+                val target = targetByKey(targetKey) ?: return@forEach
+                val layout = json.optJSONObject(targetKey)?.toCustomCircularPlateLayout() ?: return@forEach
+                put(target, layout)
+            }
+        }
+    }
+
+    private fun JSONObject.toCustomCircularPlateLayout(): ProductCustomCircularPlateLayout =
+        ProductCustomCircularPlateLayout(
+            annularRotationDeg = optDouble("annularRotationDeg", 0.0).toFloat(),
+            rows = optJSONArray("rows")?.let { rows ->
+                buildList {
+                    repeat(rows.length()) { index ->
+                        rows.optJSONObject(index)?.toCustomCircularPlateRow()?.let { row ->
+                            add(row)
+                        }
+                    }
+                }
+            }.orEmpty(),
+        )
+
+    private fun JSONObject.toCustomCircularPlateRow(): ProductCustomCircularPlateRow =
+        ProductCustomCircularPlateRow(
+            rowNumber = optInt("rowNumber", 1),
+            shiftRatio = optDouble("shiftRatio", 0.0).toFloat(),
+            plates = optJSONArray("plates")?.let { plates ->
+                buildList {
+                    repeat(plates.length()) { index ->
+                        plates.optJSONObject(index)?.toCustomCircularPlate()?.let { plate ->
+                            add(plate)
+                        }
+                    }
+                }
+            }.orEmpty(),
+        )
+
+    private fun JSONObject.toCustomCircularPlate(): ProductCustomCircularPlate =
+        ProductCustomCircularPlate(
+            widthWeight = optDouble("widthWeight", 1.0).toFloat(),
+            splitGroupKey = optNullableString("splitGroupKey"),
+            splitPartIndex = optInt("splitPartIndex", 0),
+            splitPartCount = optInt("splitPartCount", 1),
         )
 
     private fun JSONObject.putNullable(key: String, value: Any?): JSONObject =

@@ -14,14 +14,26 @@ import ai.laiq.tankinspection.presentation.v3product.common.ProductCollapsibleSe
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBar
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBarHeight
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
+import ai.laiq.tankinspection.presentation.v3product.common.generatedProductCircularPlateLayout
+import ai.laiq.tankinspection.presentation.v3product.common.mergePlate
+import ai.laiq.tankinspection.presentation.v3product.common.normalizedFor
+import ai.laiq.tankinspection.presentation.v3product.common.plateRefs
+import ai.laiq.tankinspection.presentation.v3product.common.splitPlate
+import ai.laiq.tankinspection.presentation.v3product.common.toRoofPlateCells
+import ai.laiq.tankinspection.presentation.v3product.common.withAnnularRotation
+import ai.laiq.tankinspection.presentation.v3product.common.withRowShift
 import ai.laiq.tankinspection.v3product.model.ProductFloorTemplate
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
 import ai.laiq.tankinspection.v3product.model.ProductLayoutMapSetup
 import ai.laiq.tankinspection.v3product.model.ProductLayoutSurface
 import ai.laiq.tankinspection.v3product.model.ProductLayoutTarget
 import ai.laiq.tankinspection.v3product.model.ProductReferenceMode
 import ai.laiq.tankinspection.v3product.model.ProductShellOffsetStartRow
 import ai.laiq.tankinspection.v3product.model.ProductShellThirdOffsetStart
+import ai.laiq.tankinspection.v3product.model.customCircularLayoutFor
 import ai.laiq.tankinspection.v3product.model.withTargetApproval
+import ai.laiq.tankinspection.v3product.model.withCustomCircularLayout
+import ai.laiq.tankinspection.v3product.model.withoutCustomCircularLayout
 import ai.laiq.tankinspection.v3product.model.withoutTargetApproval
 import ai.laiq.tankinspection.v3product.model.withRoofPatternDefaults
 import ai.laiq.tankinspection.v3product.model.withSelectedTarget
@@ -39,15 +51,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +82,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.max
@@ -106,6 +126,26 @@ private val shellThirdOffsetStartOptions = listOf(
     ProductShellThirdOffsetStart.TWO_THIRDS.key to "C1 2/3",
 )
 
+private data class ProductCircularLayoutUndo(
+    val layout: ProductCustomCircularPlateLayout,
+    val changesPlateIdentity: Boolean,
+)
+
+private enum class ProductLayoutTargetStatus {
+    NOT_STARTED,
+    EDITING,
+    APPROVED,
+}
+
+private const val MAX_LAYOUT_ROWS = 24
+private const val MAX_ROOF_RINGS = 24
+private const val MAX_RADIAL_SECTORS = 72
+private const val MAX_WIDEST_ROW_PLATES = 80
+private const val MAX_ANNULAR_PLATES = 80
+private const val MAX_SHELL_COURSES = 32
+private const val MAX_SHELL_PLATES_PER_COURSE = 96
+private const val MAX_SHELL_UT_LANES = 48
+
 @Composable
 fun ProductLayoutMapSetupScreen(
     state: ProductLayoutMapSetup,
@@ -113,19 +153,33 @@ fun ProductLayoutMapSetupScreen(
     tankLabel: String,
     roofLabel: String,
     onStateChange: (ProductLayoutMapSetup) -> Unit,
+    onApproveLayout: (ProductLayoutMapSetup) -> Unit,
     onBack: () -> Unit,
     onContinue: (ProductLayoutMapSetup) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val visibleTargets = layoutTargets.ifEmpty { listOf(ProductLayoutTarget.EXTERNAL_ROOF) }
-    val selectedTarget = if (state.selectedTarget in visibleTargets) state.selectedTarget else visibleTargets.first()
+    fun selectedTargetFor(setup: ProductLayoutMapSetup): ProductLayoutTarget =
+        if (setup.selectedTarget in visibleTargets) setup.selectedTarget else visibleTargets.first()
+
+    val selectedTarget = selectedTargetFor(state)
     val selectedSurface = selectedTarget.surface
     val selectedValidationErrors = state.validationErrorsFor(selectedTarget)
     val selectedTargetApproved = selectedTarget in state.approvedTargets && selectedValidationErrors.isEmpty()
-    val nextTargetToApprove = visibleTargets.firstOrNull { target ->
-        target != selectedTarget &&
-            (target !in state.approvedTargets || state.validationErrorsFor(target).isNotEmpty())
+    val latestActionState by rememberUpdatedState(state)
+    fun ProductLayoutTarget.needsApprovalIn(setup: ProductLayoutMapSetup): Boolean =
+        this !in setup.approvedTargets || setup.validationErrorsFor(this).isNotEmpty()
+
+    fun nextTargetNeedingApproval(
+        setup: ProductLayoutMapSetup,
+        fromTarget: ProductLayoutTarget,
+    ): ProductLayoutTarget? {
+        val selectedIndex = visibleTargets.indexOf(fromTarget).coerceAtLeast(0)
+        val orderedTargets = visibleTargets.drop(selectedIndex + 1) + visibleTargets.take(selectedIndex)
+        return orderedTargets.firstOrNull { target -> target.needsApprovalIn(setup) }
     }
+
+    val nextTargetToApprove = nextTargetNeedingApproval(state, selectedTarget)
     val usesConeRoofPattern = state.roofPattern == RoofTemplate.CONE_RADIAL
     val usesUmbrellaRoofPattern = state.roofPattern == RoofTemplate.UMBRELLA_RADIAL
     val usesCircularRoofPattern = state.roofPattern == RoofTemplate.CIRCULAR_PLATE ||
@@ -135,37 +189,43 @@ fun ProductLayoutMapSetupScreen(
     }
 
     fun approveOrContinue() {
-        val approvedState = if (selectedTargetApproved) {
-            state
-        } else {
-            state.withTargetApproval(selectedTarget, approved = true)
+        val actionState = latestActionState
+        val actionSelectedTarget = selectedTargetFor(actionState)
+        val actionValidationErrors = actionState.validationErrorsFor(actionSelectedTarget)
+        val actionSelectedTargetApproved =
+            actionSelectedTarget in actionState.approvedTargets && actionValidationErrors.isEmpty()
+        if (!actionSelectedTargetApproved) {
+            if (actionValidationErrors.isNotEmpty()) return
+            onApproveLayout(
+                actionState
+                    .withSelectedTarget(actionSelectedTarget)
+                    .withTargetApproval(actionSelectedTarget, approved = true),
+            )
+            return
         }
-        val nextUnapprovedTarget = visibleTargets.firstOrNull { target ->
-            target != selectedTarget &&
-                (target !in approvedState.approvedTargets ||
-                    approvedState.validationErrorsFor(target).isNotEmpty())
-        }
-        if (nextUnapprovedTarget != null) {
-            onStateChange(approvedState.withSelectedTarget(nextUnapprovedTarget))
+
+        val nextTarget = nextTargetNeedingApproval(actionState, actionSelectedTarget)
+        if (nextTarget != null) {
+            onStateChange(actionState.withSelectedTarget(nextTarget))
         } else {
-            onContinue(approvedState)
+            onContinue(actionState.withSelectedTarget(actionSelectedTarget))
         }
     }
 
     var generalInfoExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = contentPadding.calculateTopPadding() + 12.dp,
-                bottom = ProductStickyActionBarHeight + 28.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = contentPadding.calculateTopPadding() + 12.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Text(
                     "Layout Map Setup",
                     style = MaterialTheme.typography.headlineSmall,
@@ -173,9 +233,6 @@ fun ProductLayoutMapSetupScreen(
                     color = LaiqColors.BrandTeal,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
-            }
-
-            item {
                 Surface(
                     color = Color.White.copy(alpha = 0.98f),
                     modifier = Modifier.fillMaxWidth(),
@@ -218,40 +275,37 @@ fun ProductLayoutMapSetupScreen(
                         }
                     }
                 }
+                LayoutTargetStatusTabs(
+                    targets = visibleTargets,
+                    selectedTarget = selectedTarget,
+                    approvedTargets = state.approvedTargets,
+                    validationErrorsFor = { target -> state.validationErrorsFor(target) },
+                    onSelect = { target -> onStateChange(state.withSelectedTarget(target)) },
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
             }
 
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = "Layout Surface",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LaiqColors.BrandTeal,
-                    )
-                    LaiqOptionChips(
-                        selectedValue = selectedTarget.key,
-                        options = visibleTargets.map { it.key to it.label },
-                        onSelect = { selected ->
-                            onStateChange(
-                                state.withSelectedTarget(visibleTargets.first { it.key == selected }),
-                            )
-                        },
-                    )
-                }
-            }
-
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 12.dp,
+                    bottom = ProductStickyActionBarHeight + 28.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             item {
                 LaiqSectionCard(title = "${selectedTarget.label} Layout") {
                 when (selectedSurface) {
                     ProductLayoutSurface.ROOF -> {
                         RoofLayoutPreviewPanel(
                             state = state,
+                            target = selectedTarget,
                             referenceMode = state.referenceMode,
+                            onStateChange = onStateChange,
                         )
                         SurfaceSubsection(title = "Roof Setup") {
                             LaiqStatChip(
@@ -313,7 +367,7 @@ fun ProductLayoutMapSetupScreen(
                                         updateCurrentTarget(state.copy(roofSectorCount = it))
                                     },
                                     min = 4,
-                                    max = 36,
+                                    max = MAX_RADIAL_SECTORS,
                                 )
                             } else if (usesUmbrellaRoofPattern) {
                                 TwoUpFields(
@@ -325,7 +379,7 @@ fun ProductLayoutMapSetupScreen(
                                                 updateCurrentTarget(state.copy(roofRingCount = it))
                                             },
                                             min = 1,
-                                            max = 12,
+                                            max = MAX_ROOF_RINGS,
                                         )
                                     },
                                     right = {
@@ -336,7 +390,7 @@ fun ProductLayoutMapSetupScreen(
                                                 updateCurrentTarget(state.copy(roofSectorCount = it))
                                             },
                                             min = 4,
-                                            max = 36,
+                                            max = MAX_RADIAL_SECTORS,
                                         )
                                     },
                                 )
@@ -347,10 +401,12 @@ fun ProductLayoutMapSetupScreen(
                                             label = "Plate Rows",
                                             value = state.roofRowCount,
                                             onValueChange = {
-                                                updateCurrentTarget(state.copy(roofRowCount = it))
+                                                updateCurrentTarget(
+                                                    state.withoutCustomCircularLayout(selectedTarget).copy(roofRowCount = it),
+                                                )
                                             },
                                             min = 1,
-                                            max = 12,
+                                            max = MAX_LAYOUT_ROWS,
                                         )
                                     },
                                     right = {
@@ -358,10 +414,12 @@ fun ProductLayoutMapSetupScreen(
                                             label = "Widest Row Plates",
                                             value = state.roofWidestRowPlateCount,
                                             onValueChange = {
-                                                updateCurrentTarget(state.copy(roofWidestRowPlateCount = it))
+                                                updateCurrentTarget(
+                                                    state.withoutCustomCircularLayout(selectedTarget).copy(roofWidestRowPlateCount = it),
+                                                )
                                             },
                                             min = 4,
-                                            max = 40,
+                                            max = MAX_WIDEST_ROW_PLATES,
                                         )
                                     },
                                 )
@@ -381,7 +439,7 @@ fun ProductLayoutMapSetupScreen(
                                         updateCurrentTarget(state.copy(roofAnnularSectionCount = it))
                                     },
                                     min = 4,
-                                    max = 40,
+                                    max = MAX_ANNULAR_PLATES,
                                 )
                             }
                         }
@@ -415,7 +473,7 @@ fun ProductLayoutMapSetupScreen(
                                             updateCurrentTarget(state.copy(shellCourseCount = it))
                                         },
                                         min = 1,
-                                        max = 12,
+                                        max = MAX_SHELL_COURSES,
                                     )
                                 },
                                 right = {
@@ -426,7 +484,7 @@ fun ProductLayoutMapSetupScreen(
                                             updateCurrentTarget(state.copy(shellPlatesPerCourse = it))
                                         },
                                         min = 1,
-                                        max = 48,
+                                        max = MAX_SHELL_PLATES_PER_COURSE,
                                     )
                                 },
                             )
@@ -437,7 +495,7 @@ fun ProductLayoutMapSetupScreen(
                                     updateCurrentTarget(state.copy(shellLaneCount = it))
                                 },
                                 min = 1,
-                                max = 24,
+                                max = MAX_SHELL_UT_LANES,
                             )
                             Text(
                                 text = "Offset Amount",
@@ -498,11 +556,14 @@ fun ProductLayoutMapSetupScreen(
 
                     ProductLayoutSurface.FLOOR -> {
                         FloorLayoutPreviewPanel(
+                            target = selectedTarget,
                             template = state.floorTemplate,
                             rowCount = state.floorPatternCountX.toPositiveInt(6),
                             widestRowPlateCount = state.floorPatternCountY.toPositiveInt(12),
                             annularSectionCount = state.floorAnnularSectionCount.toPositiveInt(12),
                             referenceMode = state.referenceMode,
+                            state = state,
+                            onStateChange = onStateChange,
                         )
                         SurfaceSubsection(title = "Floor Setup") {
                             LaiqDropdownField(
@@ -511,7 +572,7 @@ fun ProductLayoutMapSetupScreen(
                                 options = floorTemplateOptions,
                                 onSelected = { selectedKey ->
                                     updateCurrentTarget(
-                                        state.copy(
+                                        state.withoutCustomCircularLayout(selectedTarget).copy(
                                             floorTemplate = ProductFloorTemplate.entries.first { option ->
                                                 option.key == selectedKey
                                             },
@@ -525,10 +586,12 @@ fun ProductLayoutMapSetupScreen(
                                         label = "Plate Rows",
                                         value = state.floorPatternCountX,
                                         onValueChange = {
-                                            updateCurrentTarget(state.copy(floorPatternCountX = it))
+                                            updateCurrentTarget(
+                                                state.withoutCustomCircularLayout(selectedTarget).copy(floorPatternCountX = it),
+                                            )
                                         },
                                         min = 1,
-                                        max = 12,
+                                        max = MAX_LAYOUT_ROWS,
                                     )
                                 },
                                 right = {
@@ -536,10 +599,12 @@ fun ProductLayoutMapSetupScreen(
                                         label = "Widest Row Plates",
                                         value = state.floorPatternCountY,
                                         onValueChange = {
-                                            updateCurrentTarget(state.copy(floorPatternCountY = it))
+                                            updateCurrentTarget(
+                                                state.withoutCustomCircularLayout(selectedTarget).copy(floorPatternCountY = it),
+                                            )
                                         },
                                         min = 4,
-                                        max = 40,
+                                        max = MAX_WIDEST_ROW_PLATES,
                                     )
                                 },
                             )
@@ -551,7 +616,7 @@ fun ProductLayoutMapSetupScreen(
                                         updateCurrentTarget(state.copy(floorAnnularSectionCount = it))
                                     },
                                     min = 4,
-                                    max = 40,
+                                    max = MAX_ANNULAR_PLATES,
                                 )
                             }
                         }
@@ -566,6 +631,7 @@ fun ProductLayoutMapSetupScreen(
                 }
             }
         }
+        }
 
         ProductStickyActionBar(
             primaryText = when {
@@ -573,13 +639,87 @@ fun ProductLayoutMapSetupScreen(
                 nextTargetToApprove != null -> "Next Layout"
                 else -> "Continue"
             },
-            onPrimaryClick = ::approveOrContinue,
+            onPrimaryClick = { approveOrContinue() },
             primaryEnabled = selectedTargetApproved || selectedValidationErrors.isEmpty(),
             onSecondaryClick = onBack,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 }
+
+@Composable
+private fun LayoutTargetStatusTabs(
+    targets: List<ProductLayoutTarget>,
+    selectedTarget: ProductLayoutTarget,
+    approvedTargets: Set<ProductLayoutTarget>,
+    validationErrorsFor: (ProductLayoutTarget) -> List<String>,
+    onSelect: (ProductLayoutTarget) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = Color.White.copy(alpha = 0.98f),
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            targets.forEach { target ->
+                val status = when {
+                    target in approvedTargets && validationErrorsFor(target).isEmpty() -> ProductLayoutTargetStatus.APPROVED
+                    target == selectedTarget -> ProductLayoutTargetStatus.EDITING
+                    else -> ProductLayoutTargetStatus.NOT_STARTED
+                }
+                Surface(
+                    onClick = { onSelect(target) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (target == selectedTarget) {
+                        LaiqColors.SurfaceTint
+                    } else {
+                        Color.White
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        if (target == selectedTarget) LaiqColors.BrandTeal else LaiqColors.PanelBorder,
+                    ),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = status.dotColor(),
+                            modifier = Modifier.size(9.dp),
+                        ) {}
+                        Text(
+                            text = target.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (target == selectedTarget) FontWeight.SemiBold else FontWeight.Medium,
+                            color = LaiqColors.BodyText,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun ProductLayoutTargetStatus.dotColor(): Color =
+    when (this) {
+        ProductLayoutTargetStatus.NOT_STARTED -> Color.Black
+        ProductLayoutTargetStatus.EDITING -> Color(0xFFF2C94C)
+        ProductLayoutTargetStatus.APPROVED -> Color(0xFF1FA463)
+    }
 
 @Composable
 private fun LayoutValidationPanel(errors: List<String>) {
@@ -611,37 +751,37 @@ private fun LayoutValidationPanel(errors: List<String>) {
 }
 
 private fun ProductLayoutMapSetup.validationErrorsFor(target: ProductLayoutTarget): List<String> =
-    buildList {
+    mutableListOf<String>().apply {
         when (target.surface) {
             ProductLayoutSurface.ROOF -> {
                 when (roofPattern) {
                     RoofTemplate.CONE_RADIAL -> {
-                        requireCount("Radial sector count", roofSectorCount, min = 4, max = 36)
+                        requireCount("Radial sector count", roofSectorCount, min = 4, max = MAX_RADIAL_SECTORS)
                     }
                     RoofTemplate.UMBRELLA_RADIAL -> {
-                        requireCount("Plate ring count", roofRingCount, min = 1, max = 12)
-                        requireCount("Radial sector count", roofSectorCount, min = 4, max = 36)
+                        requireCount("Plate ring count", roofRingCount, min = 1, max = MAX_ROOF_RINGS)
+                        requireCount("Radial sector count", roofSectorCount, min = 4, max = MAX_RADIAL_SECTORS)
                     }
                     RoofTemplate.CIRCULAR_PLATE,
                     RoofTemplate.CIRCULAR_CENTER_OPENING -> {
-                        requireCount("Plate rows", roofRowCount, min = 1, max = 12)
-                        requireCount("Widest row plates", roofWidestRowPlateCount, min = 4, max = 40)
+                        requireCount("Plate rows", roofRowCount, min = 1, max = MAX_LAYOUT_ROWS)
+                        requireCount("Widest row plates", roofWidestRowPlateCount, min = 4, max = MAX_WIDEST_ROW_PLATES)
                     }
                 }
                 if (roofHasAnnularRing) {
-                    requireCount("Annular ring plates", roofAnnularSectionCount, min = 4, max = 40)
+                    requireCount("Annular ring plates", roofAnnularSectionCount, min = 4, max = MAX_ANNULAR_PLATES)
                 }
             }
             ProductLayoutSurface.SHELL -> {
-                requireCount("Course count", shellCourseCount, min = 1, max = 12)
-                requireCount("Plates per course", shellPlatesPerCourse, min = 1, max = 48)
-                requireCount("UT lane count", shellLaneCount, min = 1, max = 24)
+                requireCount("Course count", shellCourseCount, min = 1, max = MAX_SHELL_COURSES)
+                requireCount("Plates per course", shellPlatesPerCourse, min = 1, max = MAX_SHELL_PLATES_PER_COURSE)
+                requireCount("UT lane count", shellLaneCount, min = 1, max = MAX_SHELL_UT_LANES)
             }
             ProductLayoutSurface.FLOOR -> {
-                requireCount("Plate rows", floorPatternCountX, min = 1, max = 12)
-                requireCount("Widest row plates", floorPatternCountY, min = 4, max = 40)
+                requireCount("Plate rows", floorPatternCountX, min = 1, max = MAX_LAYOUT_ROWS)
+                requireCount("Widest row plates", floorPatternCountY, min = 4, max = MAX_WIDEST_ROW_PLATES)
                 if (floorTemplate == ProductFloorTemplate.CIRCULAR_PLATE_WITH_AR) {
-                    requireCount("Annular ring plates", floorAnnularSectionCount, min = 4, max = 40)
+                    requireCount("Annular ring plates", floorAnnularSectionCount, min = 4, max = MAX_ANNULAR_PLATES)
                 }
             }
         }
@@ -710,14 +850,91 @@ private fun RoofOptionChips(
 @Composable
 private fun RoofLayoutPreviewPanel(
     state: ProductLayoutMapSetup,
+    target: ProductLayoutTarget,
     referenceMode: ProductReferenceMode,
+    onStateChange: (ProductLayoutMapSetup) -> Unit,
 ) {
     val rowCount = state.roofRowCount.toPositiveInt(4)
     val widestRowPlateCount = state.roofWidestRowPlateCount.toPositiveInt(10)
     val ringCount = state.roofRingCount.toPositiveInt(3)
     val sectorCount = state.roofSectorCount.toPositiveInt(20)
-    var selectedPlateId by remember(state.roofPattern, ringCount, sectorCount, rowCount, widestRowPlateCount) {
+    val supportsCustomCircular = state.roofPattern == RoofTemplate.CIRCULAR_PLATE ||
+        state.roofPattern == RoofTemplate.CIRCULAR_CENTER_OPENING
+    val customLayout = if (supportsCustomCircular) {
+        state.customCircularLayoutFor(target)?.normalizedFor(rowCount, widestRowPlateCount)
+    } else {
+        null
+    }
+    val customPlateCells = customLayout?.toRoofPlateCells(target, rowCount, widestRowPlateCount)
+    var editMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    val editHistory = remember(target, rowCount, widestRowPlateCount) {
+        mutableStateListOf<ProductCircularLayoutUndo>()
+    }
+    var selectedPlateId by remember(
+        state.roofPattern,
+        ringCount,
+        sectorCount,
+        rowCount,
+        widestRowPlateCount,
+    ) {
         mutableStateOf<String?>(null)
+    }
+    fun currentCircularLayout(): ProductCustomCircularPlateLayout =
+        state.customCircularLayoutFor(target)
+            ?.normalizedFor(rowCount, widestRowPlateCount)
+            ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount)
+
+    fun applyCircularLayoutChange(
+        layout: ProductCustomCircularPlateLayout,
+        changesPlateIdentity: Boolean,
+        undoCheckpoint: ProductCustomCircularPlateLayout? = null,
+    ) {
+        val undoLayout = undoCheckpoint ?: currentCircularLayout()
+        if (layout != undoLayout) {
+            if (editHistory.lastOrNull()?.layout != undoLayout) {
+                if (editHistory.size >= 20) editHistory.removeAt(0)
+                editHistory.add(ProductCircularLayoutUndo(undoLayout, changesPlateIdentity))
+            }
+        }
+        if (changesPlateIdentity) {
+            onStateChange(state.withCustomCircularLayout(target, layout))
+        } else {
+            onStateChange(
+                state.copy(
+                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to layout),
+                ),
+            )
+        }
+    }
+
+    fun previewCircularLayoutChange(layout: ProductCustomCircularPlateLayout) {
+        onStateChange(
+            state.copy(
+                customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to layout),
+            ),
+        )
+    }
+
+    fun undoCircularLayoutChange() {
+        if (editHistory.isEmpty()) return
+        val undo = editHistory.removeAt(editHistory.lastIndex)
+        selectedPlateId = null
+        if (undo.changesPlateIdentity) {
+            onStateChange(state.withCustomCircularLayout(target, undo.layout))
+        } else {
+            onStateChange(
+                state.copy(
+                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to undo.layout),
+                ),
+            )
+        }
+    }
+
+    fun enterEditMode() {
+        if (!supportsCustomCircular) return
+        selectedPlateId = null
+        editHistory.clear()
+        editMode = true
     }
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -729,39 +946,86 @@ private fun RoofLayoutPreviewPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp)
-                .height(500.dp),
+                .height(if (editMode) 980.dp else 560.dp)
+                .pointerInput(target, customLayout, supportsCustomCircular) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            if (supportsCustomCircular) enterEditMode()
+                        },
+                    )
+                },
         ) {
-            RoofSurfaceMap(
-                template = state.roofPattern,
-                rowCount = rowCount,
-                widestRowPlateCount = widestRowPlateCount,
-                ringCount = ringCount,
-                sectorCount = sectorCount,
-                activePlateId = selectedPlateId,
-                centerFeatureCount = if (state.roofHasCenterOpening) {
-                    1
-                } else {
-                    0
-                },
-                centerFeatureCountControlsLayout = true,
-                useLeaderPlateLabels = false,
-                showAnnularSectionLabels = false,
-                autoHideCrowdedPlateLabels = true,
-                enablePlateTapSelection = true,
-                hasAnnularRing = state.roofHasAnnularRing,
-                annularSectionCount = if (state.roofHasAnnularRing) {
-                    state.roofAnnularSectionCount.toPositiveInt(12)
-                } else {
-                    0
-                },
-                referenceLabel = referenceMode.label,
-                mapTitle = "Roof Layout Map",
-                onSelectPlate = { selectedPlateId = it },
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(0.9f),
-            )
-            selectedPlateId?.let { plateId ->
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = LaiqColors.MutedText,
+                    )
+                    if (supportsCustomCircular && !editMode) {
+                        TextButton(onClick = { enterEditMode() }) {
+                            Text("Edit")
+                        }
+                    }
+                }
+                RoofSurfaceMap(
+                    template = state.roofPattern,
+                    rowCount = rowCount,
+                    widestRowPlateCount = widestRowPlateCount,
+                    ringCount = ringCount,
+                    sectorCount = sectorCount,
+                    activePlateId = selectedPlateId,
+                    centerFeatureCount = if (state.roofHasCenterOpening) {
+                        1
+                    } else {
+                        0
+                    },
+                    centerFeatureCountControlsLayout = true,
+                    useLeaderPlateLabels = false,
+                    showAnnularSectionLabels = false,
+                    autoHideCrowdedPlateLabels = true,
+                    enablePlateTapSelection = true,
+                    hasAnnularRing = state.roofHasAnnularRing,
+                    annularSectionCount = if (state.roofHasAnnularRing) {
+                        state.roofAnnularSectionCount.toPositiveInt(12)
+                    } else {
+                        0
+                    },
+                    annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+                    customPlateCells = customPlateCells,
+                    referenceLabel = referenceMode.label,
+                    mapTitle = "Roof Layout Map",
+                    onSelectPlate = { selectedPlateId = it },
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth(0.9f),
+                )
+                if (editMode) {
+                    CustomCircularLayoutEditCard(
+                        target = target,
+                        layout = state.customCircularLayoutFor(target)
+                            ?.normalizedFor(rowCount, widestRowPlateCount)
+                            ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount),
+                        selectedPlateId = selectedPlateId,
+                        hasAnnularRing = state.roofHasAnnularRing,
+                        onSelectedPlateChange = { selectedPlateId = it },
+                        onLayoutPreviewChange = { layout ->
+                            previewCircularLayoutChange(layout)
+                        },
+                        onLayoutChange = { layout, changesPlateIdentity, undoCheckpoint ->
+                            applyCircularLayoutChange(layout, changesPlateIdentity, undoCheckpoint)
+                        },
+                        canUndo = editHistory.isNotEmpty(),
+                        onUndo = { undoCircularLayoutChange() },
+                        onDone = { editMode = false },
+                    )
+                }
+            }
+            if (!editMode) selectedPlateId?.let { plateId ->
                 SelectedPlateChip(
                     text = "Selected plate: $plateId",
                     modifier = Modifier.align(Alignment.BottomStart),
@@ -773,16 +1037,81 @@ private fun RoofLayoutPreviewPanel(
 
 @Composable
 private fun FloorLayoutPreviewPanel(
+    target: ProductLayoutTarget,
     template: ProductFloorTemplate,
     rowCount: Int,
     widestRowPlateCount: Int,
     annularSectionCount: Int,
     referenceMode: ProductReferenceMode,
+    state: ProductLayoutMapSetup,
+    onStateChange: (ProductLayoutMapSetup) -> Unit,
 ) {
+    val customLayout = state.customCircularLayoutFor(target)?.normalizedFor(rowCount, widestRowPlateCount)
+    val customPlateCells = customLayout?.toRoofPlateCells(target, rowCount, widestRowPlateCount)
+    var editMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    val editHistory = remember(target, rowCount, widestRowPlateCount) {
+        mutableStateListOf<ProductCircularLayoutUndo>()
+    }
     var selectedPlateId by remember(template, rowCount, widestRowPlateCount, annularSectionCount) {
         mutableStateOf<String?>(null)
     }
     val hasAnnularRing = template == ProductFloorTemplate.CIRCULAR_PLATE_WITH_AR
+    fun currentCircularLayout(): ProductCustomCircularPlateLayout =
+        state.customCircularLayoutFor(target)
+            ?.normalizedFor(rowCount, widestRowPlateCount)
+            ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount)
+
+    fun applyCircularLayoutChange(
+        layout: ProductCustomCircularPlateLayout,
+        changesPlateIdentity: Boolean,
+        undoCheckpoint: ProductCustomCircularPlateLayout? = null,
+    ) {
+        val undoLayout = undoCheckpoint ?: currentCircularLayout()
+        if (layout != undoLayout) {
+            if (editHistory.lastOrNull()?.layout != undoLayout) {
+                if (editHistory.size >= 20) editHistory.removeAt(0)
+                editHistory.add(ProductCircularLayoutUndo(undoLayout, changesPlateIdentity))
+            }
+        }
+        if (changesPlateIdentity) {
+            onStateChange(state.withCustomCircularLayout(target, layout))
+        } else {
+            onStateChange(
+                state.copy(
+                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to layout),
+                ),
+            )
+        }
+    }
+
+    fun previewCircularLayoutChange(layout: ProductCustomCircularPlateLayout) {
+        onStateChange(
+            state.copy(
+                customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to layout),
+            ),
+        )
+    }
+
+    fun undoCircularLayoutChange() {
+        if (editHistory.isEmpty()) return
+        val undo = editHistory.removeAt(editHistory.lastIndex)
+        selectedPlateId = null
+        if (undo.changesPlateIdentity) {
+            onStateChange(state.withCustomCircularLayout(target, undo.layout))
+        } else {
+            onStateChange(
+                state.copy(
+                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget + (target to undo.layout),
+                ),
+            )
+        }
+    }
+
+    fun enterEditMode() {
+        selectedPlateId = null
+        editHistory.clear()
+        editMode = true
+    }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
@@ -793,28 +1122,71 @@ private fun FloorLayoutPreviewPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp)
-                .height(500.dp),
+                .height(if (editMode) 980.dp else 560.dp)
+                .pointerInput(target, customLayout) {
+                    detectTapGestures(onDoubleTap = { enterEditMode() })
+                },
         ) {
-            RoofSurfaceMap(
-                template = RoofTemplate.CIRCULAR_PLATE,
-                rowCount = rowCount,
-                widestRowPlateCount = widestRowPlateCount,
-                ringCount = 0,
-                sectorCount = 0,
-                activePlateId = selectedPlateId,
-                hasAnnularRing = hasAnnularRing,
-                annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
-                showAnnularSectionLabels = hasAnnularRing,
-                autoHideCrowdedPlateLabels = true,
-                enablePlateTapSelection = true,
-                referenceLabel = referenceMode.label,
-                mapTitle = "Floor Layout Map",
-                onSelectPlate = { selectedPlateId = it },
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(0.9f),
-            )
-            selectedPlateId?.let { plateId ->
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = LaiqColors.MutedText,
+                    )
+                    if (!editMode) {
+                        TextButton(onClick = { enterEditMode() }) {
+                            Text("Edit")
+                        }
+                    }
+                }
+                RoofSurfaceMap(
+                    template = RoofTemplate.CIRCULAR_PLATE,
+                    rowCount = rowCount,
+                    widestRowPlateCount = widestRowPlateCount,
+                    ringCount = 0,
+                    sectorCount = 0,
+                    activePlateId = selectedPlateId,
+                    hasAnnularRing = hasAnnularRing,
+                    annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
+                    annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+                    customPlateCells = customPlateCells,
+                    showAnnularSectionLabels = hasAnnularRing,
+                    autoHideCrowdedPlateLabels = true,
+                    enablePlateTapSelection = true,
+                    referenceLabel = referenceMode.label,
+                    mapTitle = "Floor Layout Map",
+                    onSelectPlate = { selectedPlateId = it },
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth(0.9f),
+                )
+                if (editMode) {
+                    CustomCircularLayoutEditCard(
+                        target = target,
+                        layout = state.customCircularLayoutFor(target)
+                            ?.normalizedFor(rowCount, widestRowPlateCount)
+                            ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount),
+                        selectedPlateId = selectedPlateId,
+                        hasAnnularRing = hasAnnularRing,
+                        onSelectedPlateChange = { selectedPlateId = it },
+                        onLayoutPreviewChange = { layout ->
+                            previewCircularLayoutChange(layout)
+                        },
+                        onLayoutChange = { layout, changesPlateIdentity, undoCheckpoint ->
+                            applyCircularLayoutChange(layout, changesPlateIdentity, undoCheckpoint)
+                        },
+                        canUndo = editHistory.isNotEmpty(),
+                        onUndo = { undoCircularLayoutChange() },
+                        onDone = { editMode = false },
+                    )
+                }
+            }
+            if (!editMode) selectedPlateId?.let { plateId ->
                 SelectedPlateChip(
                     text = "Selected plate: $plateId",
                     modifier = Modifier.align(Alignment.BottomStart),
@@ -822,6 +1194,262 @@ private fun FloorLayoutPreviewPanel(
             }
         }
     }
+}
+
+@Composable
+private fun CustomCircularLayoutEditCard(
+    target: ProductLayoutTarget,
+    layout: ProductCustomCircularPlateLayout,
+    selectedPlateId: String?,
+    hasAnnularRing: Boolean,
+    onSelectedPlateChange: (String?) -> Unit,
+    onLayoutPreviewChange: (ProductCustomCircularPlateLayout) -> Unit,
+    onLayoutChange: (ProductCustomCircularPlateLayout, Boolean, ProductCustomCircularPlateLayout?) -> Unit,
+    canUndo: Boolean,
+    onUndo: () -> Unit,
+    onDone: () -> Unit,
+) {
+    val selectedRef = selectedPlateId?.let { plateId ->
+        layout.plateRefs(target).firstOrNull { ref -> ref.label == plateId }
+    }
+    var rowShiftUndoStart by remember(selectedRef?.rowNumber) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var rowShiftLatestLayout by remember(selectedRef?.rowNumber) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var annularSpinUndoStart by remember(hasAnnularRing) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var annularSpinLatestLayout by remember(hasAnnularRing) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    val selectedRow = selectedRef?.let { ref ->
+        layout.rows.firstOrNull { row -> row.rowNumber == ref.rowNumber }
+    }
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = LaiqColors.SurfaceTint,
+        border = BorderStroke(1.dp, LaiqColors.BrandTeal.copy(alpha = 0.28f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = "Edit circular layout",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LaiqColors.BrandTeal,
+                    )
+                    Text(
+                        text = "Tap a plate, then split, merge, or shift its row.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LaiqColors.MutedText,
+                    )
+                }
+                TextButton(onClick = onDone) {
+                    Text("Close")
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+            ) {
+                Text(
+                    text = selectedPlateId?.let { "Selected plate: $it" } ?: "No plate selected",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selectedPlateId == null) LaiqColors.MutedText else LaiqColors.BrandTeal,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            }
+            Text(
+                text = "Plate actions",
+                style = MaterialTheme.typography.labelLarge,
+                color = LaiqColors.BodyText,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    enabled = selectedPlateId != null,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val (updatedLayout, updatedSelection) = layout.splitPlateAndSelect(target, plateId, 2)
+                            onSelectedPlateChange(updatedSelection)
+                            onLayoutChange(updatedLayout, true, null)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Split 2")
+                }
+                OutlinedButton(
+                    enabled = selectedPlateId != null,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val (updatedLayout, updatedSelection) = layout.splitPlateAndSelect(target, plateId, 3)
+                            onSelectedPlateChange(updatedSelection)
+                            onLayoutChange(updatedLayout, true, null)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Split 3")
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    enabled = selectedRef?.plateIndex?.let { it > 0 } == true,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val (updatedLayout, updatedSelection) = layout.mergePlateAndSelect(target, plateId, -1)
+                            onSelectedPlateChange(updatedSelection)
+                            onLayoutChange(updatedLayout, true, null)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Merge Left")
+                }
+                OutlinedButton(
+                    enabled = selectedRef?.let { ref ->
+                        ref.plateIndex < (layout.rows.getOrNull(ref.rowIndex)?.plates?.lastIndex ?: -1)
+                    } == true,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val (updatedLayout, updatedSelection) = layout.mergePlateAndSelect(target, plateId, 1)
+                            onSelectedPlateChange(updatedSelection)
+                            onLayoutChange(updatedLayout, true, null)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Merge Right")
+                }
+            }
+            if (selectedRef != null && selectedRow != null) {
+                Text(
+                    text = "Row ${selectedRow.rowNumber} shift",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LaiqColors.BodyText,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Slider(
+                    value = selectedRow.shiftRatio.coerceIn(-1f, 1f),
+                    onValueChange = { value ->
+                        if (rowShiftUndoStart == null) rowShiftUndoStart = layout
+                        val updatedLayout = layout.withRowShift(selectedRow.rowNumber, value)
+                        rowShiftLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = rowShiftUndoStart
+                        val latestLayout = rowShiftLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        rowShiftUndoStart = null
+                        rowShiftLatestLayout = null
+                    },
+                    valueRange = -1f..1f,
+                )
+            }
+            if (hasAnnularRing) {
+                Text(
+                    text = "AR ring spin ${layout.annularRotationDeg.toInt()}°",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LaiqColors.BodyText,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Slider(
+                    value = layout.annularRotationDeg.coerceIn(-180f, 180f),
+                    onValueChange = { value ->
+                        if (annularSpinUndoStart == null) annularSpinUndoStart = layout
+                        val updatedLayout = layout.withAnnularRotation(value)
+                        annularSpinLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = annularSpinUndoStart
+                        val latestLayout = annularSpinLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        annularSpinUndoStart = null
+                        annularSpinLatestLayout = null
+                    },
+                    valueRange = -180f..180f,
+                )
+            }
+            Text(
+                text = "Split/merge regenerates plate IDs. Row shift and AR spin only change map geometry.",
+                style = MaterialTheme.typography.bodySmall,
+                color = LaiqColors.MutedText,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LaiqSecondaryButton(
+                    text = "Undo",
+                    onClick = onUndo,
+                    enabled = canUndo,
+                    modifier = Modifier.weight(1f),
+                )
+                LaiqPrimaryButton(
+                    text = "Confirm",
+                    onClick = onDone,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+private fun ProductCustomCircularPlateLayout.splitPlateAndSelect(
+    target: ProductLayoutTarget,
+    plateLabel: String,
+    parts: Int,
+): Pair<ProductCustomCircularPlateLayout, String?> {
+    val ref = plateRefs(target).firstOrNull { it.label == plateLabel }
+        ?: return this to plateLabel
+    val updatedLayout = splitPlate(target, plateLabel, parts)
+    val updatedSelection = updatedLayout.plateRefs(target)
+        .firstOrNull { it.rowIndex == ref.rowIndex && it.plateIndex == ref.plateIndex }
+        ?.label
+    return updatedLayout to updatedSelection
+}
+
+private fun ProductCustomCircularPlateLayout.mergePlateAndSelect(
+    target: ProductLayoutTarget,
+    plateLabel: String,
+    direction: Int,
+): Pair<ProductCustomCircularPlateLayout, String?> {
+    val ref = plateRefs(target).firstOrNull { it.label == plateLabel }
+        ?: return this to plateLabel
+    val row = rows.getOrNull(ref.rowIndex) ?: return this to plateLabel
+    val adjacentIndex = ref.plateIndex + direction.coerceIn(-1, 1)
+    if (adjacentIndex !in row.plates.indices || adjacentIndex == ref.plateIndex) return this to plateLabel
+
+    val mergedPlateIndex = minOf(ref.plateIndex, adjacentIndex)
+    val updatedLayout = mergePlate(target, plateLabel, direction)
+    val updatedSelection = updatedLayout.plateRefs(target)
+        .firstOrNull { it.rowIndex == ref.rowIndex && it.plateIndex == mergedPlateIndex }
+        ?.label
+    return updatedLayout to updatedSelection
 }
 
 @Composable

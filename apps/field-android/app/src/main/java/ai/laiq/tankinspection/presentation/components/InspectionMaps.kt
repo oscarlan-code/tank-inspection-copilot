@@ -4,6 +4,7 @@ import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RotationDirection
 import ai.laiq.tankinspection.presentation.RoofPlateCell
 import ai.laiq.tankinspection.presentation.azimuthToCanvasRadians
+import ai.laiq.tankinspection.presentation.buildAnnularRingSectionCells
 import ai.laiq.tankinspection.presentation.buildRoofLinkTargetsForConfig
 import ai.laiq.tankinspection.presentation.buildRoofPlateCells
 import ai.laiq.tankinspection.presentation.canvasPointToRoofPolar
@@ -666,33 +667,48 @@ fun RoofSurfaceMap(
     mapTitle: String = "Roof Layout Map",
     referenceLabel: String? = null,
     referenceAzimuthDeg: Double = 0.0,
+    annularReferenceAzimuthDeg: Double = referenceAzimuthDeg,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
+    customPlateCells: List<RoofPlateCell>? = null,
     onSelectPosition: ((Double, Double) -> Unit)? = null,
     onSelectPlate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val plateCells = buildRoofPlateCells(
-        template = template,
-        rowCount = rowCount,
-        widestRowPlateCount = widestRowPlateCount,
-        ringCount = ringCount,
-        sectorCount = sectorCount,
-        centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
-        referenceAzimuthDeg = referenceAzimuthDeg,
-        rotationDirection = rotationDirection,
-    )
-    val linkTargets = buildRoofLinkTargetsForConfig(
-        template = template,
-        rowCount = rowCount,
-        widestRowPlateCount = widestRowPlateCount,
-        ringCount = ringCount,
-        sectorCount = sectorCount,
-        centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
-        referenceAzimuthDeg = referenceAzimuthDeg,
-        rotationDirection = rotationDirection,
-        hasAnnularRing = hasAnnularRing,
-        annularSectionCount = annularSectionCount,
-    )
+    val plateCells = customPlateCells ?: buildRoofPlateCells(
+            template = template,
+            rowCount = rowCount,
+            widestRowPlateCount = widestRowPlateCount,
+            ringCount = ringCount,
+            sectorCount = sectorCount,
+            centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
+            referenceAzimuthDeg = referenceAzimuthDeg,
+            rotationDirection = rotationDirection,
+        )
+    val annularCells = if (hasAnnularRing && annularSectionCount > 0) {
+        buildAnnularRingSectionCells(
+            referenceAzimuthDeg = annularReferenceAzimuthDeg,
+            rotationDirection = rotationDirection,
+            annularSectionCount = annularSectionCount,
+        )
+    } else {
+        emptyList()
+    }
+    val linkTargets = if (customPlateCells != null) {
+        plateCells + annularCells
+    } else {
+        buildRoofLinkTargetsForConfig(
+            template = template,
+            rowCount = rowCount,
+            widestRowPlateCount = widestRowPlateCount,
+            ringCount = ringCount,
+            sectorCount = sectorCount,
+            centerFeatureCount = if (centerFeatureCountControlsLayout) centerFeatureCount else 0,
+            referenceAzimuthDeg = referenceAzimuthDeg,
+            rotationDirection = rotationDirection,
+            hasAnnularRing = false,
+            annularSectionCount = 0,
+        ) + annularCells
+    }
     val isCircularTemplate = template == RoofTemplate.CIRCULAR_PLATE || template == RoofTemplate.CIRCULAR_CENTER_OPENING
     val showCenterOpening = template == RoofTemplate.CIRCULAR_CENTER_OPENING || centerFeatureCount > 0
     val displayPlateCells = if (centerFeatureCountControlsLayout && showCenterOpening && template == RoofTemplate.CONE_RADIAL) {
@@ -710,19 +726,24 @@ fun RoofSurfaceMap(
     val markerPoints = markers.mapNotNull { marker ->
         val point = when {
             marker.azimuthDeg != null && marker.radiusRatio != null -> {
-                val resolvedPlateId = roofPlateIdAtPolar(
-                    template = template,
-                    rowCount = rowCount,
-                    widestRowPlateCount = widestRowPlateCount,
-                    ringCount = ringCount,
-                    sectorCount = sectorCount,
-                    referenceAzimuthDeg = referenceAzimuthDeg,
-                    rotationDirection = rotationDirection,
-                    hasAnnularRing = hasAnnularRing,
-                    annularSectionCount = annularSectionCount,
-                    azimuthDeg = marker.azimuthDeg,
-                    radiusRatio = marker.radiusRatio,
-                )
+                val resolvedPlateId = if (customPlateCells != null) {
+                    val (xNorm, yNorm) = roofPolarToCanvasPoint(marker.azimuthDeg, marker.radiusRatio)
+                    customRoofPlateIdAtPoint(linkTargets, xNorm, yNorm)
+                } else {
+                    roofPlateIdAtPolar(
+                        template = template,
+                        rowCount = rowCount,
+                        widestRowPlateCount = widestRowPlateCount,
+                        ringCount = ringCount,
+                        sectorCount = sectorCount,
+                        referenceAzimuthDeg = referenceAzimuthDeg,
+                        rotationDirection = rotationDirection,
+                        hasAnnularRing = hasAnnularRing,
+                        annularSectionCount = annularSectionCount,
+                        azimuthDeg = marker.azimuthDeg,
+                        radiusRatio = marker.radiusRatio,
+                    )
+                }
                 if (!marker.plateId.isNullOrBlank() && resolvedPlateId != marker.plateId) {
                     linkTargets.firstOrNull { it.plateId == marker.plateId }?.let { cell ->
                         cell.xNorm to cell.yNorm
@@ -818,7 +839,7 @@ fun RoofSurfaceMap(
                         if (sectionCount > 0) {
                             val sectionStep = 360.0 / sectionCount.toDouble()
                             repeat(sectionCount) { sectionIndex ->
-                                val angle = azimuthToCanvasRadians(referenceAzimuthDeg + sectionStep * sectionIndex)
+                                val angle = azimuthToCanvasRadians(annularReferenceAzimuthDeg + sectionStep * sectionIndex)
                                 val cosValue = cos(angle).toFloat()
                                 val sinValue = sin(angle).toFloat()
                                 drawLine(
@@ -1174,7 +1195,7 @@ fun RoofSurfaceMap(
                                     )
                                     .width(mapSize * (cell.rightNorm - cell.leftNorm))
                                     .height(mapSize * (cell.bottomNorm - cell.topNorm))
-                                    .padding(1.dp),
+                                    .padding(0.5.dp),
 	                            color = when {
 	                                    emphasizeUtHighlights && isActive -> LaiqColors.BrandRed.copy(alpha = 0.22f)
 	                                    emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.34f)
@@ -1554,28 +1575,58 @@ fun RoofSurfaceMap(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .pointerInput(onSelectPosition, enablePlateTapSelection, onSelectPlate) {
+                            .pointerInput(
+                                onSelectPosition,
+                                enablePlateTapSelection,
+                                onSelectPlate,
+                                linkTargets,
+                                template,
+                                rowCount,
+                                widestRowPlateCount,
+                                ringCount,
+                                sectorCount,
+                                referenceAzimuthDeg,
+                                rotationDirection,
+                                hasAnnularRing,
+                                annularSectionCount,
+                            ) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         val normalizedX = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
                                         val normalizedY = (offset.y / size.height.toFloat()).coerceIn(0f, 1f)
+                                        val visibleRadius = if (hasAnnularRing) 0.48f else 0.42f
+                                        val deltaXNorm = normalizedX - 0.5f
+                                        val deltaYNorm = normalizedY - 0.5f
+                                        val isInsideVisibleMap = sqrt(
+                                            deltaXNorm * deltaXNorm + deltaYNorm * deltaYNorm,
+                                        ) <= visibleRadius
+                                        if (!isInsideVisibleMap) return@detectTapGestures
                                         val (azimuthDeg, radiusRatio) = canvasPointToRoofPolar(
                                             normalizedX,
                                             normalizedY,
                                         )
-                                        nearestRoofPlateId(
-                                            template = template,
-                                            rowCount = rowCount,
-                                            widestRowPlateCount = widestRowPlateCount,
-                                            ringCount = ringCount,
-                                            sectorCount = sectorCount,
-                                            referenceAzimuthDeg = referenceAzimuthDeg,
-                                            rotationDirection = rotationDirection,
-                                            hasAnnularRing = hasAnnularRing,
-                                            annularSectionCount = annularSectionCount,
-                                            azimuthDeg = azimuthDeg,
-                                            radiusRatio = radiusRatio,
-                                        )?.let(onSelectPlate)
+                                        val selectedPlate = if (customPlateCells != null) {
+                                            customRoofPlateIdAtPoint(
+                                                linkTargets = linkTargets,
+                                                xNorm = normalizedX,
+                                                yNorm = normalizedY,
+                                            )
+                                        } else {
+                                            nearestRoofPlateId(
+                                                template = template,
+                                                rowCount = rowCount,
+                                                widestRowPlateCount = widestRowPlateCount,
+                                                ringCount = ringCount,
+                                                sectorCount = sectorCount,
+                                                referenceAzimuthDeg = referenceAzimuthDeg,
+                                                rotationDirection = rotationDirection,
+                                                hasAnnularRing = hasAnnularRing,
+                                                annularSectionCount = annularSectionCount,
+                                                azimuthDeg = azimuthDeg,
+                                                radiusRatio = radiusRatio,
+                                            )
+                                        }
+                                        selectedPlate?.let(onSelectPlate)
                                         onSelectPosition?.let { publishRoofMapPosition(offset, size, hasAnnularRing, it) }
                                     },
                                 )
@@ -1610,6 +1661,35 @@ private data class RoofMarkerCallout(
     val labelYNorm: Float,
     val alignRight: Boolean,
 )
+
+private fun customRoofPlateIdAtPoint(
+    linkTargets: List<RoofPlateCell>,
+    xNorm: Float,
+    yNorm: Float,
+): String? {
+    val hitTolerance = 0.008f
+    linkTargets
+        .filter { cell ->
+            xNorm in (cell.leftNorm - hitTolerance)..(cell.rightNorm + hitTolerance) &&
+                yNorm in (cell.topNorm - hitTolerance)..(cell.bottomNorm + hitTolerance)
+        }
+        .minWithOrNull(
+            compareBy<RoofPlateCell> { cell ->
+                (cell.rightNorm - cell.leftNorm) * (cell.bottomNorm - cell.topNorm)
+            }.thenBy { cell ->
+                val dx = cell.xNorm - xNorm
+                val dy = cell.yNorm - yNorm
+                dx * dx + dy * dy
+            },
+        )
+        ?.let { return it.plateId }
+
+    return linkTargets.minByOrNull { cell ->
+        val dx = cell.xNorm - xNorm
+        val dy = cell.yNorm - yNorm
+        sqrt(dx * dx + dy * dy)
+    }?.plateId
+}
 
 private fun buildRoofMarkerCallouts(
     markerPoints: List<Pair<RoofMapMarker, Pair<Float, Float>>>,
@@ -1689,18 +1769,10 @@ private fun publishRoofMapPosition(
     val deltaX = rawPosition.x - center.x
     val deltaY = rawPosition.y - center.y
     val distance = sqrt(deltaX * deltaX + deltaY * deltaY)
-    val scale = if (distance > roofRadius && distance > 0f) {
-        roofRadius / distance
-    } else {
-        1f
-    }
-    val clamped = Offset(
-        x = center.x + (deltaX * scale),
-        y = center.y + (deltaY * scale),
-    )
+    if (distance > roofRadius) return
     val (azimuth, radiusRatio) = canvasPointToRoofPolar(
-        xNorm = (clamped.x / containerSize.width).coerceIn(0f, 1f),
-        yNorm = (clamped.y / containerSize.height).coerceIn(0f, 1f),
+        xNorm = (rawPosition.x / containerSize.width).coerceIn(0f, 1f),
+        yNorm = (rawPosition.y / containerSize.height).coerceIn(0f, 1f),
     )
     onSelectPosition(azimuth, radiusRatio)
 }

@@ -38,7 +38,7 @@ fun ProductDownstreamDataWarningDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Clear And Continue")
+                Text("Clear And Apply Change")
             }
         },
     )

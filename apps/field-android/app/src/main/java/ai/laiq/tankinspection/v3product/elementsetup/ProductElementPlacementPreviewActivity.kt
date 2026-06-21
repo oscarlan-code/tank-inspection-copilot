@@ -7,10 +7,13 @@ import ai.laiq.tankinspection.presentation.v3product.common.ProductDownstreamDat
 import ai.laiq.tankinspection.presentation.v3product.elementsetup.ProductElementPlacementScreen
 import ai.laiq.tankinspection.v3product.model.ProductDownstreamDataImpact
 import ai.laiq.tankinspection.v3product.model.ProductDraftState
+import ai.laiq.tankinspection.v3product.model.ProductElementPlacementState
 import ai.laiq.tankinspection.v3product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v3product.model.selectedTargets
+import ai.laiq.tankinspection.v3product.model.withActiveWorkflowTarget
 import ai.laiq.tankinspection.v3product.model.withFirstAvailableTarget
 import ai.laiq.tankinspection.v3product.model.withReconciledElementPlacement
+import ai.laiq.tankinspection.v3product.model.withSelectedTarget
 import ai.laiq.tankinspection.v3product.preview.ProductPreviewSession
 import ai.laiq.tankinspection.v3product.storage.ProductWorkflowScreen
 import ai.laiq.tankinspection.v3product.utsetup.ProductUtSetupPreviewActivity
@@ -30,6 +33,16 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ProductPreviewSession.attach(applicationContext)
+        ProductPreviewSession.draftState.let { current ->
+            val approvedLayoutTargets = current.layoutScope.selectedTargets()
+                .filter { target -> target in current.layoutMapSetup.approvedTargets }
+            val selectedElementTargets = current.elementSetup.selectedTargets()
+                .filter { target -> target in approvedLayoutTargets }
+            val targetForEntry = selectedElementTargets.firstOrNull()
+            if (targetForEntry != null) {
+                ProductPreviewSession.updateDraftState(current.withActiveWorkflowTarget(targetForEntry))
+            }
+        }
         ProductPreviewSession.setActiveWorkflowScreen(ProductWorkflowScreen.ELEMENT_PLACEMENT)
         setContent {
             LaiqFieldTheme {
@@ -42,9 +55,15 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
                                         .filter { target -> target in current.layoutMapSetup.approvedTargets }
                                     val selectedElementTargets = current.elementSetup.selectedTargets()
                                         .filter { target -> target in approvedLayoutTargets }
-                                    current.copy(
-                                        elementPlacement = current.elementPlacement.withFirstAvailableTarget(selectedElementTargets),
-                                    )
+                                    val targetForEntry = selectedElementTargets.firstOrNull()
+                                    if (targetForEntry != null) {
+                                        current.withActiveWorkflowTarget(targetForEntry)
+                                    } else {
+                                        current.copy(
+                                            elementPlacement = current.elementPlacement
+                                                .withFirstAvailableTarget(selectedElementTargets),
+                                        )
+                                    }
                                 },
                             )
                         }
@@ -56,11 +75,37 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
                         val visibleTargets = draftState.elementSetup.selectedTargets()
                             .filter { target -> target in approvedLayoutTargets }
 
+                        fun latestDraftWithElementPlacement(
+                            placementState: ProductElementPlacementState = draftState.elementPlacement,
+                        ): ProductDraftState {
+                            val latestDraftState = ProductPreviewSession.draftState
+                            return latestDraftState.copy(
+                                layoutMapSetup = latestDraftState.layoutMapSetup
+                                    .withSelectedTarget(placementState.selectedTarget),
+                                elementPlacement = placementState,
+                                utMeasurements = latestDraftState.utMeasurements
+                                    .withSelectedTarget(placementState.selectedTarget),
+                            )
+                        }
+
+                        fun latestDraftWithElementPlacementChanges(nextDraftState: ProductDraftState): ProductDraftState {
+                            val latestDraftState = ProductPreviewSession.draftState
+                            return latestDraftState.copy(
+                                layoutMapSetup = nextDraftState.layoutMapSetup
+                                    .withSelectedTarget(nextDraftState.elementPlacement.selectedTarget),
+                                elementPlacement = nextDraftState.elementPlacement,
+                                utMeasurements = nextDraftState.utMeasurements
+                                    .withSelectedTarget(nextDraftState.elementPlacement.selectedTarget),
+                                findingState = nextDraftState.findingState,
+                            )
+                        }
+
                         fun openElementScope() {
-                            ProductPreviewSession.updateDraftState(draftState)
+                            ProductPreviewSession.updateDraftState(latestDraftWithElementPlacement())
                             startActivity(
                                 Intent(this, ProductElementSetupPreviewActivity::class.java).apply {
                                     flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                    putExtra(ProductElementSetupPreviewActivity.EXTRA_TARGET, draftState.elementPlacement.selectedTarget.key)
                                 },
                             )
                             finish()
@@ -69,11 +114,12 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
                         fun applyDraftState(nextDraftState: ProductDraftState) {
                             val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
                             if (impact != null) {
-                                pendingDraftState = nextDraftState
+                                pendingDraftState = latestDraftWithElementPlacementChanges(nextDraftState)
                                 pendingImpact = impact
                             } else {
-                                draftState = nextDraftState
-                                ProductPreviewSession.updateDraftState(nextDraftState)
+                                val mergedDraftState = latestDraftWithElementPlacementChanges(nextDraftState)
+                                draftState = mergedDraftState
+                                ProductPreviewSession.updateDraftState(mergedDraftState)
                             }
                         }
 
@@ -88,10 +134,13 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
                             },
                             onBack = { openElementScope() },
                             onContinue = { approvedState ->
-                                val nextDraftState = draftState.copy(elementPlacement = approvedState)
+                                val nextDraftState = latestDraftWithElementPlacement(approvedState)
                                 draftState = nextDraftState
                                 ProductPreviewSession.updateDraftState(nextDraftState)
-                                startActivity(Intent(this, ProductUtSetupPreviewActivity::class.java))
+                                startActivity(
+                                    Intent(this, ProductUtSetupPreviewActivity::class.java)
+                                        .putExtra(ProductUtSetupPreviewActivity.EXTRA_TARGET, approvedState.selectedTarget.key),
+                                )
                             },
                         )
                         pendingImpact?.let { impact ->
@@ -115,5 +164,9 @@ class ProductElementPlacementPreviewActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_TARGET = "target"
     }
 }

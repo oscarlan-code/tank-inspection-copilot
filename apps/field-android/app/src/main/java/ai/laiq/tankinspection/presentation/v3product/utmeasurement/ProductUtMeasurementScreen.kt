@@ -12,6 +12,8 @@ import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
 import ai.laiq.tankinspection.presentation.v3product.common.ProductCollapsibleSectionCard
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBar
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBarHeight
+import ai.laiq.tankinspection.presentation.v3product.common.normalizedFor
+import ai.laiq.tankinspection.presentation.v3product.common.toRoofPlateCells
 import ai.laiq.tankinspection.v3product.model.ProductElementType
 import ai.laiq.tankinspection.v3product.model.ProductFloorTemplate
 import ai.laiq.tankinspection.v3product.model.ProductGeneralTankInfo
@@ -24,6 +26,7 @@ import ai.laiq.tankinspection.v3product.model.ProductShellThirdOffsetStart
 import ai.laiq.tankinspection.v3product.model.ProductUtItemKind
 import ai.laiq.tankinspection.v3product.model.ProductUtMeasurementEntry
 import ai.laiq.tankinspection.v3product.model.ProductUtMeasurementState
+import ai.laiq.tankinspection.v3product.model.customCircularLayoutFor
 import ai.laiq.tankinspection.v3product.model.requiresElementUt
 import ai.laiq.tankinspection.v3product.model.requiresUtMeasurement
 import ai.laiq.tankinspection.v3product.model.withClearedActiveItem
@@ -432,22 +435,25 @@ private fun RoofOrFloorUtMap(
         )
         val markerAnchorXpx = with(density) { 12.dp.toPx() }
         val markerAnchorYpx = with(density) { 44.dp.toPx() }
+        val customLayout = layoutMapSetup.customCircularLayoutFor(selectedTarget)
+        val circularRowCount = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
+            layoutMapSetup.floorPatternCountX.toPositiveInt(4)
+        } else {
+            layoutMapSetup.roofRowCount.toPositiveInt(4)
+        }
+        val circularWidestRowPlateCount = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
+            layoutMapSetup.floorPatternCountY.toPositiveInt(12)
+        } else {
+            layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10)
+        }
         RoofSurfaceMap(
             template = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
                 RoofTemplate.CIRCULAR_PLATE
             } else {
                 layoutMapSetup.roofPattern
             },
-            rowCount = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
-                layoutMapSetup.floorPatternCountX.toPositiveInt(4)
-            } else {
-                layoutMapSetup.roofRowCount.toPositiveInt(4)
-            },
-            widestRowPlateCount = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
-                layoutMapSetup.floorPatternCountY.toPositiveInt(12)
-            } else {
-                layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10)
-            },
+            rowCount = circularRowCount,
+            widestRowPlateCount = circularWidestRowPlateCount,
             ringCount = layoutMapSetup.roofRingCount.toPositiveInt(3),
             sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20),
             activePlateId = activePlateId.takeIf { showPlateLayer },
@@ -469,6 +475,10 @@ private fun RoofOrFloorUtMap(
                 ProductLayoutSurface.FLOOR -> layoutMapSetup.floorAnnularSectionCount.toPositiveInt(12)
                 ProductLayoutSurface.SHELL -> 0
             },
+            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+            customPlateCells = customLayout
+                ?.normalizedFor(circularRowCount, circularWidestRowPlateCount)
+                ?.toRoofPlateCells(selectedTarget, circularRowCount, circularWidestRowPlateCount),
             referenceLabel = layoutMapSetup.referenceMode.label,
             mapTitle = "",
             onSelectPlate = { plateId ->
@@ -1206,6 +1216,11 @@ private fun anchorForRoofOrFloorEntry(
     }
     val label = entry.itemLabel
     if (label.equals("CO", ignoreCase = true)) return Offset(0.5f, 0.5f)
+    customPlateAnchorFor(
+        selectedTarget = selectedTarget,
+        layoutMapSetup = layoutMapSetup,
+        label = label,
+    )?.let { anchor -> return anchor }
     val annularNumber = label.removePrefix("AR").toIntOrNull()
     if (annularNumber != null) {
         val count = when (selectedTarget.surface) {
@@ -1213,7 +1228,12 @@ private fun anchorForRoofOrFloorEntry(
             ProductLayoutSurface.FLOOR -> layoutMapSetup.floorAnnularSectionCount.toPositiveInt(12)
             ProductLayoutSurface.SHELL -> 12
         }.coerceAtLeast(1)
-        val angle = -PI / 2.0 + (2.0 * PI * (annularNumber - 0.5) / count.toDouble())
+        val annularRotation = layoutMapSetup.customCircularLayoutFor(selectedTarget)
+            ?.annularRotationDeg
+            ?.toDouble()
+            ?: 0.0
+        val angle = -PI / 2.0 + (annularRotation * PI / 180.0) +
+            (2.0 * PI * (annularNumber - 0.5) / count.toDouble())
         return Offset(
             x = (0.5 + cos(angle) * 0.43).toFloat().coerceIn(0.08f, 0.92f),
             y = (0.5 + sin(angle) * 0.43).toFloat().coerceIn(0.08f, 0.92f),
@@ -1231,6 +1251,29 @@ private fun anchorForRoofOrFloorEntry(
         x = (0.5 + cos(angle) * radius).toFloat().coerceIn(0.14f, 0.86f),
         y = (0.5 + sin(angle) * radius).toFloat().coerceIn(0.14f, 0.86f),
     )
+}
+
+private fun customPlateAnchorFor(
+    selectedTarget: ProductLayoutTarget,
+    layoutMapSetup: ProductLayoutMapSetup,
+    label: String,
+): Offset? {
+    val customLayout = layoutMapSetup.customCircularLayoutFor(selectedTarget) ?: return null
+    val rowCount = when (selectedTarget.surface) {
+        ProductLayoutSurface.FLOOR -> layoutMapSetup.floorPatternCountX.toPositiveInt(4)
+        ProductLayoutSurface.ROOF -> layoutMapSetup.roofRowCount.toPositiveInt(4)
+        ProductLayoutSurface.SHELL -> return null
+    }
+    val widestRowPlateCount = when (selectedTarget.surface) {
+        ProductLayoutSurface.FLOOR -> layoutMapSetup.floorPatternCountY.toPositiveInt(12)
+        ProductLayoutSurface.ROOF -> layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10)
+        ProductLayoutSurface.SHELL -> return null
+    }
+    return customLayout
+        .normalizedFor(rowCount, widestRowPlateCount)
+        .toRoofPlateCells(selectedTarget, rowCount, widestRowPlateCount)
+        .firstOrNull { cell -> cell.plateId == label || cell.mapLabel == label }
+        ?.let { cell -> Offset(cell.xNorm, cell.yNorm) }
 }
 
 private fun anchorForShellEntry(

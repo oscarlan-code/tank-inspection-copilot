@@ -22,36 +22,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.scratch.V2ScratchPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.generalinfo.V2GeneralTankInformationPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.layoutscope.V2LayoutScopePreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.layoutsetup.V2LayoutMapSetupPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.elementsetup.V2ElementSetupPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.elementsetup.V2ElementPlacementPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.utsetup.V2UtSetupPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.utmeasurement.V2UtMeasurementPreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.finding.V2FindingCapturePreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name="ai.laiq.tankinspection.v2beta.rooflayout.V2RoofLayoutMapPreviewActivity"
-            android:exported="false" />
 
         <activity
             android:name="ai.laiq.tankinspection.v2product.scratch.V2ScratchPreviewActivity"

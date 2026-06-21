@@ -39,7 +39,7 @@ fun ProductDraftState.downstreamDataImpactComparedTo(
 
     return ProductDownstreamDataImpact(
         title = "Clear Downstream Data?",
-        message = "$scopeNote\n\nThis change will clear:\n$details",
+        message = "$scopeNote\n\nThis change will clear:\n$details\n\nCancel keeps the current approved setup. Confirm applies this layout as a draft and clears the listed data. Press Approve to use the edited layout downstream.",
     )
 }
 

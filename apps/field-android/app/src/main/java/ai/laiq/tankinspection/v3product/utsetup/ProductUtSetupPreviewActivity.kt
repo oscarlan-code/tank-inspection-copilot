@@ -9,7 +9,9 @@ import ai.laiq.tankinspection.v3product.model.ProductDownstreamDataImpact
 import ai.laiq.tankinspection.v3product.model.ProductDraftState
 import ai.laiq.tankinspection.v3product.model.downstreamDataImpactComparedTo
 import ai.laiq.tankinspection.v3product.model.selectedTargets
+import ai.laiq.tankinspection.v3product.model.withActiveWorkflowTarget
 import ai.laiq.tankinspection.v3product.model.withReconciledUtSetup
+import ai.laiq.tankinspection.v3product.model.withSelectedTarget
 import ai.laiq.tankinspection.v3product.elementsetup.ProductElementPlacementPreviewActivity
 import ai.laiq.tankinspection.v3product.preview.ProductPreviewSession
 import ai.laiq.tankinspection.v3product.storage.ProductWorkflowScreen
@@ -30,22 +32,70 @@ class ProductUtSetupPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ProductPreviewSession.attach(applicationContext)
+        ProductPreviewSession.draftState.let { current ->
+            val approvedLayoutTargets = current.layoutScope.selectedTargets()
+                .filter { target -> target in current.layoutMapSetup.approvedTargets }
+            val selectedUtTargets = current.utSetup.selectedTargets()
+                .filter { target -> target in approvedLayoutTargets }
+            val targetForEntry = selectedUtTargets.firstOrNull()
+            if (targetForEntry != null) {
+                ProductPreviewSession.updateDraftState(current.withActiveWorkflowTarget(targetForEntry))
+            }
+        }
         ProductPreviewSession.setActiveWorkflowScreen(ProductWorkflowScreen.UT_SETUP)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     ProductVoiceCaptureHost(screen = ProductWorkflowScreen.UT_SETUP) {
-                        var draftState by remember { mutableStateOf(ProductPreviewSession.draftState) }
+                        var draftState by remember {
+                            mutableStateOf(
+                                ProductPreviewSession.draftState.let { current ->
+                                    val approvedLayoutTargets = current.layoutScope.selectedTargets()
+                                        .filter { target -> target in current.layoutMapSetup.approvedTargets }
+                                    val selectedUtTargets = current.utSetup.selectedTargets()
+                                        .filter { target -> target in approvedLayoutTargets }
+                                    val targetForEntry = selectedUtTargets.firstOrNull()
+                                    targetForEntry
+                                        ?.let { target -> current.withActiveWorkflowTarget(target) }
+                                        ?: current
+                                },
+                            )
+                        }
                         var pendingDraftState by remember { mutableStateOf<ProductDraftState?>(null) }
                         var pendingImpact by remember { mutableStateOf<ProductDownstreamDataImpact?>(null) }
                         val approvedLayoutTargets = draftState.layoutScope.selectedTargets()
                             .filter { target -> target in draftState.layoutMapSetup.approvedTargets }
 
+                        fun latestDraftWithUtSetup(): ProductDraftState =
+                            draftState.utMeasurements.selectedTarget.let { activeTarget ->
+                                ProductPreviewSession.draftState.copy(
+                                    layoutMapSetup = draftState.layoutMapSetup.withSelectedTarget(activeTarget),
+                                    elementPlacement = draftState.elementPlacement.withSelectedTarget(activeTarget),
+                                    utSetup = draftState.utSetup,
+                                    utMeasurements = draftState.utMeasurements,
+                                )
+                            }
+
+                        fun latestDraftWithUtSetupChanges(nextDraftState: ProductDraftState): ProductDraftState =
+                            nextDraftState.utMeasurements.selectedTarget.let { activeTarget ->
+                                ProductPreviewSession.draftState.copy(
+                                    layoutMapSetup = nextDraftState.layoutMapSetup.withSelectedTarget(activeTarget),
+                                    elementPlacement = nextDraftState.elementPlacement.withSelectedTarget(activeTarget),
+                                    utSetup = nextDraftState.utSetup,
+                                    utMeasurements = nextDraftState.utMeasurements,
+                                    findingState = nextDraftState.findingState,
+                                )
+                            }
+
                         fun goBackToElementPlacement() {
-                            ProductPreviewSession.updateDraftState(draftState)
+                            ProductPreviewSession.updateDraftState(latestDraftWithUtSetup())
                             startActivity(
                                 Intent(this, ProductElementPlacementPreviewActivity::class.java).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                    putExtra(
+                                        ProductElementPlacementPreviewActivity.EXTRA_TARGET,
+                                        draftState.utMeasurements.selectedTarget.key,
+                                    )
                                 },
                             )
                             finish()
@@ -54,11 +104,12 @@ class ProductUtSetupPreviewActivity : ComponentActivity() {
                         fun applyDraftState(nextDraftState: ProductDraftState) {
                             val impact = draftState.downstreamDataImpactComparedTo(nextDraftState)
                             if (impact != null) {
-                                pendingDraftState = nextDraftState
+                                pendingDraftState = latestDraftWithUtSetupChanges(nextDraftState)
                                 pendingImpact = impact
                             } else {
-                                draftState = nextDraftState
-                                ProductPreviewSession.updateDraftState(nextDraftState)
+                                val mergedDraftState = latestDraftWithUtSetupChanges(nextDraftState)
+                                draftState = mergedDraftState
+                                ProductPreviewSession.updateDraftState(mergedDraftState)
                             }
                         }
 
@@ -72,8 +123,20 @@ class ProductUtSetupPreviewActivity : ComponentActivity() {
                             },
                             onBack = { goBackToElementPlacement() },
                             onContinue = {
-                                ProductPreviewSession.updateDraftState(draftState)
-                                startActivity(Intent(this, ProductUtMeasurementPreviewActivity::class.java))
+                                val selectedUtTargets = draftState.utSetup.selectedTargets()
+                                val targetForNext = selectedUtTargets.firstOrNull()
+                                val latestDraft = latestDraftWithUtSetup()
+                                val nextDraftState = targetForNext
+                                    ?.let { target -> latestDraft.withActiveWorkflowTarget(target) }
+                                    ?: latestDraft
+                                ProductPreviewSession.updateDraftState(nextDraftState)
+                                startActivity(
+                                    Intent(this, ProductUtMeasurementPreviewActivity::class.java).apply {
+                                        targetForNext?.let { target ->
+                                            putExtra(ProductUtMeasurementPreviewActivity.EXTRA_TARGET, target.key)
+                                        }
+                                    },
+                                )
                             },
                         )
                         pendingImpact?.let { impact ->
@@ -97,5 +160,9 @@ class ProductUtSetupPreviewActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_TARGET = "target"
     }
 }

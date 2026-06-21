@@ -251,6 +251,24 @@ data class ProductElementPlacementState(
     val nextElementIndexByTargetAndType: Map<String, Int> = emptyMap(),
 )
 
+data class ProductCustomCircularPlateLayout(
+    val rows: List<ProductCustomCircularPlateRow> = emptyList(),
+    val annularRotationDeg: Float = 0f,
+)
+
+data class ProductCustomCircularPlateRow(
+    val rowNumber: Int,
+    val shiftRatio: Float = 0f,
+    val plates: List<ProductCustomCircularPlate> = emptyList(),
+)
+
+data class ProductCustomCircularPlate(
+    val widthWeight: Float = 1f,
+    val splitGroupKey: String? = null,
+    val splitPartIndex: Int = 0,
+    val splitPartCount: Int = 1,
+)
+
 data class ProductLayoutMapSetup(
     val selectedTarget: ProductLayoutTarget = ProductLayoutTarget.EXTERNAL_ROOF,
     val selectedSurface: ProductLayoutSurface = ProductLayoutSurface.ROOF,
@@ -280,6 +298,7 @@ data class ProductLayoutMapSetup(
     val floorAnnularSectionCount: String = "12",
     val floorPatternCountX: String = "4",
     val floorPatternCountY: String = "12",
+    val customCircularLayoutsByTarget: Map<ProductLayoutTarget, ProductCustomCircularPlateLayout> = emptyMap(),
     val approvedTargets: Set<ProductLayoutTarget> = emptySet(),
 )
 
@@ -482,6 +501,13 @@ fun ProductLayoutMapSetup.withSelectedTarget(target: ProductLayoutTarget): Produ
         selectedTarget = target,
         selectedSurface = target.surface,
         roofScope = target.roofScope ?: roofScope,
+    )
+
+fun ProductDraftState.withActiveWorkflowTarget(target: ProductLayoutTarget): ProductDraftState =
+    copy(
+        layoutMapSetup = layoutMapSetup.withSelectedTarget(target),
+        elementPlacement = elementPlacement.withSelectedTarget(target),
+        utMeasurements = utMeasurements.withSelectedTarget(target),
     )
 
 fun ProductLayoutMapSetup.withTargetApproval(target: ProductLayoutTarget, approved: Boolean): ProductLayoutMapSetup =
@@ -700,13 +726,108 @@ fun ProductDraftState.withReconciledLayoutMapSetup(updatedSetup: ProductLayoutMa
     val constrainedSetup = updatedSetup
         .copy(approvedTargets = updatedSetup.approvedTargets.intersect(visibleTargetSet))
         .withFirstAvailableTarget(visibleTargets)
-    val invalidatedTargets = layoutMapSetup.approvedTargets - constrainedSetup.approvedTargets
-    return copy(layoutMapSetup = constrainedSetup)
+    val layoutChangedTargets = layoutMapSetup.layoutChangedTargetsComparedTo(constrainedSetup, visibleTargetSet)
+    val invalidatedTargets = layoutMapSetup.approvedTargets - constrainedSetup.approvedTargets + layoutChangedTargets
+    val nextSetup = constrainedSetup.copy(
+        approvedTargets = constrainedSetup.approvedTargets - layoutChangedTargets,
+    )
+    return copy(layoutMapSetup = nextSetup)
         .withoutElementPlacementFor(invalidatedTargets)
         .withoutUtDataFor(invalidatedTargets)
         .withoutFindingDataFor(invalidatedTargets)
         .withoutElementApprovalFor(invalidatedTargets)
 }
+
+private fun ProductLayoutMapSetup.layoutChangedTargetsComparedTo(
+    next: ProductLayoutMapSetup,
+    visibleTargets: Set<ProductLayoutTarget>,
+): Set<ProductLayoutTarget> =
+    visibleTargets.filter { target ->
+        layoutFingerprintFor(target) != next.layoutFingerprintFor(target)
+    }.toSet()
+
+private fun ProductLayoutMapSetup.layoutFingerprintFor(target: ProductLayoutTarget): Any =
+    when (target.surface) {
+        ProductLayoutSurface.ROOF -> RoofLayoutFingerprint(
+            referenceMode = referenceMode,
+            referenceNote = referenceNote,
+            rotationDirection = rotationDirection,
+            roofPattern = roofPattern,
+            roofRingCount = roofRingCount,
+            roofSectorCount = roofSectorCount,
+            roofRowCount = roofRowCount,
+            roofWidestRowPlateCount = roofWidestRowPlateCount,
+            roofHasCenterOpening = roofHasCenterOpening,
+            roofCenterOpeningPlateCount = roofCenterOpeningPlateCount,
+            roofHasAnnularRing = roofHasAnnularRing,
+            roofAnnularSectionCount = roofAnnularSectionCount,
+            customCircularLayout = customCircularLayoutsByTarget[target],
+        )
+
+        ProductLayoutSurface.SHELL -> ShellLayoutFingerprint(
+            referenceMode = referenceMode,
+            referenceNote = referenceNote,
+            rotationDirection = rotationDirection,
+            shellCourseCount = shellCourseCount,
+            shellPlatesPerCourse = shellPlatesPerCourse,
+            shellLaneCount = shellLaneCount,
+            shellPlateOffset = shellPlateOffset,
+            shellOffsetStartRow = shellOffsetStartRow,
+            shellThirdOffsetStart = shellThirdOffsetStart,
+        )
+
+        ProductLayoutSurface.FLOOR -> FloorLayoutFingerprint(
+            referenceMode = referenceMode,
+            referenceNote = referenceNote,
+            rotationDirection = rotationDirection,
+            floorTemplate = floorTemplate,
+            floorPlateCount = floorPlateCount,
+            floorAnnularSectionCount = floorAnnularSectionCount,
+            floorPatternCountX = floorPatternCountX,
+            floorPatternCountY = floorPatternCountY,
+            customCircularLayout = customCircularLayoutsByTarget[target],
+        )
+    }
+
+private data class RoofLayoutFingerprint(
+    val referenceMode: ProductReferenceMode,
+    val referenceNote: String,
+    val rotationDirection: RotationDirection,
+    val roofPattern: RoofTemplate,
+    val roofRingCount: String,
+    val roofSectorCount: String,
+    val roofRowCount: String,
+    val roofWidestRowPlateCount: String,
+    val roofHasCenterOpening: Boolean,
+    val roofCenterOpeningPlateCount: String,
+    val roofHasAnnularRing: Boolean,
+    val roofAnnularSectionCount: String,
+    val customCircularLayout: ProductCustomCircularPlateLayout?,
+)
+
+private data class ShellLayoutFingerprint(
+    val referenceMode: ProductReferenceMode,
+    val referenceNote: String,
+    val rotationDirection: RotationDirection,
+    val shellCourseCount: String,
+    val shellPlatesPerCourse: String,
+    val shellLaneCount: String,
+    val shellPlateOffset: String,
+    val shellOffsetStartRow: ProductShellOffsetStartRow,
+    val shellThirdOffsetStart: ProductShellThirdOffsetStart,
+)
+
+private data class FloorLayoutFingerprint(
+    val referenceMode: ProductReferenceMode,
+    val referenceNote: String,
+    val rotationDirection: RotationDirection,
+    val floorTemplate: ProductFloorTemplate,
+    val floorPlateCount: String,
+    val floorAnnularSectionCount: String,
+    val floorPatternCountX: String,
+    val floorPatternCountY: String,
+    val customCircularLayout: ProductCustomCircularPlateLayout?,
+)
 
 fun ProductDraftState.withReconciledElementSetup(updatedSetup: ProductElementSetup): ProductDraftState {
     val approvedLayoutTargets = layoutScope.selectedTargets()
@@ -939,6 +1060,22 @@ fun ProductLayoutMapSetup.withFirstAvailableTarget(targets: List<ProductLayoutTa
     return withSelectedTarget(targets.first())
 }
 
+fun ProductLayoutMapSetup.customCircularLayoutFor(target: ProductLayoutTarget): ProductCustomCircularPlateLayout? =
+    customCircularLayoutsByTarget[target]
+
+fun ProductLayoutMapSetup.withCustomCircularLayout(
+    target: ProductLayoutTarget,
+    layout: ProductCustomCircularPlateLayout,
+): ProductLayoutMapSetup =
+    copy(
+        customCircularLayoutsByTarget = customCircularLayoutsByTarget + (target to layout),
+    ).withoutTargetApproval(target)
+
+fun ProductLayoutMapSetup.withoutCustomCircularLayout(target: ProductLayoutTarget): ProductLayoutMapSetup =
+    copy(
+        customCircularLayoutsByTarget = customCircularLayoutsByTarget - target,
+    ).withoutTargetApproval(target)
+
 fun ProductLayoutMapSetup.withRoofPatternDefaults(pattern: RoofTemplate): ProductLayoutMapSetup =
     when (pattern) {
         RoofTemplate.CONE_RADIAL -> copy(
@@ -947,12 +1084,14 @@ fun ProductLayoutMapSetup.withRoofPatternDefaults(pattern: RoofTemplate): Produc
             roofSectorCount = "20",
             roofHasCenterOpening = true,
             roofCenterOpeningPlateCount = "1",
+            customCircularLayoutsByTarget = customCircularLayoutsByTarget - selectedTarget,
         ).withoutTargetApproval(selectedTarget)
         RoofTemplate.UMBRELLA_RADIAL -> copy(
             roofPattern = pattern,
             roofRingCount = "4",
             roofSectorCount = "24",
             roofHasCenterOpening = false,
+            customCircularLayoutsByTarget = customCircularLayoutsByTarget - selectedTarget,
         ).withoutTargetApproval(selectedTarget)
         RoofTemplate.CIRCULAR_PLATE -> copy(
             roofPattern = pattern,
@@ -961,6 +1100,7 @@ fun ProductLayoutMapSetup.withRoofPatternDefaults(pattern: RoofTemplate): Produc
             roofHasAnnularRing = true,
             roofAnnularSectionCount = "12",
             roofHasCenterOpening = false,
+            customCircularLayoutsByTarget = customCircularLayoutsByTarget - selectedTarget,
         ).withoutTargetApproval(selectedTarget)
         RoofTemplate.CIRCULAR_CENTER_OPENING -> copy(
             roofPattern = RoofTemplate.CIRCULAR_PLATE,
@@ -970,6 +1110,7 @@ fun ProductLayoutMapSetup.withRoofPatternDefaults(pattern: RoofTemplate): Produc
             roofCenterOpeningPlateCount = "1",
             roofHasAnnularRing = true,
             roofAnnularSectionCount = "12",
+            customCircularLayoutsByTarget = customCircularLayoutsByTarget - selectedTarget,
         ).withoutTargetApproval(selectedTarget)
     }
 

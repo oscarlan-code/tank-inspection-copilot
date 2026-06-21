@@ -26,7 +26,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ProductVoiceNoteEntity::class,
         ProductTaskSnapshotEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class ProductFieldDatabase : RoomDatabase() {
@@ -361,6 +361,18 @@ abstract class ProductFieldDatabase : RoomDatabase() {
                         """
                         ALTER TABLE v3_checklist_item
                         ADD COLUMN itemNote TEXT
+                        """.trimIndent(),
+                    )
+                }
+            }
+
+        val MIGRATION_7_8 =
+            object : Migration(7, 8) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        ALTER TABLE v3_layout_config
+                        ADD COLUMN customCircularLayoutJson TEXT
                         """.trimIndent(),
                     )
                 }

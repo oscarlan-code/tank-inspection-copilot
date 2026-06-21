@@ -401,7 +401,7 @@ fun buildRoofLinkTargetsForConfig(
         rotationDirection = rotationDirection,
     )
     if (!hasAnnularRing || annularSectionCount <= 0) return baseCells
-    return baseCells + annularRingSectionCells(
+    return baseCells + buildAnnularRingSectionCells(
         referenceAzimuthDeg = referenceAzimuthDeg,
         rotationDirection = rotationDirection,
         annularSectionCount = annularSectionCount,
@@ -557,7 +557,7 @@ fun roofPlateIdAtPolar(
     }?.plateId
 }
 
-private fun annularRingSectionCells(
+fun buildAnnularRingSectionCells(
     referenceAzimuthDeg: Double,
     rotationDirection: RotationDirection,
     annularSectionCount: Int,
