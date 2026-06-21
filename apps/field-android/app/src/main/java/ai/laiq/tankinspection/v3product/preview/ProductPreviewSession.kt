@@ -37,7 +37,7 @@ object ProductPreviewSession {
     private const val LEGACY_DRAFT_STATE_KEY = "draft_state_json"
     private const val ACTIVE_INSPECTION_ID_KEY = "active_inspection_id"
     private const val ACTIVE_SCREEN_KEY = "active_screen_key"
-    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260621_roof_shell_nozzle_plate_review"
+    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260621_field_voice_realistic"
     private const val STORAGE_DIR_NAME = "v3-product-session"
     private const val TASKS_DIR_NAME = "tasks"
     private const val DRAFT_FILE_NAME = "draft-state.json"
@@ -94,6 +94,7 @@ object ProductPreviewSession {
         activeTaskIdentity = identity
         activeWorkflowScreen = summary?.currentScreen ?: ProductWorkflowScreen.GENERAL_INFO
         draftState = restoredDraft
+        ensureDraftAssetsMaterialized()
         persistSessionMetadata()
         runBlocking { store.noteTaskContinued(inspectionId) }
         return true
@@ -246,6 +247,10 @@ object ProductPreviewSession {
         }
     }
 
+    fun ensureDraftAssetsMaterialized() {
+        materializeMockAssets(draftState)
+    }
+
     private fun bootstrap() {
         loadLocalProfile()
         migrateLegacySingleDraftIfNeeded()
@@ -264,7 +269,7 @@ object ProductPreviewSession {
                     seedOrRefreshMockTask(store, productApiStandardV10Seed())
                 } else {
                     productMockTaskSeeds().forEach { seed ->
-                        materializeMockFindingPhotos(seed.state)
+                        materializeMockAssets(seed.state)
                         val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
                         persistTaskSnapshot(identity.inspectionId, seed.state)
                     }
@@ -292,7 +297,7 @@ object ProductPreviewSession {
             }
 
         if (matchingSummaries.isEmpty()) {
-            materializeMockFindingPhotos(seed.state)
+            materializeMockAssets(seed.state)
             val identity = store.createInspectionTask(seed.state, seed.workflowScreen)
             persistTaskSnapshot(identity.inspectionId, seed.state)
             return
@@ -300,21 +305,46 @@ object ProductPreviewSession {
 
         matchingSummaries.forEach { summary ->
             val identity = store.getTaskIdentity(summary.inspectionId) ?: return@forEach
-            materializeMockFindingPhotos(seed.state)
+            materializeMockAssets(seed.state)
             store.saveNow(seed.state, identity, seed.workflowScreen)
             persistTaskSnapshot(identity.inspectionId, seed.state)
         }
+    }
+
+    private fun materializeMockAssets(state: ProductDraftState) {
+        materializeMockFindingPhotos(state)
+        materializeMockVoiceAssets(state)
     }
 
     private fun materializeMockFindingPhotos(state: ProductDraftState) {
         val filesRoot = appContext?.filesDir ?: return
         state.findingState.findingsByItemKey.values
             .flatMap { finding -> finding.photos }
+            .filter { photo -> photo.relativePath.startsWith("v3-findings/mock/") }
             .forEach { photo ->
                 val file = File(filesRoot, photo.relativePath)
                 if (file.exists() && file.length() > 0L) return@forEach
                 runCatching { writeMockFindingPhoto(file, photo) }
                     .onFailure { error -> lastPersistenceError = error }
+            }
+    }
+
+    private fun materializeMockVoiceAssets(state: ProductDraftState) {
+        val context = appContext ?: return
+        val filesRoot = context.filesDir
+        state.voiceNotes
+            .filter { note -> note.relativePath.startsWith("v3-voice-notes/mock/") }
+            .forEach { note ->
+                val file = File(filesRoot, note.relativePath)
+                runCatching {
+                    file.parentFile?.mkdirs()
+                    context.assets.open(note.relativePath).use { input ->
+                        FileOutputStream(file, false).use { output ->
+                            input.copyTo(output)
+                            output.fd.sync()
+                        }
+                    }
+                }.onFailure { error -> lastPersistenceError = error }
             }
     }
 
@@ -448,6 +478,7 @@ object ProductPreviewSession {
         draftState = decodeFile(taskDraftFile(inspectionId))
             ?: decodeFile(taskBackupFile(inspectionId))
             ?: defaultProductPreviewDraftState()
+        ensureDraftAssetsMaterialized()
         persistSessionMetadata()
     }
 

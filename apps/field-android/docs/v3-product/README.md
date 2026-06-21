@@ -110,6 +110,7 @@ Voice capture:
 - Recording button expands from a circle into a larger recording stripe with animated bars.
 - Voice preview shows only the notes for that exact portion and supports playback/delete.
 - Audio is stored locally as `.m4a` / `audio/mp4`.
+- Bundled V10 mock voice assets use AAC-LC `.m4a` so Android `MediaPlayer` can play them reliably.
 - App stores voice metadata and raw audio; transcription and interpretation are report-platform responsibilities.
 
 ## Tech Stack
@@ -255,7 +256,9 @@ Voice export contract:
 
 - `voiceNotes[]` contains screen, card, target, item, duration, transcript status, and file metadata.
 - `attachments[]` includes each audio file with `kind = "voice_audio"`.
-- `transcriptStatus` starts as `pending_server`.
+- Live-recorded notes start with `transcriptStatus = "pending_server"`.
+- Prepared V10 mock notes include both playable `.m4a` audio and a prepared transcript.
+- Report generation should treat the `.m4a` audio as the primary field evidence; the prepared transcript is metadata/reference for QA and debugging only.
 - AI transcription is not performed on-device.
 
 ## Control Logic
@@ -331,6 +334,14 @@ Mock field data:
 ```text
 apps/field-android/app/src/main/java/ai/laiq/tankinspection/v3product/preview/ProductMockTaskSeed.kt
 ```
+
+Mock voice assets:
+
+```text
+apps/field-android/app/src/main/assets/v3-voice-notes/mock/
+```
+
+The V10 mock voice set contains 23 AAC-LC `.m4a` notes generated from inspector-style field transcripts. These notes should sound like site observations made during capture; avoid wording that says the data came from a report, table, fixture, or generator.
 
 ## Key Files
 

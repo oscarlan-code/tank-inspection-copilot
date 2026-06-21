@@ -845,7 +845,7 @@ class ProductStore(
                 kind = "voice_audio",
                 relativePath = note.relativePath,
                 displayName = note.displayName,
-                mediaType = VOICE_NOTE_MEDIA_TYPE,
+                mediaType = note.relativePath.inferredVoiceMediaType(),
                 fileByteSize = file.takeIf { it.exists() }?.length(),
                 fileExists = file.exists() && file.length() > 0L,
                 annotationStrokeCount = 0,
@@ -878,7 +878,7 @@ class ProductStore(
                 transcriptStatus = note.transcriptStatus,
                 transcriptText = note.transcriptText.ifBlank { null },
                 durationMs = note.durationMs,
-                mediaType = VOICE_NOTE_MEDIA_TYPE,
+                mediaType = note.relativePath.inferredVoiceMediaType(),
                 fileByteSize = file.takeIf { it.exists() }?.length(),
                 fileExists = file.exists() && file.length() > 0L,
                 capturedAtIso = note.capturedAtIso,
@@ -1319,6 +1319,13 @@ private fun String.inferredImageMediaType(): String =
         "webp" -> "image/webp"
         "gif" -> "image/gif"
         else -> "image/jpeg"
+    }
+
+private fun String.inferredVoiceMediaType(): String =
+    when (substringAfterLast('.', missingDelimiterValue = "").lowercase()) {
+        "txt" -> "text/plain"
+        "wav" -> "audio/wav"
+        else -> "audio/mp4"
     }
 
 private fun resolveDeviceId(context: Context): String =

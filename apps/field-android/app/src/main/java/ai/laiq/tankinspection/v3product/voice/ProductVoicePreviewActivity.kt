@@ -48,15 +48,19 @@ class ProductVoicePreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ProductPreviewSession.attach(applicationContext)
+        ProductPreviewSession.ensureDraftAssetsMaterialized()
         val filter = ProductVoicePreviewFilter.fromIntent(intent)
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     BackHandler { finish() }
                     var scopedNotes by remember(filter) {
+                        val allNotes = ProductPreviewSession.draftState.voiceNotes
+                        val exactNotes = allNotes.filter { note -> filter.matchesExactly(note) }
+                        val visibleNotes = exactNotes.takeIf { notes -> notes.isNotEmpty() }
+                            ?: allNotes.filter { note -> filter.matchesRelated(note) }
                         mutableStateOf(
-                            ProductPreviewSession.draftState.voiceNotes
-                                .filter { note -> filter.matches(note) }
+                            visibleNotes
                                 .sortedByDescending { note -> note.capturedAtIso },
                         )
                     }
@@ -167,7 +171,7 @@ private fun ProductVoicePreviewScreen(
             item {
                 LaiqSectionCard(
                     title = filter.title,
-                    subtitle = "Only voice notes captured for this exact portion are shown here.",
+                    subtitle = "Exact notes are shown first. If none exist yet, related notes for this screen or target are shown.",
                 ) {
                     LaiqStatusBadge(
                         text = "${notes.size} note${if (notes.size == 1) "" else "s"}",
@@ -226,6 +230,9 @@ private fun VoiceNoteCard(
     onStop: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val hasTranscript = note.transcriptText.isNotBlank()
+    val hasFile = file.exists() && file.length() > 0L
+    val hasPlayableAudio = hasFile && note.relativePath.isPlayableAudioPath()
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.White,
@@ -259,12 +266,34 @@ private fun VoiceNoteCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LaiqStatusBadge(
-                    text = note.durationMs?.let { "${(it / 1000.0).toDisplaySeconds()} sec" } ?: "Audio",
-                    tone = if (file.exists() && file.length() > 0L) LaiqColors.StatusReady else LaiqColors.BrandRed,
+                    text = when {
+                        hasPlayableAudio -> note.durationMs?.let { "${(it / 1000.0).toDisplaySeconds()} sec" } ?: "Audio"
+                        hasTranscript -> "Prepared transcript"
+                        else -> "Audio"
+                    },
+                    tone = if (hasPlayableAudio || hasTranscript) LaiqColors.StatusReady else LaiqColors.BrandRed,
                 )
                 LaiqStatusBadge(
-                    text = if (file.exists()) "${file.length()} bytes" else "Missing file",
-                    tone = if (file.exists() && file.length() > 0L) LaiqColors.MutedText else LaiqColors.BrandRed,
+                    text = when {
+                        hasPlayableAudio -> "${file.length()} bytes"
+                        hasFile -> "Transcript artifact"
+                        hasTranscript -> "Transcript only"
+                        else -> "Missing file"
+                    },
+                    tone = if (hasPlayableAudio || hasTranscript) LaiqColors.MutedText else LaiqColors.BrandRed,
+                )
+            }
+            if (hasTranscript) {
+                Text(
+                    text = "Transcript",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LaiqColors.MutedText,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = note.transcriptText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LaiqColors.BodyText,
                 )
             }
             if (playing) {
@@ -275,10 +304,10 @@ private fun VoiceNoteCard(
                 )
             } else {
                 LaiqPrimaryButton(
-                    text = "Play",
+                    text = if (hasPlayableAudio) "Play" else "Transcript only",
                     onClick = onPlay,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = file.exists() && file.length() > 0L,
+                    enabled = hasPlayableAudio,
                 )
             }
             LaiqSecondaryButton(
@@ -289,6 +318,9 @@ private fun VoiceNoteCard(
         }
     }
 }
+
+private fun String.isPlayableAudioPath(): Boolean =
+    substringAfterLast('.', missingDelimiterValue = "").lowercase() in setOf("m4a", "mp4", "wav")
 
 private data class ProductVoicePreviewFilter(
     val screenKey: String,
@@ -303,12 +335,27 @@ private data class ProductVoicePreviewFilter(
     val title: String =
         itemLabel ?: targetLabel ?: screenLabel
 
-    fun matches(note: ProductVoiceNote): Boolean =
+    fun matchesExactly(note: ProductVoiceNote): Boolean =
         note.screenKey == screenKey &&
             note.cardKey == cardKey &&
             note.fieldKey == fieldKey &&
             note.targetKey == targetKey &&
             note.itemKey == itemKey
+
+    fun matchesRelated(note: ProductVoiceNote): Boolean {
+        if (note.screenKey != screenKey) return false
+        if (matchesExactly(note)) return true
+
+        val requestIsScreenLevel = targetKey == null && itemKey == null
+        if (requestIsScreenLevel) return true
+
+        val sameItem = itemKey != null && note.itemKey == itemKey
+        val sameTarget = targetKey != null && note.targetKey == targetKey
+        val targetLevelNoteForSelectedTarget = sameTarget && note.itemKey == null
+        val screenLevelNote = note.targetKey == null && note.itemKey == null
+
+        return sameItem || targetLevelNoteForSelectedTarget || screenLevelNote
+    }
 
     companion object {
         fun fromIntent(intent: Intent): ProductVoicePreviewFilter =
