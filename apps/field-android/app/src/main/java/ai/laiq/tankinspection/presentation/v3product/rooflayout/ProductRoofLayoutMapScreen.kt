@@ -200,7 +200,7 @@ fun ProductRoofLayoutMapScreen(
                     TwoUpFields(
                         left = {
                             LaiqCountField(
-                                label = "Row Count",
+                                label = "Horizontal Rows",
                                 value = state.rowCount,
                                 onValueChange = { onStateChange(state.copy(rowCount = it)) },
                                 min = 1,
@@ -209,7 +209,7 @@ fun ProductRoofLayoutMapScreen(
                         },
                         right = {
                             LaiqCountField(
-                                label = "Widest Row Plate Count",
+                                label = "Widest Columns",
                                 value = state.widestRowPlateCount,
                                 onValueChange = { onStateChange(state.copy(widestRowPlateCount = it)) },
                                 min = 4,

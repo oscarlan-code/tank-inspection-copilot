@@ -264,7 +264,7 @@ class ProductFindingCapturePreviewActivity : ComponentActivity() {
 
     private fun prepareCameraPhoto(displayName: String? = null): ProductFindingPhoto {
         val timestamp = Instant.now().toEpochMilli()
-        val relativePath = "v2-findings/photo-$timestamp.jpg"
+        val relativePath = "v3-findings/photo-$timestamp.jpg"
         File(filesDir, relativePath).also { file ->
             file.parentFile?.mkdirs()
             file.createNewFile()
@@ -284,7 +284,7 @@ class ProductFindingCapturePreviewActivity : ComponentActivity() {
         val timestamp = Instant.now().toEpochMilli()
         val displayName = resolveDisplayName(uri).ifBlank { "imported-$timestamp.jpg" }
         val safeName = sanitizeFileName(displayName).ifBlank { "imported-$timestamp.jpg" }
-        val relativePath = "v2-findings/imported-$timestamp-$safeName"
+        val relativePath = "v3-findings/imported-$timestamp-$safeName"
         val outputFile = File(filesDir, relativePath)
         outputFile.parentFile?.mkdirs()
         contentResolver.openInputStream(uri)?.use { input ->

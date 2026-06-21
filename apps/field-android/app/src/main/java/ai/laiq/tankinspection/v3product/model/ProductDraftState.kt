@@ -224,6 +224,7 @@ enum class ProductElementType(
     GAUGE_HATCH("gauge_hatch", "Gauge Hatch", "GH", setOf(ProductLayoutSurface.ROOF, ProductLayoutSurface.SHELL)),
     ROOF_DRAIN("roof_drain", "Roof Drain", "RD", setOf(ProductLayoutSurface.ROOF)),
     SUPPORT("support", "Support", "SP", setOf(ProductLayoutSurface.ROOF)),
+    PATCH("patch", "Patch / Repaired Plate", "PX", setOf(ProductLayoutSurface.ROOF, ProductLayoutSurface.SHELL, ProductLayoutSurface.FLOOR)),
     SUMP("sump", "Sump", "SU", setOf(ProductLayoutSurface.FLOOR)),
     DATUM("datum", "Reference / Datum", "RF", setOf(ProductLayoutSurface.SHELL, ProductLayoutSurface.FLOOR)),
 }

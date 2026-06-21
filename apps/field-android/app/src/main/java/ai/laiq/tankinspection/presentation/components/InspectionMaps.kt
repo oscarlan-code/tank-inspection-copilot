@@ -58,6 +58,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -632,8 +633,11 @@ private fun positiveShellScaleDelta(value: Float): Float {
     return result
 }
 
-private fun fittedPlateLabelFontSize(label: String) =
+private fun fittedPlateLabelFontSize(label: String, availableWidth: Dp = 28.dp) =
     when {
+        availableWidth < 12.dp -> 5.sp
+        availableWidth < 16.dp -> 6.sp
+        availableWidth < 20.dp -> 7.sp
         label.length >= 5 -> 6.sp
         label.length == 4 -> 7.sp
         label.length == 3 -> 8.sp
@@ -670,6 +674,7 @@ fun RoofSurfaceMap(
     annularReferenceAzimuthDeg: Double = referenceAzimuthDeg,
     rotationDirection: RotationDirection = RotationDirection.CLOCKWISE,
     customPlateCells: List<RoofPlateCell>? = null,
+    maxMapSize: Dp = 320.dp,
     onSelectPosition: ((Double, Double) -> Unit)? = null,
     onSelectPlate: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -780,7 +785,7 @@ fun RoofSurfaceMap(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val mapSize = if (maxWidth < 320.dp) maxWidth else 320.dp
+        val mapSize = if (maxWidth < maxMapSize) maxWidth else maxMapSize
         val umbrellaLabelWidth = 34.dp
         val umbrellaLabelHeight = 20.dp
         val circularLabelWidth = 28.dp
@@ -1250,19 +1255,25 @@ fun RoofSurfaceMap(
                     displayPlateCells.forEach { cell ->
                         val cellLabelWidth = mapSize * (cell.rightNorm - cell.leftNorm)
                         val cellLabelHeight = mapSize * (cell.bottomNorm - cell.topNorm)
-                        val labelFits = cellLabelWidth >= circularLabelWidth + 4.dp &&
-                            cellLabelHeight >= circularLabelHeight + 2.dp
+                        val minimumLabelWidth = if (cell.mapLabel.length > 2) 14.dp else 10.dp
+                        val labelFits = cellLabelWidth >= minimumLabelWidth && cellLabelHeight >= 8.dp
                         val shouldShowLabel = !autoHideCrowdedPlateLabels ||
                             labelFits ||
                             cell.plateId == activePlateId
                         if (!shouldShowLabel) return@forEach
+                        val labelBoxWidth = cellLabelWidth
+                            .coerceAtLeast(minimumLabelWidth)
+                            .coerceAtMost(circularLabelWidth)
+                        val labelBoxHeight = cellLabelHeight
+                            .coerceAtLeast(8.dp)
+                            .coerceAtMost(circularLabelHeight)
                         Box(
                             modifier = Modifier
-                                .width(circularLabelWidth)
-                                .height(circularLabelHeight)
+                                .width(labelBoxWidth)
+                                .height(labelBoxHeight)
                                 .offset(
-                                    x = mapSize * cell.labelXNorm - circularLabelWidth / 2,
-                                    y = mapSize * cell.labelYNorm - circularLabelHeight / 2,
+                                    x = mapSize * cell.labelXNorm - labelBoxWidth / 2,
+                                    y = mapSize * cell.labelYNorm - labelBoxHeight / 2,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -1270,7 +1281,7 @@ fun RoofSurfaceMap(
                                 text = cell.mapLabel,
                                 modifier = Modifier.fillMaxWidth(),
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = fittedPlateLabelFontSize(cell.mapLabel),
+                                    fontSize = fittedPlateLabelFontSize(cell.mapLabel, labelBoxWidth),
                                 ),
                                 color = LaiqColors.BodyText,
                                 maxLines = 1,

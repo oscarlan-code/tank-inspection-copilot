@@ -398,7 +398,7 @@ fun ProductLayoutMapSetupScreen(
                                 TwoUpFields(
                                     left = {
                                         LaiqCountField(
-                                            label = "Plate Rows",
+                                            label = "Horizontal Rows",
                                             value = state.roofRowCount,
                                             onValueChange = {
                                                 updateCurrentTarget(
@@ -411,7 +411,7 @@ fun ProductLayoutMapSetupScreen(
                                     },
                                     right = {
                                         LaiqCountField(
-                                            label = "Widest Row Plates",
+                                            label = "Widest Columns",
                                             value = state.roofWidestRowPlateCount,
                                             onValueChange = {
                                                 updateCurrentTarget(
@@ -583,7 +583,7 @@ fun ProductLayoutMapSetupScreen(
                             TwoUpFields(
                                 left = {
                                     LaiqCountField(
-                                        label = "Plate Rows",
+                                        label = "Horizontal Rows",
                                         value = state.floorPatternCountX,
                                         onValueChange = {
                                             updateCurrentTarget(
@@ -596,7 +596,7 @@ fun ProductLayoutMapSetupScreen(
                                 },
                                 right = {
                                     LaiqCountField(
-                                        label = "Widest Row Plates",
+                                        label = "Widest Columns",
                                         value = state.floorPatternCountY,
                                         onValueChange = {
                                             updateCurrentTarget(
@@ -764,8 +764,8 @@ private fun ProductLayoutMapSetup.validationErrorsFor(target: ProductLayoutTarge
                     }
                     RoofTemplate.CIRCULAR_PLATE,
                     RoofTemplate.CIRCULAR_CENTER_OPENING -> {
-                        requireCount("Plate rows", roofRowCount, min = 1, max = MAX_LAYOUT_ROWS)
-                        requireCount("Widest row plates", roofWidestRowPlateCount, min = 4, max = MAX_WIDEST_ROW_PLATES)
+                        requireCount("Horizontal rows", roofRowCount, min = 1, max = MAX_LAYOUT_ROWS)
+                        requireCount("Widest columns", roofWidestRowPlateCount, min = 4, max = MAX_WIDEST_ROW_PLATES)
                     }
                 }
                 if (roofHasAnnularRing) {
@@ -778,8 +778,8 @@ private fun ProductLayoutMapSetup.validationErrorsFor(target: ProductLayoutTarge
                 requireCount("UT lane count", shellLaneCount, min = 1, max = MAX_SHELL_UT_LANES)
             }
             ProductLayoutSurface.FLOOR -> {
-                requireCount("Plate rows", floorPatternCountX, min = 1, max = MAX_LAYOUT_ROWS)
-                requireCount("Widest row plates", floorPatternCountY, min = 4, max = MAX_WIDEST_ROW_PLATES)
+                requireCount("Horizontal rows", floorPatternCountX, min = 1, max = MAX_LAYOUT_ROWS)
+                requireCount("Widest columns", floorPatternCountY, min = 4, max = MAX_WIDEST_ROW_PLATES)
                 if (floorTemplate == ProductFloorTemplate.CIRCULAR_PLATE_WITH_AR) {
                     requireCount("Annular ring plates", floorAnnularSectionCount, min = 4, max = MAX_ANNULAR_PLATES)
                 }

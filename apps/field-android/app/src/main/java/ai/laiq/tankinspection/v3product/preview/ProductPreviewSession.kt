@@ -37,7 +37,7 @@ object ProductPreviewSession {
     private const val LEGACY_DRAFT_STATE_KEY = "draft_state_json"
     private const val ACTIVE_INSPECTION_ID_KEY = "active_inspection_id"
     private const val ACTIVE_SCREEN_KEY = "active_screen_key"
-    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260616_findings_and_nozzle_pads"
+    private const val MOCK_TASKS_SEEDED_KEY = "mock_tasks_seeded_api_standard_v10_20260621_roof_shell_nozzle_plate_review"
     private const val STORAGE_DIR_NAME = "v3-product-session"
     private const val TASKS_DIR_NAME = "tasks"
     private const val DRAFT_FILE_NAME = "draft-state.json"

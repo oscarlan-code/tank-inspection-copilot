@@ -73,6 +73,7 @@ fun ProductCollapsibleSectionCard(
     modifier: Modifier = Modifier,
     summary: String? = null,
     subtitle: String? = null,
+    collapsedActionLabel: String = "Edit",
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -116,7 +117,7 @@ fun ProductCollapsibleSectionCard(
                     }
                 }
                 TextButton(onClick = { onExpandedChange(!expanded) }) {
-                    Text(if (expanded) "Hide" else "Edit")
+                    Text(if (expanded) "Hide" else collapsedActionLabel)
                 }
             }
             if (expanded) {

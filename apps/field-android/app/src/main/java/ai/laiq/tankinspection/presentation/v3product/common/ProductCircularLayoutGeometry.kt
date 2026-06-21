@@ -103,53 +103,62 @@ fun ProductCustomCircularPlateLayout.plateRefs(target: ProductLayoutTarget): Lis
     var roofCounter = 1
     return buildList {
         rows.forEachIndexed { rowIndex, row ->
-            var columnCounter = 1
-            var plateIndex = 0
-            while (plateIndex < row.plates.size) {
-                val plate = row.plates[plateIndex]
-                val splitKey = plate.splitGroupKey
-                if (splitKey != null) {
-                    val groupStart = plateIndex
-                    var groupEnd = plateIndex
-                    while (
-                        groupEnd + 1 < row.plates.size &&
-                        row.plates[groupEnd + 1].splitGroupKey == splitKey
-                    ) {
-                        groupEnd++
+            val plateGroups = row.plates.groupedBySplitKey()
+            val rowRoofLabels = if (roofLike) {
+                val startLabel = roofCounter
+                val groupCount = plateGroups.size
+                List(groupCount) { groupIndex ->
+                    val offset = if (row.rowNumber % 2 == 0) {
+                        groupCount - 1 - groupIndex
+                    } else {
+                        groupIndex
                     }
-                    val base = if (roofLike) roofCounter.toString() else "${row.rowNumber}.$columnCounter"
-                    for (groupIndex in groupStart..groupEnd) {
-                        val groupPlate = row.plates[groupIndex]
-                        val suffix = splitSuffix(groupPlate.splitPartIndex)
-                        add(
-                            ProductCircularPlateRef(
-                                label = "$base$suffix",
-                                rowIndex = rowIndex,
-                                plateIndex = groupIndex,
-                                rowNumber = row.rowNumber,
-                            ),
-                        )
-                    }
-                    roofCounter++
-                    columnCounter++
-                    plateIndex = groupEnd + 1
-                } else {
-                    val label = if (roofLike) roofCounter.toString() else "${row.rowNumber}.$columnCounter"
+                    startLabel + offset
+                }
+            } else {
+                emptyList()
+            }
+            plateGroups.forEachIndexed { groupIndex, group ->
+                val base = if (roofLike) rowRoofLabels[groupIndex].toString() else "${row.rowNumber}.${groupIndex + 1}"
+                group.forEach { plateIndex ->
+                    val plate = row.plates[plateIndex]
+                    val suffix = if (plate.splitGroupKey != null) splitSuffix(plate.splitPartIndex) else ""
                     add(
                         ProductCircularPlateRef(
-                            label = label,
+                            label = "$base$suffix",
                             rowIndex = rowIndex,
                             plateIndex = plateIndex,
                             rowNumber = row.rowNumber,
                         ),
                     )
-                    roofCounter++
-                    columnCounter++
-                    plateIndex++
                 }
+            }
+            if (roofLike) {
+                roofCounter += plateGroups.size
             }
         }
     }
+}
+
+private fun List<ProductCustomCircularPlate>.groupedBySplitKey(): List<List<Int>> {
+    val groups = mutableListOf<List<Int>>()
+    var plateIndex = 0
+    while (plateIndex < size) {
+        val splitKey = this[plateIndex].splitGroupKey
+        if (splitKey == null) {
+            groups += listOf(plateIndex)
+            plateIndex++
+            continue
+        }
+        val groupStart = plateIndex
+        var groupEnd = plateIndex
+        while (groupEnd + 1 < size && this[groupEnd + 1].splitGroupKey == splitKey) {
+            groupEnd++
+        }
+        groups += (groupStart..groupEnd).toList()
+        plateIndex = groupEnd + 1
+    }
+    return groups
 }
 
 fun ProductCustomCircularPlateLayout.splitPlate(

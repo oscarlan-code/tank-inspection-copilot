@@ -2,10 +2,7 @@ package ai.laiq.tankinspection.presentation.v3product.utmeasurement
 
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.presentation.components.LaiqColors
-import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
-import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
-import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
@@ -41,10 +38,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,9 +59,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,28 +76,28 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 private val nozzleSizeOptions = listOf(
     "2 in" to "2 in",
@@ -118,6 +120,10 @@ private enum class UtMapFocusMode(
     BOTH("both", "Both", "Show plate/region UT and element UT together for final review."),
 }
 
+private val UtMapWorkspaceHeight = 560.dp
+private val UtMapWorkspacePadding = 16.dp
+private val UtShellTopPadding = 26.dp
+
 @Composable
 fun ProductUtMeasurementScreen(
     generalTankInfo: ProductGeneralTankInfo,
@@ -139,6 +145,9 @@ fun ProductUtMeasurementScreen(
     }
     val selectedEntries = state.entriesByItemKey.values.filter { entry -> entry.target == selectedTarget }
     val selectedTargetApproved = selectedTarget in state.approvedTargets
+    val activeEntry = state.entriesByItemKey[state.activeItemKey]?.takeIf { entry -> entry.target == selectedTarget }
+    val activeUtInputMode = activeEntry != null
+    val workflowChromeAlpha = if (activeUtInputMode) 0f else 1f
     val scrollState = rememberScrollState()
     var utScopeExpanded by remember { mutableStateOf(false) }
 
@@ -177,7 +186,9 @@ fun ProductUtMeasurementScreen(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = LaiqColors.BrandTeal,
-                modifier = Modifier.padding(horizontal = 4.dp),
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .graphicsLayer { alpha = workflowChromeAlpha },
             )
 
             if (visibleTargets.isEmpty()) {
@@ -189,42 +200,46 @@ fun ProductUtMeasurementScreen(
                     )
                 }
             } else {
-                ProductCollapsibleSectionCard(
-                    title = "UT Scope",
-                    summary = "${selectedTarget.label} | ${selectedEntries.count { entry -> entry.confirmed && entry.hasMeasuredReadings() }} measured | ${placementsByTarget[selectedTarget].orEmpty().size} elements",
-                    expanded = utScopeExpanded,
-                    onExpandedChange = { utScopeExpanded = it },
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        LaiqStatChip(
-                            label = "Tank",
-                            value = generalTankInfo.tankNumber.ifBlank { "Tank" },
-                            modifier = Modifier.weight(1f),
-                        )
-                        LaiqStatChip(
-                            label = "Current",
-                            value = selectedTarget.label,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        LaiqStatChip(
-                            label = "Measured",
-                            value = selectedEntries.count { entry -> entry.confirmed && entry.hasMeasuredReadings() }.toString(),
-                            modifier = Modifier.weight(1f),
-                        )
-                        LaiqStatChip(
-                            label = "Elements",
-                            value = placementsByTarget[selectedTarget].orEmpty().size.toString(),
-                            modifier = Modifier.weight(1f),
-                        )
+                Box(modifier = Modifier.graphicsLayer { alpha = workflowChromeAlpha }) {
+                    ProductCollapsibleSectionCard(
+                        title = "UT Scope",
+                        summary = "${selectedTarget.label} | ${selectedEntries.count { entry -> entry.confirmed && entry.hasMeasuredReadings() }} measured | ${placementsByTarget[selectedTarget].orEmpty().size} elements",
+                        expanded = utScopeExpanded,
+                        onExpandedChange = { utScopeExpanded = it },
+                        collapsedActionLabel = "View",
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            LaiqStatChip(
+                                label = "Tank",
+                                value = generalTankInfo.tankNumber.ifBlank { "Tank" },
+                                modifier = Modifier.weight(1f),
+                            )
+                            LaiqStatChip(
+                                label = "Current",
+                                value = selectedTarget.label,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            LaiqStatChip(
+                                label = "Measured",
+                                value = selectedEntries.count { entry -> entry.confirmed && entry.hasMeasuredReadings() }.toString(),
+                                modifier = Modifier.weight(1f),
+                            )
+                            LaiqStatChip(
+                                label = "Elements",
+                                value = placementsByTarget[selectedTarget].orEmpty().size.toString(),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 4.dp)
+                        .graphicsLayer { alpha = workflowChromeAlpha },
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
@@ -252,18 +267,35 @@ fun ProductUtMeasurementScreen(
                     onSelectEntry = { entry ->
                         onStateChange(latestState.withSelectedEntry(entry))
                     },
-                    onConfirm = { updated ->
-                        onStateChange(latestState.withUpdatedEntry(updated))
-                    },
                     onOpenFinding = onOpenFinding,
-                    onClose = {
-                        onStateChange(latestState.withClearedActiveItem())
-                    },
                 )
             }
         }
 
-        if (visibleTargets.isNotEmpty()) {
+        activeEntry?.let { entry ->
+            FloatingUtMeasurementCard(
+                entry = entry,
+                onConfirm = { updated ->
+                    onStateChange(latestState.withUpdatedEntry(updated))
+                },
+                onOpenFinding = { updated ->
+                    onOpenFinding(updated)
+                },
+                onClose = {
+                    onStateChange(latestState.withClearedActiveItem())
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = contentPadding.calculateTopPadding() + 6.dp,
+                    )
+                    .fillMaxWidth(),
+            )
+        }
+
+        if (visibleTargets.isNotEmpty() && !activeUtInputMode) {
             ProductStickyActionBar(
                 primaryText = when {
                     !selectedTargetApproved -> "Approve UT"
@@ -286,9 +318,7 @@ private fun UtMapWorkspace(
     placements: List<ProductPlacedElement>,
     state: ProductUtMeasurementState,
     onSelectEntry: (ProductUtMeasurementEntry) -> Unit,
-    onConfirm: (ProductUtMeasurementEntry) -> Unit,
     onOpenFinding: (ProductUtMeasurementEntry) -> Unit,
-    onClose: () -> Unit,
 ) {
     val completedEntries = state.entriesByItemKey.values.filter { entry ->
         entry.target == selectedTarget && entry.confirmed && entry.hasMeasuredReadings()
@@ -297,12 +327,6 @@ private fun UtMapWorkspace(
     var focusMode by remember(selectedTarget) { mutableStateOf(UtMapFocusMode.PLATES) }
     val showPlateLayer = focusMode != UtMapFocusMode.ELEMENTS
     val showElementLayer = focusMode != UtMapFocusMode.PLATES
-    val visibleActiveEntry = activeEntry?.takeIf { entry ->
-        when (entry.kind) {
-            ProductUtItemKind.LAYOUT_REGION -> showPlateLayer
-            ProductUtItemKind.ELEMENT -> showElementLayer
-        }
-    }
     LaiqSectionCard(
         title = "${selectedTarget.label} UT Map",
 	        subtitle = "Tap only the random points you choose to survey. Leave readings blank if no UT is conducted.",
@@ -327,7 +351,6 @@ private fun UtMapWorkspace(
                     selectedTarget = selectedTarget,
                     layoutMapSetup = layoutMapSetup,
                     placements = placements,
-                    activeEntry = visibleActiveEntry,
                     completedPlateIds = completedEntries
                         .filter { entry -> entry.kind == ProductUtItemKind.LAYOUT_REGION }
                         .map { entry -> entry.itemLabel }
@@ -341,16 +364,13 @@ private fun UtMapWorkspace(
                     showPlateLayer = showPlateLayer,
                     showElementLayer = showElementLayer,
                     onSelectEntry = onSelectEntry,
-                    onConfirm = onConfirm,
                     onOpenFinding = onOpenFinding,
-                    onClose = onClose,
                 )
 
                 ProductLayoutSurface.FLOOR -> RoofOrFloorUtMap(
                     selectedTarget = selectedTarget,
                     layoutMapSetup = layoutMapSetup,
                     placements = placements,
-                    activeEntry = visibleActiveEntry,
                     completedPlateIds = completedEntries
                         .filter { entry -> entry.kind == ProductUtItemKind.LAYOUT_REGION }
                         .map { entry -> entry.itemLabel }
@@ -364,16 +384,13 @@ private fun UtMapWorkspace(
                     showPlateLayer = showPlateLayer,
                     showElementLayer = showElementLayer,
                     onSelectEntry = onSelectEntry,
-                    onConfirm = onConfirm,
                     onOpenFinding = onOpenFinding,
-                    onClose = onClose,
                 )
 
                 ProductLayoutSurface.SHELL -> ShellUtMap(
                     selectedTarget = selectedTarget,
                     layoutMapSetup = layoutMapSetup,
                     placements = placements,
-                    activeEntry = visibleActiveEntry,
                     completedRegionLabels = completedEntries
                         .filter { entry -> entry.kind == ProductUtItemKind.LAYOUT_REGION }
                         .map { entry -> entry.itemLabel }
@@ -387,9 +404,7 @@ private fun UtMapWorkspace(
                     showRegionLayer = showPlateLayer,
                     showElementLayer = showElementLayer,
                     onSelectEntry = onSelectEntry,
-                    onConfirm = onConfirm,
                     onOpenFinding = onOpenFinding,
-                    onClose = onClose,
                 )
             }
         }
@@ -401,7 +416,6 @@ private fun RoofOrFloorUtMap(
     selectedTarget: ProductLayoutTarget,
     layoutMapSetup: ProductLayoutMapSetup,
     placements: List<ProductPlacedElement>,
-    activeEntry: ProductUtMeasurementEntry?,
     completedPlateIds: Set<String>,
     activePlateId: String?,
     completedElementKeys: Set<String>,
@@ -409,18 +423,14 @@ private fun RoofOrFloorUtMap(
     showPlateLayer: Boolean,
     showElementLayer: Boolean,
     onSelectEntry: (ProductUtMeasurementEntry) -> Unit,
-    onConfirm: (ProductUtMeasurementEntry) -> Unit,
     onOpenFinding: (ProductUtMeasurementEntry) -> Unit,
-    onClose: () -> Unit,
 ) {
-    val mapHeight = if (activeEntry == null) 540.dp else 700.dp
+    val viewportHeight = UtMapWorkspaceHeight
     val density = LocalDensity.current
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(mapHeight),
-    ) {
-        val mapWidth = maxWidth
+    ZoomableUtMapViewport(
+        viewportHeight = viewportHeight,
+        contentPadding = UtMapWorkspacePadding,
+    ) { mapWidth, mapHeight, mapZoom, mapPan ->
         val mapSizePx = Size(
             width = with(density) { mapWidth.toPx() },
             height = with(density) { mapHeight.toPx() },
@@ -446,52 +456,65 @@ private fun RoofOrFloorUtMap(
         } else {
             layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10)
         }
-        RoofSurfaceMap(
-            template = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
-                RoofTemplate.CIRCULAR_PLATE
-            } else {
-                layoutMapSetup.roofPattern
-            },
-            rowCount = circularRowCount,
-            widestRowPlateCount = circularWidestRowPlateCount,
-            ringCount = layoutMapSetup.roofRingCount.toPositiveInt(3),
-            sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20),
-            activePlateId = activePlateId.takeIf { showPlateLayer },
-            savedPlateIds = completedPlateIds.takeIf { showPlateLayer }.orEmpty(),
-            emphasizeUtHighlights = showPlateLayer,
-            centerFeatureCount = if (selectedTarget.surface == ProductLayoutSurface.ROOF && layoutMapSetup.roofHasCenterOpening) 1 else 0,
-            centerFeatureCountControlsLayout = true,
-            useLeaderPlateLabels = false,
-            showAnnularSectionLabels = selectedTarget.surface == ProductLayoutSurface.FLOOR,
-            autoHideCrowdedPlateLabels = false,
-            enablePlateTapSelection = showPlateLayer,
-            hasAnnularRing = when (selectedTarget.surface) {
-                ProductLayoutSurface.ROOF -> layoutMapSetup.roofHasAnnularRing
-                ProductLayoutSurface.FLOOR -> layoutMapSetup.floorTemplate == ProductFloorTemplate.CIRCULAR_PLATE_WITH_AR
-                ProductLayoutSurface.SHELL -> false
-            },
-            annularSectionCount = when (selectedTarget.surface) {
-                ProductLayoutSurface.ROOF -> layoutMapSetup.roofAnnularSectionCount.toPositiveInt(12)
-                ProductLayoutSurface.FLOOR -> layoutMapSetup.floorAnnularSectionCount.toPositiveInt(12)
-                ProductLayoutSurface.SHELL -> 0
-            },
-            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
-            customPlateCells = customLayout
-                ?.normalizedFor(circularRowCount, circularWidestRowPlateCount)
-                ?.toRoofPlateCells(selectedTarget, circularRowCount, circularWidestRowPlateCount),
-            referenceLabel = layoutMapSetup.referenceMode.label,
-            mapTitle = "",
-            onSelectPlate = { plateId ->
-                onSelectEntry(regionEntry(selectedTarget, plateId))
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = mapZoom
+                    scaleY = mapZoom
+                    translationX = mapPan.x
+                    translationY = mapPan.y
+                    transformOrigin = TransformOrigin(0f, 0f)
+                },
+        ) {
+            RoofSurfaceMap(
+                template = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
+                    RoofTemplate.CIRCULAR_PLATE
+                } else {
+                    layoutMapSetup.roofPattern
+                },
+                rowCount = circularRowCount,
+                widestRowPlateCount = circularWidestRowPlateCount,
+                ringCount = layoutMapSetup.roofRingCount.toPositiveInt(3),
+                sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20),
+                activePlateId = activePlateId.takeIf { showPlateLayer },
+                savedPlateIds = completedPlateIds.takeIf { showPlateLayer }.orEmpty(),
+                emphasizeUtHighlights = showPlateLayer,
+                centerFeatureCount = if (selectedTarget.surface == ProductLayoutSurface.ROOF && layoutMapSetup.roofHasCenterOpening) 1 else 0,
+                centerFeatureCountControlsLayout = true,
+                useLeaderPlateLabels = false,
+                showAnnularSectionLabels = selectedTarget.surface == ProductLayoutSurface.FLOOR,
+                autoHideCrowdedPlateLabels = false,
+                enablePlateTapSelection = showPlateLayer,
+                hasAnnularRing = when (selectedTarget.surface) {
+                    ProductLayoutSurface.ROOF -> layoutMapSetup.roofHasAnnularRing
+                    ProductLayoutSurface.FLOOR -> layoutMapSetup.floorTemplate == ProductFloorTemplate.CIRCULAR_PLATE_WITH_AR
+                    ProductLayoutSurface.SHELL -> false
+                },
+                annularSectionCount = when (selectedTarget.surface) {
+                    ProductLayoutSurface.ROOF -> layoutMapSetup.roofAnnularSectionCount.toPositiveInt(12)
+                    ProductLayoutSurface.FLOOR -> layoutMapSetup.floorAnnularSectionCount.toPositiveInt(12)
+                    ProductLayoutSurface.SHELL -> 0
+                },
+                annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+                customPlateCells = customLayout
+                    ?.normalizedFor(circularRowCount, circularWidestRowPlateCount)
+                    ?.toRoofPlateCells(selectedTarget, circularRowCount, circularWidestRowPlateCount),
+                referenceLabel = layoutMapSetup.referenceMode.label,
+                mapTitle = "",
+                maxMapSize = 320.dp,
+                onSelectPlate = { plateId ->
+                    onSelectEntry(regionEntry(selectedTarget, plateId))
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (showElementLayer) {
             placements.sortedBy { element ->
                 if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
             }.forEach { element ->
                 val key = elementItemKey(selectedTarget, element)
-                val center = markerCenter(element, mapSizePx, placementRegion)
+                val center = markerCenter(element, mapSizePx, placementRegion).toUtScreenPosition(mapZoom, mapPan)
                 UtElementCallout(
                     element = element,
                     selected = key == activeElementKey,
@@ -513,28 +536,6 @@ private fun RoofOrFloorUtMap(
                 )
             }
         }
-        activeEntry?.let { entry ->
-            val anchor = anchorForRoofOrFloorEntry(
-                selectedTarget = selectedTarget,
-                layoutMapSetup = layoutMapSetup,
-                placements = placements,
-                entry = entry,
-                mapSize = mapSizePx,
-                placementRegion = placementRegion,
-            )
-            FloatingUtMeasurementCard(
-                entry = entry,
-                onConfirm = onConfirm,
-                onOpenFinding = onOpenFinding,
-                onClose = onClose,
-                modifier = Modifier
-                    .width(310.dp)
-                    .offset(
-                        x = floatingXOffset(anchor.x, mapWidth, 310.dp),
-                        y = floatingYOffset(anchor.y, mapHeight, entry),
-                    ),
-            )
-        }
     }
 }
 
@@ -543,7 +544,6 @@ private fun ShellUtMap(
     selectedTarget: ProductLayoutTarget,
     layoutMapSetup: ProductLayoutMapSetup,
     placements: List<ProductPlacedElement>,
-    activeEntry: ProductUtMeasurementEntry?,
     completedRegionLabels: Set<String>,
     activeRegionLabel: String?,
     completedElementKeys: Set<String>,
@@ -551,35 +551,25 @@ private fun ShellUtMap(
     showRegionLayer: Boolean,
     showElementLayer: Boolean,
     onSelectEntry: (ProductUtMeasurementEntry) -> Unit,
-    onConfirm: (ProductUtMeasurementEntry) -> Unit,
     onOpenFinding: (ProductUtMeasurementEntry) -> Unit,
-    onClose: () -> Unit,
 ) {
     val courseCount = layoutMapSetup.shellCourseCount.toPositiveInt(6).coerceAtLeast(1)
     val laneCount = layoutMapSetup.shellLaneCount.toPositiveInt(4).coerceIn(1, 24)
-    val mapHeight = if (activeEntry == null) 430.dp else 700.dp
+    val viewportHeight = UtMapWorkspaceHeight
     val density = LocalDensity.current
-    val shellScrollState = rememberScrollState()
-    var horizontalZoom by remember(laneCount) {
-        mutableStateOf(if (laneCount == 4) 1.35f else 1.20f)
-    }
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(mapHeight),
-    ) {
-        val canvasHeight = (mapHeight - 58.dp).coerceAtLeast(360.dp)
-        val viewportWidth = maxWidth
-        val mapWidth = (maxWidth * horizontalZoom).coerceAtLeast(maxWidth)
+    ZoomableUtMapViewport(
+        viewportHeight = viewportHeight,
+        contentPadding = UtMapWorkspacePadding,
+    ) { mapWidth, mapHeight, mapZoom, mapPan ->
         val mapSizePx = Size(
             width = with(density) { mapWidth.toPx() },
-            height = with(density) { canvasHeight.toPx() },
+            height = with(density) { mapHeight.toPx() },
         )
         val placementRegion = shellPlacementRegion(
             mapSize = mapSizePx,
             courseCount = courseCount,
             labelWidthPx = with(density) { 46.dp.toPx() },
-            topPaddingPx = with(density) { 52.dp.toPx() },
+            topPaddingPx = with(density) { UtShellTopPadding.toPx() },
             bottomPaddingPx = with(density) { 14.dp.toPx() },
             rightPaddingPx = with(density) { 8.dp.toPx() },
             cellGapPx = with(density) { 2.dp.toPx() },
@@ -587,114 +577,220 @@ private fun ShellUtMap(
         )
         val markerAnchorXpx = with(density) { 12.dp.toPx() }
         val markerAnchorYpx = with(density) { 44.dp.toPx() }
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Horizontal zoom",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = LaiqColors.MutedText,
-                    modifier = Modifier.weight(0.55f),
-                )
-                Slider(
-                    value = horizontalZoom,
-                    onValueChange = { updated -> horizontalZoom = updated.coerceIn(1f, 2.4f) },
-                    valueRange = 1f..2.4f,
-                    modifier = Modifier.weight(1f),
-                )
-            }
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(canvasHeight)
-                    .horizontalScroll(shellScrollState),
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = mapZoom
+                        scaleY = mapZoom
+                        translationX = mapPan.x
+                        translationY = mapPan.y
+                        transformOrigin = TransformOrigin(0f, 0f)
+                    },
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(mapWidth)
-                        .height(canvasHeight),
-                ) {
-                    ShellUtCanvas(
-                        courseCount = courseCount,
-                        platesPerCourse = layoutMapSetup.shellPlatesPerCourse.toPositiveInt(12),
-                        offsetMode = layoutMapSetup.shellPlateOffset,
-                        offsetStartRow = layoutMapSetup.shellOffsetStartRow,
-                        thirdOffsetStart = layoutMapSetup.shellThirdOffsetStart,
-                        laneCount = laneCount,
-                        completedRegionLabels = completedRegionLabels.takeIf { showRegionLayer }.orEmpty(),
-                        activeRegionLabel = activeRegionLabel.takeIf { showRegionLayer },
-                        referenceLabel = layoutMapSetup.referenceMode.label,
-                        enableRegionSelection = showRegionLayer,
-                        onSelectRegion = { laneIndex, course ->
-                            onSelectEntry(regionEntry(selectedTarget, "L${laneIndex + 1}-C$course"))
+                ShellUtCanvas(
+                    courseCount = courseCount,
+                    platesPerCourse = layoutMapSetup.shellPlatesPerCourse.toPositiveInt(12),
+                    offsetMode = layoutMapSetup.shellPlateOffset,
+                    offsetStartRow = layoutMapSetup.shellOffsetStartRow,
+                    thirdOffsetStart = layoutMapSetup.shellThirdOffsetStart,
+                    laneCount = laneCount,
+                    completedRegionLabels = completedRegionLabels.takeIf { showRegionLayer }.orEmpty(),
+                    activeRegionLabel = activeRegionLabel.takeIf { showRegionLayer },
+                    referenceLabel = layoutMapSetup.referenceMode.label,
+                    enableRegionSelection = showRegionLayer,
+                    onSelectRegion = { laneIndex, course ->
+                        onSelectEntry(regionEntry(selectedTarget, "L${laneIndex + 1}-C$course"))
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            if (showElementLayer) {
+                placements.sortedBy { element ->
+                    if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
+                }.forEach { element ->
+                    val key = elementItemKey(selectedTarget, element)
+                    val center = markerCenter(element, mapSizePx, placementRegion).toUtScreenPosition(mapZoom, mapPan)
+                    UtElementCallout(
+                        element = element,
+                        selected = key == activeElementKey,
+                        completed = key in completedElementKeys,
+                        onClick = {
+                            val entry = elementEntry(selectedTarget, element)
+                            if (element.type.requiresUtMeasurement()) {
+                                onSelectEntry(entry)
+                            } else {
+                                onOpenFinding(entry)
+                            }
                         },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    if (showElementLayer) {
-                        placements.sortedBy { element ->
-                            if (elementItemKey(selectedTarget, element) == activeElementKey) 1 else 0
-                        }.forEach { element ->
-                            val key = elementItemKey(selectedTarget, element)
-                            val center = markerCenter(element, mapSizePx, placementRegion)
-                            UtElementCallout(
-                                element = element,
-                                selected = key == activeElementKey,
-                                completed = key in completedElementKeys,
-                                onClick = {
-                                    val entry = elementEntry(selectedTarget, element)
-                                    if (element.type.requiresUtMeasurement()) {
-                                        onSelectEntry(entry)
-                                    } else {
-                                        onOpenFinding(entry)
-                                    }
-                                },
-                                modifier = Modifier.offset {
-                                    IntOffset(
-                                        x = (center.x - markerAnchorXpx).roundToInt(),
-                                        y = (center.y - markerAnchorYpx).roundToInt(),
-                                    )
-                                },
+                        modifier = Modifier.offset {
+                            IntOffset(
+                                x = (center.x - markerAnchorXpx).roundToInt(),
+                                y = (center.y - markerAnchorYpx).roundToInt(),
                             )
                         }
-                    }
-                    activeEntry?.let { entry ->
-                        val anchor = anchorForShellEntry(
-                            placements = placements,
-                            entry = entry,
-                            courseCount = courseCount,
-                            laneCount = laneCount,
-                            mapSize = mapSizePx,
-                            placementRegion = placementRegion,
-                        )
-                        FloatingUtMeasurementCard(
-                            entry = entry,
-                            onConfirm = onConfirm,
-                            onOpenFinding = onOpenFinding,
-                            onClose = onClose,
-                            modifier = Modifier
-                                .width(310.dp)
-                                .offset(
-                                    x = floatingXOffset(
-                                        anchorX = anchor.x,
-                                        mapWidth = mapWidth,
-                                        cardWidth = 310.dp,
-                                        viewportWidth = viewportWidth,
-                                        scrollOffset = with(density) { shellScrollState.value.toDp() },
-                                    ),
-                                    y = floatingYOffset(anchor.y, canvasHeight, entry),
-                                ),
-                        )
-                    }
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ZoomableUtMapViewport(
+    viewportHeight: Dp,
+    contentPadding: Dp = 0.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.(mapWidth: Dp, mapHeight: Dp, mapZoom: Float, mapPan: Offset) -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(viewportHeight)
+            .clipToBounds(),
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+                .clipToBounds(),
+        ) {
+            val viewportWidth = maxWidth
+            val contentHeight = maxHeight
+            val density = LocalDensity.current
+            val viewportSizePx = Size(
+                width = with(density) { viewportWidth.toPx() },
+                height = with(density) { contentHeight.toPx() },
+            )
+            var mapZoom by remember { mutableStateOf(1f) }
+            var mapPan by remember { mutableStateOf(Offset.Zero) }
+            val resolvedZoom = mapZoom.coerceIn(1f, 10f)
+
+            fun updateZoom(nextZoom: Float, centroid: Offset? = null) {
+                val currentZoom = resolvedZoom
+                val coercedZoom = nextZoom.coerceIn(1f, 10f)
+                val anchor = centroid ?: Offset(viewportSizePx.width / 2f, viewportSizePx.height / 2f)
+                val logicalAnchor = Offset(
+                    x = (anchor.x - mapPan.x) / currentZoom.coerceAtLeast(0.001f),
+                    y = (anchor.y - mapPan.y) / currentZoom.coerceAtLeast(0.001f),
+                )
+                mapZoom = coercedZoom
+                mapPan = coerceUtMapPan(
+                    Offset(
+                        x = anchor.x - logicalAnchor.x * coercedZoom,
+                        y = anchor.y - logicalAnchor.y * coercedZoom,
+                    ),
+                    viewportSizePx,
+                    coercedZoom,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .utMapGestures(
+                        mapZoom = resolvedZoom,
+                        onPan = { delta ->
+                            mapPan = coerceUtMapPan(mapPan + delta, viewportSizePx, resolvedZoom)
+                        },
+                        onZoom = { delta, centroid ->
+                            updateZoom(resolvedZoom * delta, centroid)
+                        },
+                    ),
+            ) {
+                content(viewportWidth, contentHeight, resolvedZoom, mapPan)
+            }
+
+            if (resolvedZoom > 1.01f) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color.White.copy(alpha = 0.94f),
+                    border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clickable {
+                            mapZoom = 1f
+                            mapPan = Offset.Zero
+                        },
+                ) {
+                    Text(
+                        text = "Zoom ${"%.1f".format(resolvedZoom)}x · Reset",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Modifier.utMapGestures(
+    mapZoom: Float,
+    onPan: (Offset) -> Unit,
+    onZoom: (delta: Float, centroid: Offset) -> Unit,
+): Modifier {
+    val latestMapZoom by rememberUpdatedState(mapZoom)
+    val latestOnPan by rememberUpdatedState(onPan)
+    val latestOnZoom by rememberUpdatedState(onZoom)
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            var previousSpan: Float? = null
+            var totalDrag = Offset.Zero
+            while (true) {
+                val event = awaitPointerEvent()
+                val pressedPointers = event.changes.filter { change -> change.pressed }
+                if (pressedPointers.isEmpty()) break
+                if (pressedPointers.size < 2) {
+                    previousSpan = null
+                    val change = event.changes.firstOrNull { pointer -> pointer.id == down.id } ?: continue
+                    val delta = change.positionChange()
+                    totalDrag += delta
+                    if (latestMapZoom > 1.01f && totalDrag.distanceTo(Offset.Zero) > 6f) {
+                        latestOnPan(delta)
+                        change.consume()
+                    }
+                    continue
+                }
+                val centroid = pressedPointers
+                    .map { change -> change.position }
+                    .fold(Offset.Zero) { total, position -> total + position } / pressedPointers.size.toFloat()
+                val span = pressedPointers
+                    .map { change -> change.position.distanceTo(centroid) }
+                    .average()
+                    .toFloat()
+                    .coerceAtLeast(1f)
+                previousSpan?.let { lastSpan ->
+                    val delta = (span / lastSpan.coerceAtLeast(1f)).coerceIn(0.72f, 1.38f)
+                    latestOnZoom(delta, centroid)
+                }
+                previousSpan = span
+                event.changes.forEach { change -> change.consume() }
+            }
+        }
+    }
+}
+
+private fun coerceUtMapPan(
+    pan: Offset,
+    viewportSize: Size,
+    scale: Float,
+): Offset {
+    if (!viewportSize.isUsable() || scale <= 1f) return Offset.Zero
+    val minX = viewportSize.width * (1f - scale)
+    val minY = viewportSize.height * (1f - scale)
+    return Offset(
+        x = pan.x.coerceIn(minX, 0f),
+        y = pan.y.coerceIn(minY, 0f),
+    )
 }
 
 @Composable
@@ -714,7 +810,7 @@ private fun ShellUtCanvas(
 ) {
     val density = LocalDensity.current
     val labelWidthPx = with(density) { 46.dp.toPx() }
-    val topPaddingPx = with(density) { 52.dp.toPx() }
+    val topPaddingPx = with(density) { UtShellTopPadding.toPx() }
     val bottomPaddingPx = with(density) { 14.dp.toPx() }
     val rightPaddingPx = with(density) { 8.dp.toPx() }
     val cellGapPx = with(density) { 2.dp.toPx() }
@@ -948,61 +1044,79 @@ private fun UtElementCallout(
     Box(
         modifier = modifier
             .width(108.dp)
-            .height(58.dp)
-            .clickable(onClick = onClick),
+            .height(58.dp),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawLine(
-                color = markerColor.copy(alpha = 0.78f),
-                start = Offset(12.dp.toPx(), 44.dp.toPx()),
-                end = Offset(40.dp.toPx(), 17.dp.toPx()),
-                strokeWidth = if (selected || completed) 3.dp.toPx() else 2.2.dp.toPx(),
-            )
-            drawCircle(color = Color.White, radius = 5.5.dp.toPx(), center = Offset(12.dp.toPx(), 44.dp.toPx()))
-            drawCircle(
-                color = markerColor,
-                radius = 5.5.dp.toPx(),
-                center = Offset(12.dp.toPx(), 44.dp.toPx()),
-                style = Stroke(width = 2.2.dp.toPx()),
-            )
-        }
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = calloutFill,
-            border = BorderStroke(if (selected || completed) 2.4.dp else 1.6.dp, markerColor.copy(alpha = 0.90f)),
-            shadowElevation = if (selected || completed) 8.dp else 3.dp,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .width(78.dp)
-                .height(36.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 7.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ElementGlyph(element.type)
-                Text(
-                    text = element.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when {
-                        selected -> LaiqColors.BrandRed
-                        completed -> Color(0xFF167A4A)
-                        else -> LaiqColors.BodyText
-                    },
-                    fontWeight = FontWeight.SemiBold,
+        if (!selected) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawElementAnchor(
+                    type = element.type,
+                    color = markerColor,
+                    center = Offset(12.dp.toPx(), 44.dp.toPx()),
+                    radiusPx = 4.8.dp.toPx(),
+                    strokeWidthPx = if (completed) 2.2.dp.toPx() else 1.8.dp.toPx(),
                 )
             }
+        } else {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawLine(
+                    color = markerColor.copy(alpha = 0.78f),
+                    start = Offset(12.dp.toPx(), 44.dp.toPx()),
+                    end = Offset(40.dp.toPx(), 17.dp.toPx()),
+                    strokeWidth = if (selected || completed) 3.dp.toPx() else 2.2.dp.toPx(),
+                )
+                drawElementAnchor(
+                    type = element.type,
+                    color = markerColor,
+                    center = Offset(12.dp.toPx(), 44.dp.toPx()),
+                    radiusPx = 5.5.dp.toPx(),
+                    strokeWidthPx = 2.2.dp.toPx(),
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = calloutFill,
+                border = BorderStroke(if (selected || completed) 2.4.dp else 1.6.dp, markerColor.copy(alpha = 0.90f)),
+                shadowElevation = if (selected || completed) 8.dp else 3.dp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .width(78.dp)
+                    .height(36.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ElementGlyph(element.type)
+                    Text(
+                        text = element.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            selected -> LaiqColors.BrandRed
+                            completed -> Color(0xFF167A4A)
+                            else -> LaiqColors.BodyText
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
+        Box(
+            modifier = (if (selected) Modifier.fillMaxSize() else Modifier
+                .offset(x = 0.dp, y = 32.dp)
+                .size(24.dp))
+                .clickable(onClick = onClick),
+        )
     }
 }
 
 @Composable
 private fun ElementGlyph(type: ProductElementType) {
+    val shape = if (type.usesSquareMarker()) RoundedCornerShape(4.dp) else CircleShape
     Box(
         modifier = Modifier
             .size(18.dp)
-            .background(type.swatchColor().copy(alpha = 0.16f), CircleShape),
+            .background(type.swatchColor().copy(alpha = 0.16f), shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -1036,16 +1150,24 @@ private fun FloatingUtMeasurementCard(
         ?.takeUnless { reading -> reading.toDoubleOrNull()?.let { value -> value > 0.0 } == true }
         ?.let { "Use a positive number for reinforcement pad." }
     val validationErrors = utReadingValidationErrors(readings, labels) + listOfNotNull(padValidationError)
+    val cardHeight = when {
+        entry.requiresElementUt() && validationErrors.isNotEmpty() -> 236.dp
+        entry.requiresElementUt() -> 214.dp
+        validationErrors.isNotEmpty() -> 174.dp
+        else -> 152.dp
+    }
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
         border = BorderStroke(1.8.dp, LaiqColors.BrandRed.copy(alpha = 0.68f)),
         shadowElevation = 10.dp,
-        modifier = modifier,
+        modifier = modifier.height(cardHeight),
     ) {
         ProductVoiceCaptureHost(
             screen = ProductWorkflowScreen.UT_MEASUREMENT,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(cardHeight),
             buttonAlignment = Alignment.TopEnd,
             compactButton = true,
             controlLevel = ProductVoiceControlLevel.LOCAL,
@@ -1057,39 +1179,44 @@ private fun FloatingUtMeasurementCard(
             itemLabel = entry.itemLabel,
         ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .padding(start = 12.dp, top = 8.dp, end = 64.dp, bottom = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = entry.cardTitle(),
                 style = MaterialTheme.typography.titleSmall,
                 color = LaiqColors.BrandTeal,
                 fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "Fill only the readings taken. Blank means no UT was conducted for that point.",
-                style = MaterialTheme.typography.bodySmall,
-                color = LaiqColors.MutedText,
+                maxLines = 1,
             )
 
             if (entry.requiresElementUt()) {
-                LaiqDropdownField(
-                    label = "Element Size",
-                    value = nozzleSize,
-                    options = nozzleSizeOptions,
-                    onSelected = { nozzleSize = it },
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CompactUtDropdownField(
+                        label = "Size",
+                        value = nozzleSize,
+                        options = nozzleSizeOptions,
+                        onSelected = { nozzleSize = it },
+                        modifier = Modifier.weight(1f),
+                    )
+                    CompactUtTextField(
+                        value = reinforcementPadReading,
+                        onValueChange = { updated -> reinforcementPadReading = updated },
+                        label = "Reinf. Pad",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
-            val columnCount = if (labels.size == 4 && labels.all { label -> label.length <= 4 }) {
-                4
-            } else {
-                2
-            }
-            labels.chunked(columnCount).forEach { rowLabels ->
+            val columnCount = labels.size.coerceIn(1, 5)
+            labels.chunked(columnCount).forEachIndexed { rowIndex, rowLabels ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    rowLabels.forEach { label ->
-                        val index = labels.indexOf(label)
+                    rowLabels.forEachIndexed { columnIndex, label ->
+                        val index = rowIndex * columnCount + columnIndex
                         CompactUtTextField(
                             value = readings[index],
                             onValueChange = { updated ->
@@ -1105,45 +1232,23 @@ private fun FloatingUtMeasurementCard(
                 }
             }
 
-            if (entry.requiresElementUt()) {
-                CompactUtTextField(
-                    value = reinforcementPadReading,
-                    onValueChange = { updated -> reinforcementPadReading = updated },
-                    label = "Reinforcement Pad",
-                    modifier = Modifier.fillMaxWidth(),
+            if (validationErrors.isNotEmpty()) {
+                Text(
+                    text = validationErrors.first(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LaiqColors.BrandRed,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
                 )
             }
 
-            if (validationErrors.isNotEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = LaiqColors.BrandRed.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, LaiqColors.BrandRed.copy(alpha = 0.28f)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        validationErrors.forEach { error ->
-                            Text(
-                                text = error,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = LaiqColors.BrandRed,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LaiqSecondaryButton(
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactUtActionButton(
                     text = "Close",
                     onClick = onClose,
                     modifier = Modifier.weight(1f),
                 )
-                LaiqSecondaryButton(
+                CompactUtActionButton(
                     text = "Finding",
                     onClick = {
                         onOpenFinding(
@@ -1158,23 +1263,82 @@ private fun FloatingUtMeasurementCard(
                     enabled = validationErrors.isEmpty(),
                     modifier = Modifier.weight(1f),
                 )
+                CompactUtActionButton(
+                    text = "Confirm",
+                    primary = true,
+                    onClick = {
+                        onConfirm(
+                            entry.copy(
+                                nozzleSize = nozzleSize,
+                                reinforcementPadReading = reinforcementPadReading.trim(),
+                                readings = readings.map { reading -> reading.trim() },
+                                confirmed = true,
+                            ),
+                        )
+                    },
+                    enabled = validationErrors.isEmpty(),
+                    modifier = Modifier.weight(1.18f),
+                )
             }
-            LaiqPrimaryButton(
-                text = "Confirm",
-                onClick = {
-                    onConfirm(
-                        entry.copy(
-                            nozzleSize = nozzleSize,
-                            reinforcementPadReading = reinforcementPadReading.trim(),
-                            readings = readings.map { reading -> reading.trim() },
-                            confirmed = true,
-                        ),
-                    )
-                },
-                enabled = validationErrors.isEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
+        }
+    }
+}
+
+@Composable
+private fun CompactUtDropdownField(
+    value: String,
+    options: List<Pair<String, String>>,
+    onSelected: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { option -> option.first == value }?.second.orEmpty()
+    Box(modifier = modifier.height(40.dp)) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = LaiqColors.SurfaceTint,
+            border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { expanded = true },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = selectedLabel.ifBlank { label },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (selectedLabel.isBlank()) LaiqColors.MutedText else LaiqColors.BodyText,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "v",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LaiqColors.MutedText,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { (optionValue, optionLabel) ->
+                DropdownMenuItem(
+                    text = { Text(optionLabel) },
+                    onClick = {
+                        onSelected(optionValue)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }
@@ -1186,116 +1350,80 @@ private fun CompactUtTextField(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(label) },
-        singleLine = true,
-        shape = RoundedCornerShape(14.dp),
-        textStyle = MaterialTheme.typography.bodyMedium,
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Next,
-        ),
-        modifier = modifier.height(58.dp),
-    )
-}
-
-private fun anchorForRoofOrFloorEntry(
-    selectedTarget: ProductLayoutTarget,
-    layoutMapSetup: ProductLayoutMapSetup,
-    placements: List<ProductPlacedElement>,
-    entry: ProductUtMeasurementEntry,
-    mapSize: Size,
-    placementRegion: PlacementRegion?,
-): Offset {
-    if (entry.kind == ProductUtItemKind.ELEMENT) {
-        placements.firstOrNull { element -> elementItemKey(selectedTarget, element) == entry.itemKey }?.let { element ->
-            return markerCenter(element, mapSize, placementRegion).toNormalized(mapSize)
-        }
-    }
-    val label = entry.itemLabel
-    if (label.equals("CO", ignoreCase = true)) return Offset(0.5f, 0.5f)
-    customPlateAnchorFor(
-        selectedTarget = selectedTarget,
-        layoutMapSetup = layoutMapSetup,
-        label = label,
-    )?.let { anchor -> return anchor }
-    val annularNumber = label.removePrefix("AR").toIntOrNull()
-    if (annularNumber != null) {
-        val count = when (selectedTarget.surface) {
-            ProductLayoutSurface.ROOF -> layoutMapSetup.roofAnnularSectionCount.toPositiveInt(12)
-            ProductLayoutSurface.FLOOR -> layoutMapSetup.floorAnnularSectionCount.toPositiveInt(12)
-            ProductLayoutSurface.SHELL -> 12
-        }.coerceAtLeast(1)
-        val annularRotation = layoutMapSetup.customCircularLayoutFor(selectedTarget)
-            ?.annularRotationDeg
-            ?.toDouble()
-            ?: 0.0
-        val angle = -PI / 2.0 + (annularRotation * PI / 180.0) +
-            (2.0 * PI * (annularNumber - 0.5) / count.toDouble())
-        return Offset(
-            x = (0.5 + cos(angle) * 0.43).toFloat().coerceIn(0.08f, 0.92f),
-            y = (0.5 + sin(angle) * 0.43).toFloat().coerceIn(0.08f, 0.92f),
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = LaiqColors.SurfaceTint,
+        border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+        modifier = modifier.height(40.dp),
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall.copy(color = LaiqColors.BodyText),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next,
+            ),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (value.isBlank()) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LaiqColors.MutedText,
+                            maxLines = 1,
+                        )
+                    }
+                    innerTextField()
+                }
+            },
         )
     }
-    val plateNumber = label.toIntOrNull() ?: return Offset(0.5f, 0.38f)
-    val sectorCount = layoutMapSetup.roofSectorCount.toPositiveInt(20).coerceAtLeast(1)
-    val angle = -PI / 2.0 + (2.0 * PI * ((plateNumber - 1) % sectorCount) / sectorCount.toDouble())
-    val radius = if (selectedTarget.surface == ProductLayoutSurface.FLOOR) {
-        0.24 + ((plateNumber % 4) * 0.055)
-    } else {
-        0.30
-    }
-    return Offset(
-        x = (0.5 + cos(angle) * radius).toFloat().coerceIn(0.14f, 0.86f),
-        y = (0.5 + sin(angle) * radius).toFloat().coerceIn(0.14f, 0.86f),
-    )
 }
 
-private fun customPlateAnchorFor(
-    selectedTarget: ProductLayoutTarget,
-    layoutMapSetup: ProductLayoutMapSetup,
-    label: String,
-): Offset? {
-    val customLayout = layoutMapSetup.customCircularLayoutFor(selectedTarget) ?: return null
-    val rowCount = when (selectedTarget.surface) {
-        ProductLayoutSurface.FLOOR -> layoutMapSetup.floorPatternCountX.toPositiveInt(4)
-        ProductLayoutSurface.ROOF -> layoutMapSetup.roofRowCount.toPositiveInt(4)
-        ProductLayoutSurface.SHELL -> return null
+@Composable
+private fun CompactUtActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    primary: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val background = when {
+        !enabled -> LaiqColors.PanelBorder.copy(alpha = 0.55f)
+        primary -> LaiqColors.BrandRed
+        else -> Color.White
     }
-    val widestRowPlateCount = when (selectedTarget.surface) {
-        ProductLayoutSurface.FLOOR -> layoutMapSetup.floorPatternCountY.toPositiveInt(12)
-        ProductLayoutSurface.ROOF -> layoutMapSetup.roofWidestRowPlateCount.toPositiveInt(10)
-        ProductLayoutSurface.SHELL -> return null
+    val contentColor = when {
+        !enabled -> LaiqColors.MutedText.copy(alpha = 0.65f)
+        primary -> Color.White
+        else -> LaiqColors.BrandTeal
     }
-    return customLayout
-        .normalizedFor(rowCount, widestRowPlateCount)
-        .toRoofPlateCells(selectedTarget, rowCount, widestRowPlateCount)
-        .firstOrNull { cell -> cell.plateId == label || cell.mapLabel == label }
-        ?.let { cell -> Offset(cell.xNorm, cell.yNorm) }
-}
-
-private fun anchorForShellEntry(
-    placements: List<ProductPlacedElement>,
-    entry: ProductUtMeasurementEntry,
-    courseCount: Int,
-    laneCount: Int,
-    mapSize: Size,
-    placementRegion: PlacementRegion?,
-): Offset {
-    if (entry.kind == ProductUtItemKind.ELEMENT) {
-        placements.firstOrNull { element -> entry.itemKey.endsWith(element.id) }?.let { element ->
-            return markerCenter(element, mapSize, placementRegion).toNormalized(mapSize)
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = background,
+        border = if (primary) null else BorderStroke(1.dp, LaiqColors.PanelBorder),
+        modifier = modifier
+            .height(38.dp)
+            .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = contentColor,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
         }
     }
-    val match = Regex("""L(\d+)-C(\d+)""").find(entry.itemLabel)
-    val lane = match?.groupValues?.getOrNull(1)?.toIntOrNull()?.coerceIn(1, laneCount) ?: 1
-    val course = match?.groupValues?.getOrNull(2)?.toIntOrNull()?.coerceIn(1, courseCount) ?: 1
-    return Offset(
-        x = (0.08f + ((lane - 0.5f) / laneCount.toFloat()) * 0.88f).coerceIn(0.08f, 0.92f),
-        y = (0.10f + ((courseCount - course + 0.5f) / courseCount.toFloat()) * 0.78f).coerceIn(0.10f, 0.88f),
-    )
 }
 
 private data class PlacementRegion(
@@ -1390,10 +1518,13 @@ private fun markerCenter(
     return placementRegion?.coerce(raw) ?: raw
 }
 
-private fun Offset.toNormalized(mapSize: Size): Offset =
+private fun Offset.toUtScreenPosition(
+    scale: Float,
+    pan: Offset,
+): Offset =
     Offset(
-        x = if (mapSize.width > 1f) (x / mapSize.width).coerceIn(0f, 1f) else 0.5f,
-        y = if (mapSize.height > 1f) (y / mapSize.height).coerceIn(0f, 1f) else 0.5f,
+        x = x * scale + pan.x,
+        y = y * scale + pan.y,
     )
 
 private fun Size.isUsable(): Boolean =
@@ -1401,42 +1532,6 @@ private fun Size.isUsable(): Boolean =
 
 private fun Offset.distanceTo(other: Offset): Float =
     hypot(x - other.x, y - other.y)
-
-private fun floatingXOffset(
-    anchorX: Float,
-    mapWidth: Dp,
-    cardWidth: Dp,
-    viewportWidth: Dp = mapWidth,
-    scrollOffset: Dp = 0.dp,
-): Dp {
-    val maxX = (mapWidth - cardWidth).coerceAtLeast(0.dp)
-    val rawX = mapWidth * anchorX - cardWidth / 2f
-    val visibleMinX = scrollOffset.coerceIn(0.dp, maxX)
-    val visibleMaxX = (scrollOffset + viewportWidth - cardWidth).coerceIn(0.dp, maxX)
-    return if (visibleMaxX >= visibleMinX) {
-        rawX.coerceIn(visibleMinX, visibleMaxX)
-    } else {
-        rawX.coerceIn(0.dp, maxX)
-    }
-}
-
-private fun floatingYOffset(anchorY: Float, mapHeight: Dp, entry: ProductUtMeasurementEntry): Dp {
-    val estimatedCardHeight = if (entry.requiresElementUt()) {
-        454.dp
-    } else if (entry.readingLabels().size >= 5) {
-        392.dp
-    } else {
-        326.dp
-    }
-    val below = mapHeight * anchorY + 12.dp
-    val above = mapHeight * anchorY - estimatedCardHeight - 12.dp
-    val maxY = (mapHeight - estimatedCardHeight).coerceAtLeast(0.dp)
-    return if (anchorY < 0.50f) {
-        below.coerceIn(0.dp, maxY)
-    } else {
-        above.coerceIn(0.dp, maxY)
-    }
-}
 
 private fun regionEntry(
     target: ProductLayoutTarget,
@@ -1626,9 +1721,48 @@ private fun ProductElementType.swatchColor(): Color =
         ProductElementType.GAUGE_HATCH -> Color(0xFF8D4FB2)
         ProductElementType.ROOF_DRAIN -> Color(0xFF3F83B5)
         ProductElementType.SUPPORT -> Color(0xFF7C8A2E)
+        ProductElementType.PATCH -> Color(0xFF111827)
         ProductElementType.SUMP -> Color(0xFFB35B4D)
         ProductElementType.DATUM -> Color(0xFF6E7E90)
     }
+
+private fun ProductElementType.usesSquareMarker(): Boolean =
+    this == ProductElementType.PATCH
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawElementAnchor(
+    type: ProductElementType,
+    color: Color,
+    center: Offset,
+    radiusPx: Float,
+    strokeWidthPx: Float,
+) {
+    if (type.usesSquareMarker()) {
+        val halfSize = radiusPx
+        drawRect(
+            color = Color.White,
+            topLeft = Offset(center.x - halfSize, center.y - halfSize),
+            size = Size(halfSize * 2f, halfSize * 2f),
+        )
+        drawRect(
+            color = color,
+            topLeft = Offset(center.x - halfSize, center.y - halfSize),
+            size = Size(halfSize * 2f, halfSize * 2f),
+            style = Stroke(width = strokeWidthPx),
+        )
+    } else {
+        drawCircle(
+            color = Color.White,
+            radius = radiusPx,
+            center = center,
+        )
+        drawCircle(
+            color = color,
+            radius = radiusPx,
+            center = center,
+            style = Stroke(width = strokeWidthPx),
+        )
+    }
+}
 
 private fun String.toPositiveInt(fallback: Int): Int =
     toIntOrNull()?.takeIf { it > 0 } ?: fallback

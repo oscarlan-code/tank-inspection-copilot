@@ -3,6 +3,9 @@ package ai.laiq.tankinspection.v3product.preview
 import ai.laiq.tankinspection.domain.model.RoofTemplate
 import ai.laiq.tankinspection.domain.model.RotationDirection
 import ai.laiq.tankinspection.v3product.model.ProductChecklistRating
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlate
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateRow
 import ai.laiq.tankinspection.v3product.model.ProductDraftState
 import ai.laiq.tankinspection.v3product.model.ProductElementPlacementState
 import ai.laiq.tankinspection.v3product.model.ProductElementSetup
@@ -21,6 +24,7 @@ import ai.laiq.tankinspection.v3product.model.ProductLayoutTarget
 import ai.laiq.tankinspection.v3product.model.ProductPlacedElement
 import ai.laiq.tankinspection.v3product.model.ProductReferenceMode
 import ai.laiq.tankinspection.v3product.model.ProductShellOffsetStartRow
+import ai.laiq.tankinspection.v3product.model.ProductShellThirdOffsetStart
 import ai.laiq.tankinspection.v3product.model.ProductUtItemKind
 import ai.laiq.tankinspection.v3product.model.ProductUtMeasurementEntry
 import ai.laiq.tankinspection.v3product.model.ProductUtMeasurementState
@@ -33,12 +37,27 @@ internal data class ProductMockTaskSeed(
 )
 
 internal fun productMockTaskSeeds(): List<ProductMockTaskSeed> = listOf(
+    elementPlacementReviewSeed(),
     utInProgressSeed(),
     checklistInProgressSeed(),
     exportReadySeed(),
 )
 
-internal fun productApiStandardV10Seed(): ProductMockTaskSeed = exportReadySeed()
+internal fun productApiStandardV10Seed(): ProductMockTaskSeed = elementPlacementReviewSeed()
+
+private fun elementPlacementReviewSeed(): ProductMockTaskSeed {
+    val baseState = v10ReportAlignedBaseState()
+    return ProductMockTaskSeed(
+        state = baseState.copy(
+            elementPlacement = baseState.elementPlacement.copy(
+                selectedTarget = ProductLayoutTarget.SHELL,
+                // Roof is already confirmed; shell is placed for user review before UT starts.
+                approvedTargets = setOf(ProductLayoutTarget.EXTERNAL_ROOF),
+            ),
+        ),
+        workflowScreen = ProductWorkflowScreen.ELEMENT_PLACEMENT,
+    )
+}
 
 private fun checklistInProgressSeed(): ProductMockTaskSeed =
     ProductMockTaskSeed(
@@ -77,7 +96,7 @@ private fun v10ReportAlignedBaseState(): ProductDraftState =
             externalRoof = true,
             internalRoof = false,
             shell = true,
-            floor = true,
+            floor = false,
         ),
         layoutMapSetup = ProductLayoutMapSetup(
             selectedTarget = ProductLayoutTarget.SHELL,
@@ -86,8 +105,8 @@ private fun v10ReportAlignedBaseState(): ProductDraftState =
             referenceNote = "0° reference taken from nozzle N2 centerline, matching the V10 report sketch convention.",
             rotationDirection = RotationDirection.CLOCKWISE,
             roofPattern = RoofTemplate.CIRCULAR_PLATE,
-            roofRowCount = "6",
-            roofWidestRowPlateCount = "11",
+            roofRowCount = "13",
+            roofWidestRowPlateCount = "7",
             roofHasCenterOpening = false,
             roofCenterOpeningPlateCount = "0",
             roofHasAnnularRing = false,
@@ -95,8 +114,9 @@ private fun v10ReportAlignedBaseState(): ProductDraftState =
             shellCourseCount = "8",
             shellPlatesPerCourse = "9",
             shellLaneCount = "4",
-            shellPlateOffset = "half_plate",
+            shellPlateOffset = "third_plate",
             shellOffsetStartRow = ProductShellOffsetStartRow.EVEN,
+            shellThirdOffsetStart = ProductShellThirdOffsetStart.FULL,
             floorTemplate = ProductFloorTemplate.CIRCULAR_PLATE,
             floorPlateCount = "35",
             floorAnnularSectionCount = "0",
@@ -105,14 +125,16 @@ private fun v10ReportAlignedBaseState(): ProductDraftState =
             approvedTargets = setOf(
                 ProductLayoutTarget.EXTERNAL_ROOF,
                 ProductLayoutTarget.SHELL,
-                ProductLayoutTarget.FLOOR,
+            ),
+            customCircularLayoutsByTarget = mapOf(
+                ProductLayoutTarget.EXTERNAL_ROOF to v10RoofReportCircularLayout(),
             ),
         ),
         elementSetup = ProductElementSetup(
             externalRoof = true,
             internalRoof = false,
             shell = true,
-            floor = true,
+            floor = false,
         ),
         elementPlacement = ProductElementPlacementState(
             selectedTarget = ProductLayoutTarget.SHELL,
@@ -120,20 +142,48 @@ private fun v10ReportAlignedBaseState(): ProductDraftState =
             placementsByTarget = mapOf(
                 ProductLayoutTarget.EXTERNAL_ROOF to v10RoofPlacements(),
                 ProductLayoutTarget.SHELL to v10ShellPlacements(),
-                ProductLayoutTarget.FLOOR to v10FloorPlacements(),
             ),
             approvedTargets = setOf(
                 ProductLayoutTarget.EXTERNAL_ROOF,
                 ProductLayoutTarget.SHELL,
-                ProductLayoutTarget.FLOOR,
             ),
         ),
         utSetup = ProductUtSetup(
             externalRoof = true,
             internalRoof = false,
             shell = true,
-            floor = true,
+            floor = false,
         ),
+    )
+
+private fun v10RoofReportCircularLayout(): ProductCustomCircularPlateLayout =
+    ProductCustomCircularPlateLayout(
+        rows = listOf(
+            v10RoofReportRow(1, 1f, 1f, 1f, 1f, 0.82f, 1f, 1f),
+            v10RoofReportRow(2, 0.74f, 1.28f, 1.76f, 0.74f),
+            v10RoofReportRow(3, 0.95f, 1.45f, 0.95f),
+            v10RoofReportRow(4, 0.78f, 1.35f, 1.35f, 0.78f),
+            v10RoofReportRow(5, 0.68f, 1.08f, 1.72f, 1.08f, 0.68f),
+            v10RoofReportRow(6, 0.72f, 1.48f, 1.14f, 0.82f),
+            v10RoofReportRow(7, 1.08f, 1.16f, 0.42f, 1.34f, 1.02f),
+            v10RoofReportRow(8, 0.78f, 1.35f, 1.35f, 0.78f),
+            v10RoofReportRow(9, 0.58f, 1.28f, 1.46f, 1.24f, 0.58f),
+            v10RoofReportRow(10, 0.9f, 1.22f, 1.5f, 0.82f),
+            v10RoofReportRow(11, 0.98f, 1.36f, 0.98f),
+            v10RoofReportRow(12, 0.58f, 1.32f, 1.48f, 0.72f),
+            v10RoofReportRow(13, 0.62f, 0.88f, 1f, 1f, 1f, 1f, 0.62f),
+        ),
+    )
+
+private fun v10RoofReportRow(
+    rowNumber: Int,
+    vararg widthWeights: Float,
+): ProductCustomCircularPlateRow =
+    ProductCustomCircularPlateRow(
+        rowNumber = rowNumber,
+        plates = widthWeights.map { widthWeight ->
+            ProductCustomCircularPlate(widthWeight = widthWeight)
+        },
     )
 
 private fun v10RoofPlacements(): List<ProductPlacedElement> =
@@ -149,64 +199,64 @@ private fun v10RoofPlacements(): List<ProductPlacedElement> =
             id = "external_roof_nozzle_r1",
             label = "R1",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.50f,
-            normalizedY = 0.28f,
+            normalizedX = 0.56f,
+            normalizedY = 0.11f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r2",
             label = "R2",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.64f,
-            normalizedY = 0.31f,
+            normalizedX = 0.25f,
+            normalizedY = 0.37f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r3",
             label = "R3",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.74f,
-            normalizedY = 0.43f,
+            normalizedX = 0.14f,
+            normalizedY = 0.44f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r4",
             label = "R4",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.72f,
-            normalizedY = 0.59f,
+            normalizedX = 0.48f,
+            normalizedY = 0.44f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r5",
             label = "R5",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.60f,
-            normalizedY = 0.72f,
+            normalizedX = 0.50f,
+            normalizedY = 0.50f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r6",
             label = "R6",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.44f,
-            normalizedY = 0.74f,
+            normalizedX = 0.53f,
+            normalizedY = 0.57f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r7",
             label = "R7",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.31f,
+            normalizedX = 0.78f,
             normalizedY = 0.63f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r8",
             label = "R8",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.27f,
-            normalizedY = 0.45f,
+            normalizedX = 0.45f,
+            normalizedY = 0.90f,
         ),
         ProductPlacedElement(
             id = "external_roof_nozzle_r9",
             label = "R9",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.38f,
-            normalizedY = 0.31f,
+            normalizedX = 0.58f,
+            normalizedY = 0.18f,
         ),
         ProductPlacedElement(
             id = "external_roof_vent_1",
@@ -223,71 +273,64 @@ private fun v10ShellPlacements(): List<ProductPlacedElement> =
             id = "shell_stair_origin",
             label = "ST-O",
             type = ProductElementType.STAIR,
-            normalizedX = 0.12f,
-            normalizedY = 0.70f,
+            normalizedX = 0.19f,
+            normalizedY = 0.83f,
         ),
         ProductPlacedElement(
             id = "shell_stair_termination",
             label = "ST-T",
             type = ProductElementType.STAIR,
-            normalizedX = 0.18f,
-            normalizedY = 0.24f,
-        ),
-        ProductPlacedElement(
-            id = "shell_platform_1",
-            label = "PF-1",
-            type = ProductElementType.PLATFORM,
-            normalizedX = 0.20f,
+            normalizedX = 0.89f,
             normalizedY = 0.22f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s1",
             label = "S1",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.08f,
-            normalizedY = 0.82f,
+            normalizedX = 0.5326044f,
+            normalizedY = 0.94f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s2",
             label = "S2",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.21f,
-            normalizedY = 0.72f,
+            normalizedX = 0.27807635f,
+            normalizedY = 0.91787046f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s3",
             label = "S3",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.34f,
-            normalizedY = 0.76f,
+            normalizedX = 0.16708927f,
+            normalizedY = 0.9223659f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s4",
             label = "S4",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.47f,
-            normalizedY = 0.70f,
+            normalizedX = 0.19699466f,
+            normalizedY = 0.8938691f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s5",
             label = "S5",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.60f,
-            normalizedY = 0.74f,
+            normalizedX = 0.2119757f,
+            normalizedY = 0.92107546f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s6",
             label = "S6",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.73f,
-            normalizedY = 0.68f,
+            normalizedX = 0.19604945f,
+            normalizedY = 0.94f,
         ),
         ProductPlacedElement(
             id = "shell_nozzle_s7",
             label = "S7",
             type = ProductElementType.NOZZLE,
-            normalizedX = 0.86f,
-            normalizedY = 0.82f,
+            normalizedX = 0.94f,
+            normalizedY = 0.93008655f,
         ),
     )
 
@@ -362,13 +405,11 @@ private fun v10UtMeasurementsCompleted(): ProductUtMeasurementState =
             v10RoofPlateUtEntries() +
                 v10RoofNozzleUtEntries() +
                 v10ShellNozzleUtEntries() +
-                v10ShellStrakeUtEntries() +
-                v10FloorUtEntries()
+                v10ShellStrakeUtEntries()
             ).toMap(),
         approvedTargets = setOf(
             ProductLayoutTarget.EXTERNAL_ROOF,
             ProductLayoutTarget.SHELL,
-            ProductLayoutTarget.FLOOR,
         ),
     )
 
@@ -666,17 +707,6 @@ private fun v10FindingStateReady(): ProductFindingState =
                     "Photo 19 - Shell nozzle reinforcement pad without tell-tale hole",
                 ),
                 findingEntry(
-                    measurements.getValue("floor:region:24"),
-                    "Floor coating bubbling and historical weld-filled pitting were noted in accessible bottom plate areas. MFL indications of 40 percent and above were mainly attributed to remnant welds, weld fills, existing topside corrosion, and some underside corrosion. UT backup on high indications included bottom plate readings in the 5.28 mm to 6.25 mm range.",
-                    "Photo 54 - Floor coating bubbling with light corrosion",
-                    "Photo 55 - Weld-filled topside pitting on floor plates",
-                ),
-                findingEntry(
-                    measurements.getValue("floor:region:30"),
-                    "Floor plate 30 represents an MFL/UT backup area with localized underside corrosion indication. The exported UT readings capture the report-aligned lower band of bottom plate measurements while the final repair disposition remains report-side.",
-                    "Photo 56 - Existing coated pit depth range with no active corrosion",
-                ),
-                findingEntry(
                     findingOnlyElementEntry(
                         target = ProductLayoutTarget.EXTERNAL_ROOF,
                         itemKey = "external_roof:element:external_roof_manhole_1",
@@ -705,16 +735,6 @@ private fun v10FindingStateReady(): ProductFindingState =
                     ),
                     "Several shell-mounted stairway treads were welded within shell plate butt-welded joints, contrary to API 650 attachment spacing guidance. Coating condition was generally satisfactory with minor failures on stringers and handrails.",
                     "Photo 23 - Stairway tread welded within shell butt joint",
-                ),
-                findingEntry(
-                    findingOnlyElementEntry(
-                    target = ProductLayoutTarget.FLOOR,
-                    itemKey = "floor:element:floor_sump_1",
-                    itemLabel = "SU-1",
-                    elementType = ProductElementType.SUMP,
-                    ),
-                    "Centre sump was visually satisfactory. UT scanning recorded lip thickness 7.75 mm to 10.89 mm, wall thickness 8.59 mm to 10.83 mm, and bottom thickness 7.76 mm to 11.13 mm.",
-                    "Photo 57 - Centre sump visually satisfactory",
                 ),
             ).forEach { finding ->
                 putAll(listOf(finding))
@@ -919,7 +939,7 @@ private fun mockFindingPhoto(
     val id = "mock-$safeKey-$index"
     return ProductFindingPhoto(
         id = id,
-        relativePath = "v2-findings/mock/$id.png",
+        relativePath = "v3-findings/mock/$id.png",
         displayName = caption,
     )
 }
