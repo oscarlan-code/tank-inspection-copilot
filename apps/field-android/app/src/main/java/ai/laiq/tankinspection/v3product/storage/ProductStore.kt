@@ -840,7 +840,7 @@ class ProductStore(
             val file = File(filesDir, note.relativePath)
             ProductAttachmentEntity(
                 inspectionId = inspectionId,
-                attachmentId = "voice:${note.id}",
+                attachmentId = note.id,
                 findingId = note.itemKey ?: note.screenKey,
                 kind = "voice_audio",
                 relativePath = note.relativePath,
