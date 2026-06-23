@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.widget.Toast
 import ai.laiq.tankinspection.presentation.components.LaiqColors
+import ai.laiq.tankinspection.v3product.model.ProductLayoutTarget
 import ai.laiq.tankinspection.v3product.model.ProductVoiceNote
 import ai.laiq.tankinspection.v3product.preview.ProductPreviewSession
 import ai.laiq.tankinspection.v3product.storage.ProductWorkflowScreen
@@ -102,6 +103,13 @@ fun ProductVoiceCaptureHost(
     val buttonVisible = showButton &&
         (controlLevel == ProductVoiceControlLevel.LOCAL || voiceLayerState.localControlCount == 0)
 
+    fun resolvedWorkflowTarget(): ProductLayoutTarget? =
+        if (targetKey == null && screen.isTargetAwareForVoiceMetadata()) {
+            ProductPreviewSession.draftState.layoutMapSetup.selectedTarget
+        } else {
+            null
+        }
+
     DisposableEffect(controlLevel, showButton) {
         if (controlLevel == ProductVoiceControlLevel.LOCAL && showButton) {
             voiceLayerState.localControlCount += 1
@@ -119,6 +127,7 @@ fun ProductVoiceCaptureHost(
         val startedAt = Instant.now()
         val relativePath = "v3-voice-notes/${screen.key}/${startedAt.toSafeFileToken()}-$noteId.m4a"
         val file = File(context.filesDir, relativePath)
+        val workflowTarget = resolvedWorkflowTarget()
         file.parentFile?.mkdirs()
         val recorder = createMediaRecorder(context)
         val started = runCatching {
@@ -138,8 +147,8 @@ fun ProductVoiceCaptureHost(
                 screenLabel = screen.label,
                 cardKey = cardKey,
                 fieldKey = fieldKey,
-                targetKey = targetKey,
-                targetLabel = targetLabel,
+                targetKey = targetKey ?: workflowTarget?.key,
+                targetLabel = targetLabel ?: workflowTarget?.label,
                 itemKey = itemKey,
                 itemLabel = itemLabel,
             )
@@ -198,6 +207,7 @@ fun ProductVoiceCaptureHost(
     }
 
     fun openPreview() {
+        val workflowTarget = resolvedWorkflowTarget()
         context.startActivity(
             ProductVoicePreviewActivity.intent(
                 context = context,
@@ -205,8 +215,8 @@ fun ProductVoiceCaptureHost(
                 screenLabel = screen.label,
                 cardKey = cardKey,
                 fieldKey = fieldKey,
-                targetKey = targetKey,
-                targetLabel = targetLabel,
+                targetKey = targetKey ?: workflowTarget?.key,
+                targetLabel = targetLabel ?: workflowTarget?.label,
                 itemKey = itemKey,
                 itemLabel = itemLabel,
             ),
@@ -309,6 +319,22 @@ fun ProductVoiceCaptureHost(
         }
     }
 }
+
+private fun ProductWorkflowScreen.isTargetAwareForVoiceMetadata(): Boolean =
+    when (this) {
+        ProductWorkflowScreen.LAYOUT_MAP_SETUP,
+        ProductWorkflowScreen.ELEMENT_SETUP,
+        ProductWorkflowScreen.ELEMENT_PLACEMENT,
+        ProductWorkflowScreen.UT_SETUP,
+        ProductWorkflowScreen.UT_MEASUREMENT,
+        ProductWorkflowScreen.FINDINGS
+        -> true
+        ProductWorkflowScreen.TASK_HOME,
+        ProductWorkflowScreen.GENERAL_INFO,
+        ProductWorkflowScreen.LAYOUT_SCOPE,
+        ProductWorkflowScreen.CHECKLIST
+        -> false
+    }
 
 @Composable
 private fun ProductVoiceHoldButton(

@@ -5,8 +5,6 @@ import ai.laiq.tankinspection.presentation.components.LaiqColors
 import ai.laiq.tankinspection.presentation.components.LaiqCountField
 import ai.laiq.tankinspection.presentation.components.LaiqDropdownField
 import ai.laiq.tankinspection.presentation.components.LaiqOptionChips
-import ai.laiq.tankinspection.presentation.components.LaiqPrimaryButton
-import ai.laiq.tankinspection.presentation.components.LaiqSecondaryButton
 import ai.laiq.tankinspection.presentation.components.LaiqSectionCard
 import ai.laiq.tankinspection.presentation.components.LaiqStatChip
 import ai.laiq.tankinspection.presentation.components.LaiqTextField
@@ -39,9 +37,14 @@ import ai.laiq.tankinspection.v3product.model.withRoofPatternDefaults
 import ai.laiq.tankinspection.v3product.model.withSelectedTarget
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,6 +65,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,21 +74,27 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sin
 
@@ -157,6 +167,7 @@ fun ProductLayoutMapSetupScreen(
     onBack: () -> Unit,
     onContinue: (ProductLayoutMapSetup) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    onCircularEditModeChange: (Boolean) -> Unit = {},
 ) {
     val visibleTargets = layoutTargets.ifEmpty { listOf(ProductLayoutTarget.EXTERNAL_ROOF) }
     fun selectedTargetFor(setup: ProductLayoutMapSetup): ProductLayoutTarget =
@@ -213,9 +224,63 @@ fun ProductLayoutMapSetupScreen(
     }
 
     var generalInfoExpanded by remember { mutableStateOf(false) }
+    var circularEditTarget by remember { mutableStateOf<ProductLayoutTarget?>(null) }
+    val circularEditMode = circularEditTarget == selectedTarget &&
+        selectedSurface != ProductLayoutSurface.SHELL
+    LaunchedEffect(circularEditMode) {
+        onCircularEditModeChange(circularEditMode)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        if (circularEditMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = contentPadding.calculateTopPadding() + 8.dp,
+                        bottom = 12.dp,
+                    ),
+            ) {
+                when (selectedSurface) {
+                    ProductLayoutSurface.ROOF -> {
+                        RoofLayoutPreviewPanel(
+                            state = state,
+                            target = selectedTarget,
+                            referenceMode = state.referenceMode,
+                            onStateChange = onStateChange,
+                            editModeOverride = true,
+                            onEditModeChange = { editMode ->
+                                if (!editMode) circularEditTarget = null
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    ProductLayoutSurface.FLOOR -> {
+                        FloorLayoutPreviewPanel(
+                            target = selectedTarget,
+                            template = state.floorTemplate,
+                            rowCount = state.floorPatternCountX.toPositiveInt(6),
+                            widestRowPlateCount = state.floorPatternCountY.toPositiveInt(12),
+                            annularSectionCount = state.floorAnnularSectionCount.toPositiveInt(12),
+                            referenceMode = state.referenceMode,
+                            state = state,
+                            onStateChange = onStateChange,
+                            editModeOverride = true,
+                            onEditModeChange = { editMode ->
+                                if (!editMode) circularEditTarget = null
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    ProductLayoutSurface.SHELL -> Unit
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -306,6 +371,10 @@ fun ProductLayoutMapSetupScreen(
                             target = selectedTarget,
                             referenceMode = state.referenceMode,
                             onStateChange = onStateChange,
+                            editModeOverride = false,
+                            onEditModeChange = { editMode ->
+                                if (editMode) circularEditTarget = selectedTarget
+                            },
                         )
                         SurfaceSubsection(title = "Roof Setup") {
                             LaiqStatChip(
@@ -564,6 +633,10 @@ fun ProductLayoutMapSetupScreen(
                             referenceMode = state.referenceMode,
                             state = state,
                             onStateChange = onStateChange,
+                            editModeOverride = false,
+                            onEditModeChange = { editMode ->
+                                if (editMode) circularEditTarget = selectedTarget
+                            },
                         )
                         SurfaceSubsection(title = "Floor Setup") {
                             LaiqDropdownField(
@@ -644,6 +717,7 @@ fun ProductLayoutMapSetupScreen(
             onSecondaryClick = onBack,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+        }
     }
 }
 
@@ -853,6 +927,9 @@ private fun RoofLayoutPreviewPanel(
     target: ProductLayoutTarget,
     referenceMode: ProductReferenceMode,
     onStateChange: (ProductLayoutMapSetup) -> Unit,
+    modifier: Modifier = Modifier,
+    editModeOverride: Boolean? = null,
+    onEditModeChange: (Boolean) -> Unit = {},
 ) {
     val rowCount = state.roofRowCount.toPositiveInt(4)
     val widestRowPlateCount = state.roofWidestRowPlateCount.toPositiveInt(10)
@@ -866,7 +943,15 @@ private fun RoofLayoutPreviewPanel(
         null
     }
     val customPlateCells = customLayout?.toRoofPlateCells(target, rowCount, widestRowPlateCount)
-    var editMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    var internalEditMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    val editMode = editModeOverride ?: internalEditMode
+    fun setEditMode(enabled: Boolean) {
+        if (editModeOverride == null) {
+            internalEditMode = enabled
+        } else {
+            onEditModeChange(enabled)
+        }
+    }
     val editHistory = remember(target, rowCount, widestRowPlateCount) {
         mutableStateListOf<ProductCircularLayoutUndo>()
     }
@@ -934,19 +1019,19 @@ private fun RoofLayoutPreviewPanel(
         if (!supportsCustomCircular) return
         selectedPlateId = null
         editHistory.clear()
-        editMode = true
+        setEditMode(true)
     }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
         border = BorderStroke(1.dp, LaiqColors.PanelBorder),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
-                .height(if (editMode) 980.dp else 560.dp)
+                .padding(if (editMode) 10.dp else 18.dp)
+                .then(if (editMode) Modifier.fillMaxSize() else Modifier.height(560.dp))
                 .pointerInput(target, customLayout, supportsCustomCircular) {
                     detectTapGestures(
                         onDoubleTap = {
@@ -955,55 +1040,10 @@ private fun RoofLayoutPreviewPanel(
                     )
                 },
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = LaiqColors.MutedText,
-                    )
-                    if (supportsCustomCircular && !editMode) {
-                        TextButton(onClick = { enterEditMode() }) {
-                            Text("Edit")
-                        }
-                    }
-                }
-                RoofSurfaceMap(
-                    template = state.roofPattern,
-                    rowCount = rowCount,
-                    widestRowPlateCount = widestRowPlateCount,
-                    ringCount = ringCount,
-                    sectorCount = sectorCount,
-                    activePlateId = selectedPlateId,
-                    centerFeatureCount = if (state.roofHasCenterOpening) {
-                        1
-                    } else {
-                        0
-                    },
-                    centerFeatureCountControlsLayout = true,
-                    useLeaderPlateLabels = false,
-                    showAnnularSectionLabels = false,
-                    autoHideCrowdedPlateLabels = true,
-                    enablePlateTapSelection = true,
-                    hasAnnularRing = state.roofHasAnnularRing,
-                    annularSectionCount = if (state.roofHasAnnularRing) {
-                        state.roofAnnularSectionCount.toPositiveInt(12)
-                    } else {
-                        0
-                    },
-                    annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
-                    customPlateCells = customPlateCells,
-                    referenceLabel = referenceMode.label,
-                    mapTitle = "Roof Layout Map",
-                    onSelectPlate = { selectedPlateId = it },
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .fillMaxWidth(0.9f),
-                )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(if (editMode) 8.dp else 10.dp),
+            ) {
                 if (editMode) {
                     CustomCircularLayoutEditCard(
                         target = target,
@@ -1021,8 +1061,88 @@ private fun RoofLayoutPreviewPanel(
                         },
                         canUndo = editHistory.isNotEmpty(),
                         onUndo = { undoCircularLayoutChange() },
-                        onDone = { editMode = false },
+                        onDone = { setEditMode(false) },
                     )
+                }
+                if (!editMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LaiqColors.MutedText,
+                        )
+                        if (supportsCustomCircular) {
+                            TextButton(onClick = { enterEditMode() }) {
+                                Text("Edit")
+                            }
+                        }
+                    }
+                }
+                ZoomableLayoutMapViewport(
+                    resetKey = listOf(
+                        target.key,
+                        state.roofPattern.name,
+                        rowCount,
+                        widestRowPlateCount,
+                        ringCount,
+                        sectorCount,
+                        state.roofHasAnnularRing,
+                        state.roofAnnularSectionCount,
+                        customLayout,
+                    ).joinToString("|"),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth(if (editMode) 1f else 0.9f)
+                        .then(if (editMode) Modifier.weight(1f) else Modifier.height(378.dp)),
+                ) { mapZoom, mapPan ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = mapZoom
+                                scaleY = mapZoom
+                                translationX = mapPan.x
+                                translationY = mapPan.y
+                                transformOrigin = TransformOrigin(0f, 0f)
+                            },
+                    ) {
+                        RoofSurfaceMap(
+                            template = state.roofPattern,
+                            rowCount = rowCount,
+                            widestRowPlateCount = widestRowPlateCount,
+                            ringCount = ringCount,
+                            sectorCount = sectorCount,
+                            activePlateId = selectedPlateId,
+                            centerFeatureCount = if (state.roofHasCenterOpening) {
+                                1
+                            } else {
+                                0
+                            },
+                            centerFeatureCountControlsLayout = true,
+                            useLeaderPlateLabels = false,
+                            showAnnularSectionLabels = false,
+                            autoHideCrowdedPlateLabels = true,
+                            enablePlateTapSelection = true,
+                            hasAnnularRing = state.roofHasAnnularRing,
+                            annularSectionCount = if (state.roofHasAnnularRing) {
+                                state.roofAnnularSectionCount.toPositiveInt(12)
+                            } else {
+                                0
+                            },
+                            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+                            customPlateCells = customPlateCells,
+                            referenceLabel = referenceMode.label,
+                            mapTitle = "Roof Layout Map",
+                            showInteractionHint = !editMode,
+                            maxMapSize = if (editMode) 720.dp else 320.dp,
+                            onSelectPlate = { selectedPlateId = it },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
             if (!editMode) selectedPlateId?.let { plateId ->
@@ -1045,10 +1165,21 @@ private fun FloorLayoutPreviewPanel(
     referenceMode: ProductReferenceMode,
     state: ProductLayoutMapSetup,
     onStateChange: (ProductLayoutMapSetup) -> Unit,
+    modifier: Modifier = Modifier,
+    editModeOverride: Boolean? = null,
+    onEditModeChange: (Boolean) -> Unit = {},
 ) {
     val customLayout = state.customCircularLayoutFor(target)?.normalizedFor(rowCount, widestRowPlateCount)
     val customPlateCells = customLayout?.toRoofPlateCells(target, rowCount, widestRowPlateCount)
-    var editMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    var internalEditMode by remember(target, rowCount, widestRowPlateCount) { mutableStateOf(false) }
+    val editMode = editModeOverride ?: internalEditMode
+    fun setEditMode(enabled: Boolean) {
+        if (editModeOverride == null) {
+            internalEditMode = enabled
+        } else {
+            onEditModeChange(enabled)
+        }
+    }
     val editHistory = remember(target, rowCount, widestRowPlateCount) {
         mutableStateListOf<ProductCircularLayoutUndo>()
     }
@@ -1110,61 +1241,27 @@ private fun FloorLayoutPreviewPanel(
     fun enterEditMode() {
         selectedPlateId = null
         editHistory.clear()
-        editMode = true
+        setEditMode(true)
     }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = LaiqColors.SurfaceTint,
         border = BorderStroke(1.dp, LaiqColors.PanelBorder),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
-                .height(if (editMode) 980.dp else 560.dp)
+                .padding(if (editMode) 10.dp else 18.dp)
+                .then(if (editMode) Modifier.fillMaxSize() else Modifier.height(560.dp))
                 .pointerInput(target, customLayout) {
                     detectTapGestures(onDoubleTap = { enterEditMode() })
                 },
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = LaiqColors.MutedText,
-                    )
-                    if (!editMode) {
-                        TextButton(onClick = { enterEditMode() }) {
-                            Text("Edit")
-                        }
-                    }
-                }
-                RoofSurfaceMap(
-                    template = RoofTemplate.CIRCULAR_PLATE,
-                    rowCount = rowCount,
-                    widestRowPlateCount = widestRowPlateCount,
-                    ringCount = 0,
-                    sectorCount = 0,
-                    activePlateId = selectedPlateId,
-                    hasAnnularRing = hasAnnularRing,
-                    annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
-                    annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
-                    customPlateCells = customPlateCells,
-                    showAnnularSectionLabels = hasAnnularRing,
-                    autoHideCrowdedPlateLabels = true,
-                    enablePlateTapSelection = true,
-                    referenceLabel = referenceMode.label,
-                    mapTitle = "Floor Layout Map",
-                    onSelectPlate = { selectedPlateId = it },
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .fillMaxWidth(0.9f),
-                )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(if (editMode) 8.dp else 10.dp),
+            ) {
                 if (editMode) {
                     CustomCircularLayoutEditCard(
                         target = target,
@@ -1182,8 +1279,72 @@ private fun FloorLayoutPreviewPanel(
                         },
                         canUndo = editHistory.isNotEmpty(),
                         onUndo = { undoCircularLayoutChange() },
-                        onDone = { editMode = false },
+                        onDone = { setEditMode(false) },
                     )
+                }
+                if (!editMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (customLayout != null) "Custom circular layout" else "Generated circular layout",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LaiqColors.MutedText,
+                        )
+                        TextButton(onClick = { enterEditMode() }) {
+                            Text("Edit")
+                        }
+                    }
+                }
+                ZoomableLayoutMapViewport(
+                    resetKey = listOf(
+                        target.key,
+                        template.key,
+                        rowCount,
+                        widestRowPlateCount,
+                        annularSectionCount,
+                        customLayout,
+                    ).joinToString("|"),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth(if (editMode) 1f else 0.9f)
+                        .then(if (editMode) Modifier.weight(1f) else Modifier.height(378.dp)),
+                ) { mapZoom, mapPan ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = mapZoom
+                                scaleY = mapZoom
+                                translationX = mapPan.x
+                                translationY = mapPan.y
+                                transformOrigin = TransformOrigin(0f, 0f)
+                            },
+                    ) {
+                        RoofSurfaceMap(
+                            template = RoofTemplate.CIRCULAR_PLATE,
+                            rowCount = rowCount,
+                            widestRowPlateCount = widestRowPlateCount,
+                            ringCount = 0,
+                            sectorCount = 0,
+                            activePlateId = selectedPlateId,
+                            hasAnnularRing = hasAnnularRing,
+                            annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
+                            annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
+                            customPlateCells = customPlateCells,
+                            showAnnularSectionLabels = hasAnnularRing,
+                            autoHideCrowdedPlateLabels = true,
+                            enablePlateTapSelection = true,
+                            referenceLabel = referenceMode.label,
+                            mapTitle = "Floor Layout Map",
+                            showInteractionHint = !editMode,
+                            maxMapSize = if (editMode) 720.dp else 320.dp,
+                            onSelectPlate = { selectedPlateId = it },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
             if (!editMode) selectedPlateId?.let { plateId ->
@@ -1228,60 +1389,37 @@ private fun CustomCircularLayoutEditCard(
         layout.rows.firstOrNull { row -> row.rowNumber == ref.rowNumber }
     }
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = LaiqColors.SurfaceTint,
         border = BorderStroke(1.dp, LaiqColors.BrandTeal.copy(alpha = 0.28f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        text = "Edit circular layout",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LaiqColors.BrandTeal,
-                    )
-                    Text(
-                        text = "Tap a plate, then split, merge, or shift its row.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LaiqColors.MutedText,
-                    )
-                }
-                TextButton(onClick = onDone) {
-                    Text("Close")
-                }
-            }
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color.White,
-                border = BorderStroke(1.dp, LaiqColors.PanelBorder),
-            ) {
                 Text(
-                    text = selectedPlateId?.let { "Selected plate: $it" } ?: "No plate selected",
-                    style = MaterialTheme.typography.labelLarge,
+                    text = selectedPlateId?.let { "Plate $it" } ?: "Select plate",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (selectedPlateId == null) LaiqColors.MutedText else LaiqColors.BrandTeal,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = onUndo, enabled = canUndo) {
+                    Text("Undo")
+                }
+                TextButton(onClick = onDone) {
+                    Text("Confirm")
+                }
             }
-            Text(
-                text = "Plate actions",
-                style = MaterialTheme.typography.labelLarge,
-                color = LaiqColors.BodyText,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     enabled = selectedPlateId != null,
                     onClick = {
@@ -1293,7 +1431,7 @@ private fun CustomCircularLayoutEditCard(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Split 2")
+                    Text("Split x2")
                 }
                 OutlinedButton(
                     enabled = selectedPlateId != null,
@@ -1306,10 +1444,10 @@ private fun CustomCircularLayoutEditCard(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Split 3")
+                    Text("Split x3")
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     enabled = selectedRef?.plateIndex?.let { it > 0 } == true,
                     onClick = {
@@ -1321,7 +1459,7 @@ private fun CustomCircularLayoutEditCard(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Merge Left")
+                    Text("Merge left")
                 }
                 OutlinedButton(
                     enabled = selectedRef?.let { ref ->
@@ -1336,84 +1474,78 @@ private fun CustomCircularLayoutEditCard(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Merge Right")
+                    Text("Merge right")
                 }
             }
             if (selectedRef != null && selectedRow != null) {
-                Text(
-                    text = "Row ${selectedRow.rowNumber} shift",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LaiqColors.BodyText,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Slider(
-                    value = selectedRow.shiftRatio.coerceIn(-1f, 1f),
-                    onValueChange = { value ->
-                        if (rowShiftUndoStart == null) rowShiftUndoStart = layout
-                        val updatedLayout = layout.withRowShift(selectedRow.rowNumber, value)
-                        rowShiftLatestLayout = updatedLayout
-                        onLayoutPreviewChange(updatedLayout)
-                    },
-                    onValueChangeFinished = {
-                        val undoStart = rowShiftUndoStart
-                        val latestLayout = rowShiftLatestLayout
-                        if (undoStart != null && latestLayout != null) {
-                            onLayoutChange(latestLayout, false, undoStart)
-                        }
-                        rowShiftUndoStart = null
-                        rowShiftLatestLayout = null
-                    },
-                    valueRange = -1f..1f,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Row ${selectedRow.rowNumber}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(0.25f),
+                    )
+                    Slider(
+                        value = selectedRow.shiftRatio.coerceIn(-1f, 1f),
+                        onValueChange = { value ->
+                            if (rowShiftUndoStart == null) rowShiftUndoStart = layout
+                            val updatedLayout = layout.withRowShift(selectedRow.rowNumber, value)
+                            rowShiftLatestLayout = updatedLayout
+                            onLayoutPreviewChange(updatedLayout)
+                        },
+                        onValueChangeFinished = {
+                            val undoStart = rowShiftUndoStart
+                            val latestLayout = rowShiftLatestLayout
+                            if (undoStart != null && latestLayout != null) {
+                                onLayoutChange(latestLayout, false, undoStart)
+                            }
+                            rowShiftUndoStart = null
+                            rowShiftLatestLayout = null
+                        },
+                        valueRange = -1f..1f,
+                        modifier = Modifier.weight(0.75f),
+                    )
+                }
             }
             if (hasAnnularRing) {
-                Text(
-                    text = "AR ring spin ${layout.annularRotationDeg.toInt()}°",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LaiqColors.BodyText,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Slider(
-                    value = layout.annularRotationDeg.coerceIn(-180f, 180f),
-                    onValueChange = { value ->
-                        if (annularSpinUndoStart == null) annularSpinUndoStart = layout
-                        val updatedLayout = layout.withAnnularRotation(value)
-                        annularSpinLatestLayout = updatedLayout
-                        onLayoutPreviewChange(updatedLayout)
-                    },
-                    onValueChangeFinished = {
-                        val undoStart = annularSpinUndoStart
-                        val latestLayout = annularSpinLatestLayout
-                        if (undoStart != null && latestLayout != null) {
-                            onLayoutChange(latestLayout, false, undoStart)
-                        }
-                        annularSpinUndoStart = null
-                        annularSpinLatestLayout = null
-                    },
-                    valueRange = -180f..180f,
-                )
-            }
-            Text(
-                text = "Split/merge regenerates plate IDs. Row shift and AR spin only change map geometry.",
-                style = MaterialTheme.typography.bodySmall,
-                color = LaiqColors.MutedText,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LaiqSecondaryButton(
-                    text = "Undo",
-                    onClick = onUndo,
-                    enabled = canUndo,
-                    modifier = Modifier.weight(1f),
-                )
-                LaiqPrimaryButton(
-                    text = "Confirm",
-                    onClick = onDone,
-                    modifier = Modifier.weight(1f),
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "AR ${layout.annularRotationDeg.toInt()} deg",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(0.25f),
+                    )
+                    Slider(
+                        value = layout.annularRotationDeg.coerceIn(-180f, 180f),
+                        onValueChange = { value ->
+                            if (annularSpinUndoStart == null) annularSpinUndoStart = layout
+                            val updatedLayout = layout.withAnnularRotation(value)
+                            annularSpinLatestLayout = updatedLayout
+                            onLayoutPreviewChange(updatedLayout)
+                        },
+                        onValueChangeFinished = {
+                            val undoStart = annularSpinUndoStart
+                            val latestLayout = annularSpinLatestLayout
+                            if (undoStart != null && latestLayout != null) {
+                                onLayoutChange(latestLayout, false, undoStart)
+                            }
+                            annularSpinUndoStart = null
+                            annularSpinLatestLayout = null
+                        },
+                        valueRange = -180f..180f,
+                        modifier = Modifier.weight(0.75f),
+                    )
+                }
             }
         }
     }
@@ -1451,6 +1583,165 @@ private fun ProductCustomCircularPlateLayout.mergePlateAndSelect(
         ?.label
     return updatedLayout to updatedSelection
 }
+
+@Composable
+private fun ZoomableLayoutMapViewport(
+    resetKey: String,
+    modifier: Modifier = Modifier,
+    maxZoom: Float = 10f,
+    content: @Composable BoxScope.(mapZoom: Float, mapPan: Offset) -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clipToBounds(),
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds(),
+        ) {
+            val density = LocalDensity.current
+            val viewportSizePx = Size(
+                width = with(density) { maxWidth.toPx() },
+                height = with(density) { maxHeight.toPx() },
+            )
+            var mapZoom by remember(resetKey) { mutableStateOf(1f) }
+            var mapPan by remember(resetKey) { mutableStateOf(Offset.Zero) }
+            val resolvedZoom = mapZoom.coerceIn(1f, maxZoom)
+
+            fun updateZoom(nextZoom: Float, centroid: Offset? = null) {
+                val currentZoom = resolvedZoom.coerceAtLeast(0.001f)
+                val coercedZoom = nextZoom.coerceIn(1f, maxZoom)
+                val anchor = centroid ?: Offset(viewportSizePx.width / 2f, viewportSizePx.height / 2f)
+                val logicalAnchor = Offset(
+                    x = (anchor.x - mapPan.x) / currentZoom,
+                    y = (anchor.y - mapPan.y) / currentZoom,
+                )
+                mapZoom = coercedZoom
+                mapPan = coerceLayoutMapPan(
+                    pan = Offset(
+                        x = anchor.x - logicalAnchor.x * coercedZoom,
+                        y = anchor.y - logicalAnchor.y * coercedZoom,
+                    ),
+                    viewportSize = viewportSizePx,
+                    scale = coercedZoom,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layoutMapGestures(
+                        mapZoom = resolvedZoom,
+                        onPan = { delta ->
+                            mapPan = coerceLayoutMapPan(
+                                pan = mapPan + delta,
+                                viewportSize = viewportSizePx,
+                                scale = resolvedZoom,
+                            )
+                        },
+                        onZoom = { delta, centroid ->
+                            updateZoom(resolvedZoom * delta, centroid)
+                        },
+                    ),
+            ) {
+                content(resolvedZoom, mapPan)
+            }
+
+            if (resolvedZoom > 1.01f) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color.White.copy(alpha = 0.94f),
+                    border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clickable {
+                            mapZoom = 1f
+                            mapPan = Offset.Zero
+                        },
+                ) {
+                    Text(
+                        text = "Zoom ${"%.1f".format(resolvedZoom)}x · Reset",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LaiqColors.BodyText,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Modifier.layoutMapGestures(
+    mapZoom: Float,
+    onPan: (Offset) -> Unit,
+    onZoom: (delta: Float, centroid: Offset) -> Unit,
+): Modifier {
+    val latestMapZoom by rememberUpdatedState(mapZoom)
+    val latestOnPan by rememberUpdatedState(onPan)
+    val latestOnZoom by rememberUpdatedState(onZoom)
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            var previousSpan: Float? = null
+            var totalDrag = Offset.Zero
+            while (true) {
+                val event = awaitPointerEvent()
+                val pressedPointers = event.changes.filter { change -> change.pressed }
+                if (pressedPointers.isEmpty()) break
+                if (pressedPointers.size < 2) {
+                    previousSpan = null
+                    val change = event.changes.firstOrNull { pointer -> pointer.id == down.id } ?: continue
+                    val delta = change.positionChange()
+                    totalDrag += delta
+                    if (latestMapZoom > 1.01f && totalDrag.distanceTo(Offset.Zero) > 6f) {
+                        latestOnPan(delta)
+                        change.consume()
+                    }
+                    continue
+                }
+                val centroid = pressedPointers
+                    .map { change -> change.position }
+                    .fold(Offset.Zero) { total, position -> total + position } / pressedPointers.size.toFloat()
+                val span = pressedPointers
+                    .map { change -> change.position.distanceTo(centroid) }
+                    .average()
+                    .toFloat()
+                    .coerceAtLeast(1f)
+                previousSpan?.let { lastSpan ->
+                    val delta = (span / lastSpan.coerceAtLeast(1f)).coerceIn(0.72f, 1.38f)
+                    latestOnZoom(delta, centroid)
+                }
+                previousSpan = span
+                event.changes.forEach { change -> change.consume() }
+            }
+        }
+    }
+}
+
+private fun coerceLayoutMapPan(
+    pan: Offset,
+    viewportSize: Size,
+    scale: Float,
+): Offset {
+    if (!viewportSize.isUsableForLayoutMap() || scale <= 1f) return Offset.Zero
+    val minX = viewportSize.width * (1f - scale)
+    val minY = viewportSize.height * (1f - scale)
+    return Offset(
+        x = pan.x.coerceIn(minX, 0f),
+        y = pan.y.coerceIn(minY, 0f),
+    )
+}
+
+private fun Size.isUsableForLayoutMap(): Boolean =
+    width > 1f && height > 1f
+
+private fun Offset.distanceTo(other: Offset): Float =
+    hypot(x - other.x, y - other.y)
 
 @Composable
 private fun SelectedPlateChip(
@@ -1681,21 +1972,45 @@ private fun ShellPlateLayoutPreviewPanel(
             selectedPlateId?.let { plateId ->
                 SelectedPlateChip(text = "Selected plate: $plateId")
             }
-            ShellPlateCanvas(
-                courseCount = courseCount,
-                platesPerCourse = platesPerCourse,
-                offsetMode = offsetMode,
-                offsetStartRow = offsetStartRow,
-                thirdOffsetStart = thirdOffsetStart,
-                laneCount = resolvedLaneCount,
-                selectedPlateId = selectedPlateId,
-                selectedLaneIndex = resolvedSelectedLaneIndex,
-                onSelectLane = onSelectLane,
-                onSelectPlate = onSelectPlate,
+            ZoomableLayoutMapViewport(
+                resetKey = listOf(
+                    courseCount,
+                    platesPerCourse,
+                    offsetMode,
+                    offsetStartRow.key,
+                    thirdOffsetStart.key,
+                    resolvedLaneCount,
+                ).joinToString("|"),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(380.dp),
-            )
+            ) { mapZoom, mapPan ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = mapZoom
+                            scaleY = mapZoom
+                            translationX = mapPan.x
+                            translationY = mapPan.y
+                            transformOrigin = TransformOrigin(0f, 0f)
+                        },
+                ) {
+                    ShellPlateCanvas(
+                        courseCount = courseCount,
+                        platesPerCourse = platesPerCourse,
+                        offsetMode = offsetMode,
+                        offsetStartRow = offsetStartRow,
+                        thirdOffsetStart = thirdOffsetStart,
+                        laneCount = resolvedLaneCount,
+                        selectedPlateId = selectedPlateId,
+                        selectedLaneIndex = resolvedSelectedLaneIndex,
+                        onSelectLane = onSelectLane,
+                        onSelectPlate = onSelectPlate,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
         }
     }
 }

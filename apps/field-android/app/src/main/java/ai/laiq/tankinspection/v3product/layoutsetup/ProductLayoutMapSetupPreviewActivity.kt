@@ -57,7 +57,11 @@ class ProductLayoutMapSetupPreviewActivity : ComponentActivity() {
         setContent {
             LaiqFieldTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    ProductVoiceCaptureHost(screen = ProductWorkflowScreen.LAYOUT_MAP_SETUP) {
+                    var layoutEditModeActive by remember { mutableStateOf(false) }
+                    ProductVoiceCaptureHost(
+                        screen = ProductWorkflowScreen.LAYOUT_MAP_SETUP,
+                        showButton = !layoutEditModeActive,
+                    ) {
                         var draftState by remember {
                             mutableStateOf(
                                 ProductPreviewSession.draftState.let { current ->
@@ -131,6 +135,9 @@ class ProductLayoutMapSetupPreviewActivity : ComponentActivity() {
                                 commitDraftState(latestDraftState.copy(layoutMapSetup = latestApprovedSetup))
                             },
                             onBack = { openLayoutScope() },
+                            onCircularEditModeChange = { active ->
+                                layoutEditModeActive = active
+                            },
                             onContinue = { approvedSetup ->
                                 val activeTarget = approvedSetup.selectedTarget
                                 val latestDraftState = ProductPreviewSession.draftState
