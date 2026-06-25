@@ -1,5 +1,5 @@
 import type { ApiReportJobState, ApiSectionChatReply } from "../domain/mockReport";
-import type { LayoutMapData, ReportSection, WorkspaceReport } from "../domain/types";
+import type { ChatMessage, LayoutMapData, ReportSection, WorkspaceReport } from "../domain/types";
 
 export async function saveSectionDraft(
   report: WorkspaceReport,
@@ -103,7 +103,7 @@ export async function sendSectionChat(
   report: WorkspaceReport,
   sectionId: string,
   userPrompt: string,
-  conversationHistory: Array<{ role: string; content: string }> = [],
+  conversationHistory: Array<Pick<ChatMessage, "role" | "content" | "controlTrace" | "pendingConfirmation">> = [],
 ): Promise<ApiSectionChatReply> {
   const response = await fetch(buildSectionUrl(report.apiLinks.sectionChatPath, report.id, sectionId), {
     method: "POST",
@@ -115,6 +115,22 @@ export async function sendSectionChat(
 
   await assertOk(response, "Unable to send section chat prompt.");
   return (await response.json()) as ApiSectionChatReply;
+}
+
+export async function restorePreviousSectionDraft(
+  report: WorkspaceReport,
+  sectionId: string,
+): Promise<ApiReportJobState> {
+  const response = await fetch(buildSectionUrl(report.apiLinks.restorePreviousSectionPath, report.id, sectionId), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  await assertOk(response, "Unable to restore previous section draft.");
+  return (await response.json()) as ApiReportJobState;
 }
 
 export async function downloadFinalReportDocx(

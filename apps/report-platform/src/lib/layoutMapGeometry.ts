@@ -123,6 +123,68 @@ export function buildAndroidCircularPlateCells(
   return cells;
 }
 
+export function buildCustomCircularPlateCells(
+  customLayout: unknown,
+  source: string,
+  rowCount?: number | null,
+  widestRowPlateCount?: number | null,
+): LayoutPlate[] {
+  const rows = parseCustomCircularRows(customLayout);
+  if (rows.length === 0) return [];
+
+  const generatedCells = buildAndroidCircularPlateCells(
+    rowCount ?? rows.length,
+    widestRowPlateCount ?? Math.max(...rows.map((row) => row.plates.length), 1),
+    "android:RoofSurfaceMap:circular_plate_baseline",
+  );
+  const generatedRows = groupPlatesByRow(generatedCells);
+  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows);
+  const cells: LayoutPlate[] = [];
+
+  rows.forEach((row, rowIndex) => {
+    const rowNumber = rowIndex + 1;
+    const generatedRowCells = generatedRows.get(rowNumber)?.sort((a, b) => a.x - b.x) ?? [];
+    const rowLeft = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.x)) : 0.08;
+    const rowRight =
+      generatedRowCells.length > 0
+        ? Math.max(...generatedRowCells.map((plate) => plate.x + plate.width))
+        : 0.92;
+    const topNorm = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.y)) : 0.08;
+    const bottomNorm =
+      generatedRowCells.length > 0
+        ? Math.max(...generatedRowCells.map((plate) => plate.y + plate.height))
+        : 0.92;
+    const rowWidth = Math.max(rowRight - rowLeft, 0.06);
+    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.2), 0), 1);
+    const nominalPlateWidth = rowWidth / Math.max(row.plates.length, 1);
+    const maxShift = clamp(nominalPlateWidth * 0.65, 0.012, 0.08);
+    const labelByPlateIndex = labelsByRowAndPlate.get(rowIndex) ?? new Map<number, string>();
+    let x = rowLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
+
+    row.plates.forEach((plate, position) => {
+      const width = rowWidth * (Math.max(plate.widthWeight, 0.2) / weightSum);
+      const label = labelByPlateIndex.get(position) ?? `${rowNumber}.${position + 1}`;
+
+      cells.push(
+        clampPlate({
+          id: label,
+          label,
+          row: row.rowNumber,
+          column: position + 1,
+          x,
+          y: topNorm,
+          width,
+          height: bottomNorm - topNorm,
+          source,
+        }),
+      );
+      x += width;
+    });
+  });
+
+  return cells;
+}
+
 export function buildAndroidShellPlateSegments(
   courseCount: number,
   platesPerCourse: number,
@@ -229,6 +291,132 @@ function shellOffsetFraction(
   }
 
   return 0;
+}
+
+type ParsedCustomCircularRow = {
+  rowNumber: number;
+  shiftRatio: number;
+  plates: Array<{
+    widthWeight: number;
+    splitGroupKey: string | null;
+    splitPartIndex: number | null;
+  }>;
+};
+
+function parseCustomCircularRows(customLayout: unknown): ParsedCustomCircularRow[] {
+  if (!isRecord(customLayout) || !Array.isArray(customLayout.rows)) return [];
+
+  return customLayout.rows
+    .map((row, index): ParsedCustomCircularRow | null => {
+      if (!isRecord(row) || !Array.isArray(row.plates)) return null;
+      const plates = row.plates
+        .map((plate): ParsedCustomCircularRow["plates"][number] | null => {
+          if (!isRecord(plate)) return null;
+          const widthWeight = toPositiveNumber(plate.widthWeight);
+          return widthWeight
+            ? {
+                widthWeight,
+                splitGroupKey: typeof plate.splitGroupKey === "string" ? plate.splitGroupKey : null,
+                splitPartIndex: toInteger(plate.splitPartIndex),
+              }
+            : null;
+        })
+        .filter((plate): plate is ParsedCustomCircularRow["plates"][number] => plate != null);
+
+      if (plates.length === 0) return null;
+
+      return {
+        rowNumber: toPositiveNumber(row.rowNumber) ?? index + 1,
+        shiftRatio: clamp(toFiniteNumber(row.shiftRatio) ?? 0, -0.4, 0.4),
+        plates,
+      };
+    })
+    .filter((row): row is ParsedCustomCircularRow => row != null)
+    .sort((a, b) => a.rowNumber - b.rowNumber);
+}
+
+function groupPlatesByRow(plates: LayoutPlate[]): Map<number, LayoutPlate[]> {
+  const grouped = new Map<number, LayoutPlate[]>();
+  for (const plate of plates) {
+    grouped.set(plate.row, [...(grouped.get(plate.row) ?? []), plate]);
+  }
+  return grouped;
+}
+
+function buildCustomCircularPlateRefs(rows: ParsedCustomCircularRow[]): Map<number, Map<number, string>> {
+  const labelsByRowAndPlate = new Map<number, Map<number, string>>();
+  let roofCounter = 1;
+
+  rows.forEach((row, rowIndex) => {
+    const plateGroups = groupCustomPlatesBySplitKey(row.plates);
+    const groupCount = plateGroups.length;
+    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) => {
+      const offset = row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex;
+      return roofCounter + offset;
+    });
+    const rowLabelsByPlate = new Map<number, string>();
+
+    plateGroups.forEach((group, groupIndex) => {
+      const base = rowLabels[groupIndex].toString();
+      group.forEach((plateIndex) => {
+        const plate = row.plates[plateIndex];
+        const suffix = plate.splitGroupKey ? splitSuffix(plate.splitPartIndex ?? 0) : "";
+        rowLabelsByPlate.set(plateIndex, `${base}${suffix}`);
+      });
+    });
+
+    labelsByRowAndPlate.set(rowIndex, rowLabelsByPlate);
+    roofCounter += groupCount;
+  });
+
+  return labelsByRowAndPlate;
+}
+
+function groupCustomPlatesBySplitKey(plates: ParsedCustomCircularRow["plates"]): number[][] {
+  const groups: number[][] = [];
+  let plateIndex = 0;
+
+  while (plateIndex < plates.length) {
+    const splitKey = plates[plateIndex].splitGroupKey;
+    if (!splitKey) {
+      groups.push([plateIndex]);
+      plateIndex += 1;
+      continue;
+    }
+
+    const groupStart = plateIndex;
+    let groupEnd = plateIndex;
+    while (groupEnd + 1 < plates.length && plates[groupEnd + 1].splitGroupKey === splitKey) {
+      groupEnd += 1;
+    }
+    groups.push(Array.from({ length: groupEnd - groupStart + 1 }, (_, index) => groupStart + index));
+    plateIndex = groupEnd + 1;
+  }
+
+  return groups;
+}
+
+function splitSuffix(index: number): string {
+  return String.fromCharCode("a".charCodeAt(0) + Math.max(Math.floor(index), 0));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value != null;
+}
+
+function toPositiveNumber(value: unknown): number | null {
+  const numberValue = toFiniteNumber(value);
+  return numberValue != null && numberValue > 0 ? numberValue : null;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function toInteger(value: unknown): number | null {
+  const numberValue = toFiniteNumber(value);
+  return numberValue == null ? null : Math.floor(numberValue);
 }
 
 export function markerToStagePosition(marker: LayoutMarker) {

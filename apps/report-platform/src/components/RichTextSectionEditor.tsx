@@ -10,7 +10,7 @@ import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-import { Extension } from "@tiptap/core";
+import { Extension, Mark, Node, mergeAttributes } from "@tiptap/core";
 import { normalizeSectionContent } from "../lib/reportContent";
 
 const FontSize = Extension.create({
@@ -35,6 +35,155 @@ const FontSize = Extension.create({
         },
       },
     ];
+  },
+});
+
+const ProvenanceInline = Mark.create({
+  name: "provenanceInline",
+
+  addAttributes() {
+    return {
+      provenance: {
+        default: "llm_prediction",
+        parseHTML: (element) => element.getAttribute("data-laiq-provenance") ?? "llm_prediction",
+        renderHTML: (attributes) => ({
+          "data-laiq-provenance": attributes.provenance,
+        }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "span[data-laiq-provenance]",
+      },
+      {
+        tag: "mark[data-laiq-provenance]",
+      },
+    ];
+  },
+
+  renderHTML({ mark, HTMLAttributes }) {
+    const provenance = ["app_field_data", "precedent_template", "llm_prediction"].includes(mark.attrs.provenance)
+      ? mark.attrs.provenance
+      : "llm_prediction";
+    const className = provenance === "app_field_data"
+      ? "laiq-provenance-inline laiq-provenance-inline-field"
+      : provenance === "precedent_template"
+        ? "laiq-provenance-inline laiq-provenance-inline-template"
+        : "laiq-provenance-inline laiq-provenance-inline-ai";
+
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        class: className,
+        "data-laiq-provenance": provenance,
+      }),
+      0,
+    ];
+  },
+});
+
+const ProvenanceBlock = Node.create({
+  name: "provenanceBlock",
+
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return {
+      provenance: {
+        default: "llm_prediction",
+        parseHTML: (element) => element.getAttribute("data-laiq-provenance") ?? "llm_prediction",
+        renderHTML: (attributes) => ({
+          "data-laiq-provenance": attributes.provenance,
+        }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "section[data-laiq-provenance]",
+      },
+    ];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    const provenance = ["app_field_data", "precedent_template", "llm_prediction"].includes(node.attrs.provenance)
+      ? node.attrs.provenance
+      : "llm_prediction";
+    const className = provenance === "app_field_data"
+      ? "laiq-provenance-block laiq-provenance-field"
+      : provenance === "precedent_template"
+        ? "laiq-provenance-block laiq-provenance-template"
+        : "laiq-provenance-block laiq-provenance-ai";
+
+    return [
+      "section",
+      mergeAttributes(HTMLAttributes, {
+        class: className,
+        "data-laiq-provenance": provenance,
+      }),
+      0,
+    ];
+  },
+});
+
+const ClassedTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("class"),
+        renderHTML: (attributes) => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("style"),
+        renderHTML: (attributes) => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
+  },
+});
+
+const ClassedTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("class"),
+        renderHTML: (attributes) => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("style"),
+        renderHTML: (attributes) => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
+  },
+});
+
+const ClassedTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("class"),
+        renderHTML: (attributes) => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("style"),
+        renderHTML: (attributes) => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
   },
 });
 
@@ -66,13 +215,15 @@ export function RichTextSectionEditor({ content, onChange }: Props) {
       Color,
       FontFamily,
       FontSize,
+      ProvenanceBlock,
+      ProvenanceInline,
       Underline,
-      Table.configure({
+      ClassedTable.configure({
         resizable: true,
       }),
       TableRow,
-      TableHeader,
-      TableCell,
+      ClassedTableHeader,
+      ClassedTableCell,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),

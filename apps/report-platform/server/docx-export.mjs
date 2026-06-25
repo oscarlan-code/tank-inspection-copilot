@@ -85,7 +85,7 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
 
   const document = new Document({
     creator: "LAIQ Report Platform",
-    description: "API 653 report-platform DOCX export compiled from Android V2 Product field data.",
+    description: "API 653 report-platform DOCX export compiled from LAIQ inspection app V3 field data.",
     title: `${reportState.reportJob.reportReference} ${reportState.reportJob.title}`,
     styles: {
       default: {
@@ -260,7 +260,7 @@ function buildCoverPage(reportState, approvalSummary) {
       ["Approval status", issueState],
     ]),
     paragraph(
-      "This DOCX is compiled from the Android V2 Product export and report-platform section drafts. Layout maps are positioned in the API-standard report order near the related UT measurement sections.",
+      "This DOCX is compiled from the LAIQ inspection app V3 export and report-platform section drafts. Layout maps are positioned in the API-standard report order near the related UT measurement sections.",
       {
         italics: true,
         color: "52677E",
@@ -272,7 +272,7 @@ function buildCoverPage(reportState, approvalSummary) {
 
 function buildTableOfContents(selectedTocSections) {
   const rows = [
-    tableRow(["No.", "Section", "Sample page", "Approval"], { header: true }),
+    tableRow(["No.", "Section", "Template page", "Approval"], { header: true }),
     ...selectedTocSections.map((section) =>
       tableRow(
         [
@@ -292,7 +292,7 @@ function buildTableOfContents(selectedTocSections) {
       bold: true,
     }),
     paragraph(
-      `Reference format: ${API_STANDARD_PRIMARY_REPORT.reference} ${API_STANDARD_PRIMARY_REPORT.sourceReportName}. This DOCX includes only approved sections selected by the user at export time.`,
+      "Formatting basis: API-standard vertical AST internal/external report template. This DOCX includes only approved sections selected by the user at export time.",
       { color: "52677E" },
     ),
     new Table({
@@ -320,7 +320,7 @@ function buildReportSection({ reportState, tocSection, draft, approved }) {
   } else {
     children.push(
       paragraph(
-        "Pending generation. This section is present in the sample-report ToC but does not yet have an approved report-platform draft.",
+        "Pending generation. This section is present in the API-standard report template but does not yet have an approved report-platform draft.",
         { italics: true, color: "52677E" },
       ),
     );
@@ -382,7 +382,7 @@ function buildLayoutMapSection(reportState, tocSection) {
       spacingBefore: 160,
     }),
     paragraph(
-      "Position note: this layout block is intentionally placed in the same ToC region as the sample report, adjacent to the related UT / finding section.",
+      "Position note: this layout block is intentionally placed in the same report region as the related UT / finding section.",
       { italics: true, color: "52677E" },
     ),
     new Paragraph({
@@ -402,12 +402,12 @@ function buildLayoutMapSection(reportState, tocSection) {
           },
           altText: {
             title: figure.title,
-            description: `${formatSurfaceLabel(surface)} layout figure generated from Android V2 Product layout data.`,
+            description: `${formatSurfaceLabel(surface)} layout figure generated from LAIQ inspection app V3 layout data.`,
           },
         }),
       ],
     }),
-    paragraph(`Figure: ${figure.title} generated from Android V2 Product layout data.`, {
+    paragraph(`Figure: ${figure.title} generated from LAIQ inspection app V3 layout data.`, {
       alignment: AlignmentType.CENTER,
       color: "52677E",
       italics: true,
@@ -627,7 +627,7 @@ function htmlToText(value) {
   return decodeHtmlEntities(
     String(value ?? "")
       .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+      .replace(/<\/(section|p|div|h[1-6]|li|tr)>/gi, "\n")
       .replace(/<li[^>]*>/gi, "➢ ")
       .replace(/<[^>]+>/g, "")
       .replace(/\u00a0/g, " ")

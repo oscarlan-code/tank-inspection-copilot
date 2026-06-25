@@ -15,8 +15,8 @@ export function normalizeSectionContent(value: string): string {
 
 export function sanitizeSectionContent(value: string): string {
   return DOMPurify.sanitize(ensureReportTableClasses(normalizeSectionContent(value)), {
-    ADD_ATTR: ["class"],
-    ADD_TAGS: ["table", "thead", "tbody", "tr", "th", "td"],
+    ADD_ATTR: ["class", "colspan", "colwidth", "data-laiq-provenance", "rowspan", "style", "title"],
+    ADD_TAGS: ["section", "span", "mark", "table", "thead", "tbody", "tr", "th", "td"],
     USE_PROFILES: { html: true },
   });
 }

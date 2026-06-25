@@ -5,12 +5,16 @@ export function validateV2ProductExportPackage(
 ): string[] {
   const issues: string[] = [];
 
-  if (exportPackage.packageType !== "v2_product_export") {
-    issues.push(`packageType must be "v2_product_export", received "${exportPackage.packageType}".`);
+  if (exportPackage.packageType !== "v3_product_export") {
+    issues.push(`packageType must be "v3_product_export", received "${exportPackage.packageType}".`);
   }
 
-  if (exportPackage.schemaVersion !== 2) {
-    issues.push(`schemaVersion must be 2 for the current adapter, received ${exportPackage.schemaVersion}.`);
+  if (exportPackage.schemaVersion !== 3) {
+    issues.push(`schemaVersion must be 3 for the current adapter, received ${exportPackage.schemaVersion}.`);
+  }
+
+  if (!Array.isArray(exportPackage.voiceNotes)) {
+    issues.push("voiceNotes[] is required for V3 report generation context routing.");
   }
 
   if (!exportPackage.inspectionId.trim()) {

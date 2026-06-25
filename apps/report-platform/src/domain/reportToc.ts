@@ -11,10 +11,10 @@ export type ApiStandardTocSection = {
 };
 
 export const API_STANDARD_PRIMARY_REPORT = {
-  reference: "22PE1-4",
-  sourceReportName: "22PE1-4 TK V10 Internal & External Inspection Report",
-  title: "Internal & External Inspection Report",
-  inspectedDate: "22nd July 2022",
+  reference: "API653-VERTICAL-AST-TEMPLATE",
+  sourceReportName: "API 653 Vertical AST Internal / External Report Template",
+  title: "API 653 Internal & External Inspection Report",
+  inspectedDate: "Inspection date from LAIQ app export",
   reportFamily: "api653-internal-external",
 };
 

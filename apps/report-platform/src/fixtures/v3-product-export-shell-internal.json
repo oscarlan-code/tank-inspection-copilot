@@ -4144,7 +4144,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "1",
-      "itemPrompt": "Training checklist 001: Diked Area condition review",
+      "itemPrompt": "Diked area condition (vegetation, debris, erosion):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4154,7 +4154,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "2",
-      "itemPrompt": "Training checklist 002: Diked Area condition review",
+      "itemPrompt": "Dike wall condition (erosion, cracks):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4164,7 +4164,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "3",
-      "itemPrompt": "Training checklist 003: Diked Area condition review",
+      "itemPrompt": "Flammable materials within the diked area (wood, product):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4174,7 +4174,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "4",
-      "itemPrompt": "Training checklist 004: Diked Area condition review",
+      "itemPrompt": "Site drainage:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4184,7 +4184,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "5",
-      "itemPrompt": "Training checklist 005: Diked Area condition review",
+      "itemPrompt": "Standing water:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4194,7 +4194,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "6",
-      "itemPrompt": "Training checklist 006: Diked Area condition review",
+      "itemPrompt": "Pipe work (corrosion, paint):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4204,7 +4204,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "7",
-      "itemPrompt": "Training checklist 007: Diked Area condition review",
+      "itemPrompt": "Pipe supports functioning:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4214,7 +4214,7 @@
       "sectionKey": "diked_area",
       "sectionTitle": "Diked Area",
       "itemNumber": "8",
-      "itemPrompt": "Training checklist 008: Diked Area condition review",
+      "itemPrompt": "Pipe sealed through dike wall:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4224,7 +4224,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "9",
-      "itemPrompt": "Training checklist 009: Tank Foundation condition review",
+      "itemPrompt": "Level survey required (base on visual planar tilt) (C.1.1 & C.1.1.1(e)):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4234,7 +4234,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "10",
-      "itemPrompt": "Training checklist 010: Tank Foundation condition review",
+      "itemPrompt": "Ring beam (cracks, breaks, spalling):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4244,7 +4244,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "11",
-      "itemPrompt": "Training checklist 011: Tank Foundation condition review",
+      "itemPrompt": "Bitumen cover (cracks, washouts, erosion):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4254,7 +4254,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "12",
-      "itemPrompt": "Training checklist 012: Tank Foundation condition review",
+      "itemPrompt": "Plinth seal (deterioration, peeling):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4264,7 +4264,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "13",
-      "itemPrompt": "Training checklist 013: Tank Foundation condition review",
+      "itemPrompt": "Foundation (erosion, leaks, cond.) (API 650 7.5.5) (API 653 4.5.1):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4274,7 +4274,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "14",
-      "itemPrompt": "Training checklist 014: Tank Foundation condition review",
+      "itemPrompt": "Condition of pad (i.e. washout reveal crushed rock under bottom):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4284,7 +4284,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "15",
-      "itemPrompt": "Training checklist 015: Tank Foundation condition review",
+      "itemPrompt": "Water ingress/egress/vegetation against bottom (C.1.1.1(c)):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4294,7 +4294,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "16",
-      "itemPrompt": "Training checklist 016: Tank Foundation condition review",
+      "itemPrompt": "Indications of bottom leaks:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4304,7 +4304,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "17",
-      "itemPrompt": "Training checklist 017: Tank Foundation condition review",
+      "itemPrompt": "Floor plate extension cond. (API 650 5.4.2, 5.5.2) (API 653 4.4.5.7):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4314,7 +4314,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "18",
-      "itemPrompt": "Training checklist 018: Tank Foundation condition review",
+      "itemPrompt": "Floor plate extension welds (pitting, corrosion, undercut):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4324,7 +4324,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "19",
-      "itemPrompt": "Training checklist 019: Tank Foundation condition review",
+      "itemPrompt": "Earth grounding cables and connectors cond. (API 575 7.2.5):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4334,7 +4334,7 @@
       "sectionKey": "tank_foundation",
       "sectionTitle": "Tank Foundation",
       "itemNumber": "20",
-      "itemPrompt": "Training checklist 020: Tank Foundation condition review",
+      "itemPrompt": "Tank settlement into pad (C.1.1.2):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4344,7 +4344,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "21",
-      "itemPrompt": "Training checklist 021: Shell External condition review",
+      "itemPrompt": "Coating or painting on shell plates (blisters, peeling, stains):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4354,7 +4354,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "22",
-      "itemPrompt": "Training checklist 022: Shell External condition review",
+      "itemPrompt": "Insulation (cracks, leaks, moisture retention):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4364,7 +4364,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "23",
-      "itemPrompt": "Training checklist 023: Shell External condition review",
+      "itemPrompt": "Shell pitted or corroded (API 653 4.3):",
       "ratingKey": "3",
       "ratingLabel": "Requires Repair/Action",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4374,7 +4374,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "24",
-      "itemPrompt": "Training checklist 024: Shell External condition review",
+      "itemPrompt": "Deformation of shell, banding, peaking (API 650 7.5.4) (API 653 10.5.4, 10.5.5):",
       "ratingKey": "4",
       "ratingLabel": "Poor, Requires Immediate Attention",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4384,7 +4384,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "25",
-      "itemPrompt": "Training checklist 025: Shell External condition review",
+      "itemPrompt": "Bottom course deformation:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4394,7 +4394,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "26",
-      "itemPrompt": "Training checklist 026: Shell External condition review",
+      "itemPrompt": "Shell lap patches (API 653 9.3):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4404,7 +4404,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "27",
-      "itemPrompt": "Training checklist 027: Shell External condition review",
+      "itemPrompt": "Indication of shell leaks:",
       "ratingKey": "3",
       "ratingLabel": "Requires Repair/Action",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4414,7 +4414,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "28",
-      "itemPrompt": "Training checklist 028: Shell External condition review",
+      "itemPrompt": "Shell misalignment (API 650 7.2.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4424,7 +4424,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "29",
-      "itemPrompt": "Training checklist 029: Shell External condition review",
+      "itemPrompt": "Weld reinforcement (API 650 8.1.3.4, for RT) (API 653 10.4.2.6):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4434,7 +4434,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "30",
-      "itemPrompt": "Training checklist 030: Shell External condition review",
+      "itemPrompt": "Riveted joint condition (worn, corroded):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4444,7 +4444,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "31",
-      "itemPrompt": "Training checklist 031: Shell External condition review",
+      "itemPrompt": "Riveted vertical joints full fillet lap welded (C.1.2.3(d)):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4454,7 +4454,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "32",
-      "itemPrompt": "Training checklist 032: Shell External condition review",
+      "itemPrompt": "Seam weld condition:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4464,7 +4464,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "33",
-      "itemPrompt": "Training checklist 033: Shell External condition review",
+      "itemPrompt": "Tank plumb (API 650 7.5.2) (API 653 10.5.2):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4474,7 +4474,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "34",
-      "itemPrompt": "Training checklist 034: Shell External condition review",
+      "itemPrompt": "Tank roundness (API 650 7.5.3) (API 653 10.5.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4484,7 +4484,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "35",
-      "itemPrompt": "Training checklist 035: Shell External condition review",
+      "itemPrompt": "Seam weld undercut (API 650 7.2.1.4, 7.3.2.1, 8.5.1(b)):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4494,7 +4494,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "36",
-      "itemPrompt": "Training checklist 036: Shell External condition review",
+      "itemPrompt": "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4504,7 +4504,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "37",
-      "itemPrompt": "Training checklist 037: Shell External condition review",
+      "itemPrompt": "Shell vertical seam weld spacing (API 650 5.1.5.2(b)):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4514,7 +4514,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "38",
-      "itemPrompt": "Training checklist 038: Shell External condition review",
+      "itemPrompt": "Name plate attachment (API 650 10.1, API 653. 13.1):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4524,7 +4524,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "39",
-      "itemPrompt": "Training checklist 039: Shell External condition review",
+      "itemPrompt": "Check overflow slots for corrosion and screening:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4534,7 +4534,7 @@
       "sectionKey": "shell_external",
       "sectionTitle": "Shell External",
       "itemNumber": "40",
-      "itemPrompt": "Training checklist 040: Shell External condition review",
+      "itemPrompt": "Check overflow does not drain over valves or equipment:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4544,7 +4544,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "41",
-      "itemPrompt": "Training checklist 041: Shell Appurtenances condition review",
+      "itemPrompt": "Leakage around reinforcement plate welds:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4554,7 +4554,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "42",
-      "itemPrompt": "Training checklist 042: Shell Appurtenances condition review",
+      "itemPrompt": "Reinforcement tell tale holes (API 650 5.7.5.1, 5.7.6.1.b):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4564,7 +4564,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "43",
-      "itemPrompt": "Training checklist 043: Shell Appurtenances condition review",
+      "itemPrompt": "Reinforcement plate spacing (API 650 5.7.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4574,7 +4574,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "44",
-      "itemPrompt": "Training checklist 044: Shell Appurtenances condition review",
+      "itemPrompt": "Reinforcement plate size/thickness (API 650 5.7.2):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4584,7 +4584,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "45",
-      "itemPrompt": "Training checklist 045: Shell Appurtenances condition review",
+      "itemPrompt": "Reinforcement plates overlapping seam welds (API 650 5.7.3.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4594,7 +4594,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "46",
-      "itemPrompt": "Training checklist 046: Shell Appurtenances condition review",
+      "itemPrompt": "Nozzles > 2 in require reinforcement (API 650 5.7.2.1, Fig. 5-8 Note 3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4604,7 +4604,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "47",
-      "itemPrompt": "Training checklist 047: Shell Appurtenances condition review",
+      "itemPrompt": "Nozzle weld corrosion/undercut (API 650 8.5.1(b)):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4614,7 +4614,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "48",
-      "itemPrompt": "Training checklist 048: Shell Appurtenances condition review",
+      "itemPrompt": "Excessive dimpling of shell plate or bowing of piping:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4624,7 +4624,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "49",
-      "itemPrompt": "Training checklist 049: Shell Appurtenances condition review",
+      "itemPrompt": "Indications of leakage around manifolds, flanges, or valves (C.1.3.2):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4634,7 +4634,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "50",
-      "itemPrompt": "Training checklist 050: Shell Appurtenances condition review",
+      "itemPrompt": "Indications of leakage around manways and nozzles:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4644,7 +4644,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "51",
-      "itemPrompt": "Training checklist 051: Shell Appurtenances condition review",
+      "itemPrompt": "Indications of leakage around flange bolts and welds:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4654,7 +4654,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "52",
-      "itemPrompt": "Training checklist 052: Shell Appurtenances condition review",
+      "itemPrompt": "Tank mixer mounting base (weld failure, damage):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4664,7 +4664,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "53",
-      "itemPrompt": "Training checklist 053: Shell Appurtenances condition review",
+      "itemPrompt": "Leakage around mixer shaft seal:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4674,7 +4674,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "54",
-      "itemPrompt": "Training checklist 054: Shell Appurtenances condition review",
+      "itemPrompt": "Condition of welds on davit clips (valve, mixers, cleanouts):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4684,7 +4684,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "55",
-      "itemPrompt": "Training checklist 055: Shell Appurtenances condition review",
+      "itemPrompt": "Wind girder, supports, handrails (corrosion, weld failure):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4694,7 +4694,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "56",
-      "itemPrompt": "Training checklist 056: Shell Appurtenances condition review",
+      "itemPrompt": "Wind girder (debris buildup, paint failure):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4704,7 +4704,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "57",
-      "itemPrompt": "Training checklist 057: Shell Appurtenances condition review",
+      "itemPrompt": "Shell attachments (API 650 5.8):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4714,7 +4714,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "58",
-      "itemPrompt": "Training checklist 058: Shell Appurtenances condition review",
+      "itemPrompt": "Leaks at sample connection (C.1.3.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4724,7 +4724,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "59",
-      "itemPrompt": "Training checklist 059: Shell Appurtenances condition review",
+      "itemPrompt": "Visual of fire equipment (C.1.3.2(b)):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4734,7 +4734,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "60",
-      "itemPrompt": "Training checklist 060: Shell Appurtenances condition review",
+      "itemPrompt": "Inspect condition of power lines for mixer, instruments, etc.:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4744,7 +4744,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "61",
-      "itemPrompt": "Training checklist 061: Shell Appurtenances condition review",
+      "itemPrompt": "Heater (mounted in shell manway) check drain for product leaks (C.1.3.5):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4754,7 +4754,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "62",
-      "itemPrompt": "Training checklist 062: Shell Appurtenances condition review",
+      "itemPrompt": "Emergency overflow screens clean and free of debris:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4764,7 +4764,7 @@
       "sectionKey": "shell_appurtenances",
       "sectionTitle": "Shell Appurtenances",
       "itemNumber": "63",
-      "itemPrompt": "Training checklist 063: Shell Appurtenances condition review",
+      "itemPrompt": "Anchor bolt condition (if present):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4774,7 +4774,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "64",
-      "itemPrompt": "Training checklist 064: Access Structure condition review",
+      "itemPrompt": "Ladder attachments to concrete base (corrosion, broken):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4784,7 +4784,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "65",
-      "itemPrompt": "Training checklist 065: Access Structure condition review",
+      "itemPrompt": "Bolts and fasteners on stairways and ladder stringers (corrosion):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4794,7 +4794,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "66",
-      "itemPrompt": "Training checklist 066: Access Structure condition review",
+      "itemPrompt": "Welds on stairways and ladder stringers (corrosion, broken):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4804,7 +4804,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "67",
-      "itemPrompt": "Training checklist 067: Access Structure condition review",
+      "itemPrompt": "Welds on spiral stairway to shell supports (corrosion, broken):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4814,7 +4814,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "68",
-      "itemPrompt": "Training checklist 068: Access Structure condition review",
+      "itemPrompt": "Stairways and ladders (corrosion, broken):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4824,7 +4824,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "69",
-      "itemPrompt": "Training checklist 069: Access Structure condition review",
+      "itemPrompt": "Stairways and ladders (coating or paint failure):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4834,7 +4834,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "70",
-      "itemPrompt": "Training checklist 070: Access Structure condition review",
+      "itemPrompt": "Attachment welds of handrails to stairways (corrosion, broken):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4844,7 +4844,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "71",
-      "itemPrompt": "Training checklist 071: Access Structure condition review",
+      "itemPrompt": "Tubular / solid bar stairway handrails (corrosion, pitting, paint failure):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4854,7 +4854,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "72",
-      "itemPrompt": "Training checklist 072: Access Structure condition review",
+      "itemPrompt": "Tread attachments to stringers (corrosion, broken):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4864,7 +4864,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "73",
-      "itemPrompt": "Training checklist 073: Access Structure condition review",
+      "itemPrompt": "Safety drop bar or safety chain provides adequate protection:",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4874,7 +4874,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "74",
-      "itemPrompt": "Training checklist 074: Access Structure condition review",
+      "itemPrompt": "Gauger platform frame and supports (corrosion, broken):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4884,7 +4884,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "75",
-      "itemPrompt": "Training checklist 075: Access Structure condition review",
+      "itemPrompt": "Gauger platform deck (corrosion, thinning, weld failure):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4894,7 +4894,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "76",
-      "itemPrompt": "Training checklist 076: Access Structure condition review",
+      "itemPrompt": "Gauger walkway for thinning and slots:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4904,7 +4904,7 @@
       "sectionKey": "access_structure",
       "sectionTitle": "Access Structure",
       "itemNumber": "77",
-      "itemPrompt": "Training checklist 077: Access Structure condition review",
+      "itemPrompt": "Inspect all deck plate gratings for corrosion and thinning:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4914,7 +4914,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "78",
-      "itemPrompt": "Training checklist 078: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Roof plate distortions:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4924,7 +4924,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "79",
-      "itemPrompt": "Training checklist 079: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Roof plates (corrosion, pitting, holes) (API 653 4.2.1.2):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4934,7 +4934,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "80",
-      "itemPrompt": "Training checklist 080: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Roof plates (coating or paint failure):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4944,7 +4944,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "81",
-      "itemPrompt": "Training checklist 081: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4954,7 +4954,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "82",
-      "itemPrompt": "Training checklist 082: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Roof plate lap joints (API 650 5.1.3.4, 5.1.3.5):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4964,7 +4964,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "83",
-      "itemPrompt": "Training checklist 083: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Indications of product staining:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4974,7 +4974,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "84",
-      "itemPrompt": "Training checklist 084: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "External rafter (corrosion, paint failure, spacing) (API 650 5.10.4.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4984,7 +4984,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "85",
-      "itemPrompt": "Training checklist 085: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Frangible joint (API 650 5.1.5.9(b), 5.10.2.6):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -4994,7 +4994,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "86",
-      "itemPrompt": "Training checklist 086: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Curb angle size (API 650 5.1.5.9(e)):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5004,7 +5004,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "87",
-      "itemPrompt": "Training checklist 087: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "UT thickness survey for internal corrosion before accessing roof (C.1.4.1):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5014,7 +5014,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "88",
-      "itemPrompt": "Training checklist 088: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "Rain water standing, sag of roof (rafter may be broken) (C.1.4.3):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5024,7 +5024,7 @@
       "sectionKey": "fixed_roof_cone_dome",
       "sectionTitle": "Fixed Roof - Cone / Dome",
       "itemNumber": "89",
-      "itemPrompt": "Training checklist 089: Fixed Roof  Cone  Dome condition review",
+      "itemPrompt": "UT thickness survey:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5034,7 +5034,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "90",
-      "itemPrompt": "Training checklist 090: Roof Appurtenances condition review",
+      "itemPrompt": "Manway covers secured in place, condition:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5044,7 +5044,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "91",
-      "itemPrompt": "Training checklist 091: Roof Appurtenances condition review",
+      "itemPrompt": "Vacuum-pressure vent pallet assembly:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5054,7 +5054,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "92",
-      "itemPrompt": "Training checklist 092: Roof Appurtenances condition review",
+      "itemPrompt": "Vacuum-pressure vent screens (clean and free of debris):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5064,7 +5064,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "93",
-      "itemPrompt": "Training checklist 093: Roof Appurtenances condition review",
+      "itemPrompt": "Flame arrester (mechanical integrity):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5074,7 +5074,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "94",
-      "itemPrompt": "Training checklist 094: Roof Appurtenances condition review",
+      "itemPrompt": "Dip hatch (clean, operates freely, seals properly):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5084,7 +5084,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "95",
-      "itemPrompt": "Training checklist 095: Roof Appurtenances condition review",
+      "itemPrompt": "Nozzles >= 6 in require reinforcement (API 650 Table 5-14):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5094,7 +5094,7 @@
       "sectionKey": "roof_appurtenances",
       "sectionTitle": "Roof Appurtenances",
       "itemNumber": "96",
-      "itemPrompt": "Training checklist 096: Roof Appurtenances condition review",
+      "itemPrompt": "Roof manholes/rectangular opening reinforcement (API 650 5.8.4, 5.8.6):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5104,7 +5104,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "97",
-      "itemPrompt": "Training checklist 097: Roof External Floater condition review",
+      "itemPrompt": "Floating roof cleanliness (clean and free of debris):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5114,7 +5114,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "98",
-      "itemPrompt": "Training checklist 098: Roof External Floater condition review",
+      "itemPrompt": "Roof plates (corrosion, pitting, holes) (API 653 4.2.1.2):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5124,7 +5124,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "99",
-      "itemPrompt": "Training checklist 099: Roof External Floater condition review",
+      "itemPrompt": "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5134,7 +5134,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "100",
-      "itemPrompt": "Training checklist 100: Roof External Floater condition review",
+      "itemPrompt": "Levelness of floating roof:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5144,7 +5144,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "101",
-      "itemPrompt": "Training checklist 101: Roof External Floater condition review",
+      "itemPrompt": "Standing water or product on floating roof deck:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5154,7 +5154,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "102",
-      "itemPrompt": "Training checklist 102: Roof External Floater condition review",
+      "itemPrompt": "Water or product in the pontoon compartments:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5164,7 +5164,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "103",
-      "itemPrompt": "Training checklist 103: Roof External Floater condition review",
+      "itemPrompt": "Site mechanical contractor to remove all pontoon manhole covers. On gasoline tanks only when tank full to maximum height:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5174,7 +5174,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "104",
-      "itemPrompt": "Training checklist 104: Roof External Floater condition review",
+      "itemPrompt": "Flexibility and resilience of wedge type wiper seals:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5184,7 +5184,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "105",
-      "itemPrompt": "Training checklist 105: Roof External Floater condition review",
+      "itemPrompt": "Cracks or tears in wedge type wiper seals:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5194,7 +5194,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "106",
-      "itemPrompt": "Training checklist 106: Roof External Floater condition review",
+      "itemPrompt": "Wiper seal static cables:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5204,7 +5204,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "107",
-      "itemPrompt": "Training checklist 107: Roof External Floater condition review",
+      "itemPrompt": "Mechanical shoes damaging shell or coating:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5214,7 +5214,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "108",
-      "itemPrompt": "Training checklist 108: Roof External Floater condition review",
+      "itemPrompt": "Condition of the floating roof ground connections:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5224,7 +5224,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "109",
-      "itemPrompt": "Training checklist 109: Roof External Floater condition review",
+      "itemPrompt": "Tightness of rim and column seals (C.2.11.1(o)):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5234,7 +5234,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "110",
-      "itemPrompt": "Training checklist 110: Roof External Floater condition review",
+      "itemPrompt": "Primary shoe seal fabric pulling away from shell:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5244,7 +5244,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "111",
-      "itemPrompt": "Training checklist 111: Roof External Floater condition review",
+      "itemPrompt": "Deterioration, holes, tears, and cracks in primary seal fabric:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5254,7 +5254,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "112",
-      "itemPrompt": "Training checklist 112: Roof External Floater condition review",
+      "itemPrompt": "Binding with shell or columns:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5264,7 +5264,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "113",
-      "itemPrompt": "Training checklist 113: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder (corrosion, weld failure):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5274,7 +5274,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "114",
-      "itemPrompt": "Training checklist 114: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder handrail (corrosion, weld failure):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5284,7 +5284,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "115",
-      "itemPrompt": "Training checklist 115: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder and handrail (coating or paint failure):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5294,7 +5294,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "116",
-      "itemPrompt": "Training checklist 116: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder attachment to shell (corrosion, wear):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5304,7 +5304,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "117",
-      "itemPrompt": "Training checklist 117: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder rails (welds, corrosion, wear):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5314,7 +5314,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "118",
-      "itemPrompt": "Training checklist 118: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder wheels and securing pins to axles:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5324,7 +5324,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "119",
-      "itemPrompt": "Training checklist 119: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder to roof static cable (frayed, connections):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5334,7 +5334,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "120",
-      "itemPrompt": "Training checklist 120: Roof External Floater condition review",
+      "itemPrompt": "Roof rolling ladder to shell static cable (frayed, connections):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5344,7 +5344,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "121",
-      "itemPrompt": "Training checklist 121: Roof External Floater condition review",
+      "itemPrompt": "Floating roof support legs (corrosion, pitting bending):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5354,7 +5354,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "122",
-      "itemPrompt": "Training checklist 122: Roof External Floater condition review",
+      "itemPrompt": "Roof leg sleeves (bending, corrosion):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5364,7 +5364,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "123",
-      "itemPrompt": "Training checklist 123: Roof External Floater condition review",
+      "itemPrompt": "Roof leg pins (corrosion, sticking):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5374,7 +5374,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "124",
-      "itemPrompt": "Training checklist 124: Roof External Floater condition review",
+      "itemPrompt": "Roof leg reinforcement pads (bending cracking):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5384,7 +5384,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "125",
-      "itemPrompt": "Training checklist 125: Roof External Floater condition review",
+      "itemPrompt": "All roof legs at same level:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5394,7 +5394,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "126",
-      "itemPrompt": "Training checklist 126: Roof External Floater condition review",
+      "itemPrompt": "Emergency overflow screens clean and free of debris:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5404,7 +5404,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "127",
-      "itemPrompt": "Training checklist 127: Roof External Floater condition review",
+      "itemPrompt": "Roof drain sumps clean and free of debris, corrosion:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5414,7 +5414,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "128",
-      "itemPrompt": "Training checklist 128: Roof External Floater condition review",
+      "itemPrompt": "Pontoon manhole seals condition:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5424,7 +5424,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "129",
-      "itemPrompt": "Training checklist 129: Roof External Floater condition review",
+      "itemPrompt": "Anti-rotation/guide poles rollers for grooving:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5434,7 +5434,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "130",
-      "itemPrompt": "Training checklist 130: Roof External Floater condition review",
+      "itemPrompt": "Number of vacuum breakers (API 653 C.1.5.11) (API 650 C.3.9):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5444,7 +5444,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "131",
-      "itemPrompt": "Training checklist 131: Roof External Floater condition review",
+      "itemPrompt": "Rim vent functional (C.1.5.12):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5454,7 +5454,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "132",
-      "itemPrompt": "Training checklist 132: Roof External Floater condition review",
+      "itemPrompt": "Check gooseneck vent on pontoon cover not plugged (C.1.5.13(c)):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5464,7 +5464,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "133",
-      "itemPrompt": "Training checklist 133: Roof External Floater condition review",
+      "itemPrompt": "Pull back weather shield and measure gap 10 m intervals (C.1.4.7). Mechanical contractor to be made available for pulling back shield:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5474,7 +5474,7 @@
       "sectionKey": "roof_external_floater",
       "sectionTitle": "Roof External Floater",
       "itemNumber": "134",
-      "itemPrompt": "Training checklist 134: Roof External Floater condition review",
+      "itemPrompt": "When tank out of service U/T thickness readings or hammer test lower section of outer pontoon rim:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5484,7 +5484,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "135",
-      "itemPrompt": "Training checklist 135: Roof External Floater  Contd condition review",
+      "itemPrompt": "UT thickness reading of roof plates as per client request:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5494,7 +5494,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "136",
-      "itemPrompt": "Training checklist 136: Roof External Floater  Contd condition review",
+      "itemPrompt": "Check for vapour rim around underside of roof:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5504,7 +5504,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "137",
-      "itemPrompt": "Training checklist 137: Roof External Floater  Contd condition review",
+      "itemPrompt": "Check pontoon cover lock down devices:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5514,7 +5514,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "138",
-      "itemPrompt": "Training checklist 138: Roof External Floater  Contd condition review",
+      "itemPrompt": "Check rim seal mechanisms and seal shoes:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5524,7 +5524,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "139",
-      "itemPrompt": "Training checklist 139: Roof External Floater  Contd condition review",
+      "itemPrompt": "Adequate opening of vacuum breakers:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5534,7 +5534,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "140",
-      "itemPrompt": "Training checklist 140: Roof External Floater  Contd condition review",
+      "itemPrompt": "Hammer test pipes of roof drain:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5544,7 +5544,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "141",
-      "itemPrompt": "Training checklist 141: Roof External Floater  Contd condition review",
+      "itemPrompt": "Inlet/Outlet nozzles. Record if elbow up or down:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5554,7 +5554,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "142",
-      "itemPrompt": "Training checklist 142: Roof External Floater  Contd condition review",
+      "itemPrompt": "Note elbow-up lines direct to roof and not rim seal gap:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5564,7 +5564,7 @@
       "sectionKey": "roof_external_floater_cont",
       "sectionTitle": "Roof External Floater - Cont'd",
       "itemNumber": "143",
-      "itemPrompt": "Training checklist 143: Roof External Floater  Contd condition review",
+      "itemPrompt": "Check the condition of flexible roof drain hose:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5574,7 +5574,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "144",
-      "itemPrompt": "Training checklist 144: Fixed Roof Internal condition review",
+      "itemPrompt": "Structural/mechanical integrity:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5584,7 +5584,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "145",
-      "itemPrompt": "Training checklist 145: Fixed Roof Internal condition review",
+      "itemPrompt": "Underside of roof:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5594,7 +5594,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "146",
-      "itemPrompt": "Training checklist 146: Fixed Roof Internal condition review",
+      "itemPrompt": "Roof plate lap joints (API 650 5.1.3.4, 5.1.3.5):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5604,7 +5604,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "147",
-      "itemPrompt": "Training checklist 147: Fixed Roof Internal condition review",
+      "itemPrompt": "Roof support rafters condition:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5614,7 +5614,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "148",
-      "itemPrompt": "Training checklist 148: Fixed Roof Internal condition review",
+      "itemPrompt": "Rafter spacing (API 650 5.10.4.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5624,7 +5624,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "149",
-      "itemPrompt": "Training checklist 149: Fixed Roof Internal condition review",
+      "itemPrompt": "Rafter attachment to shell (API 650 5.10.4.6):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5634,7 +5634,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "150",
-      "itemPrompt": "Training checklist 150: Fixed Roof Internal condition review",
+      "itemPrompt": "Shell clips/brackets condition:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5644,7 +5644,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "151",
-      "itemPrompt": "Training checklist 151: Fixed Roof Internal condition review",
+      "itemPrompt": "Column support verticality:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5654,7 +5654,7 @@
       "sectionKey": "fixed_roof_internal",
       "sectionTitle": "Fixed Roof Internal",
       "itemNumber": "152",
-      "itemPrompt": "Training checklist 152: Fixed Roof Internal condition review",
+      "itemPrompt": "Roof venting nozzles trimmed flush (API 650 Fig. 5-19 and 20):",
       "ratingKey": "NC",
       "ratingLabel": "Not to Code",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5664,7 +5664,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "153",
-      "itemPrompt": "Training checklist 153: Roof Internal Floater condition review",
+      "itemPrompt": "Floater panels vapour tight (API 650 H.4.2):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5674,7 +5674,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "154",
-      "itemPrompt": "Training checklist 154: Roof Internal Floater condition review",
+      "itemPrompt": "Evidence of leaking panels (water spots on internal floater):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5684,7 +5684,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "155",
-      "itemPrompt": "Training checklist 155: Roof Internal Floater condition review",
+      "itemPrompt": "Rim or skirt fitted around all opening (API 650 H.4.5):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5694,7 +5694,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "156",
-      "itemPrompt": "Training checklist 156: Roof Internal Floater condition review",
+      "itemPrompt": "Tightness of rim and column seals:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5704,7 +5704,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "157",
-      "itemPrompt": "Training checklist 157: Roof Internal Floater condition review",
+      "itemPrompt": "Foam logs fill roof rim space:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5714,7 +5714,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "158",
-      "itemPrompt": "Training checklist 158: Roof Internal Floater condition review",
+      "itemPrompt": "Foam logs or fabric deteriorating:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5724,7 +5724,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "159",
-      "itemPrompt": "Training checklist 159: Roof Internal Floater condition review",
+      "itemPrompt": "Roof/shell static cables (API 650 H.4.6.5):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5734,7 +5734,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "160",
-      "itemPrompt": "Training checklist 160: Roof Internal Floater condition review",
+      "itemPrompt": "Damage or slack in anti-rotational cable:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5744,7 +5744,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "161",
-      "itemPrompt": "Training checklist 161: Roof Internal Floater condition review",
+      "itemPrompt": "Damage to ladder or column wells and covers:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5754,7 +5754,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "162",
-      "itemPrompt": "Training checklist 162: Roof Internal Floater condition review",
+      "itemPrompt": "Floating cover legs:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5764,7 +5764,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "163",
-      "itemPrompt": "Training checklist 163: Roof Internal Floater condition review",
+      "itemPrompt": "Roof-mounted vents (clean, free of debris):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5774,7 +5774,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "164",
-      "itemPrompt": "Training checklist 164: Roof Internal Floater condition review",
+      "itemPrompt": "When tank out-of-service check shell for grooving, pitting, etc. (C.1.2.2):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5784,7 +5784,7 @@
       "sectionKey": "roof_internal_floater",
       "sectionTitle": "Roof Internal Floater",
       "itemNumber": "165",
-      "itemPrompt": "Training checklist 165: Roof Internal Floater condition review",
+      "itemPrompt": "Check the channel roof columns not separating:",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5794,7 +5794,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "166",
-      "itemPrompt": "Training checklist 166: Shell Internal condition review",
+      "itemPrompt": "Structural/mechanical integrity:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5804,7 +5804,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "167",
-      "itemPrompt": "Training checklist 167: Shell Internal condition review",
+      "itemPrompt": "Shell corrosion (API 653 4.3):",
       "ratingKey": "3",
       "ratingLabel": "Requires Repair/Action",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5814,7 +5814,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "168",
-      "itemPrompt": "Training checklist 168: Shell Internal condition review",
+      "itemPrompt": "Weld seam undercut (API 653 10.4.2.5):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5824,7 +5824,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "169",
-      "itemPrompt": "Training checklist 169: Shell Internal condition review",
+      "itemPrompt": "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5834,7 +5834,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "170",
-      "itemPrompt": "Training checklist 170: Shell Internal condition review",
+      "itemPrompt": "Gauge well (corrosion, pitting):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5844,7 +5844,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "171",
-      "itemPrompt": "Training checklist 171: Shell Internal condition review",
+      "itemPrompt": "Gauge well attach to shell (weld corrosion, crack):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5854,7 +5854,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "172",
-      "itemPrompt": "Training checklist 172: Shell Internal condition review",
+      "itemPrompt": "Gauge well bracket attachment weld. (corrosion, crack):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5864,7 +5864,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "173",
-      "itemPrompt": "Training checklist 173: Shell Internal condition review",
+      "itemPrompt": "Grooving due to rise/fall of floating roof rubbing on shell (C.1.2.2):",
       "ratingKey": "N/A",
       "ratingLabel": "Not applicable",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5874,7 +5874,7 @@
       "sectionKey": "shell_internal",
       "sectionTitle": "Shell Internal",
       "itemNumber": "174",
-      "itemPrompt": "Training checklist 174: Shell Internal condition review",
+      "itemPrompt": "Weld cap corrosion of shell-to-bottom joint (C.2.3):",
       "ratingKey": "3",
       "ratingLabel": "Requires Repair/Action",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5884,7 +5884,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "175",
-      "itemPrompt": "Training checklist 175: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Floor condition (corrosion, pitting):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5894,7 +5894,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "176",
-      "itemPrompt": "Training checklist 176: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Remnant welds (API 650 5.8.1.2(c)) (API 652 4.3, 4.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5904,7 +5904,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "177",
-      "itemPrompt": "Training checklist 177: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Bulges/depressions (API 653 B3.3):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5914,7 +5914,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "178",
-      "itemPrompt": "Training checklist 178: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Weld profile:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5924,7 +5924,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "179",
-      "itemPrompt": "Training checklist 179: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Standing water:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5934,7 +5934,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "180",
-      "itemPrompt": "Training checklist 180: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Dip plate condition:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5944,7 +5944,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "181",
-      "itemPrompt": "Training checklist 181: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Protective coating deterioration:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5954,7 +5954,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "182",
-      "itemPrompt": "Training checklist 182: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Bottom lap weld joints (API 650 5.1.3.4, 5.1.3.5):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5964,7 +5964,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "183",
-      "itemPrompt": "Training checklist 183: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Edge settlement (API 653 B.2.3, B.2.4, B.3.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5974,7 +5974,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "184",
-      "itemPrompt": "Training checklist 184: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Three way joint spacing (API 650 5.1.5.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5984,7 +5984,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "185",
-      "itemPrompt": "Training checklist 185: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Floor/shell joggle joints (API 650 5.1.5.4):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -5994,7 +5994,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "186",
-      "itemPrompt": "Training checklist 186: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Annular bottom width (API 650 5.5):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6004,7 +6004,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "187",
-      "itemPrompt": "Training checklist 187: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Floor plate critical zone patches (API 653 9.10.1.2):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6014,7 +6014,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "188",
-      "itemPrompt": "Training checklist 188: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Floor plate joints from shell vertical joints (API 653 Fig. 9-1):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6024,7 +6024,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "189",
-      "itemPrompt": "Training checklist 189: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Shell-to-bottom fillet weld (API 650 5.1.5.7):",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6034,7 +6034,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "190",
-      "itemPrompt": "Training checklist 190: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Shell-to-bottom HAZ:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6044,7 +6044,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "191",
-      "itemPrompt": "Training checklist 191: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Sump condition:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6054,7 +6054,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "192",
-      "itemPrompt": "Training checklist 192: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "UT thickness reading if practicable:",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6064,7 +6064,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "193",
-      "itemPrompt": "Training checklist 193: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Identify bottom slack plate and mark approximate boundary (C.2.3(h)):",
       "ratingKey": "1",
       "ratingLabel": "Good Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6074,7 +6074,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "194",
-      "itemPrompt": "Training checklist 194: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Condition of floor coating extend up to the shell:",
       "ratingKey": "2",
       "ratingLabel": "Satisfactory Condition",
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6084,7 +6084,7 @@
       "sectionKey": "floor_internal",
       "sectionTitle": "Floor Internal (Cone Up or Down)",
       "itemNumber": "195",
-      "itemPrompt": "Training checklist 195: Floor Internal Cone Up or Down condition review",
+      "itemPrompt": "Condition of shell internal coating (if fully coated):",
       "ratingKey": "3",
       "ratingLabel": "Requires Repair/Action",
       "updatedAtIso": "2022-07-22T16:30:00Z"

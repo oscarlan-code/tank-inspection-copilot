@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createReportStore } from "./store.mjs";
+import { ApiError, createReportStore } from "./store.mjs";
 import { buildApiStandardFixturePackage } from "./api-standard-fixture.mjs";
 import { buildFinalReportDocx } from "./docx-export.mjs";
 import {
@@ -11,12 +11,17 @@ import {
   rebuildPrecedentKbIndex,
   searchPrecedentPack,
 } from "./precedent-kb.mjs";
-import { API_STANDARD_PRIMARY_REPORT } from "./report-toc.mjs";
+import {
+  buildFactRecommendationAudit,
+  getFactRecommendationKbStatus,
+  rebuildFactRecommendationKbIndex,
+  searchFactRecommendationPairs,
+} from "./fact-recommendation-kb.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const appRoot = join(__dirname, "..");
-const fixturePath = join(appRoot, "src", "fixtures", "v2-product-export-shell-internal.json");
-const databasePath = join(appRoot, ".data", "report-platform.sqlite");
+const fixturePath = join(appRoot, "src", "fixtures", "v3-product-export-shell-internal.json");
+const databasePath = process.env.REPORT_PLATFORM_DB_PATH || join(appRoot, ".data", "report-platform.sqlite");
 const port = Number(process.env.REPORT_PLATFORM_API_PORT || 8788);
 const host = process.env.REPORT_PLATFORM_API_HOST || "0.0.0.0";
 const bootstrapKey = "api-standard-v10";
@@ -31,10 +36,6 @@ const fixtureExportPackage = buildApiStandardFixturePackage(JSON.parse(readFileS
 const seededState = reportStore.ensureSeedReport({
   bootstrapKey,
   exportPackage: fixtureExportPackage,
-  manualSupplementOverrides: {
-    reportReference: API_STANDARD_PRIMARY_REPORT.reference,
-    inspectedDate: API_STANDARD_PRIMARY_REPORT.inspectedDate,
-  },
 });
 
 const server = createServer(async (request, response) => {
@@ -52,6 +53,7 @@ const server = createServer(async (request, response) => {
         ok: true,
         seededReportJobId: seededState?.reportJob?.reportJobId ?? null,
         precedentKb: getPrecedentKbStatus(),
+        factRecommendationKb: getFactRecommendationKbStatus(),
         ...reportStore.getHealth(),
       });
       return;
@@ -100,7 +102,56 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET" && pathname === "/api/v1/exports/android-v2-product/v10-api-standard.json") {
+    if (request.method === "GET" && pathname === "/api/v1/knowledge-base/recommendations/status") {
+      writeJson(response, 200, getFactRecommendationKbStatus());
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/v1/knowledge-base/recommendations/rebuild") {
+      const index = rebuildFactRecommendationKbIndex();
+      writeJson(response, 200, {
+        builtAtIso: index.builtAtIso,
+        sourceChunkCount: index.sourceChunkCount,
+        sourceDocumentCount: index.sourceDocumentCount,
+        pairCount: index.pairCount,
+        actionTagCounts: index.actionTagCounts,
+        componentTagCounts: index.componentTagCounts,
+        errorCount: index.errors.length,
+        errors: index.errors,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/v1/knowledge-base/recommendations/search") {
+      const sectionId = requestUrl.searchParams.get("sectionId") ?? "repair-recommendations";
+      const state = seededState?.reportJob?.reportJobId
+        ? reportStore.loadReportJobState(seededState.reportJob.reportJobId)
+        : null;
+      writeJson(response, 200, searchFactRecommendationPairs({
+        reportState: state,
+        sectionId,
+        limit: Number(requestUrl.searchParams.get("limit") ?? 24),
+      }));
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/v1/knowledge-base/recommendations/audit") {
+      const state = seededState?.reportJob?.reportJobId
+        ? reportStore.loadReportJobState(seededState.reportJob.reportJobId)
+        : null;
+      writeJson(response, 200, buildFactRecommendationAudit({
+        reportState: state,
+      }));
+      return;
+    }
+
+    if (
+      request.method === "GET" &&
+      (
+        pathname === "/api/v1/exports/android-v2-product/v10-api-standard.json" ||
+        pathname === "/api/v1/exports/android-v3-product/v10-api-standard.json"
+      )
+    ) {
       const state = reportStore.loadBootstrapReport(bootstrapKey);
       writeJson(response, 200, state?.exportPackage ?? fixtureExportPackage);
       return;
@@ -117,7 +168,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "POST" && pathname === "/api/v1/imports/android-v2-product") {
+    if (
+      request.method === "POST" &&
+      (
+        pathname === "/api/v1/imports/android-v2-product" ||
+        pathname === "/api/v1/imports/android-v3-product"
+      )
+    ) {
       const body = await readJsonBody(request);
       const exportPackage = body.exportPackage ?? body.package ?? body;
       const manualSupplementOverrides = body.manualSupplement ?? {};
@@ -220,6 +277,16 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const restoreSectionPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/sections\/([^/]+)\/restore-previous$/);
+    if (request.method === "POST" && restoreSectionPath) {
+      const reportJobId = decodeURIComponent(restoreSectionPath[1]);
+      const sectionId = decodeURIComponent(restoreSectionPath[2]);
+      const body = await readJsonBody(request);
+      const state = reportStore.restorePreviousSectionDraft(reportJobId, sectionId, body ?? {});
+      writeJson(response, 200, state);
+      return;
+    }
+
     const layoutOverridePath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/layout-overrides\/([^/]+)$/);
     if (request.method === "PATCH" && layoutOverridePath) {
       const reportJobId = decodeURIComponent(layoutOverridePath[1]);
@@ -258,7 +325,10 @@ const server = createServer(async (request, response) => {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to export DOCX.";
         const statusCode = /select at least one approved section/i.test(message) ? 400 : 500;
-        writeJson(response, statusCode, { error: message });
+        writeJson(response, statusCode, {
+          error: statusCode === 400 ? message : "Unable to export DOCX.",
+          code: statusCode === 400 ? "no_approved_sections_selected" : "docx_export_failed",
+        });
         return;
       }
       writeBinary(response, 200, exportResult.buffer, {
@@ -273,8 +343,18 @@ const server = createServer(async (request, response) => {
 
     writeJson(response, 404, { error: `Route not found: ${request.method} ${pathname}` });
   } catch (error) {
+    if (error instanceof ApiError) {
+      writeJson(response, error.statusCode, {
+        error: error.message,
+        code: error.code,
+      });
+      return;
+    }
+
+    console.error(error);
     writeJson(response, 500, {
-      error: error instanceof Error ? error.message : "Unexpected API failure.",
+      error: "Unexpected API failure.",
+      code: "unexpected_api_failure",
     });
   }
 });

@@ -660,8 +660,13 @@ export function searchPrecedentPack({
   const index = loadOrBuildIndex({ indexPath, allowBuild });
   const profile = EFFECTIVE_SECTION_PROFILES[sectionId] ?? buildDefaultSectionProfile(sectionId);
   const queryTerms = buildQueryTerms(profile, reportState);
+  const blockedSourceNames = buildBlockedPrecedentSourceNames(reportState);
+  const excludedSourceChunks = index.chunks.filter((chunk) =>
+    chunk.sourceType !== "code_pdf" && isBlockedPrecedentSource(chunk, blockedSourceNames),
+  );
   const approvedChunks = index.chunks
     .filter((chunk) => chunk.approvalStatus === "approved_for_retrieval")
+    .filter((chunk) => chunk.sourceType === "code_pdf" || !isBlockedPrecedentSource(chunk, blockedSourceNames));
   const scoredCandidates = approvedChunks
     .filter((chunk) => chunk.sourceType !== "code_pdf")
     .map((chunk) => ({
@@ -724,6 +729,8 @@ export function searchPrecedentPack({
     sampleReportsDir: index.sampleReportsDir,
     documentsSearched: index.documents.length,
     chunksSearched: index.chunks.length,
+    blockedSourceNames: [...blockedSourceNames],
+    excludedSourceChunkCount: excludedSourceChunks.length,
     queryTerms,
     wordingPrecedents,
     standardsReferences,
@@ -737,8 +744,10 @@ export function searchPrecedentPack({
       "Do not use any retrieved horizontal tank wording unless it refers only to horizontal weld orientation.",
       "List missing current facts as open questions or Pending confirmation.",
       "Use precedent only for wording style, structure, formatting, and layout conventions.",
+      "Do not retrieve from the current mock/gold report for answer generation; same-report sources are blocked before scoring.",
+      "Same-customer historical reports from different report jobs may be used as historical/reference context, but old facts must not be treated as current facts unless confirmed by the current export or manual report-side input.",
     ],
-    warnings: buildRetrievalWarnings(index, wordingPrecedents),
+    warnings: buildRetrievalWarnings(index, wordingPrecedents, excludedSourceChunks),
   };
 }
 
@@ -782,6 +791,8 @@ export function buildPrecedentAudit({
       formatPatterns: pack.formatPatterns.map((pattern) => pattern.patternType),
       layoutPatterns: pack.layoutPatterns.map((pattern) => pattern.patternType),
       warnings: pack.warnings,
+      blockedSourceNames: pack.blockedSourceNames,
+      excludedSourceChunkCount: pack.excludedSourceChunkCount,
     };
   });
 
@@ -799,7 +810,13 @@ export function buildFlatRetrievalContext(precedentPack) {
   const wordingItems = (precedentPack.wordingPrecedents ?? []).map((precedent) => ({
     key: precedent.chunkId,
     title: `${precedent.sourceReportName} p.${precedent.pageStart}`,
-    guidance: precedent.excerpt,
+    guidance: [
+      "Approved historical/format precedent from a different report job.",
+      "Use for report structure, wording cadence, formatting conventions, and compatible historical context only.",
+      "Do not copy old report facts into the current report unless the current LAIQ app export or report-side user input confirms them.",
+      "",
+      precedent.excerpt,
+    ].join("\n"),
     sourceReportName: precedent.sourceReportName,
     pageStart: precedent.pageStart,
     pageEnd: precedent.pageEnd,
@@ -1201,6 +1218,64 @@ function buildQueryTerms(profile, reportState) {
   ].flatMap((term) => tokenize(term)));
 }
 
+const DEFAULT_MOCK_GOLD_SOURCE_NAMES = [
+  "22PE1-4 TK V10 Internal & External Inspection Report",
+];
+
+function buildBlockedPrecedentSourceNames(reportState) {
+  const exportPackage = reportState?.exportPackage;
+  const manualSupplement = reportState?.manualSupplement ?? {};
+  const blocked = new Set();
+  const addBlocked = (value) => {
+    const normalized = normalizeSourceName(value);
+    if (normalized) blocked.add(normalized);
+  };
+
+  [
+    ...(Array.isArray(manualSupplement.excludedPrecedentSources) ? manualSupplement.excludedPrecedentSources : []),
+    ...(Array.isArray(exportPackage?.excludedPrecedentSources) ? exportPackage.excludedPrecedentSources : []),
+    ...(Array.isArray(exportPackage?.knowledgeBaseExclusions) ? exportPackage.knowledgeBaseExclusions : []),
+    manualSupplement.reportReference,
+    exportPackage?.inspectionReference,
+  ].forEach(addBlocked);
+
+  if (isV10MockTrainingPackage(exportPackage)) {
+    DEFAULT_MOCK_GOLD_SOURCE_NAMES.forEach(addBlocked);
+  }
+
+  return blocked;
+}
+
+function isV10MockTrainingPackage(exportPackage) {
+  if (!exportPackage) return false;
+  return [
+    exportPackage.inspectionId,
+    exportPackage.inspectionReference,
+    exportPackage.task?.tankNumber,
+    ...(exportPackage.voiceNotes ?? []).map((note) => note.relativePath),
+  ]
+    .filter(Boolean)
+    .some((value) => /demo-api653-training|v10|laiq-d10/i.test(String(value)));
+}
+
+function isBlockedPrecedentSource(chunk, blockedSourceNames) {
+  if (!blockedSourceNames?.size) return false;
+  const sourceName = normalizeSourceName(chunk.sourceReportName);
+  return [...blockedSourceNames].some((blockedSourceName) =>
+    sourceName === blockedSourceName ||
+    sourceName.includes(blockedSourceName) ||
+    blockedSourceName.includes(sourceName),
+  );
+}
+
+function normalizeSourceName(value) {
+  return String(value ?? "")
+    .replace(/\.pdf$/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 function scoreChunk(chunk, profile, queryTerms) {
   let score = 0;
 
@@ -1297,10 +1372,16 @@ function buildStandardsSelectionReason(chunk) {
   return "Supporting standards/code reference from the approved local Codes library.";
 }
 
-function buildRetrievalWarnings(index, wordingPrecedents) {
+function buildRetrievalWarnings(index, wordingPrecedents, excludedSourceChunks = []) {
   const warnings = [];
   if (index.errors?.length > 0) {
     warnings.push(`${index.errors.length} sample report${index.errors.length === 1 ? "" : "s"} failed ingestion.`);
+  }
+  if (excludedSourceChunks.length > 0) {
+    const sourceNames = dedupe(excludedSourceChunks.map((chunk) => chunk.sourceReportName)).slice(0, 4);
+    warnings.push(
+      `Excluded ${excludedSourceChunks.length} same-report/gold chunk${excludedSourceChunks.length === 1 ? "" : "s"} from wording retrieval: ${sourceNames.join(", ")}.`,
+    );
   }
   if (wordingPrecedents.length === 0) {
     warnings.push("No approved precedent chunks matched this section.");

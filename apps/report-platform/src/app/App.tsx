@@ -34,6 +34,7 @@ import {
   approveSection as approveSectionApi,
   downloadFinalReportDocx,
   generateSection as generateSectionApi,
+  restorePreviousSectionDraft as restorePreviousSectionDraftApi,
   resetReportDrafts as resetReportDraftsApi,
   saveLayoutOverride as saveLayoutOverrideApi,
   saveManualInputs as saveManualInputsApi,
@@ -85,18 +86,79 @@ function getHydrationApiBaseUrl(report: WorkspaceReport) {
 function applyTextStyleAction(content: string, action: AssistantAction) {
   const normalized = normalizeSectionContent(content);
   const innerContent = normalized.replace(/^<div data-laiq-style="section"[^>]*>([\s\S]*)<\/div>$/i, "$1");
-  const styleParts = [
+  const inlineStyleParts = [
     action.fontFamily ? `font-family: ${action.fontFamily}` : "",
     action.fontSize ? `font-size: ${action.fontSize}` : "",
-    action.textAlign ? `text-align: ${action.textAlign}` : "",
     action.color ? `color: ${action.color}` : "",
   ].filter(Boolean);
+  const blockStyleParts = [
+    action.textAlign ? `text-align: ${action.textAlign}` : "",
+  ].filter(Boolean);
 
-  if (styleParts.length === 0) {
+  if (inlineStyleParts.length === 0 && blockStyleParts.length === 0 && !action.fontWeight) {
     return normalized;
   }
 
-  return `<div data-laiq-style="section" style="${styleParts.join("; ")}">${innerContent}</div>`;
+  if (action.styleScope === "table") {
+    const tableCellStyleParts = [
+      ...inlineStyleParts,
+      action.fontWeight ? `font-weight: ${action.fontWeight}` : "",
+      ...blockStyleParts,
+    ].filter(Boolean);
+    return applyTextStyleToTableCells(innerContent, tableCellStyleParts.join("; "));
+  }
+
+  return innerContent.replace(
+    /<(p|h[1-6]|li)([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (match: string, tagName: string, rawAttributes: string, innerHtml: string) => {
+      const nextAttributes = blockStyleParts.length > 0
+        ? mergeHtmlStyleAttribute(rawAttributes, blockStyleParts.join("; "))
+        : rawAttributes;
+      let nextInnerHtml = innerHtml;
+
+      if (inlineStyleParts.length > 0) {
+        nextInnerHtml = `<span style="${inlineStyleParts.join("; ")}">${nextInnerHtml}</span>`;
+      }
+
+      if (action.fontWeight === "bold") {
+        nextInnerHtml = `<strong>${nextInnerHtml}</strong>`;
+      }
+
+      return `<${tagName}${nextAttributes}>${nextInnerHtml}</${tagName}>`;
+    },
+  );
+}
+
+function applyTextStyleToTableCells(content: string, styleToAdd: string) {
+  if (!styleToAdd.trim()) {
+    return content;
+  }
+
+  return content.replace(
+    /<table\b[\s\S]*?<\/table>/gi,
+    (tableHtml) =>
+      tableHtml.replace(
+        /<(th|td)([^>]*)>/gi,
+        (_match: string, tagName: string, rawAttributes: string) =>
+          `<${tagName}${mergeHtmlStyleAttribute(rawAttributes, styleToAdd)}>`,
+      ),
+  );
+}
+
+function mergeHtmlStyleAttribute(rawAttributes: string, styleToAdd: string) {
+  if (!styleToAdd.trim()) {
+    return rawAttributes;
+  }
+
+  const styleMatch = /\sstyle=(["'])(.*?)\1/i.exec(rawAttributes);
+  if (!styleMatch) {
+    return `${rawAttributes} style="${styleToAdd}"`;
+  }
+
+  const quote = styleMatch[1];
+  const existingStyle = styleMatch[2].trim();
+  const nextStyle = [existingStyle, styleToAdd].filter(Boolean).join("; ");
+  return rawAttributes.replace(styleMatch[0], ` style=${quote}${nextStyle}${quote}`);
 }
 
 function buildDefaultRawGenerationInput(section: ReportSection): string {
@@ -104,7 +166,7 @@ function buildDefaultRawGenerationInput(section: ReportSection): string {
     "GENERATION PROMPT / GUIDELINE",
     `Use this app-export evidence to generate the report section: ${section.title}.`,
     section.aiHint,
-    "Follow the 22PE1-4 V10 API-standard report format.",
+    "Follow the API-standard vertical AST report template.",
     "Do not invent missing values. If a value is missing, keep it in the missing-content panel.",
     "",
     "READABLE APP DATA PREVIEW",
@@ -182,8 +244,9 @@ function App() {
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>({});
-  const [flashMessage, setFlashMessage] = useState("Load the V10 Android V2 Product mockup export to begin.");
+  const [flashMessage, setFlashMessage] = useState("Load the V10 LAIQ inspection app V3 mockup export to begin.");
   const [rawGenerationInputs, setRawGenerationInputs] = useState<Record<string, string>>({});
+  const [sectionOutputHistory, setSectionOutputHistory] = useState<Record<string, string>>({});
   const [generatedPreviewSectionIds, setGeneratedPreviewSectionIds] = useState<Set<string>>(() => new Set());
   const [evalRuns, setEvalRuns] = useState<Record<string, ApiEvalRun>>({});
   const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null);
@@ -208,11 +271,20 @@ function App() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
   const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
+  const chatsRef = useRef<Record<string, ChatMessage[]>>({});
+
+  const updateChats = (updater: (current: Record<string, ChatMessage[]>) => Record<string, ChatMessage[]>) => {
+    setChats((current) => {
+      const next = updater(current);
+      chatsRef.current = next;
+      return next;
+    });
+  };
 
   const handleLoadMockupData = async () => {
     setIsLoadingData(true);
     setLoadError(null);
-    setFlashMessage("Loading and pre-processing the V10 Android V2 Product export...");
+    setFlashMessage("Loading and pre-processing the V10 LAIQ inspection app V3 export...");
 
     try {
       const bootstrap = await loadWorkspaceBootstrap();
@@ -228,7 +300,9 @@ function App() {
         "";
 
       setSelectedSectionId(defaultSection);
-      setChats(buildInitialChats(nextReport));
+      const initialChats = buildInitialChats(nextReport);
+      setChats(initialChats);
+      chatsRef.current = initialChats;
       const defaultRawInputs = Object.fromEntries(
         nextReport.sections.map((section) => [section.id, buildDefaultRawGenerationInput(section)]),
       );
@@ -239,6 +313,7 @@ function App() {
         },
       );
       setGeneratedPreviewSectionIds(new Set());
+      setSectionOutputHistory({});
       setEvalRuns({});
       setGenerationProgress(null);
       setIsGenerationDialogOpen(false);
@@ -312,6 +387,10 @@ function App() {
     ? generatedPreviewSectionIds.has(selectedSection.id) || selectedSection.generated || selectedSection.edited
     : false;
   const selectedEvalRun = selectedSection ? evalRuns[selectedSection.id] : undefined;
+  const selectedPreviousOutput = selectedSection ? sectionOutputHistory[selectedSection.id] : undefined;
+  const selectedCanRestorePrevious = Boolean(
+    selectedPreviousOutput || (selectedSection?.previousVersionCount ?? 0) > 0,
+  );
   const unresolvedMissingCount = selectedSection
     ? selectedSection.missingFields.filter((field) => !field.value.trim()).length
     : 0;
@@ -378,14 +457,14 @@ function App() {
         <section className="load-data-shell">
           <div className="load-data-card panel">
             <p className="eyebrow">LAIQ Report Platform</p>
-            <h1>Start From Android V2 Product Export</h1>
+            <h1>Start From LAIQ Inspection App V3 Export</h1>
             <p>
               Load the latest V10 mockup export fixture, then review the pre-processed readable app-data preview before
               asking LAIQ AI Engine to generate any report section.
             </p>
             <div className="load-data-paths">
-              <code>apps/field-android/.../V2ProductMockTaskSeed.kt</code>
-              <code>apps/report-platform/src/fixtures/v2-product-export-shell-internal.json</code>
+              <code>apps/field-android/.../v3product/preview/ProductMockTaskSeed.kt</code>
+              <code>apps/report-platform/src/fixtures/v3-product-export-shell-internal.json</code>
             </div>
             <button className="toolbar-button toolbar-button-primary" disabled={isLoadingData} onClick={handleLoadMockupData} type="button">
               {isLoadingData ? "Loading Mockup Data…" : "Load Mockup Data"}
@@ -412,6 +491,35 @@ function App() {
             sections: current.sections.map((section) => (section.id === sectionId ? updater(section) : section)),
           },
     );
+  };
+
+  const snapshotSectionOutput = (section: ReportSection) => {
+    const normalizedContent = normalizeSectionContent(section.content);
+    if (!normalizedContent || normalizedContent === "<p></p>") {
+      return;
+    }
+
+    setSectionOutputHistory((current) => ({
+      ...current,
+      [section.id]: normalizedContent,
+    }));
+  };
+
+  const setLocalRollbackOutput = (sectionId: string, content: string) => {
+    const normalizedContent = normalizeSectionContent(content);
+    if (!normalizedContent || normalizedContent === "<p></p>") {
+      setSectionOutputHistory((current) => {
+        const next = { ...current };
+        delete next[sectionId];
+        return next;
+      });
+      return;
+    }
+
+    setSectionOutputHistory((current) => ({
+      ...current,
+      [sectionId]: normalizedContent,
+    }));
   };
 
   const beginPanelResize = (
@@ -690,6 +798,7 @@ function App() {
         const generatedSection = hydrated.report.sections.find((item) => item.id === section.id);
 
         if (generatedSection) {
+          snapshotSectionOutput(section);
           workingReport = {
             ...workingReport,
             sections: workingReport.sections.map((item) =>
@@ -761,6 +870,83 @@ function App() {
     }
   };
 
+  const handleRestorePreviousOutput = async () => {
+    if (!selectedCanRestorePrevious) {
+      setFlashMessage("No previous generated output is available for this section yet.");
+      return;
+    }
+
+    if ((selectedSection.previousVersionCount ?? 0) > 0) {
+      try {
+        const restoredState = await restorePreviousSectionDraftApi(report, selectedSection.id);
+        const hydrated = hydrateWorkspaceFromApiState(restoredState, getHydrationApiBaseUrl(report));
+        const restoredSection = hydrated.report.sections.find((section) => section.id === selectedSection.id);
+
+        setReport(cloneReport(hydrated.report));
+        setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
+        setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
+        setLocalRollbackOutput(selectedSection.id, selectedSection.content);
+        setEvalRuns((current) => {
+          const next = { ...current };
+          delete next[selectedSection.id];
+          return next;
+        });
+        setFlashMessage(
+          `Restored the previous generated output for ${restoredSection?.title ?? selectedSection.title} from backend version history.`,
+        );
+        return;
+      } catch (error) {
+        if (!selectedPreviousOutput) {
+          setFlashMessage(`Unable to restore previous output from backend history: ${formatErrorMessage(error)}`);
+          return;
+        }
+
+        setFlashMessage(
+          `Backend restore failed, so I am using the local rollback snapshot for ${selectedSection.title}: ${formatErrorMessage(error)}`,
+        );
+      }
+    }
+
+    if (!selectedPreviousOutput) {
+      setFlashMessage("No local previous generated output is available for this section yet.");
+      return;
+    }
+
+    const nextSection: ReportSection = {
+      ...selectedSection,
+      content: selectedPreviousOutput,
+      generated: true,
+      edited: true,
+      approved: false,
+      reviewRequired: true,
+    };
+
+    updateSection(selectedSection.id, (section) => ({
+      ...section,
+      content: selectedPreviousOutput,
+      generated: true,
+      edited: true,
+      approved: false,
+      reviewRequired: true,
+    }));
+    setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
+    setLocalRollbackOutput(selectedSection.id, selectedSection.content);
+    setEvalRuns((current) => {
+      const next = { ...current };
+      delete next[selectedSection.id];
+      return next;
+    });
+
+    try {
+      await saveSectionDraftApi(report, nextSection);
+      setFlashMessage(`Restored the previous generated output for ${selectedSection.title}. Review it before approval.`);
+    } catch (error) {
+      setFlashMessage(
+        `Restored ${selectedSection.title} locally, but backend draft persistence failed: ${formatErrorMessage(error)}`,
+      );
+    }
+  };
+
   const persistLayoutMap = async (nextLayoutMap: LayoutMapData, summary: string) => {
     const normalized = ensureLayoutMapData(nextLayoutMap);
     const nextOverrideCount = (safeLayoutMap?.overrideCount ?? normalized.overrideCount ?? 0) + 1;
@@ -828,12 +1014,15 @@ function App() {
     const trimmed = prompt.trim();
     if (!trimmed) return;
     const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: trimmed };
-    const conversationHistory = [...currentChat, userMessage].map((message) => ({
+    const latestSectionChat = chatsRef.current[selectedSection.id] ?? currentChat;
+    const conversationHistory = [...latestSectionChat, userMessage].map((message) => ({
       role: message.role,
       content: message.content,
+      controlTrace: message.controlTrace,
+      pendingConfirmation: message.pendingConfirmation,
     }));
 
-    setChats((current) => ({
+    updateChats((current) => ({
       ...current,
       [selectedSection.id]: [
         ...(current[selectedSection.id] ?? []),
@@ -848,7 +1037,7 @@ function App() {
       const reply = await sendSectionChatApi(report, selectedSection.id, trimmed, conversationHistory);
       const actions = reply.actions ?? [];
       const replyContent = normalizeAssistantChatContent(reply.content, selectedSection.title);
-      setChats((current) => ({
+      updateChats((current) => ({
         ...current,
         [selectedSection.id]: [
           ...(current[selectedSection.id] ?? []),
@@ -857,6 +1046,8 @@ function App() {
             role: "assistant",
             content: replyContent,
             actions,
+            controlTrace: reply.controlTrace,
+            pendingConfirmation: reply.pendingConfirmation,
           },
         ],
       }));
@@ -871,8 +1062,11 @@ function App() {
 
       const controlledModeLabels: Record<string, string> = {
         deterministic_guard: "clarification guard",
+        deterministic_control_guard: "control guard",
         deterministic_state_guard: "helpdesk guard",
         deterministic_table_formatter: "table formatter",
+        deterministic_content_transform: "content transform",
+        codex_content_transform: "structured transform planner",
       };
       const controlledModeLabel = controlledModeLabels[reply.providerCode];
       const modeMessage = reply.usedLiveModel
@@ -888,7 +1082,7 @@ function App() {
       setFlashMessage(`${modeMessage}${actionMessage}`);
     } catch (error) {
       const content = `I could not complete that chat request yet: ${formatErrorMessage(error)} Please tell me whether you want wording, formatting, missing-input review, or layout-map evidence review.`;
-      setChats((current) => ({
+      updateChats((current) => ({
         ...current,
         [selectedSection.id]: [
           ...(current[selectedSection.id] ?? []),
@@ -917,6 +1111,7 @@ function App() {
     !isChatBusy &&
     message.role === "assistant" &&
     index === currentChat.length - 1 &&
+    !message.pendingConfirmation &&
     message.content.includes("?");
 
   const handleApplyAssistantAction = async (action: AssistantAction): Promise<boolean> => {
@@ -930,6 +1125,8 @@ function App() {
         action.type === "replace_section_content"
           ? normalizeSectionContent(action.contentHtml ?? selectedSection.content)
           : applyTextStyleAction(selectedSection.content, action);
+
+      snapshotSectionOutput(selectedSection);
 
       const nextSection: ReportSection = {
         ...selectedSection,
@@ -964,7 +1161,7 @@ function App() {
     }
 
     if (safeLayoutMap.appMap) {
-      setFlashMessage("Layout-map geometry is locked to the Android V2 Product export while app parity is under review.");
+      setFlashMessage("Layout-map geometry is locked to the LAIQ inspection app V3 export while app parity is under review.");
       return false;
     }
 
@@ -1082,7 +1279,7 @@ function App() {
       <section className="import-strip">
         <div className="import-card">
           <span className="meta-label">Source</span>
-          <strong>Android V2 Product Export</strong>
+          <strong>LAIQ Inspection App V3 Export</strong>
           <p>{report.importSummary.dataSourceMode === "api" ? "Loaded from API" : "Loaded from fixture"}</p>
         </div>
         <div className="import-card">
@@ -1112,7 +1309,7 @@ function App() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Table of Contents</p>
-              <h2>22PE1-4 Sections</h2>
+              <h2>API 653 Sections</h2>
             </div>
             <span className="count-pill">{reportTocSections.length}</span>
           </div>
@@ -1282,8 +1479,24 @@ function App() {
                   <p className="eyebrow">Step 3 · AI Draft</p>
                   <h3>Generated Report Content</h3>
                   <p>{selectedSection.templateExpectation}</p>
+                  {hasGeneratedPreview ? (
+                    <p className="prediction-legend">
+                      <span><span className="prediction-legend-chip prediction-legend-template" />Template</span>
+                      <span><span className="prediction-legend-chip prediction-legend-field" />App fact</span>
+                      <span><span className="prediction-legend-chip prediction-legend-ai" />AI inferred</span>
+                    </p>
+                  ) : null}
                 </div>
                 <div className="output-card-actions">
+                  {selectedCanRestorePrevious ? (
+                    <button
+                      className="toolbar-button restore-output-button"
+                      onClick={handleRestorePreviousOutput}
+                      type="button"
+                    >
+                      Undo / Restore
+                    </button>
+                  ) : null}
                   <span className={`output-approval-pill ${selectedSection.approved ? "output-approval-pill-approved" : ""}`}>
                     {selectedSection.approved ? "Approved" : "Pending approval"}
                   </span>
@@ -1361,14 +1574,25 @@ function App() {
                           : "Approve this generated section after reviewing the wording, tables, and evidence."}
                       </span>
                     </div>
-                    <button
-                      className="toolbar-button toolbar-button-primary approve-output-button"
-                      disabled={!hasGeneratedPreview || selectedSection.approved}
-                      onClick={handleApprove}
-                      type="button"
-                    >
-                      Approve Output
-                    </button>
+                    <div className="content-footer-actions">
+                      {selectedCanRestorePrevious ? (
+                        <button
+                          className="toolbar-button approve-output-button"
+                          onClick={handleRestorePreviousOutput}
+                          type="button"
+                        >
+                          Undo / Restore
+                        </button>
+                      ) : null}
+                      <button
+                        className="toolbar-button toolbar-button-primary approve-output-button"
+                        disabled={!hasGeneratedPreview || selectedSection.approved}
+                        onClick={handleApprove}
+                        type="button"
+                      >
+                        Approve Output
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -1427,6 +1651,37 @@ function App() {
                 <div className={`chat-bubble chat-${message.role}`} key={message.id}>
                   <span className="chat-role">{message.role}</span>
                   <p>{message.content}</p>
+                  {message.controlTrace ? (
+                    <div className={`control-trace-card control-trace-${message.controlTrace.status}`}>
+                      <div className="control-trace-header">
+                        <strong>{message.controlTrace.status.replace(/_/g, " ")}</strong>
+                        <span>{message.controlTrace.risk} risk</span>
+                      </div>
+                      <p>
+                        <span>Planner:</span> {message.controlTrace.planner.replace(/_/g, " ")}
+                      </p>
+                      <p>
+                        <span>Operation:</span> {message.controlTrace.operation}
+                      </p>
+                      <p>
+                        <span>Guardrail:</span> {message.controlTrace.guardrails[0] ?? message.controlTrace.reason}
+                      </p>
+                    </div>
+                  ) : null}
+                  {message.pendingConfirmation ? (
+                    <div className="control-confirmation-card">
+                      <strong>{message.pendingConfirmation.label}</strong>
+                      <p>{message.pendingConfirmation.summary}</p>
+                      <div className="quick-reply-row" aria-label="Pending action confirmation">
+                        <button className="quick-reply-button quick-reply-primary" onClick={() => handleQuickReply("Yes")} type="button">
+                          Apply
+                        </button>
+                        <button className="quick-reply-button" onClick={() => handleQuickReply("No")} type="button">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                   {shouldShowQuickReplies(message, index) ? (
                     <div className="quick-reply-row" aria-label="Quick replies">
                       <button className="quick-reply-button" onClick={() => handleQuickReply("Yes")} type="button">

@@ -1,6 +1,7 @@
 import {
   buildAndroidCircularPlateCells,
   buildAndroidShellPlateSegments,
+  buildCustomCircularPlateCells,
   ensureLayoutMapData,
   shellRegionMarkerPosition,
 } from "../lib/layoutMapGeometry";
@@ -12,11 +13,14 @@ import {
 } from "./reportToc";
 import { classifyReportPackage } from "./reportClassification";
 import type {
+  AiControlTrace,
   AssistantAction,
+  AssistantPendingConfirmation,
   ChatMessage,
   LayoutEvidenceItem,
   LayoutMapData,
   LayoutMarker,
+  LayoutPlate,
   MissingField,
   ReportSection,
   WorkspaceApiLinks,
@@ -31,7 +35,7 @@ import type {
   V2ProductExportLayoutConfig,
   V2ProductExportPackage,
   V2ProductExportUtMeasurement,
-  V2ProductExportVoiceNarrative,
+  V2ProductExportVoiceNote,
 } from "./v2ProductExport";
 
 type ManualReportSupplement = {
@@ -59,6 +63,14 @@ type ExportedLayoutMaps = {
   roof?: LayoutMapData;
   shell?: LayoutMapData;
   floor?: LayoutMapData;
+};
+
+type MarkerHostLocation = NonNullable<LayoutMarker["hostLocation"]>;
+
+type MarkerBuildOptions = {
+  plates?: LayoutPlate[];
+  shellCourseCount?: number;
+  shellLaneCount?: number;
 };
 
 export type WorkspaceBootstrap = {
@@ -148,6 +160,8 @@ export type ApiSectionChatReply = {
   fallbackReason: string | null;
   createdAtIso: string;
   actions?: AssistantAction[];
+  controlTrace?: AiControlTrace;
+  pendingConfirmation?: AssistantPendingConfirmation;
 };
 
 export type ApiReportJobState = {
@@ -167,6 +181,7 @@ export type ApiReportJobState = {
     approved: boolean;
     reviewRequired: boolean;
     updatedAtIso: string;
+    previousVersionCount?: number;
   }>;
   layoutOverrides?: Array<{
     sectionId: string;
@@ -194,8 +209,8 @@ const fixtureManualSupplement: ManualReportSupplement = {
 const defaultApiBaseUrl = "";
 const v10ApiStandardBootstrapPath = "/api/v1/report-jobs/bootstrap/v10-api-standard";
 const androidMockSeedPath =
-  "apps/field-android/app/src/main/java/ai/laiq/tankinspection/v2product/preview/V2ProductMockTaskSeed.kt";
-const reportFixturePath = "apps/report-platform/src/fixtures/v2-product-export-shell-internal.json";
+  "apps/field-android/app/src/main/java/ai/laiq/tankinspection/v3product/preview/ProductMockTaskSeed.kt";
+const reportFixturePath = "apps/report-platform/src/fixtures/v3-product-export-shell-internal.json";
 let workspaceBootstrapPromise: Promise<WorkspaceBootstrap> | null = null;
 
 function buildApiStandardFixturePackage(exportPackage: V2ProductExportPackage): V2ProductExportPackage {
@@ -231,7 +246,7 @@ async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
       baselineReport,
       report,
       flashMessage:
-        "Loaded report workspace from the report-platform API using the Android V2 Product import contract.",
+        "Loaded report workspace from the report-platform API using the LAIQ inspection app V3 import contract.",
       aiStatus:
         payload.aiStatus ?? {
           mode: "deterministic_fallback",
@@ -259,7 +274,7 @@ async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
       report: cloneReport(baselineReport),
       flashMessage: `API bootstrap fallback: ${
         error instanceof Error ? error.message : "Unable to reach backend."
-      } Loaded the local Android export fixture instead.`,
+      } Loaded the local LAIQ inspection app export fixture instead.`,
       aiStatus: {
         mode: "deterministic_fallback",
         provider: "deterministic",
@@ -274,7 +289,7 @@ async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
 }
 
 async function loadFixturePackage(): Promise<V2ProductExportPackage> {
-  const fixtureModule = await import("../fixtures/v2-product-export-shell-internal.json");
+  const fixtureModule = await import("../fixtures/v3-product-export-shell-internal.json");
   return buildApiStandardFixturePackage(fixtureModule.default as V2ProductExportPackage);
 }
 
@@ -385,7 +400,7 @@ function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {
 
   return {
     apiBaseUrl: normalizedBase || "same-origin /api",
-    importInspectionPath: buildApiUrl(apiBaseUrl, "/api/v1/imports/android-v2-product"),
+    importInspectionPath: buildApiUrl(apiBaseUrl, "/api/v1/imports/android-v3-product"),
     loadReportJobPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId"),
     resetDraftsPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/reset-drafts"),
     saveSectionDraftPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId"),
@@ -393,6 +408,7 @@ function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {
     saveLayoutOverridePath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/layout-overrides/:sectionId"),
     generateSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/generate"),
     sectionChatPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/chat"),
+    restorePreviousSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/restore-previous"),
     approveSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/approve"),
     exportDocxPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/exports/final-report.docx"),
   };
@@ -411,7 +427,7 @@ Report Reference: ${manualSupplement.reportReference}
 Inspection Reference: ${exportPackage.inspectionReference}
 Inspection Window: ${manualSupplement.inspectedDate}
 
-This cover page is assembled from imported Android task facts plus report-side issue formatting.`;
+This cover page is assembled from imported LAIQ inspection app facts plus report-side issue formatting.`;
 
   return {
     id: "cover",
@@ -428,7 +444,7 @@ This cover page is assembled from imported Android task facts plus report-side i
     aiHint: "Use the sample report cover as format precedent, but ignore any OCR noise that refers to a horizontal tank.",
     templateExpectation: "Centered report title, client/tank/report reference block, issue metadata, and approved visual.",
     sourceSummary:
-      "Imported from Android task and inspection record. Manual report reference and cover image remain report-side.",
+      "Imported from LAIQ app task and inspection record. Manual report reference and cover image remain report-side.",
     missingFields: [
       makeField({
         id: "coverHeroImage",
@@ -479,7 +495,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
         : [];
   const scopedLayoutTargets = scopeFilter(exportPackage.layoutTargets);
   const scopedLayoutConfigs = scopeFilter(exportPackage.layoutConfigs);
-  const scopedVoiceNarratives = selectVoiceNarrativesForSection(section, exportPackage, targetKeys);
+  const scopedVoiceNotes = selectVoiceNotesForSection(section, exportPackage, targetKeys);
   const checklistItems =
     isChecklistSection
       ? exportPackage.inspectionChecklistItems.slice(0, 32).map((item) => ({
@@ -496,7 +512,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
   const overviewLines = [
     `- Use this as an inspection-wide report section, not a raw data dump.`,
     `- The app export identifies ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
-    `- Export contains ${exportPackage.utMeasurements.length} UT rows, ${exportPackage.findings.length} finding records, ${exportPackage.elements.length} positioned elements, ${exportPackage.inspectionChecklistItems.length} checklist items, and ${(exportPackage.voiceNarratives ?? []).length} voice-transcript narrative notes.`,
+    `- Export contains ${exportPackage.utMeasurements.length} UT rows, ${exportPackage.findings.length} finding records, ${exportPackage.elements.length} positioned elements, ${exportPackage.inspectionChecklistItems.length} checklist items, and ${(exportPackage.voiceNotes ?? []).length} voice notes/transcripts.`,
     `- Current validation result: ${exportPackage.validationResults.filter((result) => result.passed).length}/${exportPackage.validationResults.length} export checks passed.`,
     `- Keep detailed UT tables, map geometry, photo selection, and final recommendation wording in their own report sections.`,
   ].join("\n");
@@ -561,19 +577,19 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
           .slice(0, 8)
           .map((note) => `- ${note.sectionTitle}: ${note.note}`)
           .join("\n");
-  const voiceNarrativeLines =
-    scopedVoiceNarratives.length > 0
-      ? scopedVoiceNarratives
+  const voiceNoteLines =
+    scopedVoiceNotes.length > 0
+      ? scopedVoiceNotes
           .slice(0, 12)
           .map(
             (note) =>
-              `- ${note.sectionTitle} (${note.speakerName}, ${note.capturedAtIso}): ${truncatePreviewText(
-                note.transcriptText,
+              `- ${formatVoiceNoteContext(note)} (${note.transcriptStatus}, ${formatVoiceDuration(note.durationMs)}, ${note.capturedAtIso}): ${truncatePreviewText(
+                note.transcriptText ?? "",
                 360,
               )}`,
           )
           .join("\n")
-      : "- No voice-transcript narrative notes are scoped to this section.";
+      : "- No voice-note transcript evidence is scoped to this section.";
   const elementHeading = isOverviewSection
     ? `Element placement summary (${scopedElements.length} matching rows)`
     : `Element placements (${scopedElements.length} matching rows, first 16 shown)`;
@@ -587,7 +603,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
   if (isOverviewSection && !isPhotoSection) {
     return [
       "Source files",
-      `- Android mock seed: ${androidMockSeedPath}`,
+      `- LAIQ app mock seed: ${androidMockSeedPath}`,
       `- App export fixture: ${reportFixturePath}`,
       "",
       "Selected report section",
@@ -618,8 +634,8 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
       "Section-specific context",
       ...buildOverviewSectionContextLines(section, exportPackage),
       "",
-      `Voice-transcript narrative notes (${scopedVoiceNarratives.length} matching rows)`,
-      voiceNarrativeLines,
+      `Voice-note transcript evidence (${scopedVoiceNotes.length} matching rows)`,
+      voiceNoteLines,
       "",
       "Export readiness checks relevant to this section",
       validationLines,
@@ -632,7 +648,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
   if (isPhotoSection) {
     return [
       "Source files",
-      `- Android mock seed: ${androidMockSeedPath}`,
+      `- LAIQ app mock seed: ${androidMockSeedPath}`,
       `- App export fixture: ${reportFixturePath}`,
       "",
       "Selected report section",
@@ -657,7 +673,7 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
 
   return [
     "Source files",
-    `- Android mock seed: ${androidMockSeedPath}`,
+    `- LAIQ app mock seed: ${androidMockSeedPath}`,
     `- App export fixture: ${reportFixturePath}`,
     "",
     "Selected report section",
@@ -693,8 +709,8 @@ function buildSectionRawAppData(section: ReportSection, exportPackage: V2Product
     `Layout configuration (${scopedLayoutConfigs.length} matching rows)`,
     layoutLines,
     "",
-    `Voice-transcript narrative notes (${scopedVoiceNarratives.length} matching rows, first 12 shown)`,
-    voiceNarrativeLines,
+    `Voice-note transcript evidence (${scopedVoiceNotes.length} matching rows, first 12 shown)`,
+    voiceNoteLines,
     "",
     elementHeading,
     elementLines,
@@ -718,8 +734,8 @@ function buildOverviewSectionContextLines(section: ReportSection, exportPackage:
     return [
       "- Generate the report scope only from task identity, inspection type, API-standard report family, and export readiness status.",
       `- Field task scope: ${exportPackage.task.client}, Tank ${exportPackage.task.tankNumber}, ${exportPackage.task.location}.`,
-      `- Workflow screen captured by Android: ${humanizeKey(exportPackage.workflowScreen)}.`,
-      `- Voice-transcript narrative notes available for report drafting: ${(exportPackage.voiceNarratives ?? []).length}.`,
+      `- Workflow screen captured by LAIQ inspection app: ${humanizeKey(exportPackage.workflowScreen)}.`,
+      `- Voice-note transcripts available for report drafting: ${(exportPackage.voiceNotes ?? []).length}.`,
       "- Mention that detailed roof, shell, floor, NDT, layout-map, photograph, and recommendation content is handled in later sections.",
     ];
   }
@@ -748,14 +764,14 @@ function buildOverviewSectionContextLines(section: ReportSection, exportPackage:
   if (section.id === "test-information") {
     return [
       "- Use this section for test-method metadata only.",
-      `- Android export has ${exportPackage.utMeasurements.length} UT rows and ${exportPackage.findings.length} finding records available in their own sections.`,
+      `- LAIQ app export has ${exportPackage.utMeasurements.length} UT rows and ${exportPackage.findings.length} finding records available in their own sections.`,
       "- Do not paste UT measurement rows into the test information section.",
       `- Remaining report-side fields: ${formatMissingFieldLabels(section)}.`,
     ];
   }
 
   return [
-    "- This section does not currently have dedicated structured evidence in the Android export.",
+    "- This section does not currently have dedicated structured evidence in the LAIQ app export.",
     "- Use the report ToC title, template expectation, and missing-content panel as the working context.",
     `- Remaining report-side fields: ${formatMissingFieldLabels(section)}.`,
   ];
@@ -806,35 +822,120 @@ function selectChecklistSectionNotes(
   });
 }
 
-function selectVoiceNarrativesForSection(
+function selectVoiceNotesForSection(
   section: ReportSection,
   exportPackage: V2ProductExportPackage,
   targetKeys: string[],
-): V2ProductExportVoiceNarrative[] {
-  const notes = exportPackage.voiceNarratives ?? [];
+): V2ProductExportVoiceNote[] {
+  const notes = exportPackage.voiceNotes ?? [];
 
   if (section.id === "inspection-report") {
     return notes;
   }
 
-  const sectionText = `${section.id} ${section.title}`.toLowerCase();
-  const normalizedTitle = normalizeEvidenceKey(section.title);
+  const sectionText = normalizeEvidenceKey(`${section.id} ${section.title} ${section.sourceSummary}`);
+  const wantedCategories = inferVoiceContextCategories(section);
 
   return notes.filter((note) => {
-    const noteKey = normalizeEvidenceKey(`${note.sectionKey} ${note.sectionTitle}`);
-    const titleMatches = normalizedTitle.length > 0 && noteKey.includes(normalizedTitle);
-    const textMatches =
-      sectionText.includes(note.sectionKey.replace(/_/g, "-")) ||
-      sectionText.includes(note.sectionKey.replace(/_/g, " ")) ||
-      noteKey
-        .split(" ")
-        .filter((part) => part.length > 4)
-        .some((part) => sectionText.includes(part));
-    const targetMatches =
-      targetKeys.length > 0 && note.linkedTargetKeys.some((targetKey) => targetKeys.includes(targetKey));
+    const noteText = normalizeEvidenceKey(
+      [
+        note.screenKey,
+        note.screenLabel,
+        note.cardKey,
+        note.fieldKey,
+        note.targetKey,
+        note.targetLabel,
+        note.itemKey,
+        note.itemLabel,
+        note.transcriptText,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+    const targetMatches = targetKeys.length > 0 && note.targetKey != null && targetKeys.includes(note.targetKey);
+    const categoryMatches =
+      wantedCategories.length > 0 &&
+      wantedCategories.some((category) => voiceNoteMatchesCategory(note, noteText, category));
+    const titleMatches = sectionText
+      .split(" ")
+      .filter((part) => part.length > 4)
+      .some((part) => noteText.includes(part));
 
-    return titleMatches || textMatches || targetMatches;
+    return targetMatches || categoryMatches || titleMatches;
   });
+}
+
+function inferVoiceContextCategories(section: ReportSection): string[] {
+  const text = normalizeEvidenceKey(`${section.id} ${section.title} ${section.sourceSummary}`);
+  const categories: string[] = [];
+
+  if (text.includes("scope") || text.includes("general tank")) categories.push("site");
+  if (text.includes("dike") || text.includes("foundation") || text.includes("maintenance")) {
+    categories.push("dike", "foundation");
+  }
+  if (text.includes("layout") || text.includes("map") || text.includes("drawing")) categories.push("layout");
+  if (text.includes("roof")) categories.push("roof");
+  if (text.includes("shell") || text.includes("weld") || text.includes("mpi") || text.includes("appurtenance")) {
+    categories.push("shell");
+  }
+  if (text.includes("floor") || text.includes("bottom") || text.includes("mfl")) categories.push("floor");
+  if (text.includes("checklist")) categories.push("checklist");
+  if (text.includes("finding") || text.includes("recommendation") || text.includes("repair")) {
+    categories.push("finding", "repair");
+  }
+  if (text.includes("photo")) categories.push("photo");
+
+  return [...new Set(categories)];
+}
+
+function voiceNoteMatchesCategory(
+  note: V2ProductExportVoiceNote,
+  normalizedNoteText: string,
+  category: string,
+): boolean {
+  const targetKey = note.targetKey ?? "";
+  const screenKey = note.screenKey ?? "";
+  const text = normalizedNoteText;
+
+  switch (category) {
+    case "site":
+      return screenKey === "general_info" || text.includes("field capture") || text.includes("vuda terminal");
+    case "dike":
+      return text.includes("dike") || text.includes("diked") || text.includes("drain");
+    case "foundation":
+      return text.includes("foundation") || text.includes("tar seal") || text.includes("floor edge");
+    case "layout":
+      return screenKey.includes("layout") || text.includes("layout") || text.includes("plate map");
+    case "roof":
+      return targetKey === "external_roof" || targetKey === "internal_roof" || text.includes("roof");
+    case "shell":
+      return targetKey === "shell" || text.includes("shell") || text.includes("weld");
+    case "floor":
+      return targetKey === "floor" || text.includes("floor") || text.includes("bottom") || text.includes("mfl");
+    case "checklist":
+      return screenKey === "checklist";
+    case "finding":
+      return screenKey === "findings" || text.includes("finding") || text.includes("indication");
+    case "repair":
+      return text.includes("repair") || text.includes("recoat") || text.includes("weld build");
+    case "photo":
+      return text.includes("photo") || text.includes("photograph");
+    default:
+      return false;
+  }
+}
+
+function formatVoiceNoteContext(note: V2ProductExportVoiceNote): string {
+  return [
+    note.screenLabel,
+    note.targetLabel,
+    note.itemLabel,
+  ].filter(Boolean).join(" / ");
+}
+
+function formatVoiceDuration(durationMs: number): string {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return "duration not recorded";
+  return `${Math.round(durationMs / 1000)}s`;
 }
 
 function normalizeEvidenceKey(value: string): string {
@@ -968,7 +1069,7 @@ function buildScopeSection(
 
 ➢ To compile the report sections, worksheets, photographs, layout drawings, and engineering assessment in the same order as the approved API-standard sample report.
 
-➢ To preserve Android field-capture data as the factual baseline while allowing final report presentation, layout maps, and recommendation wording to be reviewed and approved on the report platform.
+➢ To preserve LAIQ inspection app field-capture data as the factual baseline while allowing final report presentation, layout maps, and recommendation wording to be reviewed and approved on the report platform.
 
 ➢ To list missing report-side values for user confirmation before final issue.
 
@@ -1048,7 +1149,7 @@ Reference Mode: ${humanizeKey(record.referenceMode ?? "not_recorded")}
 Diameter / Height: ${formatMetric(record.diameterM)} / ${formatMetric(record.heightM)}
 Shell Course Count: ${record.shellCourseCount ?? "Not recorded"}
 
-This section is driven mainly by structured Android export facts, with a few remaining client-facing report fields captured on the web side.`;
+This section is driven mainly by structured LAIQ app export facts, with a few remaining client-facing report fields captured on the web side.`;
 
   return {
     id: "general-tank-information",
@@ -1138,7 +1239,7 @@ function buildRecommendationSection(
 - Use the imported attachment package and MPI support records as the evidence set for repair planning.
 - Hold the API 653 recommendation wording until the narrative section and engineering implication paragraph are approved.
 
-This section is report-side by design: the Android export supplies the factual basis, while the final recommendation wording belongs to the cloud reporting workflow.`;
+This section is report-side by design: the LAIQ app export supplies the factual basis, while the final recommendation wording belongs to the cloud reporting workflow.`;
 
   return {
     id: "repair-recommendations",
@@ -1216,14 +1317,14 @@ function buildTankInspectionChecklistSection(exportPackage: V2ProductExportPacka
     edited: false,
     approved: false,
     reviewRequired: false,
-    description: "ToC section 7, interactive checklist table seeded from Android V2 Product checklist export.",
+    description: "ToC section 7, interactive checklist table seeded from LAIQ inspection app checklist export.",
     content,
     aiHint:
       "Render the checklist as the sample report response grid. Do not summarize away the individual checklist rows.",
     templateExpectation:
       "Checklist table grouped by section with response columns 1, 2, 3, 4, IA, NE, and N/A.",
     sourceSummary:
-      "Imported: all checklist item prompts and selected responses from Android V2 Product. Manual: reviewer can change final response selections.",
+      "Imported: all checklist item prompts and selected responses from LAIQ inspection app V3. Manual: reviewer can change final response selections.",
     missingFields: [],
   };
 }
@@ -1268,7 +1369,7 @@ function buildChecklistTableHtml(exportPackage: V2ProductExportPackage): string 
 
   return [
     "<h3>7 TANK INSPECTION CHECKLIST</h3>",
-    "<p>Checklist responses are imported from the Android V2 Product export. The response grid follows the sample report columns and is intended to become an editable table in the report platform.</p>",
+    "<p>Checklist responses are imported from the LAIQ inspection app V3 export. The response grid follows the sample report columns and is intended to become an editable table in the report platform.</p>",
     `<div class="report-table-wrap"><table class="report-measurement-table checklist-report-table"><tbody>${groups}</tbody></table></div>`,
     "<p><em>Legend: 1 Good Condition; 2 Satisfactory Condition; 3 Requires Repair/Action; 4 Poor, Requires Immediate Attention; IA In-accessible; NE None Evident; N/A Not applicable.</em></p>",
   ].join("");
@@ -1381,9 +1482,9 @@ function buildApiStandardMapSection(
 
 This layout section is present in the API-standard sample report and is reserved for the ${tocSection.layoutSurface ?? "tank"} layout preview.
 
-Current Android export status: no structured ${tocSection.layoutSurface ?? "surface"} layout geometry was imported for this report section.
+Current LAIQ app export status: no structured ${tocSection.layoutSurface ?? "surface"} layout geometry was imported for this report section.
 
-The report platform should not invent plate dimensions, MFL platemaps, roof layout, or floor corrosion maps. Once the app export provides this geometry, the preview should follow the Android V2 Product map model first; editing can be reintroduced only after parity is approved.`;
+The report platform should not invent plate dimensions, MFL platemaps, roof layout, or floor corrosion maps. Once the app export provides this geometry, the preview should follow the LAIQ inspection app map model first; editing can be reintroduced only after parity is approved.`;
 
   return {
     id: tocSection.id,
@@ -1397,7 +1498,7 @@ The report platform should not invent plate dimensions, MFL platemaps, roof layo
     reviewRequired: true,
     description: `ToC section ${tocSection.number}, page ${tocSection.pageStart} in ${API_STANDARD_PRIMARY_REPORT.sourceReportName}.`,
     content,
-    aiHint: "Do not fabricate geometry. Use this page as a controlled missing-data placeholder until a matching Android export surface exists.",
+    aiHint: "Do not fabricate geometry. Use this page as a controlled missing-data placeholder until a matching LAIQ app export surface exists.",
     templateExpectation: "API-standard layout page with controlled drawing block, legend, and editable geometry once source data exists.",
     sourceSummary:
       "Imported: no matching structured layout surface yet. Manual: final report-side source selection. Derived: pending layout workspace shell.",
@@ -1406,9 +1507,9 @@ The report platform should not invent plate dimensions, MFL platemaps, roof layo
         id: `${tocSection.id}-layout-source`,
         label: `${tocSection.title} Source`,
         input: "text",
-        suggestion: "Import structured layout data from Android V2 Product or attach approved worksheet/map source.",
-        reason: "This API-standard section exists in the report ToC but the current Android export does not yet provide this surface geometry.",
-        source: "Report-side/manual or future Android export input",
+        suggestion: "Import structured layout data from LAIQ inspection app V3 or attach approved worksheet/map source.",
+        reason: "This API-standard section exists in the report ToC but the current LAIQ app export does not yet provide this surface geometry.",
+        source: "Report-side/manual or future LAIQ app export input",
       }),
     ],
   };
@@ -1428,12 +1529,12 @@ function buildApiStandardPlaceholderSection(
           input: "textarea",
           suggestion: "Confirm imported worksheet/calculation data or provide approved report-side content for this section.",
           reason: "This API-standard section needs section-specific values before final issue.",
-          source: "Report-side manual input or future Android export field",
+          source: "Report-side manual input or future LAIQ app export field",
         }),
       ];
   const content = `${tocSection.number}       ${tocSection.title.toUpperCase()}
 
-This section follows the API-standard sample report ToC and is generated as a controlled placeholder from the current Android V2 Product export.
+This section follows the API-standard sample report ToC and is generated as a controlled placeholder from the current LAIQ inspection app V3 export.
 
 Imported baseline available now:
 - Client: ${exportPackage.task.client}
@@ -1445,8 +1546,8 @@ Imported baseline available now:
 ${appSourceSummary ? `- Section app source: ${appSourceSummary}` : ""}
 
 ${appSourceSummary
-  ? "This section is sourced from the Android V2 Product export and does not require a separate report-side source-data confirmation."
-  : "The final section content must be completed using approved report-side inputs, calculations, worksheets, or future Android export fields that correspond to this exact ToC section."}`;
+  ? "This section is sourced from the LAIQ inspection app V3 export and does not require a separate report-side source-data confirmation."
+  : "The final section content must be completed using approved report-side inputs, calculations, worksheets, or future LAIQ app export fields that correspond to this exact ToC section."}`;
 
   return {
     id: tocSection.id,
@@ -1465,7 +1566,7 @@ ${appSourceSummary
     sourceSummary:
       appSourceSummary
         ? `Imported: ${appSourceSummary}. Manual: final wording approval only.`
-        : "Imported: Android V2 Product package baseline. Manual: worksheet values, calculations, and final report-side approval where missing.",
+        : "Imported: LAIQ inspection app V3 package baseline. Manual: worksheet values, calculations, and final report-side approval where missing.",
     missingFields,
   };
 }
@@ -1504,7 +1605,7 @@ function getAppSourcedSectionSummary(
   ).length;
 
   return rowCount > 0
-    ? `${rowCount} ${scope.label} from Android export ${exportPackage.inspectionReference}`
+    ? `${rowCount} ${scope.label} from LAIQ app export ${exportPackage.inspectionReference}`
     : null;
 }
 
@@ -1585,7 +1686,7 @@ This sketch page is anchored to imported vertical tank ${surfaceLabel.toLowerCas
 
 ➢ Marker positions are derived from the exported layout metadata, UT-linked findings, and app element coordinates.
 
-➢ App elements are imported directly from Android placement coordinates.
+➢ App elements are imported directly from LAIQ app placement coordinates.
 
 ➢ Reviewer sign-off items remain editable on the report platform without mutating the underlying field export.`;
 
@@ -1721,21 +1822,25 @@ function buildShellLayoutMap(
   );
   const evidenceByKey = buildShellRegionEvidenceIndex(exportPackage, gridRows, gridColumns);
   const findingMarkers = exportPackage.findings
-    .filter((finding) => finding.targetKey === "shell")
+    .filter((finding) => finding.targetKey === "shell" && !isElementLinkedFinding(finding))
     .map((finding, index) => buildShellFindingMarker(finding, exportPackage, gridRows, gridColumns, index))
     .filter((marker): marker is LayoutMarker => marker != null);
-  const elementMarkers = buildTargetElementMarkers(exportPackage, "shell");
+  const elementMarkers = buildTargetElementMarkers(exportPackage, "shell", {
+    plates: shellPlateSegments,
+    shellCourseCount: gridRows,
+    shellLaneCount: gridColumns,
+  });
   const markers = [...findingMarkers, ...elementMarkers];
 
   return {
     id: "shell-weld-7",
     title: "Findings / MPI Locations on Shell Internal - Horizontal Weld 7",
-    subtitle: "Shell map: 8 courses, 4 UT lanes, 9 shell plates/course with half-plate offsets",
+    subtitle: `Shell map: ${gridRows} courses, ${gridColumns} UT lanes, ${platesPerCourse} shell plates/course with ${humanizeKey(plateOffset)} offsets`,
     surfaceLabel: "Shell internal sketch",
     legend: [
-      "Red lane headers = Android shell UT lanes L1-L4",
+      "Red lane headers = LAIQ app shell UT lanes L1-L4",
       "Light blue plate rectangles = shell plate segment background from app layout config",
-      "Blue markers = findings/elements imported from Android placement and UT links",
+      "Blue markers = findings/elements imported from LAIQ app placement and UT links",
     ],
     markers,
     plates: shellPlateSegments,
@@ -1794,7 +1899,17 @@ function buildRoofLayoutMap(
 
   const gridRows = roofConfig.roofRowCount ?? 6;
   const gridColumns = roofConfig.roofWidestRowPlateCount ?? 11;
-  const plates = buildAndroidCircularPlateCells(gridRows, gridColumns, "android:RoofSurfaceMap:circular_plate").map(
+  const customPlates = buildCustomCircularPlateCells(
+    roofConfig.customCircularLayout,
+    "android:RoofSurfaceMap:custom_circular_plate",
+    gridRows,
+    gridColumns,
+  );
+  const basePlates =
+    customPlates.length > 0
+      ? customPlates
+      : buildAndroidCircularPlateCells(gridRows, gridColumns, "android:RoofSurfaceMap:circular_plate");
+  const plates = basePlates.map(
     (plate) => ({
       ...plate,
       evidence: buildRegionEvidence(exportPackage, "external_roof", plate.id),
@@ -1802,18 +1917,21 @@ function buildRoofLayoutMap(
   );
   const markers = [
     ...buildTargetFindingMarkers(exportPackage, "external_roof", plates),
-    ...buildTargetElementMarkers(exportPackage, "external_roof"),
+    ...buildTargetElementMarkers(exportPackage, "external_roof", { plates }),
   ];
 
   return {
     id: "roof-plate-layout",
     title: "Roof Plate Layout",
-    subtitle: `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
+    subtitle:
+      customPlates.length > 0
+        ? `Roof map: V3 app custom circular plate layout, ${gridRows} rows, ${plates.length} visible plates`
+        : `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
     surfaceLabel: "Roof plate layout",
     legend: [
-      "Circular clipped plate layout follows Android RoofSurfaceMap",
+      "Circular clipped plate layout follows LAIQ app RoofSurfaceMap",
       "Numbered cells = app roof plate numbering, including staggered reverse rows",
-      "Blue markers = imported findings/elements from Android export",
+      "Blue markers = imported findings/elements from LAIQ app export",
     ],
     markers,
     plates,
@@ -1842,6 +1960,7 @@ function buildRoofLayoutMap(
         hasCenterOpening: roofConfig.roofHasCenterOpening ?? false,
         hasAnnularRing: roofConfig.roofHasAnnularRing ?? false,
         annularSectionCount: roofConfig.roofAnnularSectionCount ?? 0,
+        customCircularLayout: roofConfig.customCircularLayout,
       },
     },
     overrideCount: 0,
@@ -1867,7 +1986,7 @@ function buildFloorLayoutMap(
   );
   const markers = [
     ...buildTargetFindingMarkers(exportPackage, "floor", plates),
-    ...buildTargetElementMarkers(exportPackage, "floor"),
+    ...buildTargetElementMarkers(exportPackage, "floor", { plates }),
   ];
 
   return {
@@ -1876,9 +1995,9 @@ function buildFloorLayoutMap(
     subtitle: `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
     surfaceLabel: "Floor/bottom plate layout",
     legend: [
-      "Circular clipped plate layout follows Android floor preview, which reuses RoofSurfaceMap",
+      "Circular clipped plate layout follows LAIQ app floor preview, which reuses RoofSurfaceMap",
       "Numbered cells = app floor plate numbering",
-      "Blue markers = imported floor findings/elements from Android export",
+      "Blue markers = imported floor findings/elements from LAIQ app export",
     ],
     markers,
     plates,
@@ -1913,7 +2032,11 @@ function buildFloorLayoutMap(
   };
 }
 
-function buildTargetElementMarkers(exportPackage: V2ProductExportPackage, targetKey: string): LayoutMarker[] {
+function buildTargetElementMarkers(
+  exportPackage: V2ProductExportPackage,
+  targetKey: string,
+  options: MarkerBuildOptions = {},
+): LayoutMarker[] {
   return exportPackage.elements
     .filter((element) => element.targetKey === targetKey)
     .map((element) => {
@@ -1924,6 +2047,7 @@ function buildTargetElementMarkers(exportPackage: V2ProductExportPackage, target
               x: clamp(element.normalizedX, 0.08, 0.92),
               y: clamp(element.normalizedY, 0.12, 0.88),
             };
+      const hostLocation = deriveMarkerHostLocation(targetKey, position, options);
 
       return {
         id: element.elementId,
@@ -1932,7 +2056,8 @@ function buildTargetElementMarkers(exportPackage: V2ProductExportPackage, target
         x: position.x,
         y: position.y,
         source: `element:${element.elementTypeKey}`,
-        evidence: buildElementEvidence(exportPackage, element),
+        hostLocation,
+        evidence: buildElementEvidence(exportPackage, element, hostLocation),
       };
     });
 }
@@ -1943,8 +2068,16 @@ function buildTargetFindingMarkers(
   plates: LayoutMapData["plates"],
 ): LayoutMarker[] {
   return exportPackage.findings
-    .filter((finding) => finding.targetKey === targetKey)
+    .filter((finding) => finding.targetKey === targetKey && !isElementLinkedFinding(finding))
     .map((finding, index) => buildSurfaceFindingMarker(finding, exportPackage.elements, exportPackage.attachments, plates, index));
+}
+
+function isElementLinkedFinding(finding: Pick<V2ProductExportFinding, "linkedUtItemKey">): boolean {
+  return getLinkedElementId(finding.linkedUtItemKey) != null;
+}
+
+function getLinkedElementId(linkedUtItemKey: string | null | undefined): string | null {
+  return /:element:([^:]+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
 }
 
 function buildSurfaceFindingMarker(
@@ -1954,11 +2087,12 @@ function buildSurfaceFindingMarker(
   plates: LayoutMapData["plates"],
   index: number,
 ): LayoutMarker {
-  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
   const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
   const evidence = buildFindingEvidenceBundle(finding, elements, attachments);
   if (linkedElement) {
     const position = coerceCircularMarkerPosition(linkedElement.normalizedX + 0.025, linkedElement.normalizedY + 0.025);
+    const hostLocation = deriveMarkerHostLocation(finding.targetKey, position, { plates });
     return {
       id: finding.findingId,
       label: finding.itemLabel,
@@ -1966,7 +2100,8 @@ function buildSurfaceFindingMarker(
       x: position.x,
       y: position.y,
       source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
-      evidence,
+      hostLocation,
+      evidence: appendHostLocationEvidence(evidence, hostLocation),
     };
   }
 
@@ -2007,19 +2142,28 @@ function buildShellFindingMarker(
   index: number,
 ): LayoutMarker {
   const elements = exportPackage.elements;
-  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
   const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
   const evidence = buildFindingEvidenceBundle(finding, elements, exportPackage.attachments);
 
   if (linkedElement) {
+    const position = {
+      x: clamp(linkedElement.normalizedX + 0.025, 0.08, 0.92),
+      y: clamp(linkedElement.normalizedY + 0.025, 0.12, 0.88),
+    };
+    const hostLocation = deriveMarkerHostLocation("shell", position, {
+      shellCourseCount: courseCount,
+      shellLaneCount: laneCount,
+    });
     return {
       id: finding.findingId,
       label: finding.itemLabel,
       type: "finding",
-      x: clamp(linkedElement.normalizedX + 0.025, 0.08, 0.92),
-      y: clamp(linkedElement.normalizedY + 0.025, 0.12, 0.88),
+      x: position.x,
+      y: position.y,
       source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
-      evidence,
+      hostLocation,
+      evidence: appendHostLocationEvidence(evidence, hostLocation),
     };
   }
 
@@ -2098,6 +2242,7 @@ function buildRegionEvidence(
 function buildElementEvidence(
   exportPackage: V2ProductExportPackage,
   element: V2ProductExportElement,
+  hostLocation?: MarkerHostLocation,
 ): LayoutEvidenceItem[] {
   const measurements = exportPackage.utMeasurements
     .filter((measurement) => measurement.targetKey === element.targetKey && measurement.elementId === element.elementId)
@@ -2112,7 +2257,10 @@ function buildElementEvidence(
       kind: "element",
       title: element.elementLabel,
       subtitle: humanizeKey(element.elementTypeKey),
-      values: [`Position ${formatPercent(element.normalizedX)} / ${formatPercent(element.normalizedY)}`],
+      values: [
+        `Position ${formatPercent(element.normalizedX)} / ${formatPercent(element.normalizedY)}`,
+        ...(hostLocation ? hostLocationEvidenceValues(hostLocation) : []),
+      ],
       source: `app element:${element.elementId}`,
     },
     ...measurements,
@@ -2120,12 +2268,103 @@ function buildElementEvidence(
   ];
 }
 
+function deriveMarkerHostLocation(
+  targetKey: string,
+  position: { x: number; y: number },
+  options: MarkerBuildOptions,
+): MarkerHostLocation | undefined {
+  if (targetKey === "external_roof" || targetKey === "floor") {
+    const plate = findHostPlate(options.plates ?? [], position);
+    if (!plate) return undefined;
+    return {
+      surface: targetKey === "external_roof" ? "roof" : "floor",
+      label: `Plate ${plate.id}`,
+      plateId: plate.id,
+      source: "derived_from_app_coordinates",
+    };
+  }
+
+  if (targetKey === "shell") {
+    const laneCount = Math.max(options.shellLaneCount ?? 4, 1);
+    const courseCount = Math.max(options.shellCourseCount ?? 1, 1);
+    const laneNumber = clamp(Math.floor(clamp(position.x, 0, 0.9999) * laneCount) + 1, 1, laneCount);
+    const course = clamp(courseCount - Math.floor(clamp(position.y, 0, 0.9999) * courseCount), 1, courseCount);
+    const regionId = `L${laneNumber}-C${course}`;
+    const plate = findHostPlate(options.plates ?? [], position);
+    const plateLabel = plate?.column ? `, shell plate ${plate.column}` : "";
+
+    return {
+      surface: "shell",
+      label: `${shellLaneDisplayLabelForReport(laneNumber, laneCount)}-C${course}${plateLabel}`,
+      regionId,
+      course,
+      laneId: `L${laneNumber}`,
+      plateId: plate?.id,
+      source: "derived_from_app_coordinates",
+    };
+  }
+
+  return undefined;
+}
+
+function findHostPlate(plates: LayoutPlate[], position: { x: number; y: number }): LayoutPlate | undefined {
+  const containingPlate = plates.find(
+    (plate) =>
+      position.x >= plate.x &&
+      position.x <= plate.x + plate.width &&
+      position.y >= plate.y &&
+      position.y <= plate.y + plate.height,
+  );
+  if (containingPlate) return containingPlate;
+
+  return plates
+    .map((plate) => ({
+      plate,
+      distance:
+        Math.abs(position.x - (plate.x + plate.width / 2)) +
+        Math.abs(position.y - (plate.y + plate.height / 2)),
+    }))
+    .sort((a, b) => a.distance - b.distance)[0]?.plate;
+}
+
+function appendHostLocationEvidence(
+  evidence: LayoutEvidenceItem[],
+  hostLocation?: MarkerHostLocation,
+): LayoutEvidenceItem[] {
+  if (!hostLocation) return evidence;
+  return [
+    {
+      id: `location-${hostLocation.label}`,
+      kind: "element",
+      title: hostLocation.label,
+      subtitle: "Derived app location",
+      values: hostLocationEvidenceValues(hostLocation),
+      source: hostLocation.source,
+    },
+    ...evidence,
+  ];
+}
+
+function hostLocationEvidenceValues(hostLocation: MarkerHostLocation): string[] {
+  return [
+    `Host location: ${hostLocation.label}`,
+    hostLocation.source === "derived_from_app_coordinates"
+      ? "Location source: derived from LAIQ app normalized coordinates and V3 layout geometry"
+      : "Location source: exported by LAIQ inspection app",
+  ];
+}
+
+function shellLaneDisplayLabelForReport(laneNumber: number, laneCount: number): string {
+  if (laneCount === 4) return ["N", "E", "S", "W"][laneNumber - 1] ?? `L${laneNumber}`;
+  return `L${laneNumber}`;
+}
+
 function buildFindingEvidenceBundle(
   finding: V2ProductExportFinding,
   elements: V2ProductExportElement[],
   attachments: V2ProductExportAttachment[],
 ): LayoutEvidenceItem[] {
-  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
   const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
 
   return [
@@ -2230,7 +2469,7 @@ function extractLaneNumber(value: string | null | undefined): number | null {
 
 function coerceCircularMarkerPosition(x: number, y: number): { x: number; y: number } {
   const center = 0.5;
-  const controlledRadius = 0.395;
+  const controlledRadius = 0.42;
   const dx = x - center;
   const dy = y - center;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -2298,7 +2537,7 @@ function buildInspectionReportNarrative(
   exportPackage: V2ProductExportPackage,
   manualSupplement: ManualReportSupplement,
 ): string {
-  const voiceNotes = exportPackage.voiceNarratives ?? [];
+  const voiceNotes = exportPackage.voiceNotes ?? [];
   const shellMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "shell");
   const roofMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "external_roof");
   const floorMeasurements = exportPackage.utMeasurements.filter((measurement) => measurement.targetKey === "floor");
@@ -2399,10 +2638,72 @@ function buildInspectionSubsection(title: string, bullets: string[]): string {
   ].join("\n");
 }
 
-function buildVoiceBullets(notes: V2ProductExportVoiceNarrative[], sectionKey: string): string[] {
+function buildVoiceBullets(notes: V2ProductExportVoiceNote[], sectionKey: string): string[] {
   return notes
-    .filter((note) => note.sectionKey === sectionKey)
-    .map((note) => `➢ ${note.transcriptText}`);
+    .filter((note) => voiceNoteMatchesInspectionSubsection(note, sectionKey))
+    .map((note) => note.transcriptText?.trim())
+    .filter((text): text is string => Boolean(text))
+    .map((text) => `➢ ${text}`);
+}
+
+function voiceNoteMatchesInspectionSubsection(note: V2ProductExportVoiceNote, sectionKey: string): boolean {
+  const noteText = normalizeEvidenceKey(
+    [
+      note.screenKey,
+      note.screenLabel,
+      note.cardKey,
+      note.fieldKey,
+      note.targetKey,
+      note.targetLabel,
+      note.itemKey,
+      note.itemLabel,
+      note.transcriptText,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  switch (sectionKey) {
+    case "diked_area":
+      return noteText.includes("dike") || noteText.includes("diked") || noteText.includes("drain");
+    case "tank_foundation":
+      return noteText.includes("foundation") || noteText.includes("tar seal") || noteText.includes("floor edge");
+    case "shell_external":
+      return note.targetKey === "shell" && (noteText.includes("buckl") || noteText.includes("external") || noteText.includes("course"));
+    case "shell_appurtenances":
+      return note.targetKey === "shell" && (noteText.includes("nozzle") || noteText.includes("tell tale") || noteText.includes("pad"));
+    case "access_structure":
+      return noteText.includes("access") || noteText.includes("stair") || noteText.includes("drop bar") || noteText.includes("chain");
+    case "fixed_roof_cone_dome":
+      return (
+        note.targetKey === "external_roof" &&
+        (noteText.includes("fixed dome") ||
+          noteText.includes("roof plate") ||
+          noteText.includes("curb") ||
+          noteText.includes("roof surface") ||
+          noteText.includes("spot readings"))
+      );
+    case "roof_appurtenances":
+      return (
+        note.targetKey === "external_roof" &&
+        (noteText.includes("nozzle") || noteText.includes("manhole") || noteText.includes("vent") || noteText.includes("reinforcement"))
+      );
+    case "fixed_roof_internal":
+      return note.targetKey === "internal_roof" || noteText.includes("underside") || noteText.includes("rafter");
+    case "shell_internal":
+      return (
+        note.targetKey === "shell" &&
+        (noteText.includes("internal") ||
+          noteText.includes("scale") ||
+          noteText.includes("linear") ||
+          noteText.includes("indication") ||
+          noteText.includes("scaffold"))
+      );
+    case "floor_internal":
+      return note.targetKey === "floor" || noteText.includes("tank bottom") || noteText.includes("cone down") || noteText.includes("mfl");
+    default:
+      return false;
+  }
 }
 
 function buildChecklistNoteBullets(exportPackage: V2ProductExportPackage, sectionKey: string): string[] {
@@ -2476,7 +2777,7 @@ function buildMeasurementBullets(measurements: V2ProductExportUtMeasurement[]): 
 
 function buildInitialAssistantPrompt(section: ReportSection): string {
   if (section.kind === "map") {
-    return "This sketch is compiled from Android export geometry. I can help with legend wording, layout notes, or approval blockers, while the map geometry remains locked to the app export for parity review.";
+    return "This sketch is compiled from LAIQ app export geometry. I can help with legend wording, layout notes, or approval blockers, while the map geometry remains locked to the app export for parity review.";
   }
 
   if (section.kind === "attachment") {
@@ -2487,7 +2788,7 @@ function buildInitialAssistantPrompt(section: ReportSection): string {
     const hasOpenInputs = section.missingFields.some((field) => !field.value.trim());
     return hasOpenInputs
       ? "This section combines imported facts with report-side inputs. Fill the missing-content panel first, then ask me to generate or refine the section."
-      : "This section is already backed by the Android V2 Product export. I can help generate, table-format, or refine the report output without asking for another source-data field.";
+      : "This section is already backed by the LAIQ inspection app V3 export. I can help generate, table-format, or refine the report output without asking for another source-data field.";
   }
 
   return "This section blends imported field facts with report-side wording. I can help tighten the prose, surface missing inputs, and keep the narrative aligned with the sample report family.";
@@ -2564,8 +2865,9 @@ function applyPersistedState(
         edited: sectionDraft?.edited ?? section.edited,
         approved: sectionDraft?.approved ?? section.approved,
         reviewRequired: sectionDraft?.reviewRequired ?? section.reviewRequired,
+        previousVersionCount: sectionDraft?.previousVersionCount ?? section.previousVersionCount ?? 0,
         layoutMap: compatibleLayoutOverride
-          ? ensureLayoutMapData(compatibleLayoutOverride)
+          ? mergeLayoutOverrideWithBaseline(section.layoutMap, compatibleLayoutOverride)
           : section.layoutMap
             ? ensureLayoutMapData(section.layoutMap)
             : section.layoutMap,
@@ -2585,9 +2887,51 @@ function isCompatibleLayoutOverride(
   return layoutOverride.appMap.surfaceType === baselineLayoutMap.appMap.surfaceType;
 }
 
+function mergeLayoutOverrideWithBaseline(
+  baselineLayoutMap: LayoutMapData | undefined,
+  layoutOverride: LayoutMapData,
+): LayoutMapData {
+  if (!baselineLayoutMap) return ensureLayoutMapData(layoutOverride);
+
+  const normalizedBaseline = ensureLayoutMapData(baselineLayoutMap);
+  const normalizedOverride = ensureLayoutMapData(layoutOverride);
+  const overrideMarkersById = new Map(normalizedOverride.markers.map((marker) => [marker.id, marker]));
+
+  return ensureLayoutMapData({
+    ...normalizedBaseline,
+    ...normalizedOverride,
+    plates: normalizedOverride.plates.length > 0 ? normalizedOverride.plates : normalizedBaseline.plates,
+    markers: normalizedBaseline.markers.map((baselineMarker) => {
+      const overrideMarker = overrideMarkersById.get(baselineMarker.id);
+      return overrideMarker
+        ? {
+            ...baselineMarker,
+            ...overrideMarker,
+            evidence: baselineMarker.evidence ?? overrideMarker.evidence,
+            hostLocation: baselineMarker.hostLocation ?? overrideMarker.hostLocation,
+          }
+        : baselineMarker;
+    }),
+    drawingBlock: {
+      ...normalizedBaseline.drawingBlock,
+      ...normalizedOverride.drawingBlock,
+    },
+    appMap: normalizedBaseline.appMap
+      ? {
+          ...normalizedBaseline.appMap,
+          ...(normalizedOverride.appMap ?? {}),
+        }
+      : normalizedOverride.appMap,
+    evidenceByKey: {
+      ...(normalizedBaseline.evidenceByKey ?? {}),
+      ...(normalizedOverride.evidenceByKey ?? {}),
+    },
+  });
+}
+
 function assertValidAndroidExport(exportPackage: V2ProductExportPackage) {
   const issues = validateV2ProductExportPackage(exportPackage);
   if (issues.length === 0) return;
 
-  throw new Error(`Android export contract validation failed: ${issues.join(" ")}`);
+  throw new Error(`LAIQ app export contract validation failed: ${issues.join(" ")}`);
 }

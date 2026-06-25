@@ -18,6 +18,46 @@ export type MissingField = {
 
 export type ChatRole = "assistant" | "user";
 
+export type AiControlRisk = "low" | "medium" | "high" | "blocked";
+
+export type AiControlPlanner =
+  | "deterministic_tool"
+  | "structured_planner"
+  | "clarification_guard"
+  | "helpdesk_guard"
+  | "fallback_guard";
+
+export type AiControlStatus =
+  | "applied"
+  | "needs_confirmation"
+  | "blocked"
+  | "clarification"
+  | "answered";
+
+export type AiControlTrace = {
+  intent: string;
+  planner: AiControlPlanner;
+  risk: AiControlRisk;
+  target: string;
+  operation: string;
+  status: AiControlStatus;
+  guardrails: string[];
+  validation: string[];
+  userConfirmationRequired: boolean;
+  undoSnapshot: boolean;
+  reason: string;
+  alternative?: string;
+};
+
+export type AssistantPendingConfirmation = {
+  confirmationId: string;
+  label: string;
+  summary: string;
+  risk: AiControlRisk;
+  operation: string;
+  args?: Record<string, unknown>;
+};
+
 export type AssistantAction = {
   id: string;
   type:
@@ -30,8 +70,11 @@ export type AssistantAction = {
   contentHtml?: string;
   fontFamily?: string;
   fontSize?: string;
+  fontWeight?: "normal" | "bold";
   textAlign?: "left" | "center";
   color?: string;
+  styleScope?: "section" | "table" | "block";
+  targetBlockId?: string;
   markerId?: string;
   deltaX?: number;
   deltaY?: number;
@@ -45,6 +88,8 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   actions?: AssistantAction[];
+  controlTrace?: AiControlTrace;
+  pendingConfirmation?: AssistantPendingConfirmation;
 };
 
 export type LayoutMarkerType = "finding" | "element" | "weld";
@@ -78,6 +123,15 @@ export type LayoutMarker = {
   x: number;
   y: number;
   source: string;
+  hostLocation?: {
+    surface: "roof" | "shell" | "floor";
+    label: string;
+    plateId?: string;
+    regionId?: string;
+    course?: number;
+    laneId?: string;
+    source: "derived_from_app_coordinates" | "exported_from_app";
+  };
   evidence?: LayoutEvidenceItem[];
 };
 
@@ -116,6 +170,7 @@ export type AndroidLayoutMapConfig = {
     hasCenterOpening: boolean;
     hasAnnularRing: boolean;
     annularSectionCount: number;
+    customCircularLayout?: unknown | null;
   };
   shell?: {
     courseCount: number;
@@ -190,6 +245,7 @@ export type WorkspaceApiLinks = {
   saveLayoutOverridePath: string;
   generateSectionPath: string;
   sectionChatPath: string;
+  restorePreviousSectionPath: string;
   approveSectionPath: string;
   exportDocxPath: string;
 };
@@ -210,6 +266,7 @@ export type ReportSection = {
   templateExpectation: string;
   sourceSummary: string;
   rawAppData?: string;
+  previousVersionCount?: number;
   missingFields: MissingField[];
   layoutMap?: LayoutMapData;
 };

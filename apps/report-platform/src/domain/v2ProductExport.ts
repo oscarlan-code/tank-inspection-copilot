@@ -123,6 +123,7 @@ export type V2ProductExportLayoutConfig = {
   floorAnnularSectionCount: number | null;
   floorPatternCountX: number | null;
   floorPatternCountY: number | null;
+  customCircularLayout?: unknown | null;
   updatedAtIso: string;
 };
 
@@ -168,6 +169,7 @@ export type V2ProductExportChecklistItem = {
   itemPrompt: string;
   ratingKey: string | null;
   ratingLabel: string | null;
+  itemNote?: string | null;
   updatedAtIso: string;
 };
 
@@ -179,18 +181,27 @@ export type V2ProductExportChecklistSectionNote = {
   updatedAtIso: string;
 };
 
-export type V2ProductExportVoiceNarrative = {
+export type V2ProductExportVoiceNote = {
   inspectionId: string;
-  narrativeId: string;
-  sectionKey: string;
-  sectionTitle: string;
-  speakerUserId: string;
-  speakerName: string;
+  voiceNoteId: string;
+  relativePath: string;
+  displayName: string;
+  screenKey: string;
+  screenLabel: string;
+  cardKey: string;
+  fieldKey: string;
+  targetKey: string | null;
+  targetLabel: string | null;
+  itemKey: string | null;
+  itemLabel: string | null;
+  transcriptStatus: string;
+  transcriptText: string | null;
+  durationMs: number;
+  mediaType: string;
+  fileByteSize: number | null;
+  fileExists: boolean;
   capturedAtIso: string;
-  transcriptText: string;
-  linkedTargetKeys: string[];
-  linkedFindingIds: string[];
-  confidence: number;
+  updatedAtIso: string;
 };
 
 export type V2ProductExportFinding = {
@@ -244,7 +255,7 @@ export type V2ProductExportPackage = {
   utMeasurements: V2ProductExportUtMeasurement[];
   inspectionChecklistItems: V2ProductExportChecklistItem[];
   inspectionChecklistSectionNotes: V2ProductExportChecklistSectionNote[];
-  voiceNarratives?: V2ProductExportVoiceNarrative[];
+  voiceNotes: V2ProductExportVoiceNote[];
   findings: V2ProductExportFinding[];
   attachments: V2ProductExportAttachment[];
 };

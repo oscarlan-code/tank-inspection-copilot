@@ -7,7 +7,12 @@
     "api": "node ./server/index.mjs",
     "kb:rebuild": "node ./server/scripts/rebuild-precedent-kb.mjs",
     "kb:audit": "node ./server/scripts/audit-precedent-kb.mjs",
+    "recommendation-kb:rebuild": "node ./server/scripts/rebuild-fact-recommendation-kb.mjs",
+    "recommendation-kb:audit": "node ./server/scripts/audit-fact-recommendation-kb.mjs",
     "logic:audit": "node ./server/scripts/audit-generation-logic.mjs",
+    "report:eval": "node ./server/scripts/audit-report-generation-performance.mjs",
+    "leak:audit": "node ./server/scripts/audit-sample-leaks.mjs",
+    "api:audit": "node ./server/scripts/audit-api-hardening.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"

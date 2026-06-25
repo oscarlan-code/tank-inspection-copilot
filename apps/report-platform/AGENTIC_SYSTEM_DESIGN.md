@@ -73,7 +73,7 @@ Concrete V10 mapping:
 - 23 placed elements are Class A.
 - roof, shell, and floor layout maps are Class A.
 - 195 checklist items are Class A.
-- 11 mock voice narratives feed Class B.
+- 23 V3 voice notes with prepared mock transcripts and voice-audio attachment references feed Class B.
 - scope and inspection regime are Class C.
 - repair recommendations and API assessment are Class D.
 
@@ -128,7 +128,42 @@ LLM fallback is allowed only when the report family is ambiguous.
 
 ### 4. Evidence-Pack Builder
 
-This is the anti-hallucination core.
+The evidence-pack builder is where enriched context is reorganized before generation.
+
+It separates imported context into:
+
+- structured field facts for deterministic tools
+- voice-note transcript facts for narrative prose workers
+- report-side manual inputs for user confirmation
+- precedent snippets for formatting/style guidance
+- standards snippets for controlled technical guidance
+
+Voice-note routing uses:
+
+- `screenKey` and `screenLabel`
+- `cardKey` and `fieldKey`
+- `targetKey` and `targetLabel`
+- `itemKey` and `itemLabel`
+- `transcriptStatus`
+- transcript text after server-side transcription or prepared mock transcript loading
+
+The output is a section evidence pack. A section agent should never receive the whole inspection dump unless the section contract explicitly allows inspection-wide context.
+
+### 5. Voice Transcription Worker
+
+The LAIQ inspection app stores audio and metadata. The report platform owns transcription and interpretation.
+
+Responsibilities:
+
+- receive `voice_audio` attachments from the app export
+- run server-side speech-to-text when `transcriptStatus` is pending
+- preserve the raw audio attachment as primary evidence
+- store transcript text with confidence/status metadata
+- route transcript facts into evidence packs rather than directly into report output
+
+The worker does not decide final wording. It only converts audio into auditable text evidence.
+
+The evidence-pack builder remains the anti-hallucination core.
 
 For every section, build a small, relevant evidence pack:
 
@@ -156,7 +191,7 @@ Every evidence item must carry:
 
 The evidence ID is later used by grounding gates.
 
-### 5. Tool Dispatch
+### 6. Tool Dispatch
 
 Tool Dispatch calls frozen deterministic tools and stores artifacts with provenance.
 
@@ -167,7 +202,7 @@ Examples:
 - recommendation section calls rule/calculation outputs first
 - final export calls the DOCX assembler
 
-### 6. Renderer And Paginator
+### 7. Renderer And Paginator
 
 Rendering and pagination should feed both browser preview and final export.
 
@@ -180,7 +215,7 @@ Responsibilities:
 
 The reviewer should approve what will export.
 
-### 7. Exporter
+### 8. Exporter
 
 Exporter compiles only selected and approved sections.
 

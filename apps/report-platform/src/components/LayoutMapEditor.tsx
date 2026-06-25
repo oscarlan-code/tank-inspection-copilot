@@ -306,7 +306,7 @@ function toDisplayEvidence(item: LayoutEvidenceItem): DisplayEvidenceItem | null
       : null;
   }
 
-  const values = (item.values ?? []).filter((value) => /^Position\b/i.test(value));
+  const values = (item.values ?? []).filter((value) => /^(Position|Host location|Location source):/i.test(value));
   return values.length > 0
     ? {
         id: item.id,

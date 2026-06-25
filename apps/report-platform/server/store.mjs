@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -9,6 +9,16 @@ import {
 } from "./generation.mjs";
 import { evaluateGeneratedSection } from "./eval.mjs";
 import { classifyReportPackage } from "./report-classification.mjs";
+import { API_STANDARD_REPORT_TOC } from "./report-toc.mjs";
+
+export class ApiError extends Error {
+  constructor(statusCode, message, code = "report_platform_api_error") {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
 
 export function createReportStore({ dbFilePath }) {
   mkdirSync(dirname(dbFilePath), { recursive: true });
@@ -31,6 +41,7 @@ export function createReportStore({ dbFilePath }) {
     loadLatestEvalRun,
     replyToSectionChat,
     resetReportDrafts,
+    restorePreviousSectionDraft,
     saveLayoutOverride,
     saveManualInputs,
     saveSectionDraft,
@@ -41,15 +52,21 @@ export function createReportStore({ dbFilePath }) {
     exportPackage,
     manualSupplementOverrides = {},
   }) {
-    const existing = db
-      .prepare("SELECT report_job_id FROM report_jobs WHERE bootstrap_key = ? LIMIT 1")
-      .get(bootstrapKey);
+    const existingBootstrapRows = db
+      .prepare("SELECT report_job_id, inspection_id FROM report_jobs WHERE bootstrap_key = ?")
+      .all(bootstrapKey);
 
-    if (existing?.report_job_id) {
-      return importAndroidV2ProductExport({
-        bootstrapKey,
-        exportPackage,
-        manualSupplementOverrides,
+    const staleBootstrapRows = existingBootstrapRows.filter(
+      (row) => row.inspection_id !== exportPackage.inspectionId,
+    );
+    if (staleBootstrapRows.length > 0) {
+      const nowIso = new Date().toISOString();
+      inTransaction(() => {
+        for (const row of staleBootstrapRows) {
+          db.prepare(
+            "UPDATE report_jobs SET bootstrap_key = NULL, updated_at_iso = ? WHERE report_job_id = ?",
+          ).run(nowIso, row.report_job_id);
+        }
       });
     }
 
@@ -67,7 +84,11 @@ export function createReportStore({ dbFilePath }) {
   }) {
     const validationIssues = validateAndroidV2ProductExport(exportPackage);
     if (validationIssues.length > 0) {
-      throw new Error(`Invalid Android V2 Product export package. ${validationIssues.join(" ")}`);
+      throw new ApiError(
+        400,
+        `Invalid LAIQ inspection app V3 export package. ${validationIssues.join(" ")}`,
+        "invalid_export_package",
+      );
     }
 
     const nowIso = new Date().toISOString();
@@ -125,6 +146,16 @@ export function createReportStore({ dbFilePath }) {
         .prepare("SELECT report_job_id FROM report_jobs WHERE inspection_id = ?")
         .get(exportPackage.inspectionId);
       reportJobId = existingReportJob?.report_job_id ?? randomUUID();
+      const packageFingerprint = buildPackageFingerprint(exportPackage);
+      const previousPackageFingerprint = existingReportJob?.report_job_id
+        ? db
+          .prepare("SELECT field_value FROM report_manual_inputs WHERE report_job_id = ? AND field_key = ?")
+          .get(existingReportJob.report_job_id, "__sourcePackageFingerprint")?.field_value
+        : null;
+      const shouldClearDerivedState = Boolean(
+        existingReportJob?.report_job_id &&
+        previousPackageFingerprint !== packageFingerprint,
+      );
 
       db.prepare(
         `INSERT INTO report_jobs (
@@ -179,6 +210,12 @@ export function createReportStore({ dbFilePath }) {
         buildDefaultManualSupplement(exportPackage, manualSupplementOverrides),
         nowIso,
       );
+
+      if (shouldClearDerivedState) {
+        clearDerivedReportState(reportJobId, nowIso);
+      }
+
+      upsertInternalManualInput(reportJobId, "__sourcePackageFingerprint", packageFingerprint, nowIso);
     });
 
     return loadReportJobState(reportJobId);
@@ -222,7 +259,7 @@ export function createReportStore({ dbFilePath }) {
 
   function loadBootstrapReport(bootstrapKey) {
     const row = db
-      .prepare("SELECT report_job_id FROM report_jobs WHERE bootstrap_key = ? LIMIT 1")
+      .prepare("SELECT report_job_id FROM report_jobs WHERE bootstrap_key = ? ORDER BY updated_at_iso DESC LIMIT 1")
       .get(bootstrapKey);
 
     if (!row?.report_job_id) {
@@ -279,6 +316,17 @@ export function createReportStore({ dbFilePath }) {
         ORDER BY section_id`,
       )
       .all(reportJobId);
+    const sectionDraftVersionRows = db
+      .prepare(
+        `SELECT section_id, COUNT(*) AS version_count
+        FROM report_section_draft_versions
+        WHERE report_job_id = ?
+        GROUP BY section_id`,
+      )
+      .all(reportJobId);
+    const sectionDraftVersionCounts = new Map(
+      sectionDraftVersionRows.map((row) => [row.section_id, Number(row.version_count ?? 0)]),
+    );
     const layoutOverrideRows = db
       .prepare(
         `SELECT section_id, layout_json, updated_at_iso
@@ -353,7 +401,9 @@ export function createReportStore({ dbFilePath }) {
       exportPackage,
       reportClassification: classifyReportPackage(exportPackage),
       manualSupplement: Object.fromEntries(
-        manualSupplementRows.map((manualInput) => [manualInput.field_key, manualInput.field_value]),
+        manualSupplementRows
+          .filter((manualInput) => !manualInput.field_key.startsWith("__"))
+          .map((manualInput) => [manualInput.field_key, manualInput.field_value]),
       ),
       sectionDrafts: sectionDraftRows.map((sectionDraft) => ({
         sectionId: sectionDraft.section_id,
@@ -363,6 +413,7 @@ export function createReportStore({ dbFilePath }) {
         approved: Boolean(sectionDraft.approved),
         reviewRequired: Boolean(sectionDraft.review_required),
         updatedAtIso: sectionDraft.updated_at_iso,
+        previousVersionCount: sectionDraftVersionCounts.get(sectionDraft.section_id) ?? 0,
       })),
       layoutOverrides: layoutOverrideRows.map((layoutOverride) => ({
         sectionId: layoutOverride.section_id,
@@ -420,26 +471,35 @@ export function createReportStore({ dbFilePath }) {
     const nowIso = new Date().toISOString();
 
     inTransaction(() => {
-      db.prepare("DELETE FROM report_eval_runs WHERE report_job_id = ?").run(reportJobId);
-      db.prepare("DELETE FROM report_generation_runs WHERE report_job_id = ?").run(reportJobId);
-      db.prepare("DELETE FROM report_review_decisions WHERE report_job_id = ?").run(reportJobId);
-      db.prepare("DELETE FROM report_layout_overrides WHERE report_job_id = ?").run(reportJobId);
-      db.prepare("DELETE FROM report_section_drafts WHERE report_job_id = ?").run(reportJobId);
-      db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
-        "draft",
-        nowIso,
-        reportJobId,
-      );
+      clearDerivedReportState(reportJobId, nowIso);
     });
 
     return loadReportJobState(reportJobId);
   }
 
+  function clearDerivedReportState(reportJobId, nowIso) {
+    db.prepare("DELETE FROM report_eval_runs WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("DELETE FROM report_generation_runs WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("DELETE FROM report_review_decisions WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("DELETE FROM report_layout_overrides WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("DELETE FROM report_section_draft_versions WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("DELETE FROM report_section_drafts WHERE report_job_id = ?").run(reportJobId);
+    db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
+      "draft",
+      nowIso,
+      reportJobId,
+    );
+  }
+
   function saveSectionDraft(reportJobId, sectionId, draft) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const nowIso = new Date().toISOString();
+    const nextContent = String(draft.content ?? "");
 
     inTransaction(() => {
+      snapshotExistingSectionDraft(reportJobId, sectionId, nextContent, nowIso, "draft_save");
+
       db.prepare(
         `INSERT INTO report_section_drafts (
           report_job_id,
@@ -461,7 +521,7 @@ export function createReportStore({ dbFilePath }) {
       ).run(
         reportJobId,
         sectionId,
-        String(draft.content ?? ""),
+        nextContent,
         boolToInt(draft.generated),
         boolToInt(draft.edited),
         boolToInt(draft.approved),
@@ -479,8 +539,83 @@ export function createReportStore({ dbFilePath }) {
     return loadReportJobState(reportJobId);
   }
 
+  function restorePreviousSectionDraft(reportJobId, sectionId, { actorUserId } = {}) {
+    ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
+    ensureActorUserExists(actorUserId || getReportJobActorUserId(reportJobId));
+
+    const previousVersion = db
+      .prepare(
+        `SELECT
+          version_id,
+          content,
+          generated,
+          edited,
+          approved,
+          review_required
+        FROM report_section_draft_versions
+        WHERE report_job_id = ? AND section_id = ?
+        ORDER BY created_at_iso DESC, version_id DESC
+        LIMIT 1`,
+      )
+      .get(reportJobId, sectionId);
+
+    if (!previousVersion) {
+      throw new ApiError(
+        404,
+        `No previous generated output is available for ${sectionId}.`,
+        "section_draft_version_not_found",
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+
+    inTransaction(() => {
+      db.prepare("DELETE FROM report_section_draft_versions WHERE version_id = ?").run(previousVersion.version_id);
+      snapshotExistingSectionDraft(reportJobId, sectionId, previousVersion.content, nowIso, "rollback_replaced_draft");
+
+      db.prepare(
+        `INSERT INTO report_section_drafts (
+          report_job_id,
+          section_id,
+          content,
+          generated,
+          edited,
+          approved,
+          review_required,
+          updated_at_iso
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(report_job_id, section_id) DO UPDATE SET
+          content = excluded.content,
+          generated = excluded.generated,
+          edited = excluded.edited,
+          approved = excluded.approved,
+          review_required = excluded.review_required,
+          updated_at_iso = excluded.updated_at_iso`,
+      ).run(
+        reportJobId,
+        sectionId,
+        previousVersion.content,
+        boolToInt(previousVersion.generated),
+        1,
+        0,
+        1,
+        nowIso,
+      );
+
+      db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
+        "draft",
+        nowIso,
+        reportJobId,
+      );
+    });
+
+    return loadReportJobState(reportJobId);
+  }
+
   function saveLayoutOverride(reportJobId, sectionId, layoutMap) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const nowIso = new Date().toISOString();
 
     inTransaction(() => {
@@ -500,10 +635,12 @@ export function createReportStore({ dbFilePath }) {
 
   async function generateSection(reportJobId, sectionId, { actorUserId, userInstruction = "" } = {}) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const reportState = loadReportJobState(reportJobId);
     if (!reportState) {
-      throw new Error(`Unknown report job: ${reportJobId}`);
+      throw new ApiError(404, "Report job was not found.", "report_job_not_found");
     }
+    const actor = ensureActorUserExists(actorUserId || getReportJobActorUserId(reportJobId));
 
     const generation = await generateSectionDraft({
       reportState,
@@ -518,9 +655,10 @@ export function createReportStore({ dbFilePath }) {
       orchestration: generation.orchestration,
     });
     const nowIso = generation.generationRun.generatedAtIso;
-    const actor = actorUserId || getReportJobActorUserId(reportJobId);
 
     inTransaction(() => {
+      snapshotExistingSectionDraft(reportJobId, sectionId, generation.draft.content, nowIso, "section_generate");
+
       db.prepare(
         `INSERT INTO report_section_drafts (
           report_job_id,
@@ -650,6 +788,7 @@ export function createReportStore({ dbFilePath }) {
 
   function loadLatestEvalRun(reportJobId, sectionId) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const row = db
       .prepare(
         `SELECT eval_json
@@ -665,9 +804,10 @@ export function createReportStore({ dbFilePath }) {
 
   async function replyToSectionChat(reportJobId, sectionId, { userPrompt, conversationHistory = [] }) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const reportState = loadReportJobState(reportJobId);
     if (!reportState) {
-      throw new Error(`Unknown report job: ${reportJobId}`);
+      throw new ApiError(404, "Report job was not found.", "report_job_not_found");
     }
 
     return generateSectionAssistantReply({
@@ -680,8 +820,9 @@ export function createReportStore({ dbFilePath }) {
 
   function approveSection(reportJobId, sectionId, { actorUserId, note = "" } = {}) {
     ensureReportJobExists(reportJobId);
+    ensureKnownSection(sectionId);
     const nowIso = new Date().toISOString();
-    const actor = actorUserId || getReportJobActorUserId(reportJobId);
+    const actor = ensureActorUserExists(actorUserId || getReportJobActorUserId(reportJobId));
     const existingSectionDraft = db
       .prepare(
         `SELECT content, generated, edited
@@ -751,8 +892,28 @@ export function createReportStore({ dbFilePath }) {
   function ensureReportJobExists(reportJobId) {
     const row = db.prepare("SELECT report_job_id FROM report_jobs WHERE report_job_id = ?").get(reportJobId);
     if (!row?.report_job_id) {
-      throw new Error(`Unknown report job: ${reportJobId}`);
+      throw new ApiError(404, "Report job was not found.", "report_job_not_found");
     }
+  }
+
+  function ensureKnownSection(sectionId) {
+    const known = API_STANDARD_REPORT_TOC.some((section) => section.id === sectionId);
+    if (!known) {
+      throw new ApiError(404, "Report section was not found.", "report_section_not_found");
+    }
+  }
+
+  function ensureActorUserExists(actorUserId) {
+    if (!actorUserId || typeof actorUserId !== "string") {
+      throw new ApiError(400, "actorUserId is required.", "actor_user_required");
+    }
+
+    const row = db.prepare("SELECT user_id FROM platform_users WHERE user_id = ?").get(actorUserId);
+    if (!row?.user_id) {
+      throw new ApiError(400, "actorUserId does not match a known platform user.", "actor_user_not_found");
+    }
+
+    return actorUserId;
   }
 
   function getReportJobActorUserId(reportJobId) {
@@ -846,6 +1007,58 @@ export function createReportStore({ dbFilePath }) {
         ON CONFLICT(report_job_id, field_key) DO NOTHING`,
       ).run(reportJobId, fieldKey, String(fieldValue ?? ""), nowIso);
     }
+  }
+
+  function upsertInternalManualInput(reportJobId, fieldKey, fieldValue, nowIso) {
+    db.prepare(
+      `INSERT INTO report_manual_inputs (report_job_id, field_key, field_value, updated_at_iso)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(report_job_id, field_key) DO UPDATE SET
+        field_value = excluded.field_value,
+      updated_at_iso = excluded.updated_at_iso`,
+    ).run(reportJobId, fieldKey, String(fieldValue ?? ""), nowIso);
+  }
+
+  function snapshotExistingSectionDraft(reportJobId, sectionId, nextContent, nowIso, reasonCode) {
+    const currentDraft = db
+      .prepare(
+        `SELECT content, generated, edited, approved, review_required, updated_at_iso
+        FROM report_section_drafts
+        WHERE report_job_id = ? AND section_id = ?`,
+      )
+      .get(reportJobId, sectionId);
+
+    if (!currentDraft || currentDraft.content === nextContent) {
+      return;
+    }
+
+    db.prepare(
+      `INSERT INTO report_section_draft_versions (
+        version_id,
+        report_job_id,
+        section_id,
+        content,
+        generated,
+        edited,
+        approved,
+        review_required,
+        source_updated_at_iso,
+        reason_code,
+        created_at_iso
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      randomUUID(),
+      reportJobId,
+      sectionId,
+      currentDraft.content,
+      currentDraft.generated,
+      currentDraft.edited,
+      currentDraft.approved,
+      currentDraft.review_required,
+      currentDraft.updated_at_iso,
+      reasonCode,
+      nowIso,
+    );
   }
 
   function inTransaction(operation) {
@@ -953,6 +1166,23 @@ function ensureSchema(db) {
       PRIMARY KEY (report_job_id, section_id)
     );
 
+    CREATE TABLE IF NOT EXISTS report_section_draft_versions (
+      version_id TEXT PRIMARY KEY,
+      report_job_id TEXT NOT NULL REFERENCES report_jobs (report_job_id),
+      section_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      generated INTEGER NOT NULL,
+      edited INTEGER NOT NULL,
+      approved INTEGER NOT NULL,
+      review_required INTEGER NOT NULL,
+      source_updated_at_iso TEXT NOT NULL,
+      reason_code TEXT NOT NULL,
+      created_at_iso TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_report_section_draft_versions_section_created
+      ON report_section_draft_versions (report_job_id, section_id, created_at_iso DESC);
+
     CREATE TABLE IF NOT EXISTS report_layout_overrides (
       report_job_id TEXT NOT NULL REFERENCES report_jobs (report_job_id),
       section_id TEXT NOT NULL,
@@ -1037,6 +1267,27 @@ function buildDefaultManualSupplement(exportPackage, overrides = {}) {
   };
 }
 
+function buildPackageFingerprint(exportPackage) {
+  return createHash("sha256")
+    .update(stableStringify(exportPackage))
+    .digest("hex");
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
 function validateAndroidV2ProductExport(exportPackage) {
   const issues = [];
 
@@ -1044,12 +1295,16 @@ function validateAndroidV2ProductExport(exportPackage) {
     return ["Request body did not contain an export package object."];
   }
 
-  if (exportPackage.packageType !== "v2_product_export") {
-    issues.push(`packageType must be "v2_product_export", received "${exportPackage.packageType}".`);
+  if (exportPackage.packageType !== "v3_product_export") {
+    issues.push(`packageType must be "v3_product_export", received "${exportPackage.packageType}".`);
   }
 
-  if (exportPackage.schemaVersion !== 2) {
-    issues.push(`schemaVersion must be 2, received ${exportPackage.schemaVersion}.`);
+  if (exportPackage.schemaVersion !== 3) {
+    issues.push(`schemaVersion must be 3, received ${exportPackage.schemaVersion}.`);
+  }
+
+  if (!Array.isArray(exportPackage.voiceNotes)) {
+    issues.push("voiceNotes[] is required for report context routing.");
   }
 
   if (!exportPackage.inspectionId) {

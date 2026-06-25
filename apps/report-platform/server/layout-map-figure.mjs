@@ -53,11 +53,12 @@ export function getEffectiveLayoutMap(reportState, tocSection) {
   if (!surface || !reportState?.exportPackage) return null;
 
   const override = reportState.layoutOverrides?.find((item) => item.sectionId === tocSection.id)?.layoutMap;
+  const exportLayoutMap = buildLayoutMapFromExport(reportState, tocSection);
   if (override?.appMap?.surfaceType === surface) {
-    return normalizeLayoutMap(override);
+    return normalizeLayoutMap(mergeLayoutOverrideWithBaseline(exportLayoutMap, override));
   }
 
-  return buildLayoutMapFromExport(reportState, tocSection);
+  return exportLayoutMap;
 }
 
 function buildLayoutMapFromExport(reportState, tocSection) {
@@ -91,8 +92,18 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
     gridColumns,
     surface === "roof" ? "android:RoofSurfaceMap:circular_plate" : "android:FloorSurfaceMap:circular_plate",
   );
+  const customPlates =
+    surface === "roof"
+      ? buildCustomCircularPlateCells(
+          config.customCircularLayout,
+          "android:RoofSurfaceMap:custom_circular_plate",
+          gridRows,
+          gridColumns,
+        )
+      : [];
+  const effectivePlates = customPlates.length > 0 ? customPlates : plates;
   const markers = [
-    ...buildTargetFindingMarkers(exportPackage, targetKey, plates),
+    ...buildTargetFindingMarkers(exportPackage, targetKey, effectivePlates),
     ...buildTargetElementMarkers(exportPackage, targetKey),
   ];
 
@@ -101,11 +112,13 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
     title: tocSection.title,
     subtitle:
       surface === "roof"
-        ? `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`
-        : `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
+        ? customPlates.length > 0
+          ? `Roof map: V3 app custom circular plate layout, ${gridRows} rows, ${effectivePlates.length} visible plates`
+          : `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${effectivePlates.length} visible plates`
+        : `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${effectivePlates.length} visible plates`,
     surfaceLabel: surface === "roof" ? "Roof plate layout" : "Floor/bottom plate layout",
     markers,
-    plates,
+    plates: effectivePlates,
     gridRows,
     gridColumns,
     drawingBlock: buildDrawingBlock(reportState, tocSection, config),
@@ -184,6 +197,37 @@ function normalizeLayoutMap(layoutMap) {
     ...layoutMap,
     markers: (layoutMap.markers ?? []).map(clampMarker),
     plates: (layoutMap.plates ?? []).map(clampPlate),
+  };
+}
+
+function mergeLayoutOverrideWithBaseline(baselineLayoutMap, layoutOverride) {
+  if (!baselineLayoutMap) return layoutOverride;
+
+  const overrideMarkersById = new Map((layoutOverride.markers ?? []).map((marker) => [marker.id, marker]));
+
+  return {
+    ...baselineLayoutMap,
+    ...layoutOverride,
+    plates: Array.isArray(layoutOverride.plates) && layoutOverride.plates.length > 0
+      ? layoutOverride.plates
+      : baselineLayoutMap.plates,
+    markers: (baselineLayoutMap.markers ?? []).map((baselineMarker) => {
+      const overrideMarker = overrideMarkersById.get(baselineMarker.id);
+      return overrideMarker
+        ? {
+            ...baselineMarker,
+            ...overrideMarker,
+          }
+        : baselineMarker;
+    }),
+    drawingBlock: {
+      ...(baselineLayoutMap.drawingBlock ?? {}),
+      ...(layoutOverride.drawingBlock ?? {}),
+    },
+    appMap: {
+      ...(baselineLayoutMap.appMap ?? {}),
+      ...(layoutOverride.appMap ?? {}),
+    },
   };
 }
 
@@ -310,12 +354,20 @@ function buildTargetElementMarkers(exportPackage, targetKey) {
 
 function buildTargetFindingMarkers(exportPackage, targetKey, plates) {
   return exportPackage.findings
-    .filter((finding) => finding.targetKey === targetKey)
+    .filter((finding) => finding.targetKey === targetKey && !isElementLinkedFinding(finding))
     .map((finding, index) => buildSurfaceFindingMarker(finding, exportPackage.elements, plates, index));
 }
 
+function isElementLinkedFinding(finding) {
+  return getLinkedElementId(finding.linkedUtItemKey) != null;
+}
+
+function getLinkedElementId(linkedUtItemKey) {
+  return /:element:([^:]+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
+}
+
 function buildSurfaceFindingMarker(finding, elements, plates, index) {
-  const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+  const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
   const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
   if (linkedElement) {
     const position = coerceCircularMarkerPosition(linkedElement.normalizedX + 0.025, linkedElement.normalizedY + 0.025);
@@ -353,9 +405,9 @@ function buildSurfaceFindingMarker(finding, elements, plates, index) {
 
 function buildShellFindingMarkers(exportPackage, courseCount, laneCount) {
   return exportPackage.findings
-    .filter((finding) => finding.targetKey === "shell")
+    .filter((finding) => finding.targetKey === "shell" && !isElementLinkedFinding(finding))
     .map((finding, index) => {
-      const linkedElementId = /:element:([^:]+)$/i.exec(finding.linkedUtItemKey ?? "")?.[1];
+      const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
       const linkedElement = linkedElementId
         ? exportPackage.elements.find((element) => element.elementId === linkedElementId)
         : undefined;
@@ -458,6 +510,63 @@ function buildAndroidCircularPlateCells(rowCount, widestRowPlateCount, source) {
   return cells;
 }
 
+function buildCustomCircularPlateCells(customLayout, source, rowCount, widestRowPlateCount) {
+  const rows = parseCustomCircularRows(customLayout);
+  if (rows.length === 0) return [];
+
+  const generatedCells = buildAndroidCircularPlateCells(
+    rowCount ?? rows.length,
+    widestRowPlateCount ?? Math.max(...rows.map((row) => row.plates.length), 1),
+    "android:RoofSurfaceMap:circular_plate_baseline",
+  );
+  const generatedRows = groupPlatesByRow(generatedCells);
+  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows);
+  const cells = [];
+
+  rows.forEach((row, rowIndex) => {
+    const rowNumber = rowIndex + 1;
+    const generatedRowCells = (generatedRows.get(rowNumber) ?? []).sort((a, b) => a.x - b.x);
+    const rowLeft = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.x)) : 0.08;
+    const rowRight =
+      generatedRowCells.length > 0
+        ? Math.max(...generatedRowCells.map((plate) => plate.x + plate.width))
+        : 0.92;
+    const topNorm = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.y)) : 0.08;
+    const bottomNorm =
+      generatedRowCells.length > 0
+        ? Math.max(...generatedRowCells.map((plate) => plate.y + plate.height))
+        : 0.92;
+    const rowWidth = Math.max(rowRight - rowLeft, 0.06);
+    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.2), 0), 1);
+    const nominalPlateWidth = rowWidth / Math.max(row.plates.length, 1);
+    const maxShift = clamp(nominalPlateWidth * 0.65, 0.012, 0.08);
+    const labelByPlateIndex = labelsByRowAndPlate.get(rowIndex) ?? new Map();
+    let x = rowLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
+
+    row.plates.forEach((plate, position) => {
+      const width = rowWidth * (Math.max(plate.widthWeight, 0.2) / weightSum);
+      const label = labelByPlateIndex.get(position) ?? `${rowNumber}.${position + 1}`;
+
+      cells.push(
+        clampPlate({
+          id: label,
+          label,
+          row: row.rowNumber,
+          column: position + 1,
+          x,
+          y: topNorm,
+          width,
+          height: bottomNorm - topNorm,
+          source,
+        }),
+      );
+      x += width;
+    });
+  });
+
+  return cells;
+}
+
 function buildAndroidShellPlateSegments(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart) {
   const rows = Math.max(Math.floor(courseCount), 1);
   const plateCount = Math.max(Math.floor(platesPerCourse), 1);
@@ -518,6 +627,105 @@ function shellOffsetFraction(courseNo, offsetMode, offsetStartRow, thirdOffsetSt
   return 0;
 }
 
+function groupPlatesByRow(plates) {
+  const grouped = new Map();
+  for (const plate of plates) {
+    grouped.set(plate.row, [...(grouped.get(plate.row) ?? []), plate]);
+  }
+  return grouped;
+}
+
+function buildCustomCircularPlateRefs(rows) {
+  const labelsByRowAndPlate = new Map();
+  let roofCounter = 1;
+
+  rows.forEach((row, rowIndex) => {
+    const plateGroups = groupCustomPlatesBySplitKey(row.plates);
+    const groupCount = plateGroups.length;
+    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) => {
+      const offset = row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex;
+      return roofCounter + offset;
+    });
+    const rowLabelsByPlate = new Map();
+
+    plateGroups.forEach((group, groupIndex) => {
+      const base = rowLabels[groupIndex].toString();
+      group.forEach((plateIndex) => {
+        const plate = row.plates[plateIndex];
+        const suffix = plate.splitGroupKey ? splitSuffix(plate.splitPartIndex ?? 0) : "";
+        rowLabelsByPlate.set(plateIndex, `${base}${suffix}`);
+      });
+    });
+
+    labelsByRowAndPlate.set(rowIndex, rowLabelsByPlate);
+    roofCounter += groupCount;
+  });
+
+  return labelsByRowAndPlate;
+}
+
+function groupCustomPlatesBySplitKey(plates) {
+  const groups = [];
+  let plateIndex = 0;
+
+  while (plateIndex < plates.length) {
+    const splitKey = plates[plateIndex].splitGroupKey;
+    if (!splitKey) {
+      groups.push([plateIndex]);
+      plateIndex += 1;
+      continue;
+    }
+
+    const groupStart = plateIndex;
+    let groupEnd = plateIndex;
+    while (groupEnd + 1 < plates.length && plates[groupEnd + 1].splitGroupKey === splitKey) {
+      groupEnd += 1;
+    }
+    groups.push(Array.from({ length: groupEnd - groupStart + 1 }, (_, index) => groupStart + index));
+    plateIndex = groupEnd + 1;
+  }
+
+  return groups;
+}
+
+function splitSuffix(index) {
+  return String.fromCharCode("a".charCodeAt(0) + Math.max(Math.floor(index), 0));
+}
+
+function parseCustomCircularRows(customLayout) {
+  if (!customLayout || typeof customLayout !== "object" || !Array.isArray(customLayout.rows)) return [];
+
+  return customLayout.rows
+    .map((row, index) => {
+      if (!row || typeof row !== "object" || !Array.isArray(row.plates)) return null;
+      const plates = row.plates
+        .map((plate) => {
+          const widthWeight =
+            plate && typeof plate === "object" && Number.isFinite(plate.widthWeight) && plate.widthWeight > 0
+              ? plate.widthWeight
+              : null;
+          return widthWeight
+            ? {
+                widthWeight,
+                splitGroupKey: typeof plate.splitGroupKey === "string" ? plate.splitGroupKey : null,
+                splitPartIndex: Number.isFinite(plate.splitPartIndex) ? Math.floor(plate.splitPartIndex) : null,
+              }
+            : null;
+        })
+        .filter(Boolean);
+
+      if (plates.length === 0) return null;
+
+      return {
+        rowNumber: Number.isFinite(row.rowNumber) && row.rowNumber > 0 ? row.rowNumber : index + 1,
+        shiftRatio: clamp(Number.isFinite(row.shiftRatio) ? row.shiftRatio : 0, -0.4, 0.4),
+        plates,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.rowNumber - b.rowNumber);
+}
+
 function shellRegionMarkerPosition(laneId, course, laneCount, courseCount) {
   const laneMatch = /^L(\d+)$/i.exec(laneId ?? "");
   const laneNumber = laneMatch ? Number(laneMatch[1]) : null;
@@ -574,7 +782,7 @@ function clampMarker(marker) {
 
 function coerceCircularMarkerPosition(x, y) {
   const center = 0.5;
-  const controlledRadius = 0.395;
+  const controlledRadius = 0.42;
   const dx = x - center;
   const dy = y - center;
   const distance = Math.sqrt(dx * dx + dy * dy);
