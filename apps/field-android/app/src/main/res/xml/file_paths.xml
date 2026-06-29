@@ -6,4 +6,7 @@
     <files-path
         name="v2_findings"
         path="v2-findings/" />
+    <files-path
+        name="v3_findings"
+        path="v3-findings/" />
 </paths>
