@@ -13,6 +13,7 @@ import ai.laiq.tankinspection.v3product.model.ProductChecklistRating
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlate
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateRow
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularRowGroup
 import ai.laiq.tankinspection.v3product.model.ProductFindingPhoto
 import ai.laiq.tankinspection.v3product.model.ProductFindingRecord
 import ai.laiq.tankinspection.v3product.model.ProductFindingState
@@ -652,12 +653,19 @@ object ProductDraftJsonCodec {
     private fun ProductCustomCircularPlateLayout.toJson(): JSONObject =
         JSONObject()
             .put("annularRotationDeg", annularRotationDeg)
+            .put("rowGroups", JSONArray().apply { rowGroups.forEach { group -> put(group.toJson()) } })
             .put("rows", JSONArray().apply { rows.forEach { row -> put(row.toJson()) } })
+
+    private fun ProductCustomCircularRowGroup.toJson(): JSONObject =
+        JSONObject()
+            .put("groupId", groupId)
+            .put("rowNumbers", JSONArray().apply { rowNumbers.sorted().forEach { rowNumber -> put(rowNumber) } })
 
     private fun ProductCustomCircularPlateRow.toJson(): JSONObject =
         JSONObject()
             .put("rowNumber", rowNumber)
             .put("shiftRatio", shiftRatio)
+            .put("heightWeight", heightWeight)
             .put("plates", JSONArray().apply { plates.forEach { plate -> put(plate.toJson()) } })
 
     private fun ProductCustomCircularPlate.toJson(): JSONObject =
@@ -666,6 +674,7 @@ object ProductDraftJsonCodec {
             .putNullable("splitGroupKey", splitGroupKey)
             .put("splitPartIndex", splitPartIndex)
             .put("splitPartCount", splitPartCount)
+            .putNullable("verticalMergeGroupKey", verticalMergeGroupKey)
 
     private fun JSONObject.optCustomCircularLayoutMap(
         key: String,
@@ -684,6 +693,15 @@ object ProductDraftJsonCodec {
     private fun JSONObject.toCustomCircularPlateLayout(): ProductCustomCircularPlateLayout =
         ProductCustomCircularPlateLayout(
             annularRotationDeg = optDouble("annularRotationDeg", 0.0).toFloat(),
+            rowGroups = optJSONArray("rowGroups")?.let { groups ->
+                buildList {
+                    repeat(groups.length()) { index ->
+                        groups.optJSONObject(index)?.toCustomCircularRowGroup()?.let { group ->
+                            add(group)
+                        }
+                    }
+                }
+            }.orEmpty(),
             rows = optJSONArray("rows")?.let { rows ->
                 buildList {
                     repeat(rows.length()) { index ->
@@ -695,10 +713,24 @@ object ProductDraftJsonCodec {
             }.orEmpty(),
         )
 
+    private fun JSONObject.toCustomCircularRowGroup(): ProductCustomCircularRowGroup =
+        ProductCustomCircularRowGroup(
+            groupId = optString("groupId", ""),
+            rowNumbers = optJSONArray("rowNumbers")?.let { rowNumbers ->
+                buildSet {
+                    repeat(rowNumbers.length()) { index ->
+                        val rowNumber = rowNumbers.optInt(index, 0)
+                        if (rowNumber > 0) add(rowNumber)
+                    }
+                }
+            }.orEmpty(),
+        )
+
     private fun JSONObject.toCustomCircularPlateRow(): ProductCustomCircularPlateRow =
         ProductCustomCircularPlateRow(
             rowNumber = optInt("rowNumber", 1),
             shiftRatio = optDouble("shiftRatio", 0.0).toFloat(),
+            heightWeight = optDouble("heightWeight", 1.0).toFloat(),
             plates = optJSONArray("plates")?.let { plates ->
                 buildList {
                     repeat(plates.length()) { index ->
@@ -716,6 +748,7 @@ object ProductDraftJsonCodec {
             splitGroupKey = optNullableString("splitGroupKey"),
             splitPartIndex = optInt("splitPartIndex", 0),
             splitPartCount = optInt("splitPartCount", 1),
+            verticalMergeGroupKey = optNullableString("verticalMergeGroupKey"),
         )
 
     private fun JSONObject.putNullable(key: String, value: Any?): JSONObject =

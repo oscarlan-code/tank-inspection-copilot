@@ -14,6 +14,7 @@ import ai.laiq.tankinspection.presentation.roofPolarToCanvasPoint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -466,6 +467,7 @@ fun ShellSurfaceMap(
                                                     .padding(horizontal = 2.dp, vertical = 1.dp),
                                                 color = when {
                                                     fillActiveCell && isActive && cellMarkers.isEmpty() -> LaiqColors.BrandRed
+                                                    hasOverlay -> LaiqColors.AccentOrange.copy(alpha = 0.18f)
                                                     isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
                                                     else -> Color.White
                                                 },
@@ -1204,6 +1206,7 @@ fun RoofSurfaceMap(
 	                            color = when {
 	                                    emphasizeUtHighlights && isActive -> LaiqColors.BrandRed.copy(alpha = 0.22f)
 	                                    emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.34f)
+	                                    hasOverlay -> LaiqColors.AccentOrange.copy(alpha = 0.18f)
 	                                    isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
 	                                    else -> Color.White
 	                                },
@@ -1234,6 +1237,25 @@ fun RoofSurfaceMap(
                                                 .background(LaiqColors.AccentOrange, CircleShape),
                                         )
                                     }
+                                }
+                            }
+                        }
+                        if (enablePlateTapSelection) {
+                            displayPlateCells.forEach { cell ->
+                                val cellWidth = mapSize * (cell.rightNorm - cell.leftNorm)
+                                val cellHeight = mapSize * (cell.bottomNorm - cell.topNorm)
+                                val needsTapAssist = cellWidth < 36.dp || cellHeight < 28.dp
+                                if (needsTapAssist) {
+                                    val tapSize = 34.dp
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(
+                                                x = mapSize * cell.xNorm - tapSize / 2,
+                                                y = mapSize * cell.yNorm - tapSize / 2,
+                                            )
+                                            .size(tapSize)
+                                            .clickable { onSelectPlate(cell.plateId) },
+                                    )
                                 }
                             }
                         }
@@ -1274,6 +1296,13 @@ fun RoofSurfaceMap(
                                 .offset(
                                     x = mapSize * cell.labelXNorm - labelBoxWidth / 2,
                                     y = mapSize * cell.labelYNorm - labelBoxHeight / 2,
+                                )
+                                .then(
+                                    if (enablePlateTapSelection) {
+                                        Modifier.clickable { onSelectPlate(cell.plateId) }
+                                    } else {
+                                        Modifier
+                                    },
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -1348,6 +1377,7 @@ fun RoofSurfaceMap(
 	                            color = when {
 	                                emphasizeUtHighlights && cell.plateId == activePlateId -> LaiqColors.BrandRed.copy(alpha = 0.16f)
 	                                emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.16f)
+	                                hasOverlay -> LaiqColors.AccentOrange.copy(alpha = 0.18f)
 	                                isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
 	                                else -> Color.White
 	                            },
@@ -1419,6 +1449,7 @@ fun RoofSurfaceMap(
                         color = when {
 	                            emphasizeUtHighlights && cell.plateId == activePlateId -> LaiqColors.BrandRed.copy(alpha = 0.18f)
 	                            emphasizeUtHighlights && isSaved -> completedUtColor.copy(alpha = 0.20f)
+	                            hasOverlay -> LaiqColors.AccentOrange.copy(alpha = 0.18f)
 	                            isSaved -> LaiqColors.BrandTeal.copy(alpha = 0.12f)
 	                            else -> Color.White
 	                        },

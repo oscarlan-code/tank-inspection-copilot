@@ -255,11 +255,18 @@ data class ProductElementPlacementState(
 data class ProductCustomCircularPlateLayout(
     val rows: List<ProductCustomCircularPlateRow> = emptyList(),
     val annularRotationDeg: Float = 0f,
+    val rowGroups: List<ProductCustomCircularRowGroup> = emptyList(),
+)
+
+data class ProductCustomCircularRowGroup(
+    val groupId: String,
+    val rowNumbers: Set<Int>,
 )
 
 data class ProductCustomCircularPlateRow(
     val rowNumber: Int,
     val shiftRatio: Float = 0f,
+    val heightWeight: Float = 1f,
     val plates: List<ProductCustomCircularPlate> = emptyList(),
 )
 
@@ -268,6 +275,7 @@ data class ProductCustomCircularPlate(
     val splitGroupKey: String? = null,
     val splitPartIndex: Int = 0,
     val splitPartCount: Int = 1,
+    val verticalMergeGroupKey: String? = null,
 )
 
 data class ProductLayoutMapSetup(

@@ -12,13 +12,23 @@ import ai.laiq.tankinspection.presentation.v3product.common.ProductCollapsibleSe
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBar
 import ai.laiq.tankinspection.presentation.v3product.common.ProductStickyActionBarHeight
 import ai.laiq.tankinspection.presentation.components.RoofSurfaceMap
+import ai.laiq.tankinspection.presentation.v3product.common.canAdjustAdjacentPlateBoundary
+import ai.laiq.tankinspection.presentation.v3product.common.canMergePlateHorizontally
+import ai.laiq.tankinspection.presentation.v3product.common.crossRowMergeTarget
+import ai.laiq.tankinspection.presentation.v3product.common.displayPlateLabelFor
 import ai.laiq.tankinspection.presentation.v3product.common.generatedProductCircularPlateLayout
 import ai.laiq.tankinspection.presentation.v3product.common.mergePlate
+import ai.laiq.tankinspection.presentation.v3product.common.mergePlateAcrossRows
 import ai.laiq.tankinspection.presentation.v3product.common.normalizedFor
 import ai.laiq.tankinspection.presentation.v3product.common.plateRefs
+import ai.laiq.tankinspection.presentation.v3product.common.rowGroupFor
+import ai.laiq.tankinspection.presentation.v3product.common.rowHeightValueRange
 import ai.laiq.tankinspection.presentation.v3product.common.splitPlate
 import ai.laiq.tankinspection.presentation.v3product.common.toRoofPlateCells
+import ai.laiq.tankinspection.presentation.v3product.common.verticalMergeGroupLabels
+import ai.laiq.tankinspection.presentation.v3product.common.withAdjacentPlateBoundaryBias
 import ai.laiq.tankinspection.presentation.v3product.common.withAnnularRotation
+import ai.laiq.tankinspection.presentation.v3product.common.withRowHeight
 import ai.laiq.tankinspection.presentation.v3product.common.withRowShift
 import ai.laiq.tankinspection.v3product.model.ProductFloorTemplate
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
@@ -58,6 +68,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -1052,12 +1064,26 @@ private fun RoofLayoutPreviewPanel(
                             ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount),
                         selectedPlateId = selectedPlateId,
                         hasAnnularRing = state.roofHasAnnularRing,
+                        rowCount = rowCount,
+                        widestRowPlateCount = widestRowPlateCount,
                         onSelectedPlateChange = { selectedPlateId = it },
                         onLayoutPreviewChange = { layout ->
                             previewCircularLayoutChange(layout)
                         },
                         onLayoutChange = { layout, changesPlateIdentity, undoCheckpoint ->
                             applyCircularLayoutChange(layout, changesPlateIdentity, undoCheckpoint)
+                        },
+                        onRegenerateBase = { rows, widest ->
+                            selectedPlateId = null
+                            editHistory.clear()
+                            onStateChange(
+                                state.copy(
+                                    roofRowCount = rows.toString(),
+                                    roofWidestRowPlateCount = widest.toString(),
+                                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget +
+                                        (target to generatedProductCircularPlateLayout(rows, widest)),
+                                ).withoutTargetApproval(target),
+                            )
                         },
                         canUndo = editHistory.isNotEmpty(),
                         onUndo = { undoCircularLayoutChange() },
@@ -1117,6 +1143,11 @@ private fun RoofLayoutPreviewPanel(
                             ringCount = ringCount,
                             sectorCount = sectorCount,
                             activePlateId = selectedPlateId,
+                            overlayPlateIds = if (editMode) {
+                                currentCircularLayout().verticalMergeGroupLabels(target, selectedPlateId)
+                            } else {
+                                emptySet()
+                            },
                             centerFeatureCount = if (state.roofHasCenterOpening) {
                                 1
                             } else {
@@ -1139,15 +1170,18 @@ private fun RoofLayoutPreviewPanel(
                             mapTitle = "Roof Layout Map",
                             showInteractionHint = !editMode,
                             maxMapSize = if (editMode) 720.dp else 320.dp,
-                            onSelectPlate = { selectedPlateId = it },
+                            onSelectPlate = { plateId ->
+                                selectedPlateId = plateId
+                            },
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
             }
             if (!editMode) selectedPlateId?.let { plateId ->
+                val displayLabel = currentCircularLayout().displayPlateLabelFor(target, plateId) ?: plateId
                 SelectedPlateChip(
-                    text = "Selected plate: $plateId",
+                    text = "Selected plate: $displayLabel",
                     modifier = Modifier.align(Alignment.BottomStart),
                 )
             }
@@ -1270,12 +1304,26 @@ private fun FloorLayoutPreviewPanel(
                             ?: generatedProductCircularPlateLayout(rowCount, widestRowPlateCount),
                         selectedPlateId = selectedPlateId,
                         hasAnnularRing = hasAnnularRing,
+                        rowCount = rowCount,
+                        widestRowPlateCount = widestRowPlateCount,
                         onSelectedPlateChange = { selectedPlateId = it },
                         onLayoutPreviewChange = { layout ->
                             previewCircularLayoutChange(layout)
                         },
                         onLayoutChange = { layout, changesPlateIdentity, undoCheckpoint ->
                             applyCircularLayoutChange(layout, changesPlateIdentity, undoCheckpoint)
+                        },
+                        onRegenerateBase = { rows, widest ->
+                            selectedPlateId = null
+                            editHistory.clear()
+                            onStateChange(
+                                state.copy(
+                                    floorPatternCountX = rows.toString(),
+                                    floorPatternCountY = widest.toString(),
+                                    customCircularLayoutsByTarget = state.customCircularLayoutsByTarget +
+                                        (target to generatedProductCircularPlateLayout(rows, widest)),
+                                ).withoutTargetApproval(target),
+                            )
                         },
                         canUndo = editHistory.isNotEmpty(),
                         onUndo = { undoCircularLayoutChange() },
@@ -1330,6 +1378,11 @@ private fun FloorLayoutPreviewPanel(
                             ringCount = 0,
                             sectorCount = 0,
                             activePlateId = selectedPlateId,
+                            overlayPlateIds = if (editMode) {
+                                currentCircularLayout().verticalMergeGroupLabels(target, selectedPlateId)
+                            } else {
+                                emptySet()
+                            },
                             hasAnnularRing = hasAnnularRing,
                             annularSectionCount = if (hasAnnularRing) annularSectionCount else 0,
                             annularReferenceAzimuthDeg = customLayout?.annularRotationDeg?.toDouble() ?: 0.0,
@@ -1341,15 +1394,18 @@ private fun FloorLayoutPreviewPanel(
                             mapTitle = "Floor Layout Map",
                             showInteractionHint = !editMode,
                             maxMapSize = if (editMode) 720.dp else 320.dp,
-                            onSelectPlate = { selectedPlateId = it },
+                            onSelectPlate = { plateId ->
+                                selectedPlateId = plateId
+                            },
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
             }
             if (!editMode) selectedPlateId?.let { plateId ->
+                val displayLabel = currentCircularLayout().displayPlateLabelFor(target, plateId) ?: plateId
                 SelectedPlateChip(
-                    text = "Selected plate: $plateId",
+                    text = "Selected plate: $displayLabel",
                     modifier = Modifier.align(Alignment.BottomStart),
                 )
             }
@@ -1363,9 +1419,12 @@ private fun CustomCircularLayoutEditCard(
     layout: ProductCustomCircularPlateLayout,
     selectedPlateId: String?,
     hasAnnularRing: Boolean,
+    rowCount: Int,
+    widestRowPlateCount: Int,
     onSelectedPlateChange: (String?) -> Unit,
     onLayoutPreviewChange: (ProductCustomCircularPlateLayout) -> Unit,
     onLayoutChange: (ProductCustomCircularPlateLayout, Boolean, ProductCustomCircularPlateLayout?) -> Unit,
+    onRegenerateBase: (Int, Int) -> Unit,
     canUndo: Boolean,
     onUndo: () -> Unit,
     onDone: () -> Unit,
@@ -1379,6 +1438,18 @@ private fun CustomCircularLayoutEditCard(
     var rowShiftLatestLayout by remember(selectedRef?.rowNumber) {
         mutableStateOf<ProductCustomCircularPlateLayout?>(null)
     }
+    var rowHeightUndoStart by remember(selectedRef?.rowNumber) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var rowHeightLatestLayout by remember(selectedRef?.rowNumber) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var seamUndoStart by remember(selectedRef?.label) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
+    var seamLatestLayout by remember(selectedRef?.label) {
+        mutableStateOf<ProductCustomCircularPlateLayout?>(null)
+    }
     var annularSpinUndoStart by remember(hasAnnularRing) {
         mutableStateOf<ProductCustomCircularPlateLayout?>(null)
     }
@@ -1388,15 +1459,37 @@ private fun CustomCircularLayoutEditCard(
     val selectedRow = selectedRef?.let { ref ->
         layout.rows.firstOrNull { row -> row.rowNumber == ref.rowNumber }
     }
+    val selectedRowPlateCount = selectedRef?.rowIndex?.let { rowIndex ->
+        layout.rows.getOrNull(rowIndex)?.plates?.size
+    } ?: 0
+    val canMergeLeft = selectedPlateId?.let { plateId ->
+        layout.canMergePlateHorizontally(target, plateId, -1)
+    } == true
+    val canMergeRight = selectedPlateId?.let { plateId ->
+        layout.canMergePlateHorizontally(target, plateId, 1)
+    } == true
+    val canMergeUp = selectedPlateId?.let { plateId -> layout.crossRowMergeTarget(target, plateId, -1) != null } == true
+    val canMergeDown = selectedPlateId?.let { plateId -> layout.crossRowMergeTarget(target, plateId, 1) != null } == true
+    val selectedTitle = when {
+        selectedPlateId != null && selectedRow != null -> buildString {
+            val displayLabel = layout.displayPlateLabelFor(target, selectedPlateId) ?: selectedPlateId
+            append("Plate $displayLabel | Row ${selectedRow.rowNumber} | $selectedRowPlateCount plates")
+        }
+        else -> "Select a plate"
+    }
+    val editPanelHeight = if (hasAnnularRing) 330.dp else 300.dp
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = LaiqColors.SurfaceTint,
         border = BorderStroke(1.dp, LaiqColors.BrandTeal.copy(alpha = 0.28f)),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(editPanelHeight)
+            .clipToBounds(),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1404,7 +1497,7 @@ private fun CustomCircularLayoutEditCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = selectedPlateId?.let { "Plate $it" } ?: "Select plate",
+                    text = selectedTitle,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (selectedPlateId == null) LaiqColors.MutedText else LaiqColors.BrandTeal,
@@ -1412,12 +1505,39 @@ private fun CustomCircularLayoutEditCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onUndo, enabled = canUndo) {
-                    Text("Undo")
+                TextButton(
+                    onClick = onUndo,
+                    enabled = canUndo,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                    modifier = Modifier.height(28.dp),
+                ) {
+                    Text("Undo", style = MaterialTheme.typography.labelSmall)
                 }
-                TextButton(onClick = onDone) {
-                    Text("Confirm")
+                TextButton(
+                    onClick = onDone,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                    modifier = Modifier.height(28.dp),
+                ) {
+                    Text("Confirm", style = MaterialTheme.typography.labelSmall)
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                CompactCountDropdown(
+                    label = "Rows",
+                    value = rowCount,
+                    min = 1,
+                    max = MAX_LAYOUT_ROWS,
+                    onChange = { rows -> onRegenerateBase(rows, widestRowPlateCount) },
+                    modifier = Modifier.weight(1f),
+                )
+                CompactCountDropdown(
+                    label = "Widest columns",
+                    value = widestRowPlateCount,
+                    min = 4,
+                    max = MAX_WIDEST_ROW_PLATES,
+                    onChange = { widest -> onRegenerateBase(rowCount, widest) },
+                    modifier = Modifier.weight(1f),
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
@@ -1429,9 +1549,12 @@ private fun CustomCircularLayoutEditCard(
                             onLayoutChange(updatedLayout, true, null)
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
                 ) {
-                    Text("Split x2")
+                    Text("Split 2", style = MaterialTheme.typography.labelSmall)
                 }
                 OutlinedButton(
                     enabled = selectedPlateId != null,
@@ -1442,14 +1565,17 @@ private fun CustomCircularLayoutEditCard(
                             onLayoutChange(updatedLayout, true, null)
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
                 ) {
-                    Text("Split x3")
+                    Text("Split 3", style = MaterialTheme.typography.labelSmall)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
-                    enabled = selectedRef?.plateIndex?.let { it > 0 } == true,
+                    enabled = canMergeLeft,
                     onClick = {
                         selectedPlateId?.let { plateId ->
                             val (updatedLayout, updatedSelection) = layout.mergePlateAndSelect(target, plateId, -1)
@@ -1457,14 +1583,15 @@ private fun CustomCircularLayoutEditCard(
                             onLayoutChange(updatedLayout, true, null)
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
                 ) {
-                    Text("Merge left")
+                    Text("Merge L", style = MaterialTheme.typography.labelSmall)
                 }
                 OutlinedButton(
-                    enabled = selectedRef?.let { ref ->
-                        ref.plateIndex < (layout.rows.getOrNull(ref.rowIndex)?.plates?.lastIndex ?: -1)
-                    } == true,
+                    enabled = canMergeRight,
                     onClick = {
                         selectedPlateId?.let { plateId ->
                             val (updatedLayout, updatedSelection) = layout.mergePlateAndSelect(target, plateId, 1)
@@ -1472,82 +1599,298 @@ private fun CustomCircularLayoutEditCard(
                             onLayoutChange(updatedLayout, true, null)
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
                 ) {
-                    Text("Merge right")
+                    Text("Merge R", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    enabled = canMergeUp,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val existingVerticalKeys = layout.verticalMergeGroupKeys()
+                            val sourceRowNumber = selectedRef?.rowNumber
+                            val updatedLayout = layout.mergePlateAcrossRows(target, plateId, -1)
+                            if (updatedLayout != layout) {
+                                onSelectedPlateChange(
+                                    sourceRowNumber?.let { rowNumber ->
+                                        updatedLayout.firstNewVerticalMergeLabelInRow(
+                                            target = target,
+                                            rowNumber = rowNumber,
+                                            existingKeys = existingVerticalKeys,
+                                        )
+                                    } ?: plateId,
+                                )
+                                onLayoutChange(updatedLayout, true, null)
+                            }
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
+                ) {
+                    Text("Merge Up", style = MaterialTheme.typography.labelSmall)
+                }
+                OutlinedButton(
+                    enabled = canMergeDown,
+                    onClick = {
+                        selectedPlateId?.let { plateId ->
+                            val existingVerticalKeys = layout.verticalMergeGroupKeys()
+                            val sourceRowNumber = selectedRef?.rowNumber
+                            val updatedLayout = layout.mergePlateAcrossRows(target, plateId, 1)
+                            if (updatedLayout != layout) {
+                                onSelectedPlateChange(
+                                    sourceRowNumber?.let { rowNumber ->
+                                        updatedLayout.firstNewVerticalMergeLabelInRow(
+                                            target = target,
+                                            rowNumber = rowNumber,
+                                            existingKeys = existingVerticalKeys,
+                                        )
+                                    } ?: plateId,
+                                )
+                                onLayoutChange(updatedLayout, true, null)
+                            }
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
+                ) {
+                    Text("Merge Down", style = MaterialTheme.typography.labelSmall)
                 }
             }
             if (selectedRef != null && selectedRow != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Row ${selectedRow.rowNumber}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = LaiqColors.BodyText,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(0.25f),
-                    )
-                    Slider(
-                        value = selectedRow.shiftRatio.coerceIn(-1f, 1f),
-                        onValueChange = { value ->
-                            if (rowShiftUndoStart == null) rowShiftUndoStart = layout
-                            val updatedLayout = layout.withRowShift(selectedRow.rowNumber, value)
-                            rowShiftLatestLayout = updatedLayout
-                            onLayoutPreviewChange(updatedLayout)
-                        },
-                        onValueChangeFinished = {
-                            val undoStart = rowShiftUndoStart
-                            val latestLayout = rowShiftLatestLayout
-                            if (undoStart != null && latestLayout != null) {
-                                onLayoutChange(latestLayout, false, undoStart)
-                            }
-                            rowShiftUndoStart = null
-                            rowShiftLatestLayout = null
-                        },
-                        valueRange = -1f..1f,
-                        modifier = Modifier.weight(0.75f),
-                    )
-                }
+                val plateId = selectedPlateId
+                val rowHeightRange = layout.rowHeightValueRange(selectedRow.rowNumber)
+                val leftSeamValue = layout.adjacentPlateBoundaryBias(target, plateId, -1)
+                CompactSliderRow(
+                    label = "Left seam",
+                    value = leftSeamValue,
+                    valueRange = -1f..1f,
+                    enabled = layout.canAdjustAdjacentPlateBoundary(target, plateId, -1),
+                    onValueChange = { value ->
+                        if (seamUndoStart == null) seamUndoStart = layout
+                        val updatedLayout = layout.withAdjacentPlateBoundaryBias(target, plateId, -1, value)
+                        seamLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = seamUndoStart
+                        val latestLayout = seamLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        seamUndoStart = null
+                        seamLatestLayout = null
+                    },
+                )
+                val rightSeamValue = layout.adjacentPlateBoundaryBias(target, plateId, 1)
+                CompactSliderRow(
+                    label = "Right seam",
+                    value = rightSeamValue,
+                    valueRange = -1f..1f,
+                    enabled = layout.canAdjustAdjacentPlateBoundary(target, plateId, 1),
+                    onValueChange = { value ->
+                        if (seamUndoStart == null) seamUndoStart = layout
+                        val updatedLayout = layout.withAdjacentPlateBoundaryBias(target, plateId, 1, value)
+                        seamLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = seamUndoStart
+                        val latestLayout = seamLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        seamUndoStart = null
+                        seamLatestLayout = null
+                    },
+                )
+                CompactSliderRow(
+                    label = "Row height",
+                    value = selectedRow.heightWeight.coerceIn(rowHeightRange.start, rowHeightRange.endInclusive),
+                    valueRange = rowHeightRange,
+                    valueText = "${"%.2f".format(selectedRow.heightWeight.coerceIn(rowHeightRange.start, rowHeightRange.endInclusive))}x",
+                    enabled = true,
+                    onValueChange = { value ->
+                        if (rowHeightUndoStart == null) rowHeightUndoStart = layout
+                        val updatedLayout = layout.withRowHeight(selectedRow.rowNumber, value)
+                        rowHeightLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = rowHeightUndoStart
+                        val latestLayout = rowHeightLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        rowHeightUndoStart = null
+                        rowHeightLatestLayout = null
+                    },
+                )
+                CompactSliderRow(
+                    label = "Row shift",
+                    value = selectedRow.shiftRatio.coerceIn(-1f, 1f),
+                    valueRange = -1f..1f,
+                    enabled = true,
+                    onValueChange = { value ->
+                        if (rowShiftUndoStart == null) rowShiftUndoStart = layout
+                        val updatedLayout = layout.withRowShift(selectedRow.rowNumber, value)
+                        rowShiftLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = rowShiftUndoStart
+                        val latestLayout = rowShiftLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        rowShiftUndoStart = null
+                        rowShiftLatestLayout = null
+                    },
+                )
             }
             if (hasAnnularRing) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "AR ${layout.annularRotationDeg.toInt()} deg",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = LaiqColors.BodyText,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(0.25f),
-                    )
-                    Slider(
-                        value = layout.annularRotationDeg.coerceIn(-180f, 180f),
-                        onValueChange = { value ->
-                            if (annularSpinUndoStart == null) annularSpinUndoStart = layout
-                            val updatedLayout = layout.withAnnularRotation(value)
-                            annularSpinLatestLayout = updatedLayout
-                            onLayoutPreviewChange(updatedLayout)
-                        },
-                        onValueChangeFinished = {
-                            val undoStart = annularSpinUndoStart
-                            val latestLayout = annularSpinLatestLayout
-                            if (undoStart != null && latestLayout != null) {
-                                onLayoutChange(latestLayout, false, undoStart)
-                            }
-                            annularSpinUndoStart = null
-                            annularSpinLatestLayout = null
-                        },
-                        valueRange = -180f..180f,
-                        modifier = Modifier.weight(0.75f),
-                    )
-                }
+                CompactSliderRow(
+                    label = "AR spin",
+                    value = layout.annularRotationDeg.coerceIn(-180f, 180f),
+                    valueRange = -180f..180f,
+                    valueText = "${layout.annularRotationDeg.toInt()} deg",
+                    enabled = true,
+                    onValueChange = { value ->
+                        if (annularSpinUndoStart == null) annularSpinUndoStart = layout
+                        val updatedLayout = layout.withAnnularRotation(value)
+                        annularSpinLatestLayout = updatedLayout
+                        onLayoutPreviewChange(updatedLayout)
+                    },
+                    onValueChangeFinished = {
+                        val undoStart = annularSpinUndoStart
+                        val latestLayout = annularSpinLatestLayout
+                        if (undoStart != null && latestLayout != null) {
+                            onLayoutChange(latestLayout, false, undoStart)
+                        }
+                        annularSpinUndoStart = null
+                        annularSpinLatestLayout = null
+                    },
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun CompactCountDropdown(
+    label: String,
+    value: Int,
+    min: Int,
+    max: Int,
+    onChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, LaiqColors.PanelBorder),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp)
+                .clickable { expanded = true },
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LaiqColors.MutedText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = value.coerceIn(min, max).toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LaiqColors.BodyText,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                Text(
+                    text = "v",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LaiqColors.MutedText,
+                    maxLines = 1,
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            (min..max).forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.toString()) },
+                    onClick = {
+                        onChange(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactSliderRow(
+    label: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    enabled: Boolean,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    valueText: String = "%.2f".format(value),
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(28.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (enabled) LaiqColors.BodyText else LaiqColors.MutedText,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            modifier = Modifier.weight(0.24f),
+        )
+        Slider(
+            value = value.coerceIn(valueRange.start, valueRange.endInclusive),
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = valueRange,
+            enabled = enabled,
+            modifier = Modifier
+                .weight(0.58f)
+                .height(28.dp),
+        )
+        Text(
+            text = valueText,
+            style = MaterialTheme.typography.labelSmall,
+            color = LaiqColors.MutedText,
+            maxLines = 1,
+            modifier = Modifier.weight(0.18f),
+        )
     }
 }
 
@@ -1583,6 +1926,40 @@ private fun ProductCustomCircularPlateLayout.mergePlateAndSelect(
         ?.label
     return updatedLayout to updatedSelection
 }
+
+private fun ProductCustomCircularPlateLayout.adjacentPlateBoundaryBias(
+    target: ProductLayoutTarget,
+    plateLabel: String,
+    direction: Int,
+): Float {
+    val ref = plateRefs(target).firstOrNull { it.label == plateLabel } ?: return 0f
+    val row = rows.getOrNull(ref.rowIndex) ?: return 0f
+    val leftIndex = if (direction < 0) ref.plateIndex - 1 else ref.plateIndex
+    val rightIndex = leftIndex + 1
+    if (leftIndex !in row.plates.indices || rightIndex !in row.plates.indices) return 0f
+    val left = row.plates[leftIndex]
+    val right = row.plates[rightIndex]
+    val pairWeight = (left.widthWeight + right.widthWeight).coerceAtLeast(0.001f)
+    val leftShare = (left.widthWeight / pairWeight).coerceIn(0.18f, 0.82f)
+    return ((leftShare - 0.5f) / 0.38f).coerceIn(-1f, 1f)
+}
+
+private fun ProductCustomCircularPlateLayout.verticalMergeGroupKeys(): Set<String> =
+    rows.flatMap { row -> row.plates.mapNotNull { plate -> plate.verticalMergeGroupKey } }.toSet()
+
+private fun ProductCustomCircularPlateLayout.firstNewVerticalMergeLabelInRow(
+    target: ProductLayoutTarget,
+    rowNumber: Int,
+    existingKeys: Set<String>,
+): String? =
+    plateRefs(target).firstOrNull { ref ->
+        ref.rowNumber == rowNumber &&
+            rows.getOrNull(ref.rowIndex)
+                ?.plates
+                ?.getOrNull(ref.plateIndex)
+                ?.verticalMergeGroupKey
+                ?.let { key -> key !in existingKeys } == true
+    }?.label
 
 @Composable
 private fun ZoomableLayoutMapViewport(

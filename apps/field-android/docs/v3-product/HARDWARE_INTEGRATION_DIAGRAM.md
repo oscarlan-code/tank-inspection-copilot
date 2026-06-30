@@ -4,7 +4,7 @@ This document refines the future smart-hardware integration plan for the tank in
 
 ## Current Project Anchors
 
-- Android V3 Product stores inspection work locally and exports `packageType: "v3_product_export"` with `schemaVersion: 2`.
+- Android V3 Product stores inspection work locally and exports `packageType: "v3_product_export"` with `schemaVersion: 3`.
 - The report platform imports that package through the Android V3 Product import path, then creates a tenant/workspace report job.
 - The AI/report engine should draft from current inspection facts, report-side manual inputs, and authorized precedent. Precedent must not override current field data.
 - Hardware integrations should map into the current V3 export sections first: `inspectionRecord`, `layoutTargets`, `layoutConfigs`, `elements`, `utMeasurements`, `inspectionChecklistItems`, `inspectionChecklistSectionNotes`, `findings`, `attachments`, `taskSnapshots`, and `validationResults`.

@@ -4,6 +4,7 @@ import ai.laiq.tankinspection.v3product.model.ProductDraftState
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlate
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateLayout
 import ai.laiq.tankinspection.v3product.model.ProductCustomCircularPlateRow
+import ai.laiq.tankinspection.v3product.model.ProductCustomCircularRowGroup
 import ai.laiq.tankinspection.v3product.model.ProductElementType
 import ai.laiq.tankinspection.v3product.model.ProductFindingRecord
 import ai.laiq.tankinspection.v3product.model.ProductInspectionChecklistCatalog
@@ -1533,13 +1534,20 @@ private fun ai.laiq.tankinspection.v3product.storage.db.ProductLayoutTargetEntit
 private fun ProductCustomCircularPlateLayout.toCustomCircularLayoutJson(): String =
     JSONObject()
         .put("annularRotationDeg", annularRotationDeg)
+        .put("rowGroups", JSONArray().apply { rowGroups.forEach { group -> put(group.toJson()) } })
         .put("rows", JSONArray().apply { rows.forEach { row -> put(row.toJson()) } })
         .toString()
+
+private fun ProductCustomCircularRowGroup.toJson(): JSONObject =
+    JSONObject()
+        .put("groupId", groupId)
+        .put("rowNumbers", JSONArray().apply { rowNumbers.sorted().forEach { rowNumber -> put(rowNumber) } })
 
 private fun ProductCustomCircularPlateRow.toJson(): JSONObject =
     JSONObject()
         .put("rowNumber", rowNumber)
         .put("shiftRatio", shiftRatio)
+        .put("heightWeight", heightWeight)
         .put("plates", JSONArray().apply { plates.forEach { plate -> put(plate.toJson()) } })
 
 private fun ProductCustomCircularPlate.toJson(): JSONObject =
@@ -1548,6 +1556,7 @@ private fun ProductCustomCircularPlate.toJson(): JSONObject =
         .put("splitGroupKey", splitGroupKey)
         .put("splitPartIndex", splitPartIndex)
         .put("splitPartCount", splitPartCount)
+        .put("verticalMergeGroupKey", verticalMergeGroupKey)
 
 private fun ProductLayoutConfigEntity.toJson(): JSONObject =
     JSONObject()

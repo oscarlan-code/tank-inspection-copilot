@@ -1,19 +1,24 @@
-# Layout Drawing Prototype Plan
+# Layout Drawing Prototype
 
-Status: plan only. No V2 or V3 product behavior should change as part of this planning commit.
+Status: isolated debug prototype for local testing. No V2 or V3 product folders are modified by the prototype implementation.
 
 ## Why This Prototype Exists
 
-The current V3 layout generator works well for structured tank layouts, but real tank layouts can be irregular. Inspectors may prefer to sketch a roof, floor, or shell map, or import a drawing/photo, rather than manually configuring rows, columns, splits, merges, and offsets.
+The current V3 layout generator works well for structured tank layouts, but real roof layouts can be irregular. Inspectors may prefer to sketch a roof map or import a drawing/photo, rather than manually configuring rows, columns, splits, merges, and offsets.
 
-This prototype explores a separate layout-map digitization path:
+This prototype now focuses on one thing first: a simple roof layout drawing tool that can generate a structured plate map.
 
-1. Capture a sketch or imported drawing/photo.
-2. Recognize seams, plate boundaries, labels, orientation marks, and elements.
-3. Convert recognition output into structured normalized geometry.
-4. Let the inspector review and correct the draft.
-5. Approve the structured layout.
-6. Export JSON for future downstream product screens.
+It explores two roof-map digitization paths:
+
+1. Start from a V3-style generated base layout, then customize seams, boundaries, splits, and merges.
+2. Start from a new sketch/imported roof drawing, then use assisted drafting to convert rough boundaries into structured plates.
+
+Both paths end with:
+
+1. Structured normalized geometry.
+2. Inspector review and correction.
+3. Inspector approval.
+4. JSON export for future downstream product screens.
 
 The final approved layout must be structured data, not an image.
 
@@ -43,11 +48,22 @@ Recognition output must not become the source of truth by itself.
 - The inspector reviews, edits, and approves it.
 - Approval makes the structured layout usable by downstream workflows.
 
-## Proposed Workflow
+## Proposed Workflows
 
 ```text
-Drawing/photo input
--> recognition/digitization
+V3 layout base
+-> editable structured geometry
+-> seam/boundary adjustment
+-> split/merge/refine plates
+-> validation
+-> inspector approval
+-> structured JSON export
+```
+
+```text
+New roof sketch or imported roof drawing/photo
+-> grid/unit assisted drafting
+-> snap/straighten/close boundary assist
 -> structured plate model
 -> overlay review
 -> manual correction
@@ -63,29 +79,50 @@ Purpose: entry point for the isolated prototype.
 
 Actions:
 
-- Start Roof/Floor Sketch
-- Start Shell Sketch
-- Import Drawing/Image
+- New Roof Sketch
+- Start from V3 Roof Layout
+- Import Roof Drawing/Image
 - View Latest Structured Layout JSON
 
 ### 2. Drawing Canvas Screen
 
 Purpose: capture simple sketch input before recognition.
 
-Canvas modes:
+Canvas mode:
 
-- Roof/floor: circular boundary canvas.
-- Shell: unwrapped rectangular shell canvas.
+- Roof: circular boundary canvas inside a large whiteboard-like workspace.
 
 Tools:
 
 - Draw seam/plate boundary
-- Draw element marker
-- Eraser
+- Draw circle element marker
+- Partial eraser
 - Add label
 - Undo
 - Clear
 - Recognize / Convert
+
+Assisted drafting controls:
+
+- Excalidraw-style compact top toolbar
+- Select, straight line, element, text, and erase tools
+- Grid background
+- Zoom in/out/reset map view
+- Unit label
+- Normalized grid spacing
+- Optional tank diameter
+- Snap on/off
+- AI-assist status for angle straightening, endpoint snapping, closed-region creation, and approval gating
+
+Important UX rule: the grid must not constrain drawing input. Inspectors can draw freehand anywhere on the canvas. Grid/snap settings are only assist inputs for later recognition/refinement, such as straightening, endpoint snapping, or inferred boundary cleanup.
+
+Line tool rule: roof boundaries should be straight segments, not freehand curves. When the user drags a line endpoint near the tank circle or an existing endpoint, the prototype snaps it into connection so boundaries are easier to close. When snap is enabled, near-horizontal and near-vertical lines are straightened so slightly imperfect row/column sketches still become clean boundaries.
+
+Zoom rule: inspectors can zoom in and draw row by row. Stored geometry remains normalized to the roof map, so every line drawn while zoomed in still becomes a boundary candidate for plate generation.
+
+Selection rule: drawn objects remain editable. Choose `Select`, tap or drag a line, then drag an endpoint handle to adjust it or drag the line body to move the whole segment. Circle elements can be moved by dragging the center area and resized by dragging the radius handle.
+
+Eraser rule: erasing a line should remove only the touched portion. A boundary line can split into two remaining fragments, and Generate Plates will use the remaining fragments as the current boundary graph.
 
 First prototype should use Jetpack Compose `Canvas` and `pointerInput` with normalized coordinates. Android's official Compose graphics and pointer input documentation support this approach:
 
@@ -102,6 +139,9 @@ Behavior:
 - Show original sketch/image underneath.
 - Overlay recognized plate boundaries and elements.
 - Show mocked confidence indicators.
+- Allow selected boundary/plate nudging.
+- Allow split vertical / split horizontal.
+- Allow merge with adjacent plate.
 - Allow plate editing:
   - plate ID
   - row/course
@@ -123,7 +163,7 @@ Validation should surface:
 - duplicated plate IDs
 - unclosed or invalid plate boundaries
 - element outside map
-- shell 0/360 edge mismatch
+- invalid roof boundary or off-map geometry
 
 Export target:
 
@@ -137,7 +177,7 @@ An installed Android app generally cannot write directly into the repository `bu
 `PrototypeLayoutDraft`
 
 - `id`
-- `surface`: `external_roof`, `internal_roof`, `floor`, `shell`
+- `surface`: initially `external_roof`
 - `sourceType`: `sketch`, `image_import`
 - `sourceImagePath` optional
 - `orientation`
@@ -176,23 +216,50 @@ An installed Android app generally cannot write directly into the repository `bu
 
 Start without real AI.
 
-Planned seams:
+Implemented seams:
 
 - `LayoutRecognitionEngine`
 - `MockLayoutRecognitionEngine`
 - `PrototypeLayoutJsonCodec`
 - `PrototypeLayoutValidator`
-- optional future `PrototypeLayoutExportRepository`
+- `PrototypeLayoutExportRepository`
 
 The first implementation should be deterministic:
 
 - Capture strokes.
-- Convert simple shell vertical/horizontal line strokes into rough courses and plate columns.
-- Generate mocked circular roof/floor plate geometry.
-- Convert element marker taps into structured elements.
+- Convert rough roof boundary strokes into a structured draft plate layout.
+- Clip drawn straight-line boundaries to the circular roof, split them at intersections, connect them to the roof perimeter, and extract closed graph faces as plates.
+- Generate V3-style mocked base geometry for roof.
+- Generate one full-roof plate only when the sketch does not contain enough connected boundaries to form closed plates.
+- Convert circle element markers into structured elements, preserving the circle radius as a prototype size label.
 - For imported image, show the image and generate a mocked recognition result.
+- Split/merge selected plates.
+- Nudge selected plate boundaries.
+- Zoom the sketch/review map without changing stored normalized geometry.
 
 Do not call external AI unless explicitly requested.
+
+## Implemented Prototype Files
+
+Domain/prototype package:
+
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/PrototypeLayoutModels.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/PrototypeLayoutGeometry.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/MockLayoutRecognitionEngine.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/PrototypeLayoutValidator.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/PrototypeLayoutJsonCodec.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/prototype/layoutdrawing/PrototypeLayoutExportRepository.kt`
+
+UI package:
+
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/presentation/prototype/layoutdrawing/LayoutDrawingPrototypeActivity.kt`
+- `apps/field-android/app/src/main/java/ai/laiq/tankinspection/presentation/prototype/layoutdrawing/LayoutDrawingPrototypeScreen.kt`
+
+Debug-only test launcher:
+
+- `apps/field-android/app/src/debug/AndroidManifest.xml`
+
+The debug manifest adds a separate launcher activity named `Layout Prototype` for local testing. The existing V3 launcher remains unchanged.
 
 ## Research Notes
 
@@ -259,13 +326,27 @@ Phase 4: optional domain AI.
 
 ## Build/Test Plan For Implementation
 
-After implementation, run:
+Run:
 
 ```bash
 cd apps/field-android
 ./gradlew :app:compileDebugKotlin
 ./gradlew :app:assembleDebug
 ```
+
+Launch options for debug builds:
+
+- Install/run the debug app and open the `Layout Prototype` launcher icon.
+- Or start it explicitly:
+
+```bash
+adb shell am start -n ai.laiq.tankinspection/ai.laiq.tankinspection.presentation.prototype.layoutdrawing.LayoutDrawingPrototypeActivity
+```
+
+Runtime export path:
+
+- App-private file: `layout-drawing-prototype/latest-layout-draft.json`
+- The UI shows the absolute app-private path after export.
 
 Expected deliverables for the implementation phase:
 

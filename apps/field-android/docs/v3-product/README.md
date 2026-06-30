@@ -317,10 +317,10 @@ apps/field-android/docs/v3-product/WORKFLOW_DATA_FLOW_CONTRACT.md
 The report-generation platform should use the V3 export package as the product-standard contract. The active fixture path is:
 
 ```text
-apps/report-platform/src/fixtures/v2-product-export-shell-internal.json
+apps/report-platform/src/fixtures/v3-product-export-shell-internal.json
 ```
 
-The fixture name still says `v2-product` for historical continuity, but V3 export work should treat V3 field capture as the forward source of truth.
+The old `v2-product-export-shell-internal.json` fixture remains as a compatibility alias, but V3 export work should use the V3-named fixture as the forward source of truth.
 
 Sample report references used during alignment:
 
