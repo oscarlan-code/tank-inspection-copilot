@@ -22,7 +22,21 @@ export function buildLayoutFigureSvg(reportState, tocSection) {
   const layoutMap = getEffectiveLayoutMap(reportState, tocSection);
   if (!layoutMap) return null;
 
+  return buildLayoutMapFigureSvg(layoutMap);
+}
+
+export function buildLayoutMapFigureSvg(layoutMap) {
+  if (!layoutMap) return null;
+
+  if (layoutMap.appMap?.surfaceType === "floor" && layoutMap.sourceDrawing) {
+    return buildSourceFloorFigureSvg(layoutMap);
+  }
+
   const clipId = `circle-clip-${safeId(layoutMap.id)}`;
+  const floorOuterClipId = floorTankClipId(layoutMap.id);
+  const annularWidthRatio = layoutMap.appMap?.floor?.annularWidthRatio ?? 0.12;
+  const floorOuterRadius = CIRCULAR_MAP.size * 0.42
+    * (1 + clamp(annularWidthRatio, 0.06, 0.18));
   const body =
     layoutMap.appMap?.surfaceType === "shell"
       ? renderShellMap(layoutMap)
@@ -39,6 +53,14 @@ export function buildLayoutFigureSvg(reportState, tocSection) {
       svgStyles(),
       "</style>",
       `<clipPath id="${clipId}"><circle cx="${CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}" cy="${CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}" r="${CIRCULAR_MAP.size * 0.42}" /></clipPath>`,
+      ...(layoutMap.appMap?.surfaceType === "floor"
+        ? [`<clipPath id="${floorOuterClipId}"><circle cx="${CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}" cy="${CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}" r="${floorOuterRadius}" /></clipPath>`]
+        : []),
+      ...(layoutMap.appMap?.surfaceType === "floor"
+        ? layoutMap.plates.map((plate) => (
+            `<clipPath id="${floorPlateClipId(layoutMap.id, plate.id)}">${renderCircularPlateShape(plate)}</clipPath>`
+          ))
+        : []),
       "</defs>",
       `<rect class="map-page" height="${SVG_HEIGHT - 18}" rx="22" width="${SVG_WIDTH - 18}" x="9" y="9" />`,
       body,
@@ -46,6 +68,87 @@ export function buildLayoutFigureSvg(reportState, tocSection) {
       "</svg>",
     ].join(""),
   };
+}
+
+function buildSourceFloorFigureSvg(layoutMap) {
+  const sourceDrawing = layoutMap.sourceDrawing;
+  const width = Number(sourceDrawing.width) || SVG_WIDTH;
+  const height = Number(sourceDrawing.height) || SVG_HEIGHT;
+  const sourceHref = safeInlineCorrosionImage(sourceDrawing.inlineImageDataUrl);
+  const foregroundHref = safeInlineCorrosionImage(sourceDrawing.foregroundInlineImageDataUrl);
+  const usesExtractedVector = sourceDrawing.renderMode === "extracted_vector";
+  const platesById = new Map(layoutMap.plates.map((plate) => [plate.id, plate]));
+  const overlays = (layoutMap.floorCorrosion?.overlays ?? []).flatMap((overlay) => {
+    const plate = platesById.get(overlay.hostPlateId);
+    const href = safeInlineCorrosionImage(overlay.inlineImageDataUrl);
+    if (!plate || !href || overlay.status === "blocked") return [];
+    const rect = sourcePlateRect(plate, width, height);
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+    const rotation = normalizeRotation(overlay.rotationDegrees);
+    const swapsAxes = rotation === 90 || rotation === 270;
+    const imageWidth = swapsAxes ? rect.height : rect.width;
+    const imageHeight = swapsAxes ? rect.width : rect.height;
+    const transform = [
+      `translate(${centerX} ${centerY})`,
+      `rotate(${rotation})`,
+      `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
+      `translate(${-centerX} ${-centerY})`,
+    ].join(" ");
+    return [
+      `<g clip-path="url(#${sourceFloorPlateClipId(layoutMap.id, plate.id)})">`,
+      `<image class="floor-corrosion-overlay" href="${href}" x="${centerX - imageWidth / 2}" y="${centerY - imageHeight / 2}" width="${imageWidth}" height="${imageHeight}" opacity="${clamp(overlay.opacity ?? 0.88, 0.1, 1)}" preserveAspectRatio="xMidYMid slice" transform="${transform}" />`,
+      "</g>",
+    ];
+  });
+
+  return {
+    title: layoutMap.title,
+    width,
+    height,
+    svg: [
+      `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeXml(layoutMap.title)}" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`,
+      "<defs>",
+      ...layoutMap.plates.map((plate) => (
+        `<clipPath id="${sourceFloorPlateClipId(layoutMap.id, plate.id)}">${renderSourcePlateShape(plate, width, height)}</clipPath>`
+      )),
+      "</defs>",
+      `<rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff" />`,
+      ...(!usesExtractedVector && sourceHref
+        ? [`<image href="${sourceHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" />`]
+        : []),
+      ...overlays,
+      ...(usesExtractedVector && sourceHref
+        ? [`<image href="${sourceHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" />`]
+        : []),
+      ...(foregroundHref
+        ? [`<image href="${foregroundHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" />`]
+        : []),
+      "</svg>",
+    ].join(""),
+  };
+}
+
+function renderSourcePlateShape(plate, width, height) {
+  if (Array.isArray(plate.points) && plate.points.length >= 3) {
+    const points = plate.points.map((point) => `${point.x * width},${point.y * height}`).join(" ");
+    return `<polygon points="${points}" />`;
+  }
+  const rect = sourcePlateRect(plate, width, height);
+  return `<rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" />`;
+}
+
+function sourcePlateRect(plate, width, height) {
+  return {
+    x: plate.x * width,
+    y: plate.y * height,
+    width: plate.width * width,
+    height: plate.height * height,
+  };
+}
+
+function sourceFloorPlateClipId(layoutMapId, plateId) {
+  return `source-floor-plate-clip-${safeId(`${layoutMapId}-${plateId}`)}`;
 }
 
 export function getEffectiveLayoutMap(reportState, tocSection) {
@@ -79,6 +182,9 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
   const { exportPackage } = reportState;
   const surface = tocSection.layoutSurface;
   const targetKey = surface === "roof" ? "external_roof" : "floor";
+  const requiresResolvedGeometry = surface === "floor"
+    && exportPackage.packageType === "v3_product_export"
+    && exportPackage.schemaVersion >= 3;
   const gridRows =
     surface === "roof"
       ? config.roofRowCount ?? 6
@@ -92,16 +198,36 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
     gridColumns,
     surface === "roof" ? "android:RoofSurfaceMap:circular_plate" : "android:FloorSurfaceMap:circular_plate",
   );
-  const customPlates =
+  const customPlates = buildCustomCircularPlateCells(
+    config.customCircularLayout,
     surface === "roof"
-      ? buildCustomCircularPlateCells(
-          config.customCircularLayout,
-          "android:RoofSurfaceMap:custom_circular_plate",
-          gridRows,
-          gridColumns,
+      ? "v3-app:RoofSurfaceMap:custom_circular_plate"
+      : "v3-app:FloorSurfaceMap:custom_circular_plate",
+    gridRows,
+    gridColumns,
+    surface,
+    !requiresResolvedGeometry,
+  );
+  const mainPlates = (customPlates.length > 0 ? customPlates : requiresResolvedGeometry ? [] : plates)
+    .map((plate) => ({ ...plate, plateKind: "main" }));
+  const customLayoutSettings = readCircularLayoutSettings(config.customCircularLayout);
+  const resolvedAnnularPlates = parseResolvedAnnularPlateGeometry(
+    config.customCircularLayout,
+    "v3-app:FloorSurfaceMap:annular_ring:resolved",
+  );
+  const annularPlates = surface === "floor" && config.floorTemplate === "circular_plate_ar"
+    ? resolvedAnnularPlates.length > 0
+      ? resolvedAnnularPlates
+      : requiresResolvedGeometry
+        ? []
+        : buildV3AppAnnularRingSections(
+          config.floorAnnularSectionCount ?? 0,
+          customLayoutSettings.annularRotationDeg,
+          customLayoutSettings.annularWidthRatio,
+          "v3-app:FloorSurfaceMap:annular_ring:legacy_fallback",
         )
-      : [];
-  const effectivePlates = customPlates.length > 0 ? customPlates : plates;
+    : [];
+  const effectivePlates = [...mainPlates, ...annularPlates];
   const markers = [
     ...buildTargetFindingMarkers(exportPackage, targetKey, effectivePlates),
     ...buildTargetElementMarkers(exportPackage, targetKey),
@@ -115,8 +241,13 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
         ? customPlates.length > 0
           ? `Roof map: V3 app custom circular plate layout, ${gridRows} rows, ${effectivePlates.length} visible plates`
           : `Roof map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${effectivePlates.length} visible plates`
-        : `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${effectivePlates.length} visible plates`,
+        : customPlates.length > 0
+          ? `V3 app floor layout: ${gridRows} rows, ${mainPlates.length} bottom plates, ${annularPlates.length} AR sections`
+          : `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${effectivePlates.length} visible plates`,
     surfaceLabel: surface === "roof" ? "Roof plate layout" : "Floor/bottom plate layout",
+    appFigure: surface === "floor"
+      ? exportPackage.layoutFigures?.find((figure) => figure.targetKey === "floor")
+      : undefined,
     markers,
     plates: effectivePlates,
     gridRows,
@@ -126,6 +257,21 @@ function buildCircularLayoutMap(reportState, tocSection, config) {
       surfaceType: surface,
       referenceMode: humanizeKey(config.referenceMode ?? "tank_north"),
       referenceNote: config.referenceNote,
+      ...(surface === "floor"
+        ? {
+            floor: {
+              template: config.floorTemplate ?? "circular_plate",
+              rowCount: gridRows,
+              widestRowPlateCount: gridColumns,
+              plateCount: config.floorPlateCount ?? mainPlates.length,
+              hasAnnularRing: config.floorTemplate === "circular_plate_ar",
+              annularSectionCount: config.floorAnnularSectionCount ?? 0,
+              annularRotationDeg: customLayoutSettings.annularRotationDeg,
+              annularWidthRatio: customLayoutSettings.annularWidthRatio,
+              customCircularLayout: config.customCircularLayout,
+            },
+          }
+        : {}),
     },
     overrideCount: 0,
   });
@@ -204,56 +350,191 @@ function mergeLayoutOverrideWithBaseline(baselineLayoutMap, layoutOverride) {
   if (!baselineLayoutMap) return layoutOverride;
 
   const overrideMarkersById = new Map((layoutOverride.markers ?? []).map((marker) => [marker.id, marker]));
+  const lockAppFloorGeometry = baselineLayoutMap.appMap?.surfaceType === "floor"
+    && Boolean(baselineLayoutMap.appFigure?.svg);
+  const replaceBaselineMarkers = layoutOverride.geometrySource === "reference_test_fixture"
+    || layoutOverride.geometrySource === "app_export_mock"
+    || layoutOverride.geometrySource === "report_side_approved_layout"
+    || layoutOverride.geometrySource === "source_drawing_import";
 
   return {
     ...baselineLayoutMap,
     ...layoutOverride,
-    plates: Array.isArray(layoutOverride.plates) && layoutOverride.plates.length > 0
+    geometrySource: lockAppFloorGeometry ? baselineLayoutMap.geometrySource : layoutOverride.geometrySource,
+    sourceDrawing: lockAppFloorGeometry ? undefined : layoutOverride.sourceDrawing,
+    appFigure: lockAppFloorGeometry ? baselineLayoutMap.appFigure : layoutOverride.appFigure ?? baselineLayoutMap.appFigure,
+    plates: lockAppFloorGeometry
+      ? baselineLayoutMap.plates
+      : Array.isArray(layoutOverride.plates) && layoutOverride.plates.length > 0
       ? layoutOverride.plates
       : baselineLayoutMap.plates,
-    markers: (baselineLayoutMap.markers ?? []).map((baselineMarker) => {
-      const overrideMarker = overrideMarkersById.get(baselineMarker.id);
-      return overrideMarker
-        ? {
-            ...baselineMarker,
-            ...overrideMarker,
-          }
-        : baselineMarker;
-    }),
+    markers: lockAppFloorGeometry
+      ? baselineLayoutMap.markers
+      : replaceBaselineMarkers
+      ? (layoutOverride.markers ?? [])
+      : (baselineLayoutMap.markers ?? []).map((baselineMarker) => {
+          const overrideMarker = overrideMarkersById.get(baselineMarker.id);
+          return overrideMarker
+            ? {
+                ...baselineMarker,
+                ...overrideMarker,
+              }
+            : baselineMarker;
+        }),
     drawingBlock: {
       ...(baselineLayoutMap.drawingBlock ?? {}),
       ...(layoutOverride.drawingBlock ?? {}),
     },
-    appMap: {
-      ...(baselineLayoutMap.appMap ?? {}),
-      ...(layoutOverride.appMap ?? {}),
-    },
+    appMap: lockAppFloorGeometry
+      ? baselineLayoutMap.appMap
+      : {
+          ...(baselineLayoutMap.appMap ?? {}),
+          ...(layoutOverride.appMap ?? {}),
+        },
   };
 }
 
 function renderCircularMap(layoutMap, clipId) {
   const center = CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2;
   const radius = CIRCULAR_MAP.size * 0.42;
+  const annularWidthRatio = layoutMap.appMap?.floor?.annularWidthRatio ?? 0.12;
+  const annularRadius = radius * (1 + clamp(annularWidthRatio, 0.06, 0.18));
+  const annularPlates = layoutMap.plates.filter(isAnnularPlate);
+  const mainPlates = layoutMap.plates.filter((plate) => !isAnnularPlate(plate));
+  const appFigureHref = layoutMap.appMap?.surfaceType === "floor"
+    ? safeAppOwnedFloorFigureDataUri(layoutMap.appFigure)
+    : null;
+
+  if (appFigureHref) {
+    return [
+      `<text class="map-title" x="${CIRCULAR_MAP.x}" y="38">Floor Layout Map</text>`,
+      `<text class="map-subtitle" x="${CIRCULAR_MAP.x}" y="58">Reference: 0 degree = ${escapeXml(layoutMap.appMap?.referenceMode ?? layoutMap.drawingBlock.referenceMode)}</text>`,
+      `<image href="${appFigureHref}" x="${CIRCULAR_MAP.x}" y="${CIRCULAR_MAP.y}" width="${CIRCULAR_MAP.size}" height="${CIRCULAR_MAP.size}" preserveAspectRatio="xMidYMid meet" />`,
+      ...(layoutMap.floorCorrosion
+        ? [
+            `<g clip-path="url(#${floorTankClipId(layoutMap.id)})">`,
+            ...renderFloorCorrosionOverlays(layoutMap, "main"),
+            ...renderFloorCorrosionOverlays(layoutMap, "annular"),
+            "</g>",
+          ]
+        : []),
+      ...(layoutMap.floorCorrosion ? [renderFloorCorrosionLegend()] : []),
+      renderMarkers(
+        {
+          ...layoutMap,
+          markers: (layoutMap.markers ?? []).filter((marker) => marker.type !== "element"),
+        },
+        CIRCULAR_MAP,
+      ),
+    ].join("");
+  }
 
   return [
-    `<text class="map-title" x="${CIRCULAR_MAP.x}" y="38">${escapeXml(layoutMap.appMap?.surfaceType === "floor" ? "Floor Layout Map" : "Roof Layout Map")}</text>`,
+    `<text class="map-title" x="${CIRCULAR_MAP.x}" y="38">${escapeXml(
+      layoutMap.floorCorrosion
+        ? "Floor Plate Corrosion Map"
+        : layoutMap.appMap?.surfaceType === "floor"
+          ? "Floor Layout Map"
+          : "Roof Layout Map",
+    )}</text>`,
     `<text class="map-subtitle" x="${CIRCULAR_MAP.x}" y="58">Reference: 0 degree = ${escapeXml(layoutMap.appMap?.referenceMode ?? layoutMap.drawingBlock.referenceMode)}</text>`,
+    ...annularPlates.map((plate) => renderCircularPlateShape(plate, 'class="plate"')),
     `<circle class="circular-fill" cx="${center}" cy="${center}" r="${radius}" />`,
-    `<line class="reference-line" x1="${center}" x2="${center}" y1="${center}" y2="${center - radius}" />`,
-    `<text class="zero-label" x="${center - 8}" y="${center - radius - 10}">0°</text>`,
+    `<line class="reference-line" x1="${center}" x2="${center}" y1="${center}" y2="${center - annularRadius}" />`,
+    `<text class="zero-label" x="${center - 8}" y="${center - annularRadius - 10}">0°</text>`,
     `<g clip-path="url(#${clipId})">`,
-    ...layoutMap.plates.map((plate) => {
-      const rect = circularPlateRect(plate);
-      return `<rect class="plate" height="${rect.height}" rx="4" width="${rect.width}" x="${rect.x}" y="${rect.y}" />`;
-    }),
+    ...mainPlates.map((plate) => renderCircularPlateShape(plate, 'class="plate"')),
+    ...(layoutMap.appMap?.surfaceType === "floor"
+      ? renderFloorCorrosionOverlays(layoutMap, "main")
+      : []),
     "</g>",
+    ...(layoutMap.appMap?.surfaceType === "floor"
+      ? renderFloorCorrosionOverlays(layoutMap, "annular")
+      : []),
     `<circle class="circular-outline" cx="${center}" cy="${center}" r="${radius}" />`,
-    ...layoutMap.plates.map((plate) => {
-      const rect = circularPlateRect(plate);
-      return `<text class="plate-label" x="${rect.x + rect.width / 2}" y="${rect.y + rect.height / 2 + 4}">${escapeXml(plate.label)}</text>`;
+    ...(annularPlates.length > 0
+      ? [`<circle class="circular-outline" cx="${center}" cy="${center}" r="${annularRadius}" />`]
+      : []),
+    ...(layoutMap.floorCorrosion ? [renderFloorCorrosionLegend()] : []),
+    ...layoutMap.plates.flatMap((plate) => {
+      const displayLabel = plate.mapLabel ?? plate.label;
+      if (displayLabel === "") return [];
+      const labelX = CIRCULAR_MAP.x + (plate.labelX ?? plate.x + plate.width / 2) * CIRCULAR_MAP.size;
+      const labelY = CIRCULAR_MAP.y + (plate.labelY ?? plate.y + plate.height / 2) * CIRCULAR_MAP.size + 4;
+      return [`<text class="plate-label" x="${labelX}" y="${labelY}">${escapeXml(displayLabel)}</text>`];
     }),
     renderMarkers(layoutMap, CIRCULAR_MAP),
   ].join("");
+}
+
+function renderFloorCorrosionLegend() {
+  const bands = [
+    { label: "20", color: "#ffffff" },
+    { label: "30", color: "#12fbff" },
+    { label: "40", color: "#0ec800" },
+    { label: "50", color: "#001dc8" },
+    { label: "60", color: "#ef0700" },
+    { label: "70", color: "#dc006e" },
+    { label: "80", color: "#470073" },
+  ];
+  const x = 804;
+  const y = 86;
+  const swatchWidth = 34;
+  return [
+    `<g class="floor-corrosion-legend">`,
+    `<rect height="92" rx="8" width="276" x="${x}" y="${y}" />`,
+    `<text class="floor-corrosion-legend-title" x="${x + 14}" y="${y + 23}">CORROSION PERCENTAGE</text>`,
+    ...bands.flatMap((band, index) => [
+      `<text x="${x + 18 + index * swatchWidth}" y="${y + 45}">${band.label}</text>`,
+      `<rect fill="${band.color}" height="22" stroke="#1c2f45" stroke-width="1" width="${swatchWidth}" x="${x + 14 + index * swatchWidth}" y="${y + 54}" />`,
+    ]),
+    "</g>",
+  ].join("");
+}
+
+function renderFloorCorrosionOverlays(layoutMap, plateKind) {
+  const platesById = new Map(layoutMap.plates.map((plate) => [plate.id, plate]));
+  return (layoutMap.floorCorrosion?.overlays ?? []).flatMap((overlay) => {
+    const plate = platesById.get(overlay.hostPlateId);
+    const href = safeInlineCorrosionImage(overlay.inlineImageDataUrl);
+    if (!plate || !href || overlay.status === "blocked" || isAnnularPlate(plate) !== (plateKind === "annular")) return [];
+
+    const rect = circularPlateRect(plate);
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+    const rotation = normalizeRotation(overlay.rotationDegrees);
+    const swapsAxes = rotation === 90 || rotation === 270;
+    const imageWidth = swapsAxes ? rect.height : rect.width;
+    const imageHeight = swapsAxes ? rect.width : rect.height;
+    const transform = [
+      `translate(${centerX} ${centerY})`,
+      `rotate(${rotation})`,
+      `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
+      `translate(${-centerX} ${-centerY})`,
+    ].join(" ");
+
+    return [
+      `<g clip-path="url(#${floorPlateClipId(layoutMap.id, plate.id)})">`,
+      `<image class="floor-corrosion-overlay" href="${href}" x="${centerX - imageWidth / 2}" y="${centerY - imageHeight / 2}" width="${imageWidth}" height="${imageHeight}" opacity="${clamp(overlay.opacity ?? 0.88, 0.1, 1)}" preserveAspectRatio="xMidYMid slice" transform="${transform}" />`,
+      "</g>",
+    ];
+  });
+}
+
+function isAnnularPlate(plate) {
+  return plate?.plateKind === "annular" || /^AR\d+$/i.test(plate?.id ?? "");
+}
+
+function renderCircularPlateShape(plate, attributes = "") {
+  if (Array.isArray(plate.points) && plate.points.length >= 3) {
+    const points = plate.points
+      .map((point) => `${CIRCULAR_MAP.x + point.x * CIRCULAR_MAP.size},${CIRCULAR_MAP.y + point.y * CIRCULAR_MAP.size}`)
+      .join(" ");
+    return `<polygon ${attributes} points="${points}" />`;
+  }
+
+  const rect = circularPlateRect(plate);
+  return `<rect ${attributes} height="${rect.height}" rx="4" width="${rect.width}" x="${rect.x}" y="${rect.y}" />`;
 }
 
 function renderShellMap(layoutMap) {
@@ -336,10 +617,13 @@ function buildTargetElementMarkers(exportPackage, targetKey) {
     .map((element) => {
       const position =
         targetKey === "external_roof" || targetKey === "floor"
-          ? coerceCircularMarkerPosition(element.normalizedX, element.normalizedY)
+          ? {
+              x: clamp(element.normalizedX, 0, 1),
+              y: clamp(element.normalizedY, 0, 1),
+            }
           : {
-              x: clamp(element.normalizedX, 0.08, 0.92),
-              y: clamp(element.normalizedY, 0.12, 0.88),
+              x: clamp(element.normalizedX, 0, 1),
+              y: clamp(element.normalizedY, 0, 1),
             };
 
       return {
@@ -348,6 +632,7 @@ function buildTargetElementMarkers(exportPackage, targetKey) {
         type: "element",
         x: position.x,
         y: position.y,
+        source: `v3-app:element:${element.elementTypeKey}`,
       };
     });
 }
@@ -366,6 +651,10 @@ function getLinkedElementId(linkedUtItemKey) {
   return /:element:([^:]+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
 }
 
+function getLinkedRegionId(linkedUtItemKey) {
+  return /:region:(.+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
+}
+
 function buildSurfaceFindingMarker(finding, elements, plates, index) {
   const linkedElementId = getLinkedElementId(finding.linkedUtItemKey);
   const linkedElement = linkedElementId ? elements.find((element) => element.elementId === linkedElementId) : undefined;
@@ -377,6 +666,20 @@ function buildSurfaceFindingMarker(finding, elements, plates, index) {
       type: "finding",
       x: position.x,
       y: position.y,
+    };
+  }
+
+  const linkedRegionId = getLinkedRegionId(finding.linkedUtItemKey);
+  const linkedPlate = linkedRegionId
+    ? plates.find((plate) => plate.id === linkedRegionId || plate.aliases?.includes(linkedRegionId))
+    : undefined;
+  if (linkedPlate) {
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: clamp(linkedPlate.labelX ?? linkedPlate.x + linkedPlate.width / 2, 0.02, 0.98),
+      y: clamp(linkedPlate.labelY ?? linkedPlate.y + linkedPlate.height / 2, 0.02, 0.98),
     };
   }
 
@@ -510,41 +813,47 @@ function buildAndroidCircularPlateCells(rowCount, widestRowPlateCount, source) {
   return cells;
 }
 
-function buildCustomCircularPlateCells(customLayout, source, rowCount, widestRowPlateCount) {
+function buildCustomCircularPlateCells(
+  customLayout,
+  source,
+  rowCount,
+  widestRowPlateCount,
+  labelMode = "roof",
+  allowLegacyFallback = true,
+) {
+  const resolvedPlates = parseResolvedMainPlateGeometry(customLayout, `${source}:resolved`);
+  if (resolvedPlates.length > 0) return resolvedPlates;
+  if (!allowLegacyFallback) return [];
+
   const rows = parseCustomCircularRows(customLayout);
   if (rows.length === 0) return [];
 
-  const generatedCells = buildAndroidCircularPlateCells(
-    rowCount ?? rows.length,
-    widestRowPlateCount ?? Math.max(...rows.map((row) => row.plates.length), 1),
-    "android:RoofSurfaceMap:circular_plate_baseline",
-  );
-  const generatedRows = groupPlatesByRow(generatedCells);
-  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows);
+  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows, labelMode);
   const cells = [];
+  const totalHeightWeight = Math.max(rows.reduce((total, row) => total + row.heightWeight, 0), 0.001);
+  const stableHorizontalRowHeight = 0.84 / Math.max(rows.length, 1);
+  let rowTop = 0.08;
 
   rows.forEach((row, rowIndex) => {
     const rowNumber = rowIndex + 1;
-    const generatedRowCells = (generatedRows.get(rowNumber) ?? []).sort((a, b) => a.x - b.x);
-    const rowLeft = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.x)) : 0.08;
-    const rowRight =
-      generatedRowCells.length > 0
-        ? Math.max(...generatedRowCells.map((plate) => plate.x + plate.width))
-        : 0.92;
-    const topNorm = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.y)) : 0.08;
-    const bottomNorm =
-      generatedRowCells.length > 0
-        ? Math.max(...generatedRowCells.map((plate) => plate.y + plate.height))
-        : 0.92;
-    const rowWidth = Math.max(rowRight - rowLeft, 0.06);
-    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.2), 0), 1);
-    const nominalPlateWidth = rowWidth / Math.max(row.plates.length, 1);
-    const maxShift = clamp(nominalPlateWidth * 0.65, 0.012, 0.08);
+    const rowHeight = 0.84 * (row.heightWeight / totalHeightWeight);
+    const topNorm = rowTop;
+    const bottomNorm = Math.min(rowTop + rowHeight, 0.92);
+    rowTop = bottomNorm;
+    const stableTop = 0.08 + stableHorizontalRowHeight * rowIndex;
+    const stableBottom = stableTop + stableHorizontalRowHeight;
+    const nearestCenterY = clamp(0.5, stableTop, stableBottom);
+    const chordHalfWidth = Math.sqrt(Math.max(0, 0.42 ** 2 - (nearestCenterY - 0.5) ** 2));
+    const rowWidth = Math.max(chordHalfWidth * 2, 0.06);
+    const maxShift = rowWidth * 0.16;
+    const stripLeft = 0.5 - chordHalfWidth - maxShift;
+    const stripWidth = rowWidth + 2 * maxShift;
+    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.001), 0), 0.001);
     const labelByPlateIndex = labelsByRowAndPlate.get(rowIndex) ?? new Map();
-    let x = rowLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
+    let x = stripLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
 
     row.plates.forEach((plate, position) => {
-      const width = rowWidth * (Math.max(plate.widthWeight, 0.2) / weightSum);
+      const width = stripWidth * (Math.max(plate.widthWeight, 0.001) / weightSum);
       const label = labelByPlateIndex.get(position) ?? `${rowNumber}.${position + 1}`;
 
       cells.push(
@@ -565,6 +874,72 @@ function buildCustomCircularPlateCells(customLayout, source, rowCount, widestRow
   });
 
   return cells;
+}
+
+function buildV3AppAnnularRingSections(sectionCount, rotationDegrees, annularWidthRatio, source) {
+  const count = Math.max(Math.floor(sectionCount), 0);
+  if (count === 0) return [];
+
+  const innerRadius = 0.42;
+  const outerRadius = innerRadius * (1 + clamp(annularWidthRatio, 0.06, 0.18));
+  const step = 360 / count;
+
+  return Array.from({ length: count }, (_, sectionIndex) => {
+    const start = rotationDegrees + step * sectionIndex;
+    const end = start + step;
+    const points = [
+      ...sampleAzimuthArc(start, end, outerRadius),
+      ...sampleAzimuthArc(end, start, innerRadius),
+    ];
+    const xValues = points.map((point) => point.x);
+    const yValues = points.map((point) => point.y);
+    const x = Math.min(...xValues);
+    const y = Math.min(...yValues);
+    const right = Math.max(...xValues);
+    const bottom = Math.max(...yValues);
+    const sectionNumber = sectionIndex + 1;
+    return {
+      id: `AR${sectionNumber}`,
+      label: `AR${sectionNumber}`,
+      aliases: [`A${sectionNumber}`],
+      plateKind: "annular",
+      row: 0,
+      column: sectionNumber,
+      x: roundGeometry(x),
+      y: roundGeometry(y),
+      width: roundGeometry(right - x),
+      height: roundGeometry(bottom - y),
+      points,
+      source,
+    };
+  });
+}
+
+function readCircularLayoutSettings(customLayout) {
+  if (!customLayout || typeof customLayout !== "object" || Array.isArray(customLayout)) {
+    return { annularRotationDeg: 0, annularWidthRatio: 0.12 };
+  }
+  return {
+    annularRotationDeg: Number.isFinite(customLayout.annularRotationDeg) ? customLayout.annularRotationDeg : 0,
+    annularWidthRatio: Number.isFinite(customLayout.annularWidthRatio) ? customLayout.annularWidthRatio : 0.12,
+  };
+}
+
+function sampleAzimuthArc(startDegrees, endDegrees, radius) {
+  const span = endDegrees - startDegrees;
+  const segmentCount = Math.max(2, Math.ceil(Math.abs(span) / 5));
+  return Array.from({ length: segmentCount + 1 }, (_, index) => {
+    const azimuth = startDegrees + (span * index) / segmentCount;
+    const radians = ((azimuth - 90) * Math.PI) / 180;
+    return {
+      x: roundGeometry(0.5 + Math.cos(radians) * radius),
+      y: roundGeometry(0.5 + Math.sin(radians) * radius),
+    };
+  });
+}
+
+function roundGeometry(value) {
+  return Math.round(value * 100_000) / 100_000;
 }
 
 function buildAndroidShellPlateSegments(courseCount, platesPerCourse, offsetMode, offsetStartRow, thirdOffsetStart) {
@@ -635,21 +1010,22 @@ function groupPlatesByRow(plates) {
   return grouped;
 }
 
-function buildCustomCircularPlateRefs(rows) {
+function buildCustomCircularPlateRefs(rows, labelMode) {
   const labelsByRowAndPlate = new Map();
   let roofCounter = 1;
 
   rows.forEach((row, rowIndex) => {
     const plateGroups = groupCustomPlatesBySplitKey(row.plates);
     const groupCount = plateGroups.length;
-    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) => {
-      const offset = row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex;
-      return roofCounter + offset;
-    });
+    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) =>
+      labelMode === "floor"
+        ? `${row.rowNumber}.${groupIndex + 1}`
+        : String(roofCounter + (row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex)),
+    );
     const rowLabelsByPlate = new Map();
 
     plateGroups.forEach((group, groupIndex) => {
-      const base = rowLabels[groupIndex].toString();
+      const base = rowLabels[groupIndex];
       group.forEach((plateIndex) => {
         const plate = row.plates[plateIndex];
         const suffix = plate.splitGroupKey ? splitSuffix(plate.splitPartIndex ?? 0) : "";
@@ -658,7 +1034,7 @@ function buildCustomCircularPlateRefs(rows) {
     });
 
     labelsByRowAndPlate.set(rowIndex, rowLabelsByPlate);
-    roofCounter += groupCount;
+    if (labelMode === "roof") roofCounter += groupCount;
   });
 
   return labelsByRowAndPlate;
@@ -719,11 +1095,107 @@ function parseCustomCircularRows(customLayout) {
       return {
         rowNumber: Number.isFinite(row.rowNumber) && row.rowNumber > 0 ? row.rowNumber : index + 1,
         shiftRatio: clamp(Number.isFinite(row.shiftRatio) ? row.shiftRatio : 0, -0.4, 0.4),
+        heightWeight: Number.isFinite(row.heightWeight) && row.heightWeight > 0 ? row.heightWeight : 1,
         plates,
       };
     })
     .filter(Boolean)
     .sort((a, b) => a.rowNumber - b.rowNumber);
+}
+
+function parseResolvedMainPlateGeometry(customLayout, source) {
+  if (
+    !customLayout ||
+    typeof customLayout !== "object" ||
+    ![1, 2].includes(customLayout.resolvedGeometryVersion)
+  ) return [];
+  if (!Array.isArray(customLayout.resolvedMainPlateGeometry)) return [];
+
+  return customLayout.resolvedMainPlateGeometry
+    .map((value, index) => {
+      if (!value || typeof value !== "object" || typeof value.plateId !== "string" || value.plateId.trim() === "") {
+        return null;
+      }
+      const { leftNorm, rightNorm, topNorm, bottomNorm } = value;
+      if (
+        !Number.isFinite(leftNorm) ||
+        !Number.isFinite(rightNorm) ||
+        !Number.isFinite(topNorm) ||
+        !Number.isFinite(bottomNorm) ||
+        rightNorm <= leftNorm ||
+        bottomNorm <= topNorm
+      ) {
+        return null;
+      }
+      const plateId = value.plateId.trim();
+      return clampPlate({
+        id: plateId,
+        label: plateId,
+        mapLabel: typeof value.mapLabel === "string" ? value.mapLabel : plateId,
+        labelX: Number.isFinite(value.labelXNorm) ? value.labelXNorm : (leftNorm + rightNorm) / 2,
+        labelY: Number.isFinite(value.labelYNorm) ? value.labelYNorm : (topNorm + bottomNorm) / 2,
+        row: Number.isFinite(value.rowNumber) ? Math.floor(value.rowNumber) : 0,
+        column: index + 1,
+        x: leftNorm,
+        y: topNorm,
+        width: rightNorm - leftNorm,
+        height: bottomNorm - topNorm,
+        source,
+      });
+    })
+    .filter(Boolean);
+}
+
+function parseResolvedAnnularPlateGeometry(customLayout, source) {
+  if (!customLayout || typeof customLayout !== "object" || customLayout.resolvedGeometryVersion !== 2) return [];
+  if (!Array.isArray(customLayout.resolvedAnnularPlateGeometry)) return [];
+
+  return customLayout.resolvedAnnularPlateGeometry
+    .map((value, index) => {
+      if (!value || typeof value !== "object" || typeof value.plateId !== "string" || value.plateId.trim() === "") {
+        return null;
+      }
+      const { leftNorm, rightNorm, topNorm, bottomNorm } = value;
+      const points = Array.isArray(value.points)
+        ? value.points
+            .map((point) => (
+              point && Number.isFinite(point.xNorm) && Number.isFinite(point.yNorm)
+                ? { x: point.xNorm, y: point.yNorm }
+                : null
+            ))
+            .filter(Boolean)
+        : [];
+      if (
+        !Number.isFinite(leftNorm) ||
+        !Number.isFinite(rightNorm) ||
+        !Number.isFinite(topNorm) ||
+        !Number.isFinite(bottomNorm) ||
+        rightNorm <= leftNorm ||
+        bottomNorm <= topNorm ||
+        points.length < 3
+      ) return null;
+
+      const sectionNumber = Number.isFinite(value.sectionNumber) ? Math.floor(value.sectionNumber) : index + 1;
+      const plateId = value.plateId.trim();
+      return clampPlate({
+        id: plateId,
+        label: plateId,
+        mapLabel: typeof value.mapLabel === "string" ? value.mapLabel : `A${sectionNumber}`,
+        labelX: Number.isFinite(value.labelXNorm) ? value.labelXNorm : (leftNorm + rightNorm) / 2,
+        labelY: Number.isFinite(value.labelYNorm) ? value.labelYNorm : (topNorm + bottomNorm) / 2,
+        aliases: [`A${sectionNumber}`],
+        plateKind: "annular",
+        row: 0,
+        column: sectionNumber,
+        x: leftNorm,
+        y: topNorm,
+        width: rightNorm - leftNorm,
+        height: bottomNorm - topNorm,
+        points,
+        source,
+      });
+    })
+    .filter(Boolean);
 }
 
 function shellRegionMarkerPosition(laneId, course, laneCount, courseCount) {
@@ -756,28 +1228,50 @@ function shellPlateRect(plate) {
 }
 
 function markerPoint(marker, mapBox) {
+  const width = mapBox.width ?? mapBox.size;
+  const height = mapBox.height ?? mapBox.size;
   return {
-    x: mapBox.x + marker.x * mapBox.width,
-    y: mapBox.y + marker.y * mapBox.height,
+    x: mapBox.x + marker.x * width,
+    y: mapBox.y + marker.y * height,
   };
 }
 
 function clampPlate(plate) {
+  const source = normalizeLayoutSource(plate.source);
+  const isAppGeometry = source.startsWith("android:") || source.startsWith("v3-app:");
+  const width = clamp(plate.width, isAppGeometry ? 0.001 : 0.02, isAppGeometry ? 1.5 : 1);
+  const height = clamp(plate.height, isAppGeometry ? 0.001 : 0.02, 1);
   return {
     ...plate,
-    x: clamp(plate.x, 0, 0.98),
-    y: clamp(plate.y, 0, 0.98),
-    width: clamp(plate.width, 0.02, 1),
-    height: clamp(plate.height, 0.02, 1),
+    source,
+    x: clamp(plate.x, isAppGeometry ? -0.25 : 0, isAppGeometry ? 1.25 - width : 0.98),
+    y: clamp(plate.y, 0, 1 - height),
+    width,
+    height,
+    points: Array.isArray(plate.points) && plate.points.length >= 3
+      ? plate.points.map((point) => ({
+          x: clamp(point.x, 0, 1),
+          y: clamp(point.y, 0, 1),
+        }))
+      : undefined,
   };
 }
 
 function clampMarker(marker) {
+  const source = normalizeLayoutSource(marker.source);
+  const isAppGeometry = source.startsWith("v3-app:");
   return {
     ...marker,
-    x: clamp(marker.x, 0.02, 0.98),
-    y: clamp(marker.y, 0.04, 0.96),
+    source,
+    x: clamp(marker.x, isAppGeometry ? 0 : 0.02, isAppGeometry ? 1 : 0.98),
+    y: clamp(marker.y, isAppGeometry ? 0 : 0.04, isAppGeometry ? 1 : 0.96),
   };
+}
+
+function normalizeLayoutSource(source) {
+  return typeof source === "string" && source.trim() !== ""
+    ? source
+    : "report-platform:legacy-layout-override";
 }
 
 function coerceCircularMarkerPosition(x, y) {
@@ -841,6 +1335,50 @@ function safeId(value) {
   return String(value ?? "layout").replace(/[^a-z0-9_-]+/gi, "-");
 }
 
+function floorPlateClipId(layoutMapId, plateId) {
+  return `floor-plate-clip-${safeId(`${layoutMapId}-${plateId}`)}`;
+}
+
+function floorTankClipId(layoutMapId) {
+  return `floor-tank-clip-${safeId(layoutMapId)}`;
+}
+
+function safeInlineCorrosionImage(value) {
+  const candidate = String(value ?? "");
+  return /^data:image\/(?:png|svg\+xml);base64,[a-z0-9+/=]+$/i.test(candidate) ? candidate : null;
+}
+
+function safeAppOwnedFloorFigureDataUri(figure) {
+  if (
+    figure?.targetKey !== "floor" ||
+    figure?.mediaType !== "image/svg+xml" ||
+    figure?.renderVersion !== 1 ||
+    figure?.sourceGeometryVersion !== 2 ||
+    typeof figure?.svg !== "string" ||
+    !/^<svg\b/i.test(figure.svg) ||
+    figure.svg.length > 500_000
+  ) {
+    return null;
+  }
+  const withoutInternalUrls = figure.svg.replace(/url\(#[A-Za-z0-9_.:-]+\)/g, "");
+  if (
+    /<(?:script|foreignObject|image|use|a)\b/i.test(figure.svg) ||
+    /\bon[a-z]+\s*=/i.test(figure.svg) ||
+    /\b(?:href|xlink:href)\s*=/i.test(figure.svg) ||
+    /<!DOCTYPE|<!ENTITY/i.test(figure.svg) ||
+    /javascript:|data:/i.test(figure.svg) ||
+    /url\s*\(/i.test(withoutInternalUrls)
+  ) {
+    return null;
+  }
+  return `data:image/svg+xml;base64,${Buffer.from(figure.svg, "utf8").toString("base64")}`;
+}
+
+function normalizeRotation(value) {
+  const normalized = ((Number(value) % 360) + 360) % 360;
+  return [0, 90, 180, 270].includes(normalized) ? normalized : 0;
+}
+
 function escapeXml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -864,8 +1402,12 @@ function svgStyles() {
     .circular-outline { fill: none; stroke: rgba(239, 76, 87, 0.78); stroke-width: 3.5; }
     .reference-line { stroke: rgba(13, 79, 144, 0.86); stroke-width: 3.4; }
     .zero-label { fill: #ef4c57; font: 900 12px Arial, sans-serif; }
+    .floor-corrosion-legend > rect { fill: #ffffff; stroke: rgba(13,79,144,0.65); stroke-width: 1.3; }
+    .floor-corrosion-legend text { fill: #0a3f73; font: 850 10px Arial, sans-serif; text-anchor: middle; }
+    .floor-corrosion-legend-title { font-size: 12px; text-anchor: start !important; }
     .plate { fill: #ffffff; stroke: rgba(111, 124, 142, 0.55); stroke-width: 1; }
     .plate-label { fill: #253447; font: 800 10px Arial, sans-serif; text-anchor: middle; }
+    .floor-corrosion-overlay { image-rendering: auto; }
     .course-label { fill: #637083; font: 700 13px Arial, sans-serif; text-anchor: start; }
     .lane-label { fill: #ef4c57; font: 900 13px Arial, sans-serif; text-anchor: middle; }
     .shell-segment { fill: rgba(255,255,255,0.72); stroke: rgba(13,79,144,0.36); stroke-width: 1.2; }

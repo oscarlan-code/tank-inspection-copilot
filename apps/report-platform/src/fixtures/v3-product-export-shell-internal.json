@@ -804,12 +804,969 @@
       "shellPlateOffset": null,
       "shellOffsetStartRow": null,
       "shellThirdOffsetStart": null,
-      "floorTemplate": "circular_plate",
-      "floorPlateCount": 35,
-      "floorAnnularSectionCount": 0,
-      "floorPatternCountX": 6,
-      "floorPatternCountY": 6,
+      "floorTemplate": "circular_plate_ar",
+      "floorPlateCount": 24,
+      "floorAnnularSectionCount": 10,
+      "floorPatternCountX": 7,
+      "floorPatternCountY": 5,
+      "customCircularLayout": {
+        "annularRotationDeg": 144,
+        "annularWidthRatio": 0.089,
+        "rotationDirection": "clockwise",
+        "rowGroups": [],
+        "rows": [
+          {
+            "rowNumber": 1,
+            "shiftRatio": 0,
+            "heightWeight": 1.126,
+            "plates": [
+              {
+                "widthWeight": 1.621,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1.621,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 2,
+            "shiftRatio": 0,
+            "heightWeight": 1,
+            "plates": [
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1.72,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 3,
+            "shiftRatio": 0,
+            "heightWeight": 1,
+            "plates": [
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 4,
+            "shiftRatio": 0,
+            "heightWeight": 1,
+            "plates": [
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1.435,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 5,
+            "shiftRatio": 0,
+            "heightWeight": 1,
+            "plates": [
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 6,
+            "shiftRatio": 0,
+            "heightWeight": 1,
+            "plates": [
+              {
+                "widthWeight": 1.163,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": "floor-row-6-plate-2",
+                "splitPartIndex": 0,
+                "splitPartCount": 2,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": "floor-row-6-plate-2",
+                "splitPartIndex": 1,
+                "splitPartCount": 2,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1.163,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          },
+          {
+            "rowNumber": 7,
+            "shiftRatio": 0,
+            "heightWeight": 1.126,
+            "plates": [
+              {
+                "widthWeight": 1.621,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              },
+              {
+                "widthWeight": 1.621,
+                "splitGroupKey": null,
+                "splitPartIndex": 0,
+                "splitPartCount": 1,
+                "verticalMergeGroupKey": null
+              }
+            ]
+          }
+        ],
+        "resolvedGeometryVersion": 2,
+        "resolvedMainPlateGeometry": [
+          {
+            "plateId": "1.1",
+            "mapLabel": "1",
+            "rowNumber": 1,
+            "leftNorm": 0.112001,
+            "rightNorm": 0.313522,
+            "topNorm": 0.08,
+            "bottomNorm": 0.210425,
+            "labelXNorm": 0.243271,
+            "labelYNorm": 0.182897
+          },
+          {
+            "plateId": "1.2",
+            "mapLabel": "2",
+            "rowNumber": 1,
+            "leftNorm": 0.313522,
+            "rightNorm": 0.437841,
+            "topNorm": 0.08,
+            "bottomNorm": 0.210425,
+            "labelXNorm": 0.375681,
+            "labelYNorm": 0.145212
+          },
+          {
+            "plateId": "1.3",
+            "mapLabel": "3",
+            "rowNumber": 1,
+            "leftNorm": 0.437841,
+            "rightNorm": 0.562159,
+            "topNorm": 0.08,
+            "bottomNorm": 0.210425,
+            "labelXNorm": 0.5,
+            "labelYNorm": 0.145212
+          },
+          {
+            "plateId": "1.4",
+            "mapLabel": "4",
+            "rowNumber": 1,
+            "leftNorm": 0.562159,
+            "rightNorm": 0.686478,
+            "topNorm": 0.08,
+            "bottomNorm": 0.210425,
+            "labelXNorm": 0.624319,
+            "labelYNorm": 0.145212
+          },
+          {
+            "plateId": "1.5",
+            "mapLabel": "5",
+            "rowNumber": 1,
+            "leftNorm": 0.686478,
+            "rightNorm": 0.887999,
+            "topNorm": 0.08,
+            "bottomNorm": 0.210425,
+            "labelXNorm": 0.756729,
+            "labelYNorm": 0.182897
+          },
+          {
+            "plateId": "2.1",
+            "mapLabel": "8",
+            "rowNumber": 2,
+            "leftNorm": -0.000905,
+            "rightNorm": 0.268399,
+            "topNorm": 0.210425,
+            "bottomNorm": 0.326255,
+            "labelXNorm": 0.155186,
+            "labelYNorm": 0.2819
+          },
+          {
+            "plateId": "2.2",
+            "mapLabel": "7",
+            "rowNumber": 2,
+            "leftNorm": 0.268399,
+            "rightNorm": 0.731601,
+            "topNorm": 0.210425,
+            "bottomNorm": 0.326255,
+            "labelXNorm": 0.5,
+            "labelYNorm": 0.26834
+          },
+          {
+            "plateId": "2.3",
+            "mapLabel": "6",
+            "rowNumber": 2,
+            "leftNorm": 0.731601,
+            "rightNorm": 1.000905,
+            "topNorm": 0.210425,
+            "bottomNorm": 0.326255,
+            "labelXNorm": 0.844814,
+            "labelYNorm": 0.2819
+          },
+          {
+            "plateId": "3.1",
+            "mapLabel": "9",
+            "rowNumber": 3,
+            "leftNorm": -0.048714,
+            "rightNorm": 0.5,
+            "topNorm": 0.326255,
+            "bottomNorm": 0.442085,
+            "labelXNorm": 0.225643,
+            "labelYNorm": 0.38417
+          },
+          {
+            "plateId": "3.2",
+            "mapLabel": "10",
+            "rowNumber": 3,
+            "leftNorm": 0.5,
+            "rightNorm": 1.048714,
+            "topNorm": 0.326255,
+            "bottomNorm": 0.442085,
+            "labelXNorm": 0.774357,
+            "labelYNorm": 0.38417
+          },
+          {
+            "plateId": "4.1",
+            "mapLabel": "13",
+            "rowNumber": 4,
+            "leftNorm": -0.0544,
+            "rightNorm": 0.268395,
+            "topNorm": 0.442085,
+            "bottomNorm": 0.557915,
+            "labelXNorm": 0.106997,
+            "labelYNorm": 0.5
+          },
+          {
+            "plateId": "4.2",
+            "mapLabel": "12",
+            "rowNumber": 4,
+            "leftNorm": 0.268395,
+            "rightNorm": 0.731605,
+            "topNorm": 0.442085,
+            "bottomNorm": 0.557915,
+            "labelXNorm": 0.5,
+            "labelYNorm": 0.5
+          },
+          {
+            "plateId": "4.3",
+            "mapLabel": "11",
+            "rowNumber": 4,
+            "leftNorm": 0.731605,
+            "rightNorm": 1.0544,
+            "topNorm": 0.442085,
+            "bottomNorm": 0.557915,
+            "labelXNorm": 0.893003,
+            "labelYNorm": 0.5
+          },
+          {
+            "plateId": "5.1",
+            "mapLabel": "14",
+            "rowNumber": 5,
+            "leftNorm": -0.048714,
+            "rightNorm": 0.5,
+            "topNorm": 0.557915,
+            "bottomNorm": 0.673745,
+            "labelXNorm": 0.225643,
+            "labelYNorm": 0.61583
+          },
+          {
+            "plateId": "5.2",
+            "mapLabel": "15",
+            "rowNumber": 5,
+            "leftNorm": 0.5,
+            "rightNorm": 1.048714,
+            "topNorm": 0.557915,
+            "bottomNorm": 0.673745,
+            "labelXNorm": 0.774357,
+            "labelYNorm": 0.61583
+          },
+          {
+            "plateId": "6.1",
+            "mapLabel": "18",
+            "rowNumber": 6,
+            "leftNorm": -0.000905,
+            "rightNorm": 0.268421,
+            "topNorm": 0.673745,
+            "bottomNorm": 0.789575,
+            "labelXNorm": 0.155189,
+            "labelYNorm": 0.718104
+          },
+          {
+            "plateId": "6.2a",
+            "mapLabel": "17a",
+            "rowNumber": 6,
+            "leftNorm": 0.268421,
+            "rightNorm": 0.5,
+            "topNorm": 0.673745,
+            "bottomNorm": 0.789575,
+            "labelXNorm": 0.384211,
+            "labelYNorm": 0.73166
+          },
+          {
+            "plateId": "6.2b",
+            "mapLabel": "17b",
+            "rowNumber": 6,
+            "leftNorm": 0.5,
+            "rightNorm": 0.731579,
+            "topNorm": 0.673745,
+            "bottomNorm": 0.789575,
+            "labelXNorm": 0.615789,
+            "labelYNorm": 0.73166
+          },
+          {
+            "plateId": "6.3",
+            "mapLabel": "16",
+            "rowNumber": 6,
+            "leftNorm": 0.731579,
+            "rightNorm": 1.000905,
+            "topNorm": 0.673745,
+            "bottomNorm": 0.789575,
+            "labelXNorm": 0.844811,
+            "labelYNorm": 0.718104
+          },
+          {
+            "plateId": "7.1",
+            "mapLabel": "19",
+            "rowNumber": 7,
+            "leftNorm": 0.112001,
+            "rightNorm": 0.313522,
+            "topNorm": 0.789575,
+            "bottomNorm": 0.92,
+            "labelXNorm": 0.243271,
+            "labelYNorm": 0.817103
+          },
+          {
+            "plateId": "7.2",
+            "mapLabel": "20",
+            "rowNumber": 7,
+            "leftNorm": 0.313522,
+            "rightNorm": 0.437841,
+            "topNorm": 0.789575,
+            "bottomNorm": 0.92,
+            "labelXNorm": 0.375681,
+            "labelYNorm": 0.854788
+          },
+          {
+            "plateId": "7.3",
+            "mapLabel": "21",
+            "rowNumber": 7,
+            "leftNorm": 0.437841,
+            "rightNorm": 0.562159,
+            "topNorm": 0.789575,
+            "bottomNorm": 0.92,
+            "labelXNorm": 0.5,
+            "labelYNorm": 0.854788
+          },
+          {
+            "plateId": "7.4",
+            "mapLabel": "22",
+            "rowNumber": 7,
+            "leftNorm": 0.562159,
+            "rightNorm": 0.686478,
+            "topNorm": 0.789575,
+            "bottomNorm": 0.92,
+            "labelXNorm": 0.624319,
+            "labelYNorm": 0.854788
+          },
+          {
+            "plateId": "7.5",
+            "mapLabel": "23",
+            "rowNumber": 7,
+            "leftNorm": 0.686478,
+            "rightNorm": 0.887999,
+            "topNorm": 0.789575,
+            "bottomNorm": 0.92,
+            "labelXNorm": 0.756729,
+            "labelYNorm": 0.817103
+          }
+        ],
+        "resolvedAnnularPlateGeometry": [
+          {
+            "plateId": "AR1",
+            "mapLabel": "A1",
+            "rowNumber": 0,
+            "leftNorm": 0.5,
+            "rightNorm": 0.768841,
+            "topNorm": 0.839787,
+            "bottomNorm": 0.95738,
+            "labelXNorm": 0.635563,
+            "labelYNorm": 0.917219,
+            "points": [
+              {
+                "xNorm": 0.768841,
+                "yNorm": 0.870028
+              },
+              {
+                "xNorm": 0.720344,
+                "yNorm": 0.900805
+              },
+              {
+                "xNorm": 0.668373,
+                "yNorm": 0.925261
+              },
+              {
+                "xNorm": 0.613746,
+                "yNorm": 0.943011
+              },
+              {
+                "xNorm": 0.557325,
+                "yNorm": 0.953773
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.95738
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.92
+              },
+              {
+                "xNorm": 0.74687,
+                "yNorm": 0.839787
+              }
+            ]
+          },
+          {
+            "plateId": "AR2",
+            "mapLabel": "A2",
+            "rowNumber": 0,
+            "leftNorm": 0.231159,
+            "rightNorm": 0.5,
+            "topNorm": 0.839787,
+            "bottomNorm": 0.95738,
+            "labelXNorm": 0.364437,
+            "labelYNorm": 0.917219,
+            "points": [
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.95738
+              },
+              {
+                "xNorm": 0.442675,
+                "yNorm": 0.953773
+              },
+              {
+                "xNorm": 0.386254,
+                "yNorm": 0.943011
+              },
+              {
+                "xNorm": 0.331627,
+                "yNorm": 0.925261
+              },
+              {
+                "xNorm": 0.279656,
+                "yNorm": 0.900805
+              },
+              {
+                "xNorm": 0.231159,
+                "yNorm": 0.870028
+              },
+              {
+                "xNorm": 0.25313,
+                "yNorm": 0.839787
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.92
+              }
+            ]
+          },
+          {
+            "plateId": "AR3",
+            "mapLabel": "A3",
+            "rowNumber": 0,
+            "leftNorm": 0.065006,
+            "rightNorm": 0.25313,
+            "topNorm": 0.629787,
+            "bottomNorm": 0.870028,
+            "labelXNorm": 0.145092,
+            "labelYNorm": 0.757856,
+            "points": [
+              {
+                "xNorm": 0.231159,
+                "yNorm": 0.870028
+              },
+              {
+                "xNorm": 0.186902,
+                "yNorm": 0.833416
+              },
+              {
+                "xNorm": 0.147583,
+                "yNorm": 0.791545
+              },
+              {
+                "xNorm": 0.113821,
+                "yNorm": 0.745076
+              },
+              {
+                "xNorm": 0.08615,
+                "yNorm": 0.694743
+              },
+              {
+                "xNorm": 0.065006,
+                "yNorm": 0.641338
+              },
+              {
+                "xNorm": 0.100556,
+                "yNorm": 0.629787
+              },
+              {
+                "xNorm": 0.25313,
+                "yNorm": 0.839787
+              }
+            ]
+          },
+          {
+            "plateId": "AR4",
+            "mapLabel": "A4",
+            "rowNumber": 0,
+            "leftNorm": 0.043523,
+            "rightNorm": 0.100556,
+            "topNorm": 0.358662,
+            "bottomNorm": 0.641338,
+            "labelXNorm": 0.06131,
+            "labelYNorm": 0.5,
+            "points": [
+              {
+                "xNorm": 0.065006,
+                "yNorm": 0.641338
+              },
+              {
+                "xNorm": 0.050721,
+                "yNorm": 0.585704
+              },
+              {
+                "xNorm": 0.043523,
+                "yNorm": 0.528719
+              },
+              {
+                "xNorm": 0.043523,
+                "yNorm": 0.471281
+              },
+              {
+                "xNorm": 0.050721,
+                "yNorm": 0.414296
+              },
+              {
+                "xNorm": 0.065006,
+                "yNorm": 0.358662
+              },
+              {
+                "xNorm": 0.100556,
+                "yNorm": 0.370213
+              },
+              {
+                "xNorm": 0.100556,
+                "yNorm": 0.629787
+              }
+            ]
+          },
+          {
+            "plateId": "AR5",
+            "mapLabel": "A5",
+            "rowNumber": 0,
+            "leftNorm": 0.065006,
+            "rightNorm": 0.25313,
+            "topNorm": 0.129972,
+            "bottomNorm": 0.370213,
+            "labelXNorm": 0.145092,
+            "labelYNorm": 0.242144,
+            "points": [
+              {
+                "xNorm": 0.065006,
+                "yNorm": 0.358662
+              },
+              {
+                "xNorm": 0.08615,
+                "yNorm": 0.305257
+              },
+              {
+                "xNorm": 0.113821,
+                "yNorm": 0.254924
+              },
+              {
+                "xNorm": 0.147583,
+                "yNorm": 0.208455
+              },
+              {
+                "xNorm": 0.186902,
+                "yNorm": 0.166584
+              },
+              {
+                "xNorm": 0.231159,
+                "yNorm": 0.129972
+              },
+              {
+                "xNorm": 0.25313,
+                "yNorm": 0.160213
+              },
+              {
+                "xNorm": 0.100556,
+                "yNorm": 0.370213
+              }
+            ]
+          },
+          {
+            "plateId": "AR6",
+            "mapLabel": "A6",
+            "rowNumber": 0,
+            "leftNorm": 0.231159,
+            "rightNorm": 0.5,
+            "topNorm": 0.04262,
+            "bottomNorm": 0.160213,
+            "labelXNorm": 0.364437,
+            "labelYNorm": 0.082781,
+            "points": [
+              {
+                "xNorm": 0.231159,
+                "yNorm": 0.129972
+              },
+              {
+                "xNorm": 0.279656,
+                "yNorm": 0.099195
+              },
+              {
+                "xNorm": 0.331627,
+                "yNorm": 0.074739
+              },
+              {
+                "xNorm": 0.386254,
+                "yNorm": 0.056989
+              },
+              {
+                "xNorm": 0.442675,
+                "yNorm": 0.046227
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.04262
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.08
+              },
+              {
+                "xNorm": 0.25313,
+                "yNorm": 0.160213
+              }
+            ]
+          },
+          {
+            "plateId": "AR7",
+            "mapLabel": "A7",
+            "rowNumber": 0,
+            "leftNorm": 0.5,
+            "rightNorm": 0.768841,
+            "topNorm": 0.04262,
+            "bottomNorm": 0.160213,
+            "labelXNorm": 0.635563,
+            "labelYNorm": 0.082781,
+            "points": [
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.04262
+              },
+              {
+                "xNorm": 0.557325,
+                "yNorm": 0.046227
+              },
+              {
+                "xNorm": 0.613746,
+                "yNorm": 0.056989
+              },
+              {
+                "xNorm": 0.668373,
+                "yNorm": 0.074739
+              },
+              {
+                "xNorm": 0.720344,
+                "yNorm": 0.099195
+              },
+              {
+                "xNorm": 0.768841,
+                "yNorm": 0.129972
+              },
+              {
+                "xNorm": 0.74687,
+                "yNorm": 0.160213
+              },
+              {
+                "xNorm": 0.5,
+                "yNorm": 0.08
+              }
+            ]
+          },
+          {
+            "plateId": "AR8",
+            "mapLabel": "A8",
+            "rowNumber": 0,
+            "leftNorm": 0.74687,
+            "rightNorm": 0.934994,
+            "topNorm": 0.129972,
+            "bottomNorm": 0.370213,
+            "labelXNorm": 0.854908,
+            "labelYNorm": 0.242144,
+            "points": [
+              {
+                "xNorm": 0.768841,
+                "yNorm": 0.129972
+              },
+              {
+                "xNorm": 0.813098,
+                "yNorm": 0.166584
+              },
+              {
+                "xNorm": 0.852417,
+                "yNorm": 0.208455
+              },
+              {
+                "xNorm": 0.886179,
+                "yNorm": 0.254924
+              },
+              {
+                "xNorm": 0.91385,
+                "yNorm": 0.305257
+              },
+              {
+                "xNorm": 0.934994,
+                "yNorm": 0.358662
+              },
+              {
+                "xNorm": 0.899444,
+                "yNorm": 0.370213
+              },
+              {
+                "xNorm": 0.74687,
+                "yNorm": 0.160213
+              }
+            ]
+          },
+          {
+            "plateId": "AR9",
+            "mapLabel": "A9",
+            "rowNumber": 0,
+            "leftNorm": 0.899444,
+            "rightNorm": 0.956477,
+            "topNorm": 0.358662,
+            "bottomNorm": 0.641338,
+            "labelXNorm": 0.93869,
+            "labelYNorm": 0.5,
+            "points": [
+              {
+                "xNorm": 0.934994,
+                "yNorm": 0.358662
+              },
+              {
+                "xNorm": 0.949279,
+                "yNorm": 0.414296
+              },
+              {
+                "xNorm": 0.956477,
+                "yNorm": 0.471281
+              },
+              {
+                "xNorm": 0.956477,
+                "yNorm": 0.528719
+              },
+              {
+                "xNorm": 0.949279,
+                "yNorm": 0.585704
+              },
+              {
+                "xNorm": 0.934994,
+                "yNorm": 0.641338
+              },
+              {
+                "xNorm": 0.899444,
+                "yNorm": 0.629787
+              },
+              {
+                "xNorm": 0.899444,
+                "yNorm": 0.370213
+              }
+            ]
+          },
+          {
+            "plateId": "AR10",
+            "mapLabel": "A10",
+            "rowNumber": 0,
+            "leftNorm": 0.74687,
+            "rightNorm": 0.934994,
+            "topNorm": 0.629787,
+            "bottomNorm": 0.870028,
+            "labelXNorm": 0.854908,
+            "labelYNorm": 0.757856,
+            "points": [
+              {
+                "xNorm": 0.934994,
+                "yNorm": 0.641338
+              },
+              {
+                "xNorm": 0.91385,
+                "yNorm": 0.694743
+              },
+              {
+                "xNorm": 0.886179,
+                "yNorm": 0.745076
+              },
+              {
+                "xNorm": 0.852417,
+                "yNorm": 0.791545
+              },
+              {
+                "xNorm": 0.813098,
+                "yNorm": 0.833416
+              },
+              {
+                "xNorm": 0.768841,
+                "yNorm": 0.870028
+              },
+              {
+                "xNorm": 0.74687,
+                "yNorm": 0.839787
+              },
+              {
+                "xNorm": 0.899444,
+                "yNorm": 0.629787
+              }
+            ]
+          }
+        ]
+      },
       "updatedAtIso": "2022-07-22T16:30:00Z"
+    }
+  ],
+  "layoutFigures": [
+    {
+      "targetKey": "floor",
+      "renderVersion": 1,
+      "sourceGeometryVersion": 2,
+      "mediaType": "image/svg+xml",
+      "width": 1000,
+      "height": 1000,
+      "viewBox": "0 0 1000 1000",
+      "sha256": "97531b646546de4b4997067e680185e4645488b26efadf67ccce0cc433a66a3a",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"LAIQ inspection app floor layout map\" viewBox=\"0 0 1000 1000\" width=\"1000\" height=\"1000\"><defs><clipPath id=\"laiq-floor-main-clip\"><circle cx=\"500\" cy=\"500\" r=\"420\"/></clipPath></defs><rect width=\"1000\" height=\"1000\" fill=\"#ffffff\"/><circle cx=\"500\" cy=\"500\" r=\"420\" fill=\"#173b7a\" fill-opacity=\"0.07\"/><g clip-path=\"url(#laiq-floor-main-clip)\"><rect data-plate-id=\"1.1\" x=\"112.001\" y=\"80\" width=\"201.521\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"1.2\" x=\"313.522\" y=\"80\" width=\"124.319\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"1.3\" x=\"437.841\" y=\"80\" width=\"124.318\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"1.4\" x=\"562.159\" y=\"80\" width=\"124.319\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"1.5\" x=\"686.478\" y=\"80\" width=\"201.521\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"2.1\" x=\"-0.905\" y=\"210.425\" width=\"269.304\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"2.2\" x=\"268.399\" y=\"210.425\" width=\"463.202\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"2.3\" x=\"731.601\" y=\"210.425\" width=\"269.304\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"3.1\" x=\"-48.714\" y=\"326.255\" width=\"548.714\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"3.2\" x=\"500\" y=\"326.255\" width=\"548.714\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"4.1\" x=\"-54.4\" y=\"442.085\" width=\"322.795\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"4.2\" x=\"268.395\" y=\"442.085\" width=\"463.21\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"4.3\" x=\"731.605\" y=\"442.085\" width=\"322.795\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"5.1\" x=\"-48.714\" y=\"557.915\" width=\"548.714\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"5.2\" x=\"500\" y=\"557.915\" width=\"548.714\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"6.1\" x=\"-0.905\" y=\"673.745\" width=\"269.326\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"6.2a\" x=\"268.421\" y=\"673.745\" width=\"231.579\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"6.2b\" x=\"500\" y=\"673.745\" width=\"231.579\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"6.3\" x=\"731.579\" y=\"673.745\" width=\"269.326\" height=\"115.83\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"7.1\" x=\"112.001\" y=\"789.575\" width=\"201.521\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"7.2\" x=\"313.522\" y=\"789.575\" width=\"124.319\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"7.3\" x=\"437.841\" y=\"789.575\" width=\"124.318\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"7.4\" x=\"562.159\" y=\"789.575\" width=\"124.319\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/><rect data-plate-id=\"7.5\" x=\"686.478\" y=\"789.575\" width=\"201.521\" height=\"130.425\" rx=\"12\" fill=\"#ffffff\" stroke=\"#d8dfeb\" stroke-width=\"3.1\"/></g><polygon data-plate-id=\"AR1\" points=\"768.841,870.028 720.344,900.805 668.373,925.261 613.746,943.011 557.325,953.773 500,957.38 500,920 746.87,839.787\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR2\" points=\"500,957.38 442.675,953.773 386.254,943.011 331.627,925.261 279.656,900.805 231.159,870.028 253.13,839.787 500,920\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR3\" points=\"231.159,870.028 186.902,833.416 147.583,791.545 113.821,745.076 86.15,694.743 65.006,641.338 100.556,629.787 253.13,839.787\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR4\" points=\"65.006,641.338 50.721,585.704 43.523,528.719 43.523,471.281 50.721,414.296 65.006,358.662 100.556,370.213 100.556,629.787\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR5\" points=\"65.006,358.662 86.15,305.257 113.821,254.924 147.583,208.455 186.902,166.584 231.159,129.972 253.13,160.213 100.556,370.213\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR6\" points=\"231.159,129.972 279.656,99.195 331.627,74.739 386.254,56.989 442.675,46.227 500,42.62 500,80 253.13,160.213\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR7\" points=\"500,42.62 557.325,46.227 613.746,56.989 668.373,74.739 720.344,99.195 768.841,129.972 746.87,160.213 500,80\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR8\" points=\"768.841,129.972 813.098,166.584 852.417,208.455 886.179,254.924 913.85,305.257 934.994,358.662 899.444,370.213 746.87,160.213\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR9\" points=\"934.994,358.662 949.279,414.296 956.477,471.281 956.477,528.719 949.279,585.704 934.994,641.338 899.444,629.787 899.444,370.213\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><polygon data-plate-id=\"AR10\" points=\"934.994,641.338 913.85,694.743 886.179,745.076 852.417,791.545 813.098,833.416 768.841,870.028 746.87,839.787 899.444,629.787\" fill=\"#4a67a3\" fill-opacity=\"0.08\" stroke=\"#d63b3b\" stroke-opacity=\"0.92\" stroke-width=\"5\"/><line x1=\"500\" y1=\"500\" x2=\"500\" y2=\"42.62\" stroke=\"#173b7a\" stroke-opacity=\"0.86\" stroke-width=\"4\"/><text x=\"500\" y=\"26.62\" text-anchor=\"middle\" font-family=\"Roboto,Arial,sans-serif\" font-size=\"24\" font-weight=\"600\" fill=\"#4a67a3\">0&#176;</text><g font-family=\"Roboto,Arial,sans-serif\" font-size=\"21\" font-weight=\"500\" fill=\"#1e2c3f\" text-anchor=\"middle\" dominant-baseline=\"central\"><text x=\"243.271\" y=\"182.897\">1</text><text x=\"375.681\" y=\"145.212\">2</text><text x=\"500\" y=\"145.212\">3</text><text x=\"624.319\" y=\"145.212\">4</text><text x=\"756.729\" y=\"182.897\">5</text><text x=\"155.186\" y=\"281.9\">8</text><text x=\"500\" y=\"268.34\">7</text><text x=\"844.814\" y=\"281.9\">6</text><text x=\"225.643\" y=\"384.17\">9</text><text x=\"774.357\" y=\"384.17\">10</text><text x=\"106.997\" y=\"500\">13</text><text x=\"500\" y=\"500\">12</text><text x=\"893.003\" y=\"500\">11</text><text x=\"225.643\" y=\"615.83\">14</text><text x=\"774.357\" y=\"615.83\">15</text><text x=\"155.189\" y=\"718.104\">18</text><text x=\"384.211\" y=\"731.66\">17a</text><text x=\"615.789\" y=\"731.66\">17b</text><text x=\"844.811\" y=\"718.104\">16</text><text x=\"243.271\" y=\"817.103\">19</text><text x=\"375.681\" y=\"854.788\">20</text><text x=\"500\" y=\"854.788\">21</text><text x=\"624.319\" y=\"854.788\">22</text><text x=\"756.729\" y=\"817.103\">23</text></g><g font-family=\"Roboto,Arial,sans-serif\" font-size=\"20\" font-weight=\"500\" fill=\"#4a67a3\" text-anchor=\"middle\" dominant-baseline=\"central\"><g><rect x=\"579.563\" y=\"889.219\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"635.563\" y=\"917.219\">A1</text></g><g><rect x=\"308.437\" y=\"889.219\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"364.437\" y=\"917.219\">A2</text></g><g><rect x=\"89.092\" y=\"729.856\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"145.092\" y=\"757.856\">A3</text></g><g><rect x=\"5.31\" y=\"472\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"61.31\" y=\"500\">A4</text></g><g><rect x=\"89.092\" y=\"214.144\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"145.092\" y=\"242.144\">A5</text></g><g><rect x=\"308.437\" y=\"54.781\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"364.437\" y=\"82.781\">A6</text></g><g><rect x=\"579.563\" y=\"54.781\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"635.563\" y=\"82.781\">A7</text></g><g><rect x=\"798.908\" y=\"214.144\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"854.908\" y=\"242.144\">A8</text></g><g><rect x=\"882.69\" y=\"472\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"938.69\" y=\"500\">A9</text></g><g><rect x=\"798.908\" y=\"729.856\" width=\"112\" height=\"56\" rx=\"25\" fill=\"#ffffff\" stroke=\"#4a67a3\" stroke-opacity=\"0.65\" stroke-width=\"3.1\"/><text x=\"854.908\" y=\"757.856\">A10</text></g></g><g><g data-element-id=\"floor_nozzle_s1\"><circle cx=\"910\" cy=\"690\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s2\"><circle cx=\"70\" cy=\"400\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s3\"><circle cx=\"170\" cy=\"210\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s4\"><circle cx=\"180\" cy=\"170\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s5\"><circle cx=\"270\" cy=\"100\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s6\"><circle cx=\"430\" cy=\"45\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s7\"><circle cx=\"520\" cy=\"55\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g><g data-element-id=\"floor_nozzle_s8\"><circle cx=\"760\" cy=\"140\" r=\"15\" fill=\"#ffffff\" stroke=\"#173b7a\" stroke-width=\"5.5\"/></g></g><text x=\"40\" y=\"970\" font-family=\"Roboto,Arial,sans-serif\" font-size=\"18\" fill=\"#5f6f86\">Reference: 0&#176; = 0 degree reference taken from nozzle N2 centerline, matching the approved training sketch convention.</text></svg>"
     }
   ],
   "elements": [
@@ -1016,21 +1973,81 @@
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
       "targetKey": "floor",
-      "elementId": "floor_sump_1",
-      "elementLabel": "SU-1",
-      "elementTypeKey": "sump",
-      "normalizedX": 0.5,
-      "normalizedY": 0.52,
+      "elementId": "floor_nozzle_s1",
+      "elementLabel": "S1",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.91,
+      "normalizedY": 0.69,
       "updatedAtIso": "2022-07-22T16:30:00Z"
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
       "targetKey": "floor",
-      "elementId": "floor_datum_1",
-      "elementLabel": "RF-1",
-      "elementTypeKey": "datum",
-      "normalizedX": 0.78,
-      "normalizedY": 0.5,
+      "elementId": "floor_nozzle_s2",
+      "elementLabel": "S2",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.07,
+      "normalizedY": 0.4,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s3",
+      "elementLabel": "S3",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.17,
+      "normalizedY": 0.21,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s4",
+      "elementLabel": "S4",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.18,
+      "normalizedY": 0.17,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s5",
+      "elementLabel": "S5",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.27,
+      "normalizedY": 0.1,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s6",
+      "elementLabel": "S6",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.43,
+      "normalizedY": 0.045,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s7",
+      "elementLabel": "S7",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.52,
+      "normalizedY": 0.055,
+      "updatedAtIso": "2022-07-22T16:30:00Z"
+    },
+    {
+      "inspectionId": "inspection-demo-api653-training-20220722",
+      "targetKey": "floor",
+      "elementId": "floor_nozzle_s8",
+      "elementLabel": "S8",
+      "elementTypeKey": "nozzle",
+      "normalizedX": 0.76,
+      "normalizedY": 0.14,
       "updatedAtIso": "2022-07-22T16:30:00Z"
     }
   ],
@@ -3369,15 +4386,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:1",
+      "itemKey": "floor:region:1.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 1",
+      "itemLabel": "Floor Plate 1.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "1",
+      "plateId": "1.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3391,15 +4408,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:2",
+      "itemKey": "floor:region:1.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 2",
+      "itemLabel": "Floor Plate 1.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "2",
+      "plateId": "1.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3413,15 +4430,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:3",
+      "itemKey": "floor:region:1.3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 3",
+      "itemLabel": "Floor Plate 1.3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "3",
+      "plateId": "1.3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3435,15 +4452,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:4",
+      "itemKey": "floor:region:1.4",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 4",
+      "itemLabel": "Floor Plate 1.4",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "4",
+      "plateId": "1.4",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3457,15 +4474,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:5",
+      "itemKey": "floor:region:1.5",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 5",
+      "itemLabel": "Floor Plate 1.5",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "5",
+      "plateId": "1.5",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3479,15 +4496,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:6",
+      "itemKey": "floor:region:2.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 6",
+      "itemLabel": "Floor Plate 2.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "6",
+      "plateId": "2.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3501,15 +4518,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:7",
+      "itemKey": "floor:region:2.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 7",
+      "itemLabel": "Floor Plate 2.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "7",
+      "plateId": "2.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3523,15 +4540,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:8",
+      "itemKey": "floor:region:2.3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 8",
+      "itemLabel": "Floor Plate 2.3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "8",
+      "plateId": "2.3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3545,15 +4562,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:9",
+      "itemKey": "floor:region:3.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 9",
+      "itemLabel": "Floor Plate 3.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "9",
+      "plateId": "3.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3567,15 +4584,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:10",
+      "itemKey": "floor:region:3.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 10",
+      "itemLabel": "Floor Plate 3.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "10",
+      "plateId": "3.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3589,15 +4606,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:11",
+      "itemKey": "floor:region:4.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 11",
+      "itemLabel": "Floor Plate 4.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "11",
+      "plateId": "4.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3611,15 +4628,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:12",
+      "itemKey": "floor:region:4.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 12",
+      "itemLabel": "Floor Plate 4.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "12",
+      "plateId": "4.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3633,15 +4650,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:13",
+      "itemKey": "floor:region:4.3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 13",
+      "itemLabel": "Floor Plate 4.3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "13",
+      "plateId": "4.3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3655,15 +4672,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:14",
+      "itemKey": "floor:region:5.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 14",
+      "itemLabel": "Floor Plate 5.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "14",
+      "plateId": "5.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3677,15 +4694,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:15",
+      "itemKey": "floor:region:5.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 15",
+      "itemLabel": "Floor Plate 5.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "15",
+      "plateId": "5.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3699,15 +4716,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:16",
+      "itemKey": "floor:region:6.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 16",
+      "itemLabel": "Floor Plate 6.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "16",
+      "plateId": "6.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3721,15 +4738,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:17",
+      "itemKey": "floor:region:6.2a",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 17",
+      "itemLabel": "Floor Plate 6.2a",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "17",
+      "plateId": "6.2a",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3743,15 +4760,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:18",
+      "itemKey": "floor:region:6.2b",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 18",
+      "itemLabel": "Floor Plate 6.2b",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "18",
+      "plateId": "6.2b",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3765,15 +4782,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:19",
+      "itemKey": "floor:region:6.3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 19",
+      "itemLabel": "Floor Plate 6.3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "19",
+      "plateId": "6.3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3787,15 +4804,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:20",
+      "itemKey": "floor:region:7.1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 20",
+      "itemLabel": "Floor Plate 7.1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "20",
+      "plateId": "7.1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3809,15 +4826,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:21",
+      "itemKey": "floor:region:7.2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 21",
+      "itemLabel": "Floor Plate 7.2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "21",
+      "plateId": "7.2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3831,15 +4848,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:22",
+      "itemKey": "floor:region:7.3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 22",
+      "itemLabel": "Floor Plate 7.3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "22",
+      "plateId": "7.3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3853,15 +4870,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:23",
+      "itemKey": "floor:region:7.4",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 23",
+      "itemLabel": "Floor Plate 7.4",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "23",
+      "plateId": "7.4",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3875,15 +4892,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:24",
+      "itemKey": "floor:region:7.5",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 24",
+      "itemLabel": "Floor Plate 7.5",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "24",
+      "plateId": "7.5",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3897,15 +4914,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:25",
+      "itemKey": "floor:region:AR1",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 25",
+      "itemLabel": "Floor Plate A1",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "25",
+      "plateId": "AR1",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3919,15 +4936,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:26",
+      "itemKey": "floor:region:AR2",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 26",
+      "itemLabel": "Floor Plate A2",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "26",
+      "plateId": "AR2",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3941,15 +4958,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:27",
+      "itemKey": "floor:region:AR3",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 27",
+      "itemLabel": "Floor Plate A3",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "27",
+      "plateId": "AR3",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3963,15 +4980,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:28",
+      "itemKey": "floor:region:AR4",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 28",
+      "itemLabel": "Floor Plate A4",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "28",
+      "plateId": "AR4",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -3985,15 +5002,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:29",
+      "itemKey": "floor:region:AR5",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 29",
+      "itemLabel": "Floor Plate A5",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "29",
+      "plateId": "AR5",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4007,15 +5024,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:30",
+      "itemKey": "floor:region:AR6",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 30",
+      "itemLabel": "Floor Plate A6",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "30",
+      "plateId": "AR6",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4029,15 +5046,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:31",
+      "itemKey": "floor:region:AR7",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 31",
+      "itemLabel": "Floor Plate A7",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "31",
+      "plateId": "AR7",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4051,15 +5068,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:32",
+      "itemKey": "floor:region:AR8",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 32",
+      "itemLabel": "Floor Plate A8",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "32",
+      "plateId": "AR8",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4073,15 +5090,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:33",
+      "itemKey": "floor:region:AR9",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 33",
+      "itemLabel": "Floor Plate A9",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "33",
+      "plateId": "AR9",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4095,15 +5112,15 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:34",
+      "itemKey": "floor:region:AR10",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 34",
+      "itemLabel": "Floor Plate A10",
       "itemKind": "region",
       "elementTypeKey": null,
       "nozzleSize": null,
       "laneId": null,
       "course": null,
-      "plateId": "34",
+      "plateId": "AR10",
       "elementId": null,
       "confirmed": true,
       "measured": true,
@@ -4113,28 +5130,6 @@
       "value3": 9.21,
       "value4": 8.97,
       "value5": 9.08,
-      "reinforcementPadReading": null
-    },
-    {
-      "inspectionId": "inspection-demo-api653-training-20220722",
-      "itemKey": "floor:region:35",
-      "targetKey": "floor",
-      "itemLabel": "Floor Plate 35",
-      "itemKind": "region",
-      "elementTypeKey": null,
-      "nozzleSize": null,
-      "laneId": null,
-      "course": null,
-      "plateId": "35",
-      "elementId": null,
-      "confirmed": true,
-      "measured": true,
-      "updatedAtIso": "2022-07-22T16:30:00Z",
-      "value1": 8.59,
-      "value2": 8.84,
-      "value3": 9.12,
-      "value4": 10.83,
-      "value5": 10.1,
       "reinforcementPadReading": null
     }
   ],
@@ -6303,12 +7298,12 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "findingId": "finding-floor-plate-24",
+      "findingId": "finding-floor-plate-7-5",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 24",
+      "itemLabel": "Floor Plate 7.5",
       "itemKind": "region",
       "elementTypeKey": null,
-      "linkedUtItemKey": "floor:region:24",
+      "linkedUtItemKey": "floor:region:7.5",
       "note": "Floor coating bubbling and historical weld-filled pitting were noted in accessible bottom plate areas. MFL indications of 40 percent and above were mainly attributed to remnant welds, weld fills, existing topside corrosion, and some underside corrosion. UT backup on high indications included bottom plate readings in the 5.28 mm to 6.25 mm range.",
       "attachmentCount": 2,
       "hasMissingAttachment": false,
@@ -6316,13 +7311,13 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "findingId": "finding-floor-plate-30",
+      "findingId": "finding-floor-annular-a6",
       "targetKey": "floor",
-      "itemLabel": "Floor Plate 30",
+      "itemLabel": "Annular Plate A6",
       "itemKind": "region",
       "elementTypeKey": null,
-      "linkedUtItemKey": "floor:region:30",
-      "note": "Floor plate 30 represents an MFL/UT backup area with localized underside corrosion indication. The exported UT readings capture the report-aligned lower band of bottom plate measurements while the final repair disposition remains report-side.",
+      "linkedUtItemKey": "floor:region:AR6",
+      "note": "Annular plate A6 represents an MFL/UT backup area with localized underside corrosion indication. The exported UT readings capture the lower band of bottom plate measurements while the final repair disposition remains report-side.",
       "attachmentCount": 1,
       "hasMissingAttachment": false,
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6368,13 +7363,13 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "findingId": "finding-floor-sump",
+      "findingId": "finding-floor-nozzle-s1",
       "targetKey": "floor",
-      "itemLabel": "SU-1",
+      "itemLabel": "S1",
       "itemKind": "element",
-      "elementTypeKey": "sump",
-      "linkedUtItemKey": "floor:element:floor_sump_1",
-      "note": "Centre sump was visually satisfactory. UT scanning recorded lip thickness 7.75 mm to 10.89 mm, wall thickness 8.59 mm to 10.83 mm, and bottom thickness 7.76 mm to 11.13 mm.",
+      "elementTypeKey": "nozzle",
+      "linkedUtItemKey": "floor:element:floor_nozzle_s1",
+      "note": "The S1 floor-perimeter penetration was identified on the approved app layout and retained as a linked inspection location for report review.",
       "attachmentCount": 1,
       "hasMissingAttachment": false,
       "updatedAtIso": "2022-07-22T16:30:00Z"
@@ -6635,8 +7630,8 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "attachmentId": "floor:region:24:mock-floor-region-24-1",
-      "findingId": "finding-floor-plate-24",
+      "attachmentId": "floor:region:7.5:mock-floor-region-7-5-1",
+      "findingId": "finding-floor-plate-7-5",
       "kind": "finding_photo",
       "relativePath": "v2-findings/mock/mock-floor-region-24-1.png",
       "displayName": "Photo 54 - Floor coating bubbling with light corrosion",
@@ -6649,8 +7644,8 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "attachmentId": "floor:region:24:mock-floor-region-24-2",
-      "findingId": "finding-floor-plate-24",
+      "attachmentId": "floor:region:7.5:mock-floor-region-7-5-2",
+      "findingId": "finding-floor-plate-7-5",
       "kind": "finding_photo",
       "relativePath": "v2-findings/mock/mock-floor-region-24-2.png",
       "displayName": "Photo 55 - Weld-filled topside pitting on floor plates",
@@ -6663,8 +7658,8 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "attachmentId": "floor:region:30:mock-floor-region-30-1",
-      "findingId": "finding-floor-plate-30",
+      "attachmentId": "floor:region:AR6:mock-floor-region-ar6-1",
+      "findingId": "finding-floor-annular-a6",
       "kind": "finding_photo",
       "relativePath": "v2-findings/mock/mock-floor-region-30-1.png",
       "displayName": "Photo 56 - Existing coated pit depth range with no active corrosion",
@@ -6719,11 +7714,11 @@
     },
     {
       "inspectionId": "inspection-demo-api653-training-20220722",
-      "attachmentId": "floor:element:floor_sump_1:mock-floor-element-floor-sump-1-1",
-      "findingId": "finding-floor-sump",
+      "attachmentId": "floor:element:floor_nozzle_s1:mock-floor-element-floor-nozzle-s1-1",
+      "findingId": "finding-floor-nozzle-s1",
       "kind": "finding_photo",
-      "relativePath": "v2-findings/mock/mock-floor-element-floor-sump-1-1.png",
-      "displayName": "Photo 57 - Centre sump visually satisfactory",
+      "relativePath": "v3-findings/mock/mock-floor-element-floor-nozzle-s1-1.png",
+      "displayName": "Photo 57 - S1 floor-perimeter inspection location",
       "mediaType": "image/png",
       "fileByteSize": 180000,
       "fileExists": true,

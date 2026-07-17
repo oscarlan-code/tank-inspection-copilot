@@ -13,6 +13,8 @@
     "report:eval": "node ./server/scripts/audit-report-generation-performance.mjs",
     "leak:audit": "node ./server/scripts/audit-sample-leaks.mjs",
     "api:audit": "node ./server/scripts/audit-api-hardening.mjs",
+    "floor-corrosion:build": "node ./server/scripts/build-floor-corrosion-map.mjs",
+    "floor-corrosion:audit": "node ./server/scripts/audit-floor-corrosion.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
@@ -31,8 +33,10 @@
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
     "docx": "^9.7.1",
-    "dompurify": "^3.2.6",
+    "dompurify": "^3.4.12",
+    "jose": "^6.2.3",
     "konva": "^10.0.12",
+    "pngjs": "^7.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-konva": "^18.2.16"

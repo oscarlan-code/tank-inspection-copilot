@@ -1,11 +1,12 @@
 import type { ApiReportJobState, ApiSectionChatReply } from "../domain/mockReport";
 import type { ChatMessage, LayoutMapData, ReportSection, WorkspaceReport } from "../domain/types";
+import { authenticatedFetch } from "./authClient";
 
 export async function saveSectionDraft(
   report: WorkspaceReport,
   section: ReportSection,
 ): Promise<void> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.saveSectionDraftPath, report.id, section.id), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.saveSectionDraftPath, report.id, section.id), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -27,7 +28,7 @@ export async function saveManualInputs(
   section: ReportSection,
 ): Promise<void> {
   const values = Object.fromEntries(section.missingFields.map((field) => [field.id, field.value]));
-  const response = await fetch(buildReportUrl(report.apiLinks.saveManualInputsPath, report.id), {
+  const response = await authenticatedFetch(buildReportUrl(report.apiLinks.saveManualInputsPath, report.id), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -39,7 +40,7 @@ export async function saveManualInputs(
 }
 
 export async function resetReportDrafts(report: WorkspaceReport): Promise<ApiReportJobState> {
-  const response = await fetch(buildReportUrl(report.apiLinks.resetDraftsPath, report.id), {
+  const response = await authenticatedFetch(buildReportUrl(report.apiLinks.resetDraftsPath, report.id), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -56,7 +57,7 @@ export async function saveLayoutOverride(
   sectionId: string,
   layoutMap: LayoutMapData,
 ): Promise<void> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.saveLayoutOverridePath, report.id, sectionId), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.saveLayoutOverridePath, report.id, sectionId), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -67,11 +68,90 @@ export async function saveLayoutOverride(
   await assertOk(response, "Unable to save layout override.");
 }
 
+export async function importFloorCorrosionMfl(
+  report: WorkspaceReport,
+  sectionId: string,
+  file: File,
+): Promise<ApiReportJobState> {
+  const query = new URLSearchParams({
+    sectionId,
+    fileName: file.name,
+  });
+  const response = await authenticatedFetch(
+    `/api/v1/report-jobs/${encodeURIComponent(report.id)}/floor-corrosion/mfl-import?${query.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+      body: file,
+    },
+  );
+
+  await assertOk(response, "Unable to import MFL plate maps.");
+  return (await response.json()) as ApiReportJobState;
+}
+
+export async function importFloorLayoutDrawing(
+  report: WorkspaceReport,
+  sectionId: string,
+  file: File,
+  pageNumber: number,
+): Promise<ApiReportJobState> {
+  const query = new URLSearchParams({
+    sectionId,
+    fileName: file.name,
+    page: String(pageNumber),
+  });
+  const response = await authenticatedFetch(
+    `/api/v1/report-jobs/${encodeURIComponent(report.id)}/floor-corrosion/layout-import?${query.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+      body: file,
+    },
+  );
+
+  await assertOk(response, "Unable to import the original floor layout drawing.");
+  return (await response.json()) as ApiReportJobState;
+}
+
+export async function approveFloorCorrosionPlacement(
+  report: WorkspaceReport,
+  sectionId: string,
+  placement: {
+    scanPlateId: string;
+    hostPlateId: string;
+    rotationDegrees: 0 | 90 | 180 | 270;
+    flipX: boolean;
+    flipY: boolean;
+    opacity: number;
+    approved: boolean;
+  },
+): Promise<ApiReportJobState> {
+  const query = new URLSearchParams({ sectionId });
+  const response = await authenticatedFetch(
+    `/api/v1/report-jobs/${encodeURIComponent(report.id)}/floor-corrosion/placements?${query.toString()}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(placement),
+    },
+  );
+
+  await assertOk(response, "Unable to update MFL plate placement.");
+  return (await response.json()) as ApiReportJobState;
+}
+
 export async function approveSection(
   report: WorkspaceReport,
   sectionId: string,
 ): Promise<void> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.approveSectionPath, report.id, sectionId), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.approveSectionPath, report.id, sectionId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -87,7 +167,7 @@ export async function generateSection(
   sectionId: string,
   userInstruction = "",
 ): Promise<ApiReportJobState> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.generateSectionPath, report.id, sectionId), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.generateSectionPath, report.id, sectionId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -105,7 +185,7 @@ export async function sendSectionChat(
   userPrompt: string,
   conversationHistory: Array<Pick<ChatMessage, "role" | "content" | "controlTrace" | "pendingConfirmation">> = [],
 ): Promise<ApiSectionChatReply> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.sectionChatPath, report.id, sectionId), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.sectionChatPath, report.id, sectionId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -121,7 +201,7 @@ export async function restorePreviousSectionDraft(
   report: WorkspaceReport,
   sectionId: string,
 ): Promise<ApiReportJobState> {
-  const response = await fetch(buildSectionUrl(report.apiLinks.restorePreviousSectionPath, report.id, sectionId), {
+  const response = await authenticatedFetch(buildSectionUrl(report.apiLinks.restorePreviousSectionPath, report.id, sectionId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -137,7 +217,7 @@ export async function downloadFinalReportDocx(
   report: WorkspaceReport,
   sectionIds: string[],
 ): Promise<void> {
-  const response = await fetch(buildReportUrl(report.apiLinks.exportDocxPath, report.id), {
+  const response = await authenticatedFetch(buildReportUrl(report.apiLinks.exportDocxPath, report.id), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

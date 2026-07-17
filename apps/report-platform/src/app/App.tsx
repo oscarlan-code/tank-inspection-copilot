@@ -8,6 +8,7 @@ import {
 } from "react";
 import { LayoutMapEditor } from "../components/LayoutMapEditor";
 import { RichTextSectionEditor } from "../components/RichTextSectionEditor";
+import { useAuth } from "../auth/AuthGate";
 import {
   type ApiEvalRun,
   type ApiAiStatus,
@@ -19,6 +20,7 @@ import type { ReportClassification } from "../domain/reportClassification";
 import type {
   AssistantAction,
   ChatMessage,
+  FloorCorrosionOverlay,
   LayoutMapData,
   LayoutSurfaceType,
   MissingField,
@@ -27,13 +29,16 @@ import type {
   WorkspaceReport,
 } from "../domain/types";
 import { ensureLayoutMapData } from "../lib/layoutMapGeometry";
+import { isMflCompatibleFloorLayout } from "../fixtures/matchingMflFloorLayout";
 import {
   normalizeSectionContent,
 } from "../lib/reportContent";
 import {
   approveSection as approveSectionApi,
+  approveFloorCorrosionPlacement,
   downloadFinalReportDocx,
   generateSection as generateSectionApi,
+  importFloorCorrosionMfl,
   restorePreviousSectionDraft as restorePreviousSectionDraftApi,
   resetReportDrafts as resetReportDraftsApi,
   saveLayoutOverride as saveLayoutOverrideApi,
@@ -201,6 +206,32 @@ function resetReportOutputState(report: WorkspaceReport): WorkspaceReport {
   };
 }
 
+function preserveReportOutputAfterLayoutHydration(
+  currentReport: WorkspaceReport,
+  hydratedReport: WorkspaceReport,
+  changedSectionId: string,
+): WorkspaceReport {
+  const currentSections = new Map(currentReport.sections.map((section) => [section.id, section]));
+
+  return {
+    ...hydratedReport,
+    sections: hydratedReport.sections.map((hydratedSection) => {
+      const currentSection = currentSections.get(hydratedSection.id);
+      if (!currentSection) return hydratedSection;
+
+      return {
+        ...hydratedSection,
+        content: currentSection.content,
+        generated: currentSection.generated,
+        edited: currentSection.edited,
+        approved: hydratedSection.id === changedSectionId ? false : currentSection.approved,
+        reviewRequired: hydratedSection.id === changedSectionId ? true : currentSection.reviewRequired,
+        previousVersionCount: currentSection.previousVersionCount,
+      };
+    }),
+  };
+}
+
 function getSectionPageLabel(section: ReportSection): string {
   const match = section.description.match(/\bpage\s+(\d+)/i);
   return match ? match[1] : "";
@@ -221,24 +252,25 @@ function normalizeAssistantChatContent(content: string, sectionTitle: string) {
   return `I need one more detail before I can act on ${sectionTitle}. Should I refine wording, apply formatting, inspect missing inputs, or review layout-map evidence?`;
 }
 
-function rawInputStorageKey(reportId: string) {
-  return `laiq-report-raw-inputs:${reportId}`;
+function rawInputStorageKey(reportId: string, userId: string) {
+  return `laiq-report-raw-inputs:${userId}:${reportId}`;
 }
 
-function loadSavedRawGenerationInputs(reportId: string): Record<string, string> {
+function loadSavedRawGenerationInputs(reportId: string, userId: string): Record<string, string> {
   try {
-    const raw = window.localStorage.getItem(rawInputStorageKey(reportId));
+    const raw = window.localStorage.getItem(rawInputStorageKey(reportId, userId));
     return raw ? (JSON.parse(raw) as Record<string, string>) : {};
   } catch {
     return {};
   }
 }
 
-function saveRawGenerationInputs(reportId: string, inputs: Record<string, string>) {
-  window.localStorage.setItem(rawInputStorageKey(reportId), JSON.stringify(inputs));
+function saveRawGenerationInputs(reportId: string, userId: string, inputs: Record<string, string>) {
+  window.localStorage.setItem(rawInputStorageKey(reportId, userId), JSON.stringify(inputs));
 }
 
 function App() {
+  const { principal, signOut } = useAuth();
   const [report, setReport] = useState<WorkspaceReport | null>(null);
   const [baselineReport, setBaselineReport] = useState<WorkspaceReport | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState("");
@@ -262,6 +294,7 @@ function App() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedExportSectionIds, setSelectedExportSectionIds] = useState<Set<string>>(() => new Set());
   const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [isImportingMfl, setIsImportingMfl] = useState(false);
   const [isRawDataExpanded, setIsRawDataExpanded] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<{
     current: number;
@@ -309,7 +342,7 @@ function App() {
       setRawGenerationInputs(
         {
           ...defaultRawInputs,
-          ...loadSavedRawGenerationInputs(nextReport.id),
+          ...loadSavedRawGenerationInputs(nextReport.id, principal.userId),
         },
       );
       setGeneratedPreviewSectionIds(new Set());
@@ -384,7 +417,7 @@ function App() {
   const currentChat = selectedSection ? chats[selectedSection.id] ?? [] : [];
   const selectedRawGenerationInput = rawGenerationInputs[selectedSection?.id ?? ""] ?? "";
   const hasGeneratedPreview = selectedSection
-    ? generatedPreviewSectionIds.has(selectedSection.id) || selectedSection.generated || selectedSection.edited
+    ? generatedPreviewSectionIds.has(selectedSection.id) || selectedSection.generated
     : false;
   const selectedEvalRun = selectedSection ? evalRuns[selectedSection.id] : undefined;
   const selectedPreviousOutput = selectedSection ? sectionOutputHistory[selectedSection.id] : undefined;
@@ -409,16 +442,24 @@ function App() {
     );
   }, [report]);
   const activeLayoutSection = useMemo(
-    () =>
-      layoutMapSections.find((section) => section.layoutMap?.appMap?.surfaceType === selectedLayoutSurface) ??
-      layoutMapSections[0],
-    [layoutMapSections, selectedLayoutSurface],
+    () => {
+      if (selectedSection?.layoutMap?.appMap?.surfaceType === selectedLayoutSurface) {
+        return selectedSection;
+      }
+      return layoutMapSections.find((section) => section.layoutMap?.appMap?.surfaceType === selectedLayoutSurface) ??
+        layoutMapSections[0];
+    },
+    [layoutMapSections, selectedLayoutSurface, selectedSection],
   );
   const visibleLayoutMap = useMemo(
     () => (activeLayoutSection?.layoutMap ? ensureLayoutMapData(activeLayoutSection.layoutMap) : undefined),
     [activeLayoutSection],
   );
   const activeLayoutSurface = visibleLayoutMap?.appMap?.surfaceType;
+  const activeCorrosionOverlay = useMemo(
+    () => visibleLayoutMap?.floorCorrosion?.overlays.find((overlay) => overlay.hostPlateId === activePlateId),
+    [activePlateId, visibleLayoutMap],
+  );
   const workspaceGridStyle = useMemo(
     () =>
       ({
@@ -614,7 +655,7 @@ function App() {
 
   const handleSaveRawGenerationInput = () => {
     try {
-      saveRawGenerationInputs(report.id, rawGenerationInputs);
+      saveRawGenerationInputs(report.id, principal.userId, rawGenerationInputs);
       setFlashMessage(`Saved LAIQ AI Engine input for ${selectedSection.title}.`);
     } catch (error) {
       setFlashMessage(`Unable to save LAIQ AI Engine input: ${formatErrorMessage(error)}`);
@@ -633,28 +674,41 @@ function App() {
       return;
     }
 
+    const floorCorrosion = safeLayoutMap?.floorCorrosion;
+    if (selectedSection.id === "floor-plate-corrosion-plan" && !floorCorrosion) {
+      setFlashMessage("Import and review the individual MFL plate maps before approving this section.");
+      return;
+    }
+    if (floorCorrosion) {
+      const errorCount = floorCorrosion.validationIssues.filter((issue) => issue.severity === "error").length;
+      const reviewRequiredCount = floorCorrosion.overlays.filter((overlay) => overlay.status !== "approved").length;
+      if (floorCorrosion.overlays.length === 0 || errorCount > 0 || reviewRequiredCount > 0) {
+        setFlashMessage(
+          `Review the floor corrosion map before approval: ${floorCorrosion.overlays.length} matched scan(s), ${errorCount} matching error(s), ${reviewRequiredCount} placement(s) awaiting approval.`,
+        );
+        return;
+      }
+    }
+
     const nextSection: ReportSection = {
       ...selectedSection,
-      approved: true,
-      reviewRequired: false,
+      approved: false,
+      reviewRequired: true,
       layoutMap: safeLayoutMap,
     };
-
-    updateSection(selectedSection.id, (section) => ({
-      ...section,
-      approved: true,
-      reviewRequired: false,
-      layoutMap: safeLayoutMap,
-    }));
 
     try {
       await syncSectionToBackend(nextSection, Boolean(nextSection.layoutMap));
       await approveSectionApi(report, selectedSection.id);
+      updateSection(selectedSection.id, (section) => ({
+        ...section,
+        approved: true,
+        reviewRequired: false,
+        layoutMap: safeLayoutMap,
+      }));
       setFlashMessage(`${selectedSection.title} approved and persisted to the backend report job.`);
     } catch (error) {
-      setFlashMessage(
-        `${selectedSection.title} updated locally, but backend approval failed: ${formatErrorMessage(error)}`,
-      );
+      setFlashMessage(`Unable to approve ${selectedSection.title}: ${formatErrorMessage(error)}`);
     }
   };
 
@@ -957,7 +1011,6 @@ function App() {
 
     updateSection(selectedSection.id, (section) => ({
       ...section,
-      edited: true,
       approved: false,
       reviewRequired: true,
       layoutMap: persistedLayoutMap,
@@ -968,6 +1021,60 @@ function App() {
       setFlashMessage(`${summary} and persisted it to the backend layout override store.`);
     } catch (error) {
       setFlashMessage(`${summary} locally, but backend layout persistence failed: ${formatErrorMessage(error)}`);
+    }
+  };
+
+  const handleMflImport = async (file: File) => {
+    if (selectedSection.id !== "floor-plate-corrosion-plan") return;
+    setIsImportingMfl(true);
+    setFlashMessage(`Extracting corrosion pixels from ${file.name} and matching plate IDs...`);
+    try {
+      const state = await importFloorCorrosionMfl(report, selectedSection.id, file);
+      const hydrated = hydrateWorkspaceFromApiState(state, getHydrationApiBaseUrl(report));
+      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, selectedSection.id)));
+      setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
+      setSelectedLayoutSurface("floor");
+      setActiveMarkerId(null);
+      setActivePlateId(null);
+      const map = hydrated.report.sections.find((section) => section.id === selectedSection.id)?.layoutMap?.floorCorrosion;
+      const errors = map?.validationIssues.filter((issue) => issue.severity === "error").length ?? 0;
+      const reviews = map?.overlays.filter((overlay) => overlay.status === "orientation_review_required").length ?? 0;
+      setFlashMessage(
+        `MFL import completed: ${map?.overlays.length ?? 0} plate scans placed, ${reviews} orientation reviews, ${errors} matching errors.`,
+      );
+    } catch (error) {
+      setFlashMessage(`Unable to build floor corrosion map: ${formatErrorMessage(error)}`);
+    } finally {
+      setIsImportingMfl(false);
+    }
+  };
+
+  const updateFloorCorrosionPlacement = async (
+    overlay: FloorCorrosionOverlay,
+    changes: Partial<Pick<FloorCorrosionOverlay, "rotationDegrees" | "flipX" | "flipY" | "opacity">>,
+    summary: string,
+    approved = false,
+  ) => {
+    try {
+      const state = await approveFloorCorrosionPlacement(report, selectedSection.id, {
+        scanPlateId: overlay.scanPlateId,
+        hostPlateId: overlay.hostPlateId,
+        rotationDegrees: changes.rotationDegrees ?? overlay.rotationDegrees,
+        flipX: changes.flipX ?? overlay.flipX,
+        flipY: changes.flipY ?? overlay.flipY,
+        opacity: changes.opacity ?? overlay.opacity,
+        approved,
+      });
+      const hydrated = hydrateWorkspaceFromApiState(state, getHydrationApiBaseUrl(report));
+      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, selectedSection.id)));
+      setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
+      setFlashMessage(
+        approved
+          ? `${summary} Placement is approved for plate ${overlay.scanPlateId}.`
+          : `${summary} Review the result, then approve the placement for plate ${overlay.scanPlateId}.`,
+      );
+    } catch (error) {
+      setFlashMessage(`Unable to update MFL plate placement: ${formatErrorMessage(error)}`);
     }
   };
 
@@ -1261,6 +1368,10 @@ function App() {
           >
             {isExportingDocx ? "Exporting" : "Final DOCX"}
           </button>
+          <div className="topbar-account" title={`${principal.tenantName} · ${principal.userId}`}>
+            <span>{principal.displayName}</span>
+            <button onClick={() => void signOut()} type="button">Sign out</button>
+          </div>
         </div>
       </header>
 
@@ -1437,6 +1548,87 @@ function App() {
                   </span>
                 ) : null}
               </div>
+
+              {selectedSection.id === "floor-plate-corrosion-plan" ? (
+                <div className="floor-corrosion-toolbar">
+                  <label className={`floor-corrosion-import ${isImportingMfl ? "is-busy" : ""}`}>
+                    <input
+                      accept="application/pdf,.pdf"
+                      disabled={isImportingMfl || !isMflCompatibleFloorLayout(visibleLayoutMap)}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        if (file) void handleMflImport(file);
+                        event.currentTarget.value = "";
+                      }}
+                      type="file"
+                    />
+                    <span>{isImportingMfl ? "Extracting MFL maps..." : "Import MFL Plate Maps"}</span>
+                  </label>
+                  {visibleLayoutMap?.floorCorrosion ? (
+                    <div className="floor-corrosion-status">
+                      <strong>{visibleLayoutMap.floorCorrosion.overlays.length} scans placed</strong>
+                      <span>
+                        {visibleLayoutMap.floorCorrosion.validationIssues.filter((issue) => issue.severity === "error").length} errors
+                        {" · "}
+                        {visibleLayoutMap.floorCorrosion.overlays.filter((overlay) => overlay.status === "orientation_review_required").length} to review
+                      </span>
+                    </div>
+                  ) : (
+                    <p>
+                      {isMflCompatibleFloorLayout(visibleLayoutMap)
+                        ? "The app-owned floor layout is locked. Import the individual MFL plate-map PDF to overlay corrosion plate by plate."
+                        : "The app-exported floor plate IDs do not match this MFL report family. Correct the app layout before importing scans."}
+                    </p>
+                  )}
+                  {activeCorrosionOverlay ? (
+                    <div className="floor-corrosion-placement-controls" aria-label={`MFL placement for plate ${activeCorrosionOverlay.scanPlateId}`}>
+                      <strong>Plate {activeCorrosionOverlay.scanPlateId}</strong>
+                      <button
+                        onClick={() => void updateFloorCorrosionPlacement(
+                          activeCorrosionOverlay,
+                          { rotationDegrees: ((activeCorrosionOverlay.rotationDegrees + 90) % 360) as 0 | 90 | 180 | 270 },
+                          "Rotated the corrosion scan by 90 degrees.",
+                        )}
+                        type="button"
+                      >
+                        Rotate 90°
+                      </button>
+                      <button
+                        onClick={() => void updateFloorCorrosionPlacement(
+                          activeCorrosionOverlay,
+                          { flipX: !activeCorrosionOverlay.flipX },
+                          "Flipped the corrosion scan horizontally.",
+                        )}
+                        type="button"
+                      >
+                        Flip H
+                      </button>
+                      <button
+                        onClick={() => void updateFloorCorrosionPlacement(
+                          activeCorrosionOverlay,
+                          { flipY: !activeCorrosionOverlay.flipY },
+                          "Flipped the corrosion scan vertically.",
+                        )}
+                        type="button"
+                      >
+                        Flip V
+                      </button>
+                      <button
+                        className="primary"
+                        onClick={() => void updateFloorCorrosionPlacement(
+                          activeCorrosionOverlay,
+                          {},
+                          "Approved the current corrosion-scan orientation.",
+                          true,
+                        )}
+                        type="button"
+                      >
+                        Approve Placement
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {layoutMapSections.length > 0 ? (
                 <div className="layout-map-tabs" aria-label="Available imported layout maps">

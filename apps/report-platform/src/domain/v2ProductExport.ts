@@ -138,6 +138,18 @@ export type V2ProductExportElement = {
   updatedAtIso: string;
 };
 
+export type V2ProductExportLayoutFigure = {
+  targetKey: string;
+  renderVersion: number;
+  sourceGeometryVersion: number;
+  mediaType: "image/svg+xml";
+  width: number;
+  height: number;
+  viewBox: string;
+  sha256: string;
+  svg: string;
+};
+
 export type V2ProductExportUtMeasurement = {
   inspectionId: string;
   itemKey: string;
@@ -251,6 +263,7 @@ export type V2ProductExportPackage = {
   taskSnapshots: V2ProductExportTaskSnapshot[];
   layoutTargets: V2ProductExportLayoutTarget[];
   layoutConfigs: V2ProductExportLayoutConfig[];
+  layoutFigures?: V2ProductExportLayoutFigure[];
   elements: V2ProductExportElement[];
   utMeasurements: V2ProductExportUtMeasurement[];
   inspectionChecklistItems: V2ProductExportChecklistItem[];

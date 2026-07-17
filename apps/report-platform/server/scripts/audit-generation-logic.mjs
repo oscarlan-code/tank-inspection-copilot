@@ -34,7 +34,7 @@ const {
   API_STANDARD_PRIMARY_REPORT,
   API_STANDARD_REPORT_TOC,
 } = reportToc;
-const { buildLayoutFigureSvg } = layoutMapFigure;
+const { buildLayoutFigureSvg, getEffectiveLayoutMap } = layoutMapFigure;
 const { classifyReportPackage } = reportClassification;
 const { searchPrecedentPack } = precedentKb;
 const { buildReportBlockManifest } = reportBlocks;
@@ -47,6 +47,10 @@ function fail(message) {
 
 function assert(condition, message) {
   if (!condition) fail(message);
+}
+
+function approximatelyEqual(left, right, tolerance = 0.000002) {
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= tolerance;
 }
 
 function containsAll(value, snippets) {
@@ -87,6 +91,7 @@ assert(
 
 const roofLayoutConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "external_roof");
 const shellLayoutConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "shell");
+const floorLayoutConfig = exportPackage.layoutConfigs.find((config) => config.targetKey === "floor");
 const roofCustomPlateCount = roofLayoutConfig?.customCircularLayout?.rows?.reduce(
   (sum, row) => sum + (Array.isArray(row.plates) ? row.plates.length : 0),
   0,
@@ -100,6 +105,89 @@ assert(
 assert(
   shellLayoutConfig?.shellPlateOffset === "third_plate" && shellLayoutConfig.shellThirdOffsetStart === "full",
   "V3 fixture shell layout must match the app third-plate offset setup.",
+);
+const resolvedFloorPlateIds = floorLayoutConfig?.customCircularLayout?.resolvedMainPlateGeometry?.map(
+  (plate) => plate.plateId,
+);
+assert(
+  floorLayoutConfig?.customCircularLayout?.resolvedGeometryVersion === 2 &&
+    resolvedFloorPlateIds?.length === 24 &&
+    resolvedFloorPlateIds.includes("6.2a") &&
+    resolvedFloorPlateIds.includes("6.2b"),
+  "V3 fixture floor layout must carry the 24 main-plate bounds resolved by the app layout tool.",
+);
+const resolvedAnnularPlates = floorLayoutConfig?.customCircularLayout?.resolvedAnnularPlateGeometry ?? [];
+assert(
+  resolvedAnnularPlates.length === 10 &&
+    resolvedAnnularPlates.every((plate, index) => plate.mapLabel === `A${index + 1}` && plate.points?.length >= 3),
+  "V3 fixture floor layout must carry all 10 app-resolved annular polygons and A1-A10 labels.",
+);
+
+const floorLayoutSection = API_STANDARD_REPORT_TOC.find(
+  (section) => section.id === "floor-plate-layout-platemaps-numbering-system",
+);
+const importedFloorMap = floorLayoutSection
+  ? getEffectiveLayoutMap(reportState, floorLayoutSection)
+  : null;
+const exportedFloorPlates = [
+  ...(floorLayoutConfig?.customCircularLayout?.resolvedMainPlateGeometry ?? []),
+  ...resolvedAnnularPlates,
+];
+assert(importedFloorMap?.plates.length === 34, "Report-platform must import the app's complete 34-plate floor map.");
+exportedFloorPlates.forEach((exportedPlate) => {
+  const importedPlate = importedFloorMap?.plates.find((plate) => plate.id === exportedPlate.plateId);
+  assert(Boolean(importedPlate), `Report-platform dropped app plate ${exportedPlate.plateId}.`);
+  if (!importedPlate) return;
+  assert(
+    approximatelyEqual(importedPlate.x, exportedPlate.leftNorm) &&
+      approximatelyEqual(importedPlate.y, exportedPlate.topNorm) &&
+      approximatelyEqual(importedPlate.width, exportedPlate.rightNorm - exportedPlate.leftNorm) &&
+      approximatelyEqual(importedPlate.height, exportedPlate.bottomNorm - exportedPlate.topNorm) &&
+      importedPlate.mapLabel === exportedPlate.mapLabel &&
+      approximatelyEqual(importedPlate.labelX, exportedPlate.labelXNorm) &&
+      approximatelyEqual(importedPlate.labelY, exportedPlate.labelYNorm),
+    `Report-platform changed app geometry or label placement for ${exportedPlate.plateId}.`,
+  );
+  if (Array.isArray(exportedPlate.points)) {
+    assert(
+      importedPlate.points?.length === exportedPlate.points.length &&
+        importedPlate.points.every((point, index) => (
+          approximatelyEqual(point.x, exportedPlate.points[index].xNorm) &&
+          approximatelyEqual(point.y, exportedPlate.points[index].yNorm)
+        )),
+      `Report-platform regenerated app annular polygon ${exportedPlate.plateId}.`,
+    );
+  }
+  assert(
+    importedPlate.source.includes(":resolved"),
+    `Report-platform used fallback geometry instead of resolved app geometry for ${exportedPlate.plateId}.`,
+  );
+});
+
+const exportedFloorElements = exportPackage.elements.filter((element) => element.targetKey === "floor");
+assert(exportedFloorElements.length === 8, "V3 fixture must export the eight floor-map elements S1-S8.");
+exportedFloorElements.forEach((element) => {
+  const marker = importedFloorMap?.markers.find((candidate) => candidate.id === element.elementId);
+  assert(
+    marker?.label === element.elementLabel &&
+      approximatelyEqual(marker.x, element.normalizedX) &&
+      approximatelyEqual(marker.y, element.normalizedY),
+    `Report-platform changed app element coordinates for ${element.elementLabel}.`,
+  );
+});
+
+const edgeMarkerPackage = structuredClone(exportPackage);
+const edgeMarker = edgeMarkerPackage.elements.find((element) => element.targetKey === "floor");
+edgeMarker.normalizedX = 0.001;
+edgeMarker.normalizedY = 0.999;
+const edgeMarkerMap = getEffectiveLayoutMap(
+  buildReportState({ exportPackage: edgeMarkerPackage }),
+  floorLayoutSection,
+);
+const importedEdgeMarker = edgeMarkerMap?.markers.find((marker) => marker.id === edgeMarker.elementId);
+assert(
+  approximatelyEqual(importedEdgeMarker?.x, 0.001) && approximatelyEqual(importedEdgeMarker?.y, 0.999),
+  "Report-platform must not shift app-owned element coordinates near the floor-map boundary.",
 );
 
 const r6 = exportPackage.utMeasurements.find(
@@ -817,7 +905,125 @@ for (const section of mapSections) {
       "Roof Plate Layout DOCX figure rendered duplicate R1 markers instead of merging element-linked finding evidence.",
     );
   }
+
+  if (section.id === "floor-plate-layout-platemaps-numbering-system") {
+    const encodedFigure = /<image href="data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+)"/.exec(figure.svg)?.[1];
+    const embeddedSvg = encodedFigure ? Buffer.from(encodedFigure, "base64").toString("utf8") : "";
+    const appOwnedSvg = exportPackage.layoutFigures?.find((candidate) => candidate.targetKey === "floor")?.svg;
+    assert(Boolean(encodedFigure), "Floor DOCX figure must embed the app-owned floor SVG artifact.");
+    assert(embeddedSvg === appOwnedSvg, "Floor DOCX figure changed the SVG bytes exported by the app.");
+    assert(
+      ["floor_nozzle_s1", "floor_nozzle_s8"].every((elementId) => (
+        embeddedSvg.includes(`data-element-id="${elementId}"`)
+      )),
+      "App-owned floor SVG is missing exported floor elements.",
+    );
+  }
 }
+
+const resolvedGeometryOnlyPackage = structuredClone(exportPackage);
+const resolvedGeometryOnlyFloorConfig = resolvedGeometryOnlyPackage.layoutConfigs.find(
+  (config) => config.targetKey === "floor",
+);
+resolvedGeometryOnlyFloorConfig.customCircularLayout.rows = [];
+const resolvedGeometryOnlyState = buildReportState({ exportPackage: resolvedGeometryOnlyPackage });
+const resolvedGeometryOnlyMap = getEffectiveLayoutMap(
+  resolvedGeometryOnlyState,
+  API_STANDARD_REPORT_TOC.find((section) => section.id === "floor-plate-corrosion-plan"),
+);
+const resolvedGeometryOnlyFigure = buildLayoutFigureSvg(
+  resolvedGeometryOnlyState,
+  API_STANDARD_REPORT_TOC.find((section) => section.id === "floor-plate-corrosion-plan"),
+);
+assert(
+  !resolvedGeometryOnlyFigure?.svg?.includes("NaN"),
+  "Floor layout SVG must render imported app element/finding coordinates as finite values.",
+);
+assert(
+  ["1", "17a", "17b", "23", "A1", "A10"].every((label) => (
+    resolvedGeometryOnlyMap?.plates.some((plate) => (plate.mapLabel ?? plate.label) === label)
+  )),
+  "Floor renderer must consume V3 app-resolved geometry without rebuilding plate rows in report-platform.",
+);
+
+const incompleteV3GeometryPackage = structuredClone(exportPackage);
+const incompleteFloorConfig = incompleteV3GeometryPackage.layoutConfigs.find(
+  (config) => config.targetKey === "floor",
+);
+delete incompleteFloorConfig.customCircularLayout.resolvedMainPlateGeometry;
+delete incompleteFloorConfig.customCircularLayout.resolvedAnnularPlateGeometry;
+const incompleteFloorMap = getEffectiveLayoutMap(
+  buildReportState({ exportPackage: incompleteV3GeometryPackage }),
+  floorLayoutSection,
+);
+assert(
+  incompleteFloorMap?.plates.length === 0,
+  "A V3 floor layout missing resolved app geometry must fail closed instead of being reconstructed on the web.",
+);
+
+const floorCorrosionSection = API_STANDARD_REPORT_TOC.find(
+  (section) => section.id === "floor-plate-corrosion-plan",
+);
+const appFloorCorrosionBaseline = getEffectiveLayoutMap(reportState, floorCorrosionSection);
+const lockedFloorCorrosionMap = getEffectiveLayoutMap(
+  {
+    ...reportState,
+    layoutOverrides: [{
+      sectionId: "floor-plate-corrosion-plan",
+      layoutMap: {
+        ...appFloorCorrosionBaseline,
+        geometrySource: "source_drawing_import",
+        sourceDrawing: {
+          width: 540,
+          height: 540,
+          renderMode: "extracted_vector",
+        },
+        plates: [{
+          id: "replacement-plate",
+          label: "Replacement",
+          row: 1,
+          column: 1,
+          x: 0.1,
+          y: 0.1,
+          width: 0.8,
+          height: 0.8,
+          source: "source-drawing:test",
+        }],
+        markers: [],
+        floorCorrosion: {
+          schemaVersion: 1,
+          artifactRunId: "00000000-0000-4000-8000-000000000099",
+          sourceLayoutName: "legacy source drawing",
+          sourceMflDocumentName: "MFL.pdf",
+          generatedAtIso: "2026-01-01T00:00:00.000Z",
+          overlays: [],
+          unmatchedScanPlateIds: [],
+          platesWithoutScans: [],
+          validationIssues: [],
+        },
+      },
+    }],
+  },
+  floorCorrosionSection,
+);
+assert(
+  JSON.stringify(lockedFloorCorrosionMap?.plates.map((plate) => plate.id)) ===
+    JSON.stringify(appFloorCorrosionBaseline?.plates.map((plate) => plate.id)),
+  "MFL/source-drawing overrides must not replace V3 app-owned floor geometry.",
+);
+assert(
+  !lockedFloorCorrosionMap?.sourceDrawing && lockedFloorCorrosionMap?.floorCorrosion,
+  "V3 floor rendering must preserve corrosion data while discarding replacement source geometry.",
+);
+const lockedFloorFigure = buildLayoutFigureSvg(
+  { ...reportState, layoutOverrides: [{ sectionId: "floor-plate-corrosion-plan", layoutMap: lockedFloorCorrosionMap }] },
+  floorCorrosionSection,
+);
+assert(
+  lockedFloorFigure?.svg.includes("data:image/svg+xml;base64,") &&
+    lockedFloorFigure.svg.includes("floor-corrosion-legend"),
+  "Floor corrosion rendering must retain the app-owned SVG base after MFL composition.",
+);
 
 const staleRoofOverrideFigure = buildLayoutFigureSvg(
   buildReportState({

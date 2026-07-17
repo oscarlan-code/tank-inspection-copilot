@@ -1,4 +1,4 @@
-import type { LayoutMapData, LayoutMarker, LayoutPlate } from "../domain/types";
+import type { LayoutMapData, LayoutMarker, LayoutPlate, LayoutPoint } from "../domain/types";
 
 export const MAP_STAGE = {
   width: 920,
@@ -17,12 +17,18 @@ export const MAP_STAGE = {
   },
 } as const;
 
+const LEGACY_LAYOUT_SOURCE = "report-platform:legacy-layout-override";
+
 export function ensureLayoutMapData(layoutMap: LayoutMapData): LayoutMapData {
-  const plates = layoutMap.plates.length > 0 ? layoutMap.plates : buildDefaultPlates(layoutMap.gridRows, layoutMap.gridColumns);
+  const importedMarkers = Array.isArray(layoutMap.markers) ? layoutMap.markers : [];
+  const importedPlates = Array.isArray(layoutMap.plates) ? layoutMap.plates : [];
+  const plates = importedPlates.length > 0
+    ? importedPlates
+    : buildDefaultPlates(layoutMap.gridRows, layoutMap.gridColumns);
 
   return {
     ...layoutMap,
-    markers: layoutMap.markers.map(clampMarker),
+    markers: importedMarkers.map(clampMarker),
     plates: plates.map(clampPlate),
   };
 }
@@ -123,46 +129,144 @@ export function buildAndroidCircularPlateCells(
   return cells;
 }
 
+export function buildV3AppAnnularRingSections(
+  sectionCount: number,
+  rotationDegrees: number,
+  annularWidthRatio: number,
+  source: string,
+): LayoutPlate[] {
+  const count = Math.max(Math.floor(sectionCount), 0);
+  if (count === 0) return [];
+
+  const innerRadius = 0.42;
+  const safeWidthRatio = clamp(annularWidthRatio, 0.06, 0.18);
+  const outerRadius = innerRadius * (1 + safeWidthRatio);
+  const step = 360 / count;
+
+  return Array.from({ length: count }, (_, sectionIndex) => {
+    const start = rotationDegrees + step * sectionIndex;
+    const end = start + step;
+    const outerArc = sampleAzimuthArc(start, end, outerRadius);
+    const innerArc = sampleAzimuthArc(end, start, innerRadius);
+    const points = [...outerArc, ...innerArc];
+    const xValues = points.map((point) => point.x);
+    const yValues = points.map((point) => point.y);
+    const x = Math.min(...xValues);
+    const y = Math.min(...yValues);
+    const right = Math.max(...xValues);
+    const bottom = Math.max(...yValues);
+    const sectionNumber = sectionIndex + 1;
+
+    return {
+      id: `AR${sectionNumber}`,
+      label: `AR${sectionNumber}`,
+      aliases: [`A${sectionNumber}`],
+      plateKind: "annular",
+      row: 0,
+      column: sectionNumber,
+      x: roundGeometry(x),
+      y: roundGeometry(y),
+      width: roundGeometry(right - x),
+      height: roundGeometry(bottom - y),
+      points,
+      source,
+    };
+  });
+}
+
+export function buildResolvedAnnularPlateGeometry(
+  customLayout: unknown,
+  source: string,
+): LayoutPlate[] {
+  if (!isRecord(customLayout) || customLayout.resolvedGeometryVersion !== 2) return [];
+  if (!Array.isArray(customLayout.resolvedAnnularPlateGeometry)) return [];
+
+  return customLayout.resolvedAnnularPlateGeometry
+    .map((value, index): LayoutPlate | null => {
+      if (!isRecord(value) || typeof value.plateId !== "string" || value.plateId.trim() === "") return null;
+      const left = toFiniteNumber(value.leftNorm);
+      const right = toFiniteNumber(value.rightNorm);
+      const top = toFiniteNumber(value.topNorm);
+      const bottom = toFiniteNumber(value.bottomNorm);
+      const points = Array.isArray(value.points)
+        ? value.points
+            .map((point): LayoutPoint | null => {
+              if (!isRecord(point)) return null;
+              const x = toFiniteNumber(point.xNorm);
+              const y = toFiniteNumber(point.yNorm);
+              return x == null || y == null ? null : { x, y };
+            })
+            .filter((point): point is LayoutPoint => point != null)
+        : [];
+      if (
+        left == null || right == null || top == null || bottom == null ||
+        right <= left || bottom <= top || points.length < 3
+      ) return null;
+
+      const plateId = value.plateId.trim();
+      const sectionNumber = toInteger(value.sectionNumber) ?? index + 1;
+      return clampPlate({
+        id: plateId,
+        label: plateId,
+        mapLabel: typeof value.mapLabel === "string" ? value.mapLabel : `A${sectionNumber}`,
+        labelX: toFiniteNumber(value.labelXNorm) ?? (left + right) / 2,
+        labelY: toFiniteNumber(value.labelYNorm) ?? (top + bottom) / 2,
+        aliases: [`A${sectionNumber}`],
+        plateKind: "annular",
+        row: 0,
+        column: sectionNumber,
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+        points,
+        source,
+      });
+    })
+    .filter((plate): plate is LayoutPlate => plate != null);
+}
+
 export function buildCustomCircularPlateCells(
   customLayout: unknown,
   source: string,
-  rowCount?: number | null,
-  widestRowPlateCount?: number | null,
+  _rowCount?: number | null,
+  _widestRowPlateCount?: number | null,
+  labelMode: "roof" | "floor" = "roof",
+  allowLegacyFallback = true,
 ): LayoutPlate[] {
+  const resolvedPlates = parseResolvedMainPlateGeometry(customLayout, `${source}:resolved`);
+  if (resolvedPlates.length > 0) return resolvedPlates;
+  if (!allowLegacyFallback) return [];
+
   const rows = parseCustomCircularRows(customLayout);
   if (rows.length === 0) return [];
 
-  const generatedCells = buildAndroidCircularPlateCells(
-    rowCount ?? rows.length,
-    widestRowPlateCount ?? Math.max(...rows.map((row) => row.plates.length), 1),
-    "android:RoofSurfaceMap:circular_plate_baseline",
-  );
-  const generatedRows = groupPlatesByRow(generatedCells);
-  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows);
+  const labelsByRowAndPlate = buildCustomCircularPlateRefs(rows, labelMode);
   const cells: LayoutPlate[] = [];
+  const totalHeightWeight = Math.max(rows.reduce((total, row) => total + row.heightWeight, 0), 0.001);
+  const stableHorizontalRowHeight = 0.84 / Math.max(rows.length, 1);
+  let rowTop = 0.08;
 
   rows.forEach((row, rowIndex) => {
     const rowNumber = rowIndex + 1;
-    const generatedRowCells = generatedRows.get(rowNumber)?.sort((a, b) => a.x - b.x) ?? [];
-    const rowLeft = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.x)) : 0.08;
-    const rowRight =
-      generatedRowCells.length > 0
-        ? Math.max(...generatedRowCells.map((plate) => plate.x + plate.width))
-        : 0.92;
-    const topNorm = generatedRowCells.length > 0 ? Math.min(...generatedRowCells.map((plate) => plate.y)) : 0.08;
-    const bottomNorm =
-      generatedRowCells.length > 0
-        ? Math.max(...generatedRowCells.map((plate) => plate.y + plate.height))
-        : 0.92;
-    const rowWidth = Math.max(rowRight - rowLeft, 0.06);
-    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.2), 0), 1);
-    const nominalPlateWidth = rowWidth / Math.max(row.plates.length, 1);
-    const maxShift = clamp(nominalPlateWidth * 0.65, 0.012, 0.08);
+    const rowHeight = 0.84 * (row.heightWeight / totalHeightWeight);
+    const topNorm = rowTop;
+    const bottomNorm = Math.min(rowTop + rowHeight, 0.92);
+    rowTop = bottomNorm;
+    const stableTop = 0.08 + stableHorizontalRowHeight * rowIndex;
+    const stableBottom = stableTop + stableHorizontalRowHeight;
+    const nearestCenterY = clamp(0.5, stableTop, stableBottom);
+    const chordHalfWidth = Math.sqrt(Math.max(0, 0.42 ** 2 - (nearestCenterY - 0.5) ** 2));
+    const rowWidth = Math.max(chordHalfWidth * 2, 0.06);
+    const maxShift = rowWidth * 0.16;
+    const stripLeft = 0.5 - chordHalfWidth - maxShift;
+    const stripWidth = rowWidth + 2 * maxShift;
+    const weightSum = Math.max(row.plates.reduce((total, plate) => total + Math.max(plate.widthWeight, 0.001), 0), 0.001);
     const labelByPlateIndex = labelsByRowAndPlate.get(rowIndex) ?? new Map<number, string>();
-    let x = rowLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
+    let x = stripLeft + clamp(row.shiftRatio, -1, 1) * maxShift;
 
     row.plates.forEach((plate, position) => {
-      const width = rowWidth * (Math.max(plate.widthWeight, 0.2) / weightSum);
+      const width = stripWidth * (Math.max(plate.widthWeight, 0.001) / weightSum);
       const label = labelByPlateIndex.get(position) ?? `${rowNumber}.${position + 1}`;
 
       cells.push(
@@ -296,6 +400,7 @@ function shellOffsetFraction(
 type ParsedCustomCircularRow = {
   rowNumber: number;
   shiftRatio: number;
+  heightWeight: number;
   plates: Array<{
     widthWeight: number;
     splitGroupKey: string | null;
@@ -328,11 +433,47 @@ function parseCustomCircularRows(customLayout: unknown): ParsedCustomCircularRow
       return {
         rowNumber: toPositiveNumber(row.rowNumber) ?? index + 1,
         shiftRatio: clamp(toFiniteNumber(row.shiftRatio) ?? 0, -0.4, 0.4),
+        heightWeight: toPositiveNumber(row.heightWeight) ?? 1,
         plates,
       };
     })
     .filter((row): row is ParsedCustomCircularRow => row != null)
     .sort((a, b) => a.rowNumber - b.rowNumber);
+}
+
+function parseResolvedMainPlateGeometry(customLayout: unknown, source: string): LayoutPlate[] {
+  if (
+    !isRecord(customLayout) ||
+    (customLayout.resolvedGeometryVersion !== 1 && customLayout.resolvedGeometryVersion !== 2)
+  ) return [];
+  if (!Array.isArray(customLayout.resolvedMainPlateGeometry)) return [];
+
+  return customLayout.resolvedMainPlateGeometry
+    .map((value, index): LayoutPlate | null => {
+      if (!isRecord(value) || typeof value.plateId !== "string" || value.plateId.trim() === "") return null;
+      const left = toFiniteNumber(value.leftNorm);
+      const right = toFiniteNumber(value.rightNorm);
+      const top = toFiniteNumber(value.topNorm);
+      const bottom = toFiniteNumber(value.bottomNorm);
+      if (left == null || right == null || top == null || bottom == null || right <= left || bottom <= top) return null;
+
+      const plateId = value.plateId.trim();
+      return clampPlate({
+        id: plateId,
+        label: plateId,
+        mapLabel: typeof value.mapLabel === "string" ? value.mapLabel : plateId,
+        labelX: toFiniteNumber(value.labelXNorm) ?? (left + right) / 2,
+        labelY: toFiniteNumber(value.labelYNorm) ?? (top + bottom) / 2,
+        row: toInteger(value.rowNumber) ?? 0,
+        column: index + 1,
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+        source,
+      });
+    })
+    .filter((plate): plate is LayoutPlate => plate != null);
 }
 
 function groupPlatesByRow(plates: LayoutPlate[]): Map<number, LayoutPlate[]> {
@@ -343,21 +484,25 @@ function groupPlatesByRow(plates: LayoutPlate[]): Map<number, LayoutPlate[]> {
   return grouped;
 }
 
-function buildCustomCircularPlateRefs(rows: ParsedCustomCircularRow[]): Map<number, Map<number, string>> {
+function buildCustomCircularPlateRefs(
+  rows: ParsedCustomCircularRow[],
+  labelMode: "roof" | "floor",
+): Map<number, Map<number, string>> {
   const labelsByRowAndPlate = new Map<number, Map<number, string>>();
   let roofCounter = 1;
 
   rows.forEach((row, rowIndex) => {
     const plateGroups = groupCustomPlatesBySplitKey(row.plates);
     const groupCount = plateGroups.length;
-    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) => {
-      const offset = row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex;
-      return roofCounter + offset;
-    });
+    const rowLabels = Array.from({ length: groupCount }, (_, groupIndex) =>
+      labelMode === "floor"
+        ? `${row.rowNumber}.${groupIndex + 1}`
+        : String(roofCounter + (row.rowNumber % 2 === 0 ? groupCount - 1 - groupIndex : groupIndex)),
+    );
     const rowLabelsByPlate = new Map<number, string>();
 
     plateGroups.forEach((group, groupIndex) => {
-      const base = rowLabels[groupIndex].toString();
+      const base = rowLabels[groupIndex];
       group.forEach((plateIndex) => {
         const plate = row.plates[plateIndex];
         const suffix = plate.splitGroupKey ? splitSuffix(plate.splitPartIndex ?? 0) : "";
@@ -366,7 +511,7 @@ function buildCustomCircularPlateRefs(rows: ParsedCustomCircularRow[]): Map<numb
     });
 
     labelsByRowAndPlate.set(rowIndex, rowLabelsByPlate);
-    roofCounter += groupCount;
+    if (labelMode === "roof") roofCounter += groupCount;
   });
 
   return labelsByRowAndPlate;
@@ -398,6 +543,23 @@ function groupCustomPlatesBySplitKey(plates: ParsedCustomCircularRow["plates"]):
 
 function splitSuffix(index: number): string {
   return String.fromCharCode("a".charCodeAt(0) + Math.max(Math.floor(index), 0));
+}
+
+function sampleAzimuthArc(startDegrees: number, endDegrees: number, radius: number): Array<{ x: number; y: number }> {
+  const span = endDegrees - startDegrees;
+  const segmentCount = Math.max(2, Math.ceil(Math.abs(span) / 5));
+  return Array.from({ length: segmentCount + 1 }, (_, index) => {
+    const azimuth = startDegrees + (span * index) / segmentCount;
+    const radians = ((azimuth - 90) * Math.PI) / 180;
+    return {
+      x: roundGeometry(0.5 + Math.cos(radians) * radius),
+      y: roundGeometry(0.5 + Math.sin(radians) * radius),
+    };
+  });
+}
+
+function roundGeometry(value: number): number {
+  return Math.round(value * 100_000) / 100_000;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -457,25 +619,40 @@ export function stageToPlateRect(rect: { x: number; y: number; width: number; he
 }
 
 export function clampMarker(marker: LayoutMarker): LayoutMarker {
+  const source = normalizeLayoutSource(marker.source);
+  const isAppGeometry = source.startsWith("v3-app:");
   return {
     ...marker,
-    x: clamp(marker.x, 0.02, 0.98),
-    y: clamp(marker.y, 0.04, 0.96),
+    source,
+    x: clamp(marker.x, isAppGeometry ? 0 : 0.02, isAppGeometry ? 1 : 0.98),
+    y: clamp(marker.y, isAppGeometry ? 0 : 0.04, isAppGeometry ? 1 : 0.96),
   };
 }
 
 export function clampPlate(plate: LayoutPlate): LayoutPlate {
-  const isAndroidGeometry = plate.source.startsWith("android:");
-  const width = clamp(plate.width, isAndroidGeometry ? 0.001 : 0.04, isAndroidGeometry ? 1 : 0.35);
-  const height = clamp(plate.height, isAndroidGeometry ? 0.001 : 0.05, isAndroidGeometry ? 1 : 0.32);
+  const source = normalizeLayoutSource(plate.source);
+  const isAppGeometry = source.startsWith("android:") || source.startsWith("v3-app:");
+  const width = clamp(plate.width, isAppGeometry ? 0.001 : 0.04, isAppGeometry ? 1.5 : 0.35);
+  const height = clamp(plate.height, isAppGeometry ? 0.001 : 0.05, isAppGeometry ? 1 : 0.32);
 
   return {
     ...plate,
-    x: clamp(plate.x, 0, 1 - width),
-    y: clamp(plate.y, isAndroidGeometry ? 0 : 0.02, 1 - height),
+    source,
+    x: clamp(plate.x, isAppGeometry ? -0.25 : 0, isAppGeometry ? 1.25 - width : 1 - width),
+    y: clamp(plate.y, isAppGeometry ? 0 : 0.02, 1 - height),
     width,
     height,
+    points: Array.isArray(plate.points) && plate.points.length >= 3
+      ? plate.points.map((point) => ({
+          x: clamp(point.x, 0, 1),
+          y: clamp(point.y, 0, 1),
+        }))
+      : undefined,
   };
+}
+
+function normalizeLayoutSource(source: unknown): string {
+  return typeof source === "string" && source.trim() !== "" ? source : LEGACY_LAYOUT_SOURCE;
 }
 
 function clamp(value: number, min: number, max: number) {

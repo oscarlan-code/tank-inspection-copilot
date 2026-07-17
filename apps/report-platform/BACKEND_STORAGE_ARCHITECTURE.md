@@ -29,6 +29,17 @@ Purpose:
 Recommended default:
 - `Postgres`
 
+SQLite status:
+- acceptable only for local development, internal V1 Beta validation, deterministic audits, and single-node demos
+- not the commercial multi-tenant primary database
+- should remain available as a fallback adapter until the Postgres path is stable
+
+Commercial scale target:
+- approximately 200 user accounts in the early commercial stage
+- approximately 50 concurrent active editors/reviewers
+- background generation, export, indexing, and eval jobs running alongside interactive UI work
+- support for future horizontal API scaling
+
 Primary responsibilities:
 - tenants
 - workspaces
@@ -335,6 +346,8 @@ For the first product-standard release:
 - `Postgres` for transactional storage
 - `pgvector` for vector retrieval
 - S3-compatible object storage for files
+- queue-backed workers for long-running generation/export/indexing jobs
+- optimistic concurrency/version checks for section draft editing
 
 This gives a practical balance of:
 
@@ -355,5 +368,31 @@ Define these contracts early:
 6. `GenerationRunRecord`
 7. object storage key conventions
 8. vector metadata filter contract
+9. `StorageProvider` interface with local SQLite and production Postgres implementations
+10. `JobQueue` interface for generation, export, indexing, and eval work
+11. optimistic concurrency fields such as `version`, `updatedAt`, and `updatedByUserId`
 
 That will let the frontend, backend, retrieval, and Codex CLI orchestration evolve against a shared product-standard backend model.
+
+## Migration Direction From V1 Beta
+
+The current SQLite store should be treated as a working reference implementation of the domain model, not the final database engine.
+
+Recommended migration phases:
+
+1. Introduce a storage interface around the existing report store methods.
+2. Move schema creation into versioned migrations.
+3. Add Postgres DDL matching the current entities and indexes.
+4. Add row-level tenant/workspace filters and authorization checks at every query boundary.
+5. Add optimistic concurrency for report section drafts and manual inputs.
+6. Move generated DOCX/PDF/map artifacts and source imports to object storage.
+7. Add queue-backed background workers for generation, DOCX export, KB indexing, and eval runs.
+8. Keep SQLite only for local development and deterministic test fixtures.
+
+For 50 concurrent active users, the most important backend behaviors are:
+
+- short transactions
+- no long-running AI or DOCX work inside request transactions
+- section-level locking/version checks instead of whole-report locks
+- explicit audit rows for every generation, edit, approval, and export action
+- safe retry/idempotency keys for import, generation, export, and approval routes

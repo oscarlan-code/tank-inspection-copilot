@@ -5,23 +5,39 @@ import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 
 const appRoot = fileURLToPath(new URL("..", import.meta.url));
-const configuredModelId = process.env.REPORT_PLATFORM_CODEX_MODEL?.trim() || null;
+const defaultModelId = "gpt-5.6-sol";
+const minimumGpt56CodexCliVersion = "0.144.0";
+const configuredModelId = process.env.REPORT_PLATFORM_CODEX_MODEL?.trim() || defaultModelId;
+const codexTimeoutMs = parsePositiveInteger(process.env.REPORT_PLATFORM_CODEX_TIMEOUT_MS, 120000);
 const codexAvailability = detectCodexAvailability();
 
 export function getAiStatus() {
-  const available = codexAvailability.available;
+  const needsGpt56Support = isGpt56Model(configuredModelId);
+  const versionSupported =
+    !needsGpt56Support ||
+    compareSemver(codexAvailability.version, minimumGpt56CodexCliVersion) >= 0;
+  const available = codexAvailability.available && versionSupported;
+  const versionLabel = codexAvailability.version
+    ? `Codex CLI ${codexAvailability.version}`
+    : codexAvailability.available
+      ? "Codex CLI version unknown"
+      : "Codex CLI unavailable";
 
   return {
     mode: available ? "live_codex_cli" : "deterministic_fallback",
     provider: available ? "codex_cli" : "deterministic",
     modelId: available ? configuredModelId : null,
+    targetModelId: configuredModelId,
     configured: available,
     statusLabel: available
-      ? `LAIQ AI Engine worker${configuredModelId ? ` (${configuredModelId})` : ""}`
-      : "Deterministic fallback (LAIQ AI Engine worker unavailable)",
+      ? `LAIQ AI Engine worker (${configuredModelId}, ${versionLabel}, timeout ${codexTimeoutMs}ms)`
+      : buildUnavailableDetail({ needsGpt56Support, versionSupported, versionLabel }),
     detail: available
-      ? "Section generation and section chat will attempt the configured LAIQ AI Engine worker first and fall back only if the worker run fails."
-      : "The backend could not find the configured LAIQ AI Engine worker on PATH, so deterministic fallback mode is active.",
+      ? "Section generation and section chat will attempt GPT-5.6 Sol through Codex CLI first and fall back only if the worker run fails or times out."
+      : buildUnavailableDetail({ needsGpt56Support, versionSupported, versionLabel }),
+    codexCliVersion: codexAvailability.version,
+    minimumCodexCliVersion: needsGpt56Support ? minimumGpt56CodexCliVersion : null,
+    timeoutMs: codexTimeoutMs,
     checkedAtIso: new Date().toISOString(),
   };
 }
@@ -32,7 +48,7 @@ export async function runStructuredCodexJob({
 }) {
   const status = getAiStatus();
   if (!status.configured) {
-    throw new Error("LAIQ AI Engine worker is not available on PATH for the report-platform worker.");
+    throw new Error(status.detail);
   }
 
   const workingDir = await mkdtemp(join(tmpdir(), "report-platform-codex-"));
@@ -85,11 +101,19 @@ function runCodexExec({
 
     const child = spawn("codex", args, {
       cwd: appRoot,
-      env: process.env,
+      env: buildCodexWorkerEnv(),
       stdio: ["pipe", "ignore", "pipe"],
     });
 
     let stderr = "";
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill("SIGTERM");
+      reject(new Error(`LAIQ AI Engine worker timed out after ${codexTimeoutMs}ms using ${configuredModelId}.`));
+    }, codexTimeoutMs);
+
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
       if (stderr.length > 32000) {
@@ -98,10 +122,16 @@ function runCodexExec({
     });
 
     child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       reject(error);
     });
 
     child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       if (code === 0) {
         resolve();
         return;
@@ -124,11 +154,61 @@ function detectCodexAvailability() {
     encoding: "utf8",
   });
 
+  const versionOutput = `${result.stdout ?? ""} ${result.stderr ?? ""}`.trim();
   return {
     available: result.status === 0,
+    version: parseCodexVersion(versionOutput),
+    rawVersion: versionOutput,
   };
 }
 
 function compactWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function buildUnavailableDetail({ needsGpt56Support, versionSupported, versionLabel }) {
+  if (!codexAvailability.available) {
+    return "Deterministic fallback: Codex CLI is not available on PATH for the report-platform worker.";
+  }
+
+  if (needsGpt56Support && !versionSupported) {
+    return `Deterministic fallback: ${configuredModelId} needs Codex CLI ${minimumGpt56CodexCliVersion} or newer, but ${versionLabel} is installed.`;
+  }
+
+  return "Deterministic fallback: LAIQ AI Engine worker is not configured.";
+}
+
+function parseCodexVersion(value) {
+  const match = /(\d+)\.(\d+)\.(\d+)/.exec(String(value ?? ""));
+  return match ? match[0] : null;
+}
+
+function compareSemver(left, right) {
+  if (!left || !right) return -1;
+
+  const leftParts = left.split(".").map((part) => Number.parseInt(part, 10));
+  const rightParts = right.split(".").map((part) => Number.parseInt(part, 10));
+
+  for (let index = 0; index < 3; index += 1) {
+    const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (delta !== 0) return delta > 0 ? 1 : -1;
+  }
+
+  return 0;
+}
+
+function isGpt56Model(modelId) {
+  return /^gpt-5\.6(?:$|-)/i.test(String(modelId ?? ""));
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function buildCodexWorkerEnv() {
+  return {
+    ...process.env,
+    REPORT_PLATFORM_CODEX_MODEL: configuredModelId,
+  };
 }

@@ -135,17 +135,100 @@ export type LayoutMarker = {
   evidence?: LayoutEvidenceItem[];
 };
 
+export type LayoutPoint = {
+  x: number;
+  y: number;
+};
+
 export type LayoutPlate = {
   id: string;
   label: string;
+  mapLabel?: string;
+  labelX?: number;
+  labelY?: number;
+  aliases?: string[];
+  plateKind?: "main" | "annular";
   row: number;
   column: number;
   x: number;
   y: number;
   width: number;
   height: number;
+  points?: LayoutPoint[];
   source: string;
   evidence?: LayoutEvidenceItem[];
+};
+
+export type FloorCorrosionBand = {
+  minimumLossPercent: number;
+  color: string;
+  pixelCount: number;
+};
+
+export type FloorCorrosionOverlayStatus =
+  | "matched"
+  | "orientation_review_required"
+  | "approved"
+  | "blocked";
+
+export type FloorCorrosionOverlay = {
+  id: string;
+  hostPlateId: string;
+  scanPlateId: string;
+  sourcePage: number;
+  sourceDocumentName: string;
+  sourceWidthMm: number;
+  sourceHeightMm: number;
+  artifactUri?: string;
+  inlineImageDataUrl?: string;
+  sourcePreviewArtifactUri?: string;
+  sourcePreviewInlineImageDataUrl?: string;
+  artifactSha256: string;
+  sourcePreviewSha256?: string;
+  corrosionPixelCount: number;
+  bands: FloorCorrosionBand[];
+  rotationDegrees: 0 | 90 | 180 | 270;
+  flipX: boolean;
+  flipY: boolean;
+  opacity: number;
+  status: FloorCorrosionOverlayStatus;
+  reviewedByUserId?: string;
+  reviewedAtIso?: string;
+};
+
+export type FloorCorrosionValidationIssue = {
+  code: string;
+  severity: "warning" | "error";
+  plateId?: string;
+  message: string;
+};
+
+export type FloorCorrosionMapData = {
+  schemaVersion: 1;
+  artifactRunId: string;
+  sourceLayoutName: string;
+  sourceMflDocumentName: string;
+  generatedAtIso: string;
+  overlays: FloorCorrosionOverlay[];
+  unmatchedScanPlateIds: string[];
+  platesWithoutScans: string[];
+  validationIssues: FloorCorrosionValidationIssue[];
+};
+
+export type FloorSourceDrawingData = {
+  schemaVersion: 1 | 2;
+  artifactUri: string;
+  foregroundArtifactUri?: string;
+  inlineImageDataUrl?: string;
+  foregroundInlineImageDataUrl?: string;
+  width: number;
+  height: number;
+  sourceDocumentName: string;
+  sourcePage: number;
+  sourceSha256: string;
+  calibrationProfile: string;
+  renderMode?: "extracted_vector";
+  generationRole: "immutable_layout_underlay" | "immutable_vector_layout";
 };
 
 export type LayoutDrawingBlock = {
@@ -158,6 +241,18 @@ export type LayoutDrawingBlock = {
 };
 
 export type LayoutSurfaceType = "roof" | "shell" | "floor";
+
+export type AppOwnedLayoutFigure = {
+  targetKey: string;
+  renderVersion: number;
+  sourceGeometryVersion: number;
+  mediaType: "image/svg+xml";
+  width: number;
+  height: number;
+  viewBox: string;
+  sha256: string;
+  svg: string;
+};
 
 export type AndroidLayoutMapConfig = {
   surfaceType: LayoutSurfaceType;
@@ -187,11 +282,15 @@ export type AndroidLayoutMapConfig = {
     plateCount: number;
     hasAnnularRing: boolean;
     annularSectionCount: number;
+    annularRotationDeg?: number;
+    annularWidthRatio?: number;
+    customCircularLayout?: unknown | null;
   };
 };
 
 export type LayoutMapData = {
   id: string;
+  geometrySource?: "app_export" | "app_export_mock" | "report_side_approved_layout" | "reference_test_fixture" | "source_drawing_import";
   title: string;
   subtitle: string;
   surfaceLabel: string;
@@ -203,6 +302,9 @@ export type LayoutMapData = {
   gridColumns: number;
   drawingBlock: LayoutDrawingBlock;
   appMap?: AndroidLayoutMapConfig;
+  appFigure?: AppOwnedLayoutFigure;
+  floorCorrosion?: FloorCorrosionMapData;
+  sourceDrawing?: FloorSourceDrawingData;
   selectedMarkerId?: string;
   overrideCount: number;
 };

@@ -2,6 +2,8 @@ import {
   buildAndroidCircularPlateCells,
   buildAndroidShellPlateSegments,
   buildCustomCircularPlateCells,
+  buildResolvedAnnularPlateGeometry,
+  buildV3AppAnnularRingSections,
   ensureLayoutMapData,
   shellRegionMarkerPosition,
 } from "../lib/layoutMapGeometry";
@@ -37,6 +39,7 @@ import type {
   V2ProductExportUtMeasurement,
   V2ProductExportVoiceNote,
 } from "./v2ProductExport";
+import { authenticatedFetch } from "../lib/authClient";
 
 type ManualReportSupplement = {
   reportReference: string;
@@ -84,9 +87,13 @@ export type ApiAiStatus = {
   mode: "live_codex_cli" | "deterministic_fallback";
   provider: string;
   modelId: string | null;
+  targetModelId?: string | null;
   configured: boolean;
   statusLabel: string;
   detail: string;
+  codexCliVersion?: string | null;
+  minimumCodexCliVersion?: string | null;
+  timeoutMs?: number;
   checkedAtIso: string;
 };
 
@@ -211,7 +218,6 @@ const v10ApiStandardBootstrapPath = "/api/v1/report-jobs/bootstrap/v10-api-stand
 const androidMockSeedPath =
   "apps/field-android/app/src/main/java/ai/laiq/tankinspection/v3product/preview/ProductMockTaskSeed.kt";
 const reportFixturePath = "apps/report-platform/src/fixtures/v3-product-export-shell-internal.json";
-let workspaceBootstrapPromise: Promise<WorkspaceBootstrap> | null = null;
 
 function buildApiStandardFixturePackage(exportPackage: V2ProductExportPackage): V2ProductExportPackage {
   return exportPackage;
@@ -226,15 +232,14 @@ const makeField = (
 });
 
 export async function loadWorkspaceBootstrap(): Promise<WorkspaceBootstrap> {
-  workspaceBootstrapPromise ??= loadWorkspaceBootstrapUncached();
-  return workspaceBootstrapPromise;
+  return loadWorkspaceBootstrapUncached();
 }
 
 async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
   const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_REPORT_API_BASE_URL) ?? defaultApiBaseUrl;
 
   try {
-    const response = await fetch(buildApiUrl(apiBaseUrl, v10ApiStandardBootstrapPath));
+    const response = await authenticatedFetch(buildApiUrl(apiBaseUrl, v10ApiStandardBootstrapPath));
     if (!response.ok) {
       throw new Error(`Bootstrap request failed with ${response.status}`);
     }
@@ -259,6 +264,9 @@ async function loadWorkspaceBootstrapUncached(): Promise<WorkspaceBootstrap> {
       },
     };
   } catch (error) {
+    if (import.meta.env.VITE_REPORT_ALLOW_FIXTURE_FALLBACK !== "true") {
+      throw error;
+    }
     const fixturePackage = await loadFixturePackage();
 
     assertValidAndroidExport(fixturePackage);
@@ -1721,7 +1729,9 @@ This sketch page is anchored to imported vertical tank ${surfaceLabel.toLowerCas
         label: "Legend Note",
         input: "text",
         value: manualSupplement.legendNote,
-        suggestion: "Repair planning locations shown against imported shell baseline geometry.",
+        suggestion: spec.id === "floor-plate-corrosion-plan"
+          ? "Corrosion percentages are overlaid from reviewed MFL plate scans on the imported floor plate layout."
+          : `Report markers are shown against the imported ${surfaceLabel.toLowerCase()} baseline geometry.`,
         reason: "One final legend note is still needed for the printable sketch page.",
         source: "Report-side manual input",
       }),
@@ -1978,7 +1988,40 @@ function buildFloorLayoutMap(
   const gridRows = floorConfig.floorPatternCountX ?? Math.max(1, Math.ceil(Math.sqrt(floorPlateCount || 36)));
   const gridColumns =
     floorConfig.floorPatternCountY ?? Math.max(1, Math.ceil((floorPlateCount || gridRows) / gridRows));
-  const plates = buildAndroidCircularPlateCells(gridRows, gridColumns, "android:RoofSurfaceMap:floor-circular_plate").map(
+  const requiresResolvedGeometry =
+    exportPackage.packageType === "v3_product_export" && exportPackage.schemaVersion >= 3;
+  const customPlates = buildCustomCircularPlateCells(
+    floorConfig.customCircularLayout,
+    "v3-app:FloorSurfaceMap:custom_circular_plate",
+    gridRows,
+    gridColumns,
+    "floor",
+    !requiresResolvedGeometry,
+  );
+  const mainPlates = customPlates.length > 0
+    ? customPlates.map((plate) => ({ ...plate, plateKind: "main" as const }))
+    : requiresResolvedGeometry
+      ? []
+      : buildAndroidCircularPlateCells(gridRows, gridColumns, "v3-app:FloorSurfaceMap:circular_plate")
+        .map((plate) => ({ ...plate, plateKind: "main" as const }));
+  const customLayoutSettings = readCircularLayoutSettings(floorConfig.customCircularLayout);
+  const resolvedAnnularPlates = buildResolvedAnnularPlateGeometry(
+    floorConfig.customCircularLayout,
+    "v3-app:FloorSurfaceMap:annular_ring:resolved",
+  );
+  const annularPlates = floorConfig.floorTemplate === "circular_plate_ar"
+    ? resolvedAnnularPlates.length > 0
+      ? resolvedAnnularPlates
+      : requiresResolvedGeometry
+        ? []
+        : buildV3AppAnnularRingSections(
+          floorConfig.floorAnnularSectionCount ?? 0,
+          customLayoutSettings.annularRotationDeg,
+          customLayoutSettings.annularWidthRatio,
+          "v3-app:FloorSurfaceMap:annular_ring:legacy_fallback",
+        )
+    : [];
+  const plates = [...mainPlates, ...annularPlates].map(
     (plate) => ({
       ...plate,
       evidence: buildRegionEvidence(exportPackage, "floor", plate.id),
@@ -1988,15 +2031,18 @@ function buildFloorLayoutMap(
     ...buildTargetFindingMarkers(exportPackage, "floor", plates),
     ...buildTargetElementMarkers(exportPackage, "floor", { plates }),
   ];
+  const appFigure = exportPackage.layoutFigures?.find((figure) => figure.targetKey === "floor");
 
   return {
     id: "floor-plate-layout",
+    geometrySource: "app_export",
     title: "Floor Plate Layout With Platemaps Numbering System",
-    subtitle: `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
+    subtitle: customPlates.length > 0
+      ? `V3 app floor layout: ${gridRows} rows, ${mainPlates.length} bottom plates, ${annularPlates.length} AR sections`
+      : `Floor map: circular plate template, ${gridRows} rows, ${gridColumns} widest-row plates, ${plates.length} visible plates`,
     surfaceLabel: "Floor/bottom plate layout",
     legend: [
-      "Circular clipped plate layout follows LAIQ app floor preview, which reuses RoofSurfaceMap",
-      "Numbered cells = app floor plate numbering",
+      "Plate, label, and AR polygon geometry is imported directly from the LAIQ inspection app V3 export",
       "Blue markers = imported floor findings/elements from LAIQ app export",
     ],
     markers,
@@ -2026,9 +2072,27 @@ function buildFloorLayoutMap(
         plateCount: floorPlateCount || plates.length,
         hasAnnularRing: floorConfig.floorTemplate === "circular_plate_ar",
         annularSectionCount: floorConfig.floorAnnularSectionCount ?? 0,
+        annularRotationDeg: customLayoutSettings.annularRotationDeg,
+        annularWidthRatio: customLayoutSettings.annularWidthRatio,
+        customCircularLayout: floorConfig.customCircularLayout,
       },
     },
+    appFigure,
     overrideCount: 0,
+  };
+}
+
+function readCircularLayoutSettings(customLayout: unknown): {
+  annularRotationDeg: number;
+  annularWidthRatio: number;
+} {
+  if (!customLayout || typeof customLayout !== "object" || Array.isArray(customLayout)) {
+    return { annularRotationDeg: 0, annularWidthRatio: 0.12 };
+  }
+  const candidate = customLayout as Record<string, unknown>;
+  return {
+    annularRotationDeg: typeof candidate.annularRotationDeg === "number" ? candidate.annularRotationDeg : 0,
+    annularWidthRatio: typeof candidate.annularWidthRatio === "number" ? candidate.annularWidthRatio : 0.12,
   };
 }
 
@@ -2042,10 +2106,13 @@ function buildTargetElementMarkers(
     .map((element) => {
       const position =
         targetKey === "external_roof" || targetKey === "floor"
-          ? coerceCircularMarkerPosition(element.normalizedX, element.normalizedY)
+          ? {
+              x: clamp(element.normalizedX, 0, 1),
+              y: clamp(element.normalizedY, 0, 1),
+            }
           : {
-              x: clamp(element.normalizedX, 0.08, 0.92),
-              y: clamp(element.normalizedY, 0.12, 0.88),
+              x: clamp(element.normalizedX, 0, 1),
+              y: clamp(element.normalizedY, 0, 1),
             };
       const hostLocation = deriveMarkerHostLocation(targetKey, position, options);
 
@@ -2055,7 +2122,7 @@ function buildTargetElementMarkers(
         type: "element" as const,
         x: position.x,
         y: position.y,
-        source: `element:${element.elementTypeKey}`,
+        source: `v3-app:element:${element.elementTypeKey}`,
         hostLocation,
         evidence: buildElementEvidence(exportPackage, element, hostLocation),
       };
@@ -2080,6 +2147,10 @@ function getLinkedElementId(linkedUtItemKey: string | null | undefined): string 
   return /:element:([^:]+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
 }
 
+function getLinkedRegionId(linkedUtItemKey: string | null | undefined): string | null {
+  return /:region:(.+)$/i.exec(linkedUtItemKey ?? "")?.[1] ?? null;
+}
+
 function buildSurfaceFindingMarker(
   finding: V2ProductExportFinding,
   elements: V2ProductExportElement[],
@@ -2099,6 +2170,28 @@ function buildSurfaceFindingMarker(
       type: "finding",
       x: position.x,
       y: position.y,
+      source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
+      hostLocation,
+      evidence: appendHostLocationEvidence(evidence, hostLocation),
+    };
+  }
+
+  const linkedRegionId = getLinkedRegionId(finding.linkedUtItemKey);
+  const linkedPlate = linkedRegionId
+    ? plates.find((plate) => plate.id === linkedRegionId || plate.aliases?.includes(linkedRegionId))
+    : undefined;
+  if (linkedPlate) {
+    const position = {
+      x: linkedPlate.labelX ?? linkedPlate.x + linkedPlate.width / 2,
+      y: linkedPlate.labelY ?? linkedPlate.y + linkedPlate.height / 2,
+    };
+    const hostLocation = deriveMarkerHostLocation(finding.targetKey, position, { plates });
+    return {
+      id: finding.findingId,
+      label: finding.itemLabel,
+      type: "finding",
+      x: clamp(position.x, 0.02, 0.98),
+      y: clamp(position.y, 0.02, 0.98),
       source: `finding:${finding.linkedUtItemKey ?? finding.itemLabel}`,
       hostLocation,
       evidence: appendHostLocationEvidence(evidence, hostLocation),
@@ -2896,27 +2989,44 @@ function mergeLayoutOverrideWithBaseline(
   const normalizedBaseline = ensureLayoutMapData(baselineLayoutMap);
   const normalizedOverride = ensureLayoutMapData(layoutOverride);
   const overrideMarkersById = new Map(normalizedOverride.markers.map((marker) => [marker.id, marker]));
+  const lockAppFloorGeometry = normalizedBaseline.appMap?.surfaceType === "floor"
+    && Boolean(normalizedBaseline.appFigure?.svg);
+  const replaceBaselineMarkers = normalizedOverride.geometrySource === "reference_test_fixture"
+    || normalizedOverride.geometrySource === "app_export_mock"
+    || normalizedOverride.geometrySource === "report_side_approved_layout"
+    || normalizedOverride.geometrySource === "source_drawing_import";
 
   return ensureLayoutMapData({
     ...normalizedBaseline,
     ...normalizedOverride,
-    plates: normalizedOverride.plates.length > 0 ? normalizedOverride.plates : normalizedBaseline.plates,
-    markers: normalizedBaseline.markers.map((baselineMarker) => {
-      const overrideMarker = overrideMarkersById.get(baselineMarker.id);
-      return overrideMarker
-        ? {
-            ...baselineMarker,
-            ...overrideMarker,
-            evidence: baselineMarker.evidence ?? overrideMarker.evidence,
-            hostLocation: baselineMarker.hostLocation ?? overrideMarker.hostLocation,
-          }
-        : baselineMarker;
-    }),
+    geometrySource: lockAppFloorGeometry ? normalizedBaseline.geometrySource : normalizedOverride.geometrySource,
+    sourceDrawing: lockAppFloorGeometry ? undefined : normalizedOverride.sourceDrawing,
+    appFigure: lockAppFloorGeometry ? normalizedBaseline.appFigure : normalizedOverride.appFigure ?? normalizedBaseline.appFigure,
+    plates: lockAppFloorGeometry
+      ? normalizedBaseline.plates
+      : normalizedOverride.plates.length > 0 ? normalizedOverride.plates : normalizedBaseline.plates,
+    markers: lockAppFloorGeometry
+      ? normalizedBaseline.markers
+      : replaceBaselineMarkers
+      ? normalizedOverride.markers
+      : normalizedBaseline.markers.map((baselineMarker) => {
+          const overrideMarker = overrideMarkersById.get(baselineMarker.id);
+          return overrideMarker
+            ? {
+                ...baselineMarker,
+                ...overrideMarker,
+                evidence: baselineMarker.evidence ?? overrideMarker.evidence,
+                hostLocation: baselineMarker.hostLocation ?? overrideMarker.hostLocation,
+              }
+            : baselineMarker;
+        }),
     drawingBlock: {
       ...normalizedBaseline.drawingBlock,
       ...normalizedOverride.drawingBlock,
     },
-    appMap: normalizedBaseline.appMap
+    appMap: lockAppFloorGeometry
+      ? normalizedBaseline.appMap
+      : normalizedBaseline.appMap
       ? {
           ...normalizedBaseline.appMap,
           ...(normalizedOverride.appMap ?? {}),

@@ -14,6 +14,8 @@ V1 Beta is the first stable product baseline for the V10 API 653 internal/extern
 
 Core V1 Beta capabilities:
 
+- Login-gated workspace with controlled development identities and a provider-neutral OIDC/JWT verification boundary.
+- Server-enforced tenant/workspace authorization for report import, access, editing, generation, approval, KB retrieval, and export.
 - V10 LAIQ inspection app V3 export loading through the report-platform API.
 - Browser authoring workspace with table-of-contents navigation, report workspace, and right-side LAIQ AI Engine assistant.
 - Section-by-section generation with a selectable generation queue.
@@ -22,7 +24,10 @@ Core V1 Beta capabilities:
 - Approved-section-only DOCX export flow.
 - Deterministic UT measurement table generation from exported app rows.
 - Deterministic checklist table generation from exported app checklist rows.
-- Deterministic roof, shell, and floor layout-map rendering from app layout metadata.
+- Deterministic roof and shell rendering from app layout metadata. For V3 floor maps, the LAIQ inspection app owns the final deterministic SVG artifact in `layoutFigures[]`; browser preview and DOCX embed the same checksum-verified SVG bytes, while resolved polygons and coordinates are used only for selection and linked evidence overlays.
+- Source-driven floor-corrosion composition: extract the original engineering layout page as sanitized vector geometry, preserve its symbols and seams, add grid-free MFL corrosion pixels to matched plate regions, review orientation, and render the same layered map in the browser and DOCX.
+- V3 app-generated floor mock: the mobile layout tool exports `resolvedGeometryVersion: 2`, resolved bounds and stable IDs for 24 bottom plates including `6.2a/6.2b`, all 10 resolved AR polygons and labels, S1-S8 element coordinates, and the app-owned SVG. A V3 import missing the geometry/figure contract, containing unsafe SVG, or carrying a mismatched SHA-256 is rejected instead of being reconstructed on the web.
+- The app-owned floor SVG paints LAIQ-red AR seams after internal plates; report-platform must preserve that layer order in browser and DOCX output.
 - DOCX-safe layout-map figure rendering for approved export.
 - V3 `voiceNotes[]` context routing by workflow screen, card, target, item, and transcript status.
 - Rich-text editing for generated report drafts.
@@ -151,6 +156,13 @@ Key UI principles:
 
 The LAIQ AI Engine is both a generation orchestrator and a report-edit assistant.
 
+Default runtime target:
+
+- `REPORT_PLATFORM_CODEX_MODEL=gpt-5.6-sol`
+- `REPORT_PLATFORM_CODEX_TIMEOUT_MS=120000`
+
+The report-platform worker uses Codex CLI for the current internal phase. GPT-5.6 live-worker mode requires Codex CLI `0.144.0` or newer; if the local CLI is missing or too old, the API reports deterministic fallback mode instead of silently pretending live AI is running. This keeps demos stable while making the runtime status honest.
+
 The product rule is:
 
 ```text
@@ -202,10 +214,26 @@ Eval and safety gates:
 
 ## Backend/API Baseline
 
-V1 Beta uses a local Node API and SQLite-backed local report store.
+V1 Beta currently uses a local Node API and SQLite-backed local report store so the workflow can run predictably during internal development.
+
+Product-standard cloud storage target:
+
+- `Postgres` for transactional report, user, tenant, review, generation, and audit state.
+- `pgvector` in Postgres for the first production KB/vector retrieval layer.
+- S3-compatible object storage for imported packages, source attachments, generated DOCX/PDF files, layout-map figures, and KB source documents.
+- SQLite only as a local development/demo fallback, not the commercial multi-tenant primary database.
+
+Scale assumption for the commercial backend:
+
+- up to 200 report-platform users in the first commercial stage
+- approximately 50 concurrent active editors/reviewers
+- multiple report jobs in progress across tenants/workspaces
+- background AI generation, DOCX export, KB indexing, and eval jobs running without blocking interactive editing
 
 Current API responsibilities:
 
+- authenticate users and expose the authenticated session context
+- enforce role permissions and tenant/workspace boundaries
 - bootstrap seeded V10 report jobs
 - import app-export-style JSON packages
 - load report jobs
@@ -240,6 +268,7 @@ npm --prefix apps/report-platform run logic:audit
 STRICT_SAMPLE_LEAK=1 npm --prefix apps/report-platform run leak:audit
 npm --prefix apps/report-platform run api:audit
 npm --prefix apps/report-platform run report:eval
+npm --prefix apps/report-platform run floor-corrosion:audit
 ```
 
 Recommended validation before handoff:
@@ -259,6 +288,8 @@ Core implementation:
 - `server/store.mjs`
 - `server/docx-export.mjs`
 - `server/layout-map-figure.mjs`
+- `server/floor-corrosion.mjs`
+- `server/floor-corrosion-artifacts.mjs`
 - `server/report-blocks.mjs`
 - `server/precedent-kb.mjs`
 - `server/fact-recommendation-kb.mjs`
@@ -273,6 +304,8 @@ Core implementation:
 
 Design and planning docs:
 
+- `PRODUCT_CLOUD_ARCHITECTURE.md`
+- `AUTHENTICATION_AND_TENANCY.md`
 - `AGENTIC_SYSTEM_DESIGN.md`
 - `GENERATED_CONTENT_CONTROL_SYSTEM.md`
 - `FACT_RECOMMENDATION_KB.md`
@@ -280,6 +313,7 @@ Design and planning docs:
 - `EVAL_SYSTEM.md`
 - `BACKEND_STORAGE_ARCHITECTURE.md`
 - `REPORT_GENERATION_AND_LAYOUTMAP_ORCHESTRATION.md`
+- `FLOOR_CORROSION_MAP_PIPELINE.md`
 - `PRODUCT_DEVELOPMENT_PLAN.md`
 
 ## Next Development Focus
@@ -289,5 +323,6 @@ Design and planning docs:
 - implement server-side voice transcription for `voiceNotes[]` with evidence routing
 - strengthen evidence packs with stable evidence IDs and provenance labels
 - improve recommendation generation using reviewed fact-to-recommendation pairs
-- add production-grade tenant isolation, authz, sandboxing, and run observability
+- complete commercial OIDC browser SSO, user provisioning, and role-specific workspaces
+- migrate authenticated tenant/workspace state to Postgres and add production run observability
 - continue improving DOCX formatting against the report family without overfitting to one sample report

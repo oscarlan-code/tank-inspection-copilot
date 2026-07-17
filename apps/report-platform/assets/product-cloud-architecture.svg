@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1180" viewBox="0 0 1800 1180" role="img" aria-labelledby="title desc">
+  <title id="title">LAIQ Report Platform Product Cloud Architecture</title>
+  <desc id="desc">Product-standard cloud architecture for the LAIQ report generation platform, showing users, web UI, API, Postgres, pgvector, object storage, queue workers, AI gateway, and final exports.</desc>
+  <defs>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0b2f54" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0b4778"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f2475a"/>
+    </marker>
+    <marker id="arrowSlate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .bg { fill: #f5f8fc; }
+      .title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 40px; font-weight: 800; fill: #0b4778; }
+      .subtitle { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 500; fill: #5b6f86; }
+      .label { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 2px; fill: #0b4778; }
+      .label-red { fill: #c73042; }
+      .label-slate { fill: #475569; }
+      .box { fill: #ffffff; stroke: #cfdbe9; stroke-width: 2; filter: url(#shadow); }
+      .box-soft { fill: #ffffff; stroke: #d6e1ef; stroke-width: 2; }
+      .box-blue { fill: #f7fbff; stroke: #0b4778; stroke-width: 2.5; }
+      .box-red { fill: #fff7f8; stroke: #f2475a; stroke-width: 2.5; }
+      .box-green { fill: #f7fff9; stroke: #2e9d62; stroke-width: 2.5; }
+      .box-gold { fill: #fffaf0; stroke: #c29218; stroke-width: 2.5; }
+      .box-slate { fill: #f8fafc; stroke: #64748b; stroke-width: 2.5; }
+      .lane { fill: #ffffff; stroke: #d7e2ef; stroke-width: 2; filter: url(#shadow); }
+      .lane-blue { fill: #eef6ff; stroke: #bed5ee; }
+      .lane-red { fill: #fff1f3; stroke: #ffd2d9; }
+      .lane-green { fill: #f0fbf4; stroke: #c9ead7; }
+      .lane-gold { fill: #fff8e8; stroke: #ead59d; }
+      .box-title { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 800; fill: #12365a; }
+      .box-title-lg { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 800; fill: #12365a; }
+      .text { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 13.5px; font-weight: 500; fill: #526982; }
+      .text-sm { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 500; fill: #60758d; }
+      .badge { fill: #0b4778; }
+      .badge-red { fill: #f2475a; }
+      .badge-green { fill: #2e9d62; }
+      .white { font-family: Avenir, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 800; fill: #ffffff; }
+      .line { fill: none; stroke: #0b4778; stroke-width: 4; marker-end: url(#arrowBlue); }
+      .line-red { fill: none; stroke: #f2475a; stroke-width: 4; marker-end: url(#arrowRed); }
+      .line-soft { fill: none; stroke: #64748b; stroke-width: 3; marker-end: url(#arrowSlate); }
+      .line-dash { fill: none; stroke: #64748b; stroke-width: 3; stroke-dasharray: 8 8; marker-end: url(#arrowSlate); }
+      .line-thin { fill: none; stroke: #94a3b8; stroke-width: 2; marker-end: url(#arrowSlate); }
+      .db { fill: #ffffff; stroke: #0b4778; stroke-width: 2.5; filter: url(#shadow); }
+      .db-top { fill: #eaf4ff; stroke: #0b4778; stroke-width: 2.5; }
+      .object-top { fill: #fff1f3; stroke: #f2475a; stroke-width: 2.5; }
+      .note { fill: #ffffff; stroke: #f2475a; stroke-width: 2; stroke-dasharray: 9 7; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1800" height="1180"/>
+
+  <rect class="box" x="48" y="34" width="1704" height="116" rx="30"/>
+  <g transform="translate(80 63)">
+    <rect x="0" y="0" width="58" height="58" rx="15" fill="#ffffff" stroke="#d4e0ee" stroke-width="2"/>
+    <rect x="13" y="13" width="32" height="32" rx="7" fill="none" stroke="#0b4778" stroke-width="5"/>
+    <circle cx="20" cy="20" r="4.8" fill="#0b4778"/>
+    <circle cx="34" cy="20" r="4.8" fill="#f2475a"/>
+    <circle cx="34" cy="34" r="4.8" fill="#f2475a"/>
+    <circle cx="44" cy="24" r="4.8" fill="#f2475a"/>
+    <path d="M20 20 L20 34 L34 34" fill="none" stroke="#0b4778" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text class="title" x="160" y="82">LAIQ Report Platform Product Cloud Architecture</text>
+  <text class="subtitle" x="160" y="118">Target architecture before implementation: multi-tenant, Postgres-backed, queue-driven, auditable, and ready for 200 users / 50 concurrent editors.</text>
+  <rect class="badge-red" x="1440" y="62" width="256" height="48" rx="24"/>
+  <text class="white" x="1471" y="92">Product-standard target</text>
+
+  <!-- Users and frontend -->
+  <rect class="lane lane-blue" x="54" y="190" width="418" height="322" rx="28"/>
+  <text class="label" x="84" y="232">USERS + FRONTEND</text>
+  <rect class="box-blue" x="84" y="262" width="358" height="70" rx="18"/>
+  <text class="box-title" x="108" y="292">Report Platform Web UI</text>
+  <text class="text" x="108" y="315">left ToC, middle editor/maps, right LAIQ AI Engine</text>
+  <rect class="box-soft" x="84" y="354" width="166" height="56" rx="16"/>
+  <text class="box-title" x="108" y="384">Inspector</text>
+  <text class="text-sm" x="108" y="403">edit + generate</text>
+  <rect class="box-soft" x="276" y="354" width="166" height="56" rx="16"/>
+  <text class="box-title" x="300" y="384">Reviewer</text>
+  <text class="text-sm" x="300" y="403">approve + request changes</text>
+  <rect class="box-soft" x="84" y="430" width="166" height="56" rx="16"/>
+  <text class="box-title" x="108" y="460">Manager</text>
+  <text class="text-sm" x="108" y="479">assign + monitor</text>
+  <rect class="box-soft" x="276" y="430" width="166" height="56" rx="16"/>
+  <text class="box-title" x="300" y="460">Client Viewer</text>
+  <text class="text-sm" x="300" y="479">approved outputs only</text>
+
+  <!-- App source -->
+  <rect class="lane lane-green" x="54" y="550" width="418" height="236" rx="28"/>
+  <text class="label" x="84" y="592">FIELD SOURCE</text>
+  <rect class="box-green" x="84" y="622" width="358" height="112" rx="20"/>
+  <text class="box-title-lg" x="110" y="660">LAIQ Inspection App</text>
+  <text class="text" x="110" y="688">exports field facts, voice notes, findings, UT rows,</text>
+  <text class="text" x="110" y="710">checklists, layout metadata, attachments</text>
+  <rect class="badge-green" x="84" y="750" width="226" height="28" rx="14"/>
+  <text class="white" x="106" y="769">source of inspection facts</text>
+
+  <!-- API layer -->
+  <rect class="lane" x="530" y="190" width="402" height="596" rx="28"/>
+  <text class="label" x="560" y="232">API + AUTHORIZATION</text>
+  <rect class="box-blue" x="560" y="262" width="342" height="82" rx="18"/>
+  <text class="box-title" x="584" y="294">Auth Context + RBAC</text>
+  <text class="text" x="584" y="318">tenant, workspace, roles, policy gates</text>
+  <rect class="box-soft" x="560" y="370" width="154" height="86" rx="16"/>
+  <text class="box-title" x="584" y="402">Import API</text>
+  <text class="text-sm" x="584" y="425">validate package</text>
+  <text class="text-sm" x="584" y="444">create report job</text>
+  <rect class="box-soft" x="748" y="370" width="154" height="86" rx="16"/>
+  <text class="box-title" x="772" y="402">Report API</text>
+  <text class="text-sm" x="772" y="425">drafts, inputs,</text>
+  <text class="text-sm" x="772" y="444">approval state</text>
+  <rect class="box-soft" x="560" y="482" width="154" height="86" rx="16"/>
+  <text class="box-title" x="584" y="514">AI Control API</text>
+  <text class="text-sm" x="584" y="537">intent -> action</text>
+  <text class="text-sm" x="584" y="556">undo versions</text>
+  <rect class="box-soft" x="748" y="482" width="154" height="86" rx="16"/>
+  <text class="box-title" x="772" y="514">Export API</text>
+  <text class="text-sm" x="772" y="537">approved selected</text>
+  <text class="text-sm" x="772" y="556">sections only</text>
+  <rect class="box-red" x="560" y="610" width="342" height="112" rx="18"/>
+  <text class="box-title" x="584" y="642">Orchestrator</text>
+  <text class="text" x="584" y="668">builds evidence packs, enforces provenance,</text>
+  <text class="text" x="584" y="690">routes deterministic tools vs AI workers</text>
+
+  <!-- Storage -->
+  <rect class="lane lane-red" x="990" y="190" width="358" height="596" rx="28"/>
+  <text class="label label-red" x="1020" y="232">PRODUCT STORAGE</text>
+
+  <g transform="translate(1020 266)">
+    <path class="db" d="M0 22 C0 10 64 0 144 0 C224 0 288 10 288 22 L288 126 C288 138 224 148 144 148 C64 148 0 138 0 126 Z"/>
+    <ellipse class="db-top" cx="144" cy="22" rx="144" ry="22"/>
+    <text class="box-title-lg" x="28" y="58">Postgres</text>
+    <text class="text" x="28" y="86">tenants, users, reports, drafts,</text>
+    <text class="text" x="28" y="108">reviews, jobs, audit, policies</text>
+  </g>
+
+  <g transform="translate(1020 462)">
+    <path class="db" d="M0 22 C0 10 64 0 144 0 C224 0 288 10 288 22 L288 106 C288 118 224 128 144 128 C64 128 0 118 0 106 Z"/>
+    <ellipse class="db-top" cx="144" cy="22" rx="144" ry="22"/>
+    <text class="box-title-lg" x="28" y="58">pgvector</text>
+    <text class="text" x="28" y="86">tenant-safe KB chunks</text>
+    <text class="text" x="28" y="108">metadata-filtered retrieval</text>
+  </g>
+
+  <g transform="translate(1020 640)">
+    <path class="db" d="M0 22 C0 10 64 0 144 0 C224 0 288 10 288 22 L288 106 C288 118 224 128 144 128 C64 128 0 118 0 106 Z"/>
+    <ellipse class="object-top" cx="144" cy="22" rx="144" ry="22"/>
+    <text class="box-title-lg" x="28" y="58">Object Storage</text>
+    <text class="text" x="28" y="86">packages, photos, maps,</text>
+    <text class="text" x="28" y="108">DOCX/PDF, KB source docs</text>
+  </g>
+
+  <!-- Queue and workers -->
+  <rect class="lane lane-gold" x="1406" y="190" width="340" height="596" rx="28"/>
+  <text class="label label-slate" x="1436" y="232">WORKERS + AI</text>
+  <rect class="box-gold" x="1436" y="262" width="280" height="70" rx="18"/>
+  <text class="box-title" x="1460" y="294">Job Queue</text>
+  <text class="text" x="1460" y="318">generation, export, indexing, eval</text>
+  <rect class="box-soft" x="1436" y="362" width="280" height="72" rx="16"/>
+  <text class="box-title" x="1460" y="394">AI Generation Worker</text>
+  <text class="text" x="1460" y="418">section draft and refinement</text>
+  <rect class="box-soft" x="1436" y="456" width="280" height="72" rx="16"/>
+  <text class="box-title" x="1460" y="488">DOCX/PDF Export Worker</text>
+  <text class="text" x="1460" y="512">approved output assembly</text>
+  <rect class="box-soft" x="1436" y="550" width="280" height="72" rx="16"/>
+  <text class="box-title" x="1460" y="582">KB Indexing Worker</text>
+  <text class="text" x="1460" y="606">OCR, chunking, embeddings</text>
+  <rect class="box-soft" x="1436" y="644" width="280" height="72" rx="16"/>
+  <text class="box-title" x="1460" y="676">Eval + Leak Audit Worker</text>
+  <text class="text" x="1460" y="700">score, regression, provenance</text>
+
+  <!-- Lower layer -->
+  <rect class="lane" x="54" y="846" width="1692" height="250" rx="28"/>
+  <text class="label" x="84" y="888">GENERATION AND EXPORT CONTRACT</text>
+
+  <rect class="box-blue" x="84" y="922" width="286" height="124" rx="20"/>
+  <text class="box-title-lg" x="112" y="958">Evidence Pack</text>
+  <text class="text" x="112" y="986">facts from app export + manual inputs</text>
+  <text class="text" x="112" y="1008">precedent retrieved only as format/style</text>
+  <text class="text" x="112" y="1030">every source has provenance</text>
+
+  <rect class="box-red" x="424" y="922" width="286" height="124" rx="20"/>
+  <text class="box-title-lg" x="452" y="958">Deterministic Tools</text>
+  <text class="text" x="452" y="986">measurements, checklist, maps,</text>
+  <text class="text" x="452" y="1008">calculations, DOCX structure</text>
+  <text class="text" x="452" y="1030">never invented by AI</text>
+
+  <rect class="box-gold" x="764" y="922" width="286" height="124" rx="20"/>
+  <text class="box-title-lg" x="792" y="958">AI Model Gateway</text>
+  <text class="text" x="792" y="986">GPT-5.6 Sol for complex sections</text>
+  <text class="text" x="792" y="1008">smaller models for low-risk edits</text>
+  <text class="text" x="792" y="1030">timeouts and fallback status</text>
+
+  <rect class="box-green" x="1104" y="922" width="286" height="124" rx="20"/>
+  <text class="box-title-lg" x="1132" y="958">Review + Approval</text>
+  <text class="text" x="1132" y="986">section status, comments, undo,</text>
+  <text class="text" x="1132" y="1008">approved selected export only</text>
+  <text class="text" x="1132" y="1030">audit trail for every action</text>
+
+  <rect class="box-slate" x="1444" y="922" width="252" height="124" rx="20"/>
+  <text class="box-title-lg" x="1472" y="958">Final Outputs</text>
+  <text class="text" x="1472" y="986">browser preview</text>
+  <text class="text" x="1472" y="1008">DOCX and PDF</text>
+  <text class="text" x="1472" y="1030">client-safe packages</text>
+
+  <!-- Main arrows -->
+  <path class="line" d="M442 296 H560"/>
+  <path class="line" d="M442 678 H560"/>
+  <path class="line" d="M902 304 H1020"/>
+  <path class="line" d="M902 666 H1020"/>
+  <path class="line-red" d="M902 666 C960 666 960 520 1020 520"/>
+  <path class="line" d="M1308 340 H1436"/>
+  <path class="line" d="M1308 520 H1436"/>
+  <path class="line-soft" d="M1308 704 H1436"/>
+  <path class="line-red" d="M902 666 C1000 820 1310 830 1436 398"/>
+  <path class="line-dash" d="M1576 716 V842 C1576 884 1570 884 1570 922"/>
+
+  <!-- Lower arrows -->
+  <path class="line" d="M370 984 H424"/>
+  <path class="line-red" d="M710 984 H764"/>
+  <path class="line" d="M1050 984 H1104"/>
+  <path class="line" d="M1390 984 H1444"/>
+
+  <!-- Guardrail note -->
+  <rect class="note" x="54" y="1118" width="1692" height="38" rx="19"/>
+  <text class="text" x="84" y="1143">Storage rule: SQLite is local/internal fallback only. Commercial platform uses Postgres + pgvector + object storage + queue workers with tenant/workspace authorization at every boundary.</text>
+</svg>

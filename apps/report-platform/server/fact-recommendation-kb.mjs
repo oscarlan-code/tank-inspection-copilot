@@ -181,7 +181,9 @@ export function searchFactRecommendationPairs({
   const index = loadOrBuildIndex({ indexPath, allowBuild });
   const evidenceProfile = buildCurrentEvidenceProfile(reportState, sectionId);
   const blockedSourceNames = buildBlockedSourceNames(reportState);
-  const allowedPairs = (index.pairs ?? []).filter((pair) => !isBlockedSource(pair.sourceReportName, blockedSourceNames));
+  const accessScope = buildRetrievalAccessScope(reportState);
+  const accessiblePairs = (index.pairs ?? []).filter((pair) => isKbSourceAccessible(pair, accessScope));
+  const allowedPairs = accessiblePairs.filter((pair) => !isBlockedSource(pair.sourceReportName, blockedSourceNames));
   const scored = allowedPairs
     .map((pair) => ({
       pair,
@@ -205,6 +207,8 @@ export function searchFactRecommendationPairs({
     retrievalRunId: `frr_${randomUUID()}`,
     indexBuiltAtIso: index.builtAtIso,
     pairCount: index.pairCount ?? index.pairs?.length ?? 0,
+    accessScope,
+    accessDeniedPairCount: (index.pairs ?? []).length - accessiblePairs.length,
     blockedSourceNames: [...blockedSourceNames],
     excludedPairCount: (index.pairs ?? []).length - allowedPairs.length,
     evidenceProfile,
@@ -373,6 +377,9 @@ function buildPairFromBlock(chunk, block, blockIndex) {
     sourceReportName: chunk.sourceReportName,
     sourceReportFamily: chunk.reportFamily,
     sourceInspectionType: chunk.inspectionType,
+    sourceTenantId: chunk.tenantId,
+    sourceWorkspaceId: chunk.workspaceId,
+    visibilityScope: chunk.visibilityScope,
     sourcePageStart: chunk.pageStart,
     sourcePageEnd: chunk.pageEnd,
     sectionKey: chunk.sectionKey,
@@ -386,6 +393,32 @@ function buildPairFromBlock(chunk, block, blockIndex) {
     recommendationPattern: block.text,
     confidence: Number(confidence.toFixed(2)),
   };
+}
+
+function buildRetrievalAccessScope(reportState) {
+  return {
+    tenantId: reportState?.reportJob?.tenantId ?? reportState?.authorizationContext?.tenantId ?? null,
+    workspaceId: reportState?.reportJob?.workspaceId ?? reportState?.authorizationContext?.workspaceId ?? null,
+  };
+}
+
+function isKbSourceAccessible(source, accessScope) {
+  const visibilityScope = source.visibilityScope ?? "platform_library";
+  if (["platform_library", "platform_codes_library"].includes(visibilityScope)) {
+    return true;
+  }
+  if (visibilityScope === "tenant_private") {
+    return Boolean(accessScope.tenantId && source.sourceTenantId === accessScope.tenantId);
+  }
+  if (visibilityScope === "workspace_private") {
+    return Boolean(
+      accessScope.tenantId &&
+      accessScope.workspaceId &&
+      source.sourceTenantId === accessScope.tenantId &&
+      source.sourceWorkspaceId === accessScope.workspaceId,
+    );
+  }
+  return source.sourceTenantId === "platform";
 }
 
 function buildCurrentEvidenceProfile(reportState, sectionId) {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type {
   AndroidLayoutMapConfig,
+  FloorCorrosionOverlay,
   LayoutEvidenceAttachment,
   LayoutEvidenceItem,
   LayoutMapData,
@@ -60,6 +61,9 @@ export function LayoutMapEditor({
     ? selectedMarker.evidence ?? safeLayoutMap.evidenceByKey?.[selectedMarker.id] ?? []
     : [];
   const appMap = safeLayoutMap.appMap;
+  const sourceDrawing = appMap?.surfaceType === "floor" ? safeLayoutMap.sourceDrawing : undefined;
+  const svgWidth = sourceDrawing?.width ?? SVG_WIDTH;
+  const svgHeight = sourceDrawing?.height ?? SVG_HEIGHT;
   void onLayoutMapChange;
 
   return (
@@ -75,27 +79,38 @@ export function LayoutMapEditor({
         <div className="android-map-shell">
           <svg
             aria-label={safeLayoutMap.title}
-            className="android-layout-svg"
+            className={`android-layout-svg ${sourceDrawing ? "android-layout-svg-source" : ""}`}
             role="img"
-            viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           >
-            <defs>
-              <clipPath id={`circle-clip-${safeLayoutMap.id}`}>
-                <circle
-                  cx={CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}
-                  cy={CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}
-                  r={CIRCULAR_MAP.size * 0.42}
-                />
-              </clipPath>
-            </defs>
+            {!sourceDrawing ? (
+              <defs>
+                <clipPath id={`circle-clip-${safeLayoutMap.id}`}>
+                  <circle
+                    cx={CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}
+                    cy={CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}
+                    r={CIRCULAR_MAP.size * 0.42}
+                  />
+                </clipPath>
+              </defs>
+            ) : null}
 
-            <rect className="android-map-page" height={SVG_HEIGHT - 18} rx="22" width={SVG_WIDTH - 18} x="9" y="9" />
+            {!sourceDrawing ? (
+              <rect className="android-map-page" height={SVG_HEIGHT - 18} rx="22" width={SVG_WIDTH - 18} x="9" y="9" />
+            ) : null}
 
             {appMap?.surfaceType === "shell" ? (
               <ShellMapPreview
                 activeMarkerId={activeMarkerId}
                 activePlateId={activePlateId}
                 appMap={appMap}
+                layoutMap={safeLayoutMap}
+                onMarkerSelect={onMarkerSelect}
+                onPlateSelect={onPlateSelect}
+              />
+            ) : sourceDrawing ? (
+              <SourceFloorMapPreview
+                activePlateId={activePlateId}
                 layoutMap={safeLayoutMap}
                 onMarkerSelect={onMarkerSelect}
                 onPlateSelect={onPlateSelect}
@@ -111,7 +126,7 @@ export function LayoutMapEditor({
               />
             )}
 
-            <DrawingBlock layoutMap={safeLayoutMap} />
+            {!sourceDrawing ? <DrawingBlock layoutMap={safeLayoutMap} /> : null}
           </svg>
         </div>
       </div>
@@ -126,6 +141,179 @@ export function LayoutMapEditor({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function SourceFloorMapPreview({
+  activePlateId,
+  layoutMap,
+  onMarkerSelect,
+  onPlateSelect,
+}: {
+  activePlateId: string | null;
+  layoutMap: LayoutMapData;
+  onMarkerSelect: (markerId: string | null) => void;
+  onPlateSelect: (plateId: string | null) => void;
+}) {
+  const sourceDrawing = layoutMap.sourceDrawing;
+  if (!sourceDrawing) return null;
+  const sourceHref = safeCorrosionImageHref(sourceDrawing.inlineImageDataUrl ?? sourceDrawing.artifactUri);
+  const foregroundHref = safeCorrosionImageHref(
+    sourceDrawing.foregroundInlineImageDataUrl ?? sourceDrawing.foregroundArtifactUri,
+  );
+  const usesExtractedVector = sourceDrawing.renderMode === "extracted_vector";
+  const platesById = new Map(layoutMap.plates.map((plate) => [plate.id, plate]));
+
+  return (
+    <g className="source-floor-map">
+      <defs>
+        {layoutMap.plates.map((plate) => (
+          <clipPath id={sourceFloorPlateClipId(layoutMap.id, plate.id)} key={`source-clip-${plate.id}`}>
+            <SourceFloorPlateShape height={sourceDrawing.height} plate={plate} width={sourceDrawing.width} />
+          </clipPath>
+        ))}
+      </defs>
+      <rect fill="#ffffff" height={sourceDrawing.height} width={sourceDrawing.width} x="0" y="0" />
+      {!usesExtractedVector && sourceHref ? (
+        <image
+          height={sourceDrawing.height}
+          href={sourceHref}
+          preserveAspectRatio="none"
+          width={sourceDrawing.width}
+          x="0"
+          y="0"
+        />
+      ) : null}
+      {layoutMap.floorCorrosion?.overlays.map((overlay) => {
+        const plate = platesById.get(overlay.hostPlateId);
+        return plate ? (
+          <SourceFloorCorrosionImage
+            clipPathId={sourceFloorPlateClipId(layoutMap.id, plate.id)}
+            height={sourceDrawing.height}
+            key={overlay.id}
+            overlay={overlay}
+            plate={plate}
+            width={sourceDrawing.width}
+          />
+        ) : null;
+      })}
+      {usesExtractedVector && sourceHref ? (
+        <image
+          className="source-floor-map-vector"
+          height={sourceDrawing.height}
+          href={sourceHref}
+          pointerEvents="none"
+          preserveAspectRatio="none"
+          width={sourceDrawing.width}
+          x="0"
+          y="0"
+        />
+      ) : null}
+      {foregroundHref ? (
+        <image
+          className="source-floor-map-foreground"
+          height={sourceDrawing.height}
+          href={foregroundHref}
+          pointerEvents="none"
+          preserveAspectRatio="none"
+          width={sourceDrawing.width}
+          x="0"
+          y="0"
+        />
+      ) : null}
+      {layoutMap.plates.map((plate) => (
+        <SourceFloorPlateShape
+          className={plate.id === activePlateId ? "source-floor-hit source-floor-hit-active" : "source-floor-hit"}
+          height={sourceDrawing.height}
+          key={`source-hit-${plate.id}`}
+          onClick={() => {
+            onPlateSelect(plate.id);
+            onMarkerSelect(null);
+          }}
+          plate={plate}
+          width={sourceDrawing.width}
+        />
+      ))}
+    </g>
+  );
+}
+
+function SourceFloorPlateShape({
+  className,
+  height,
+  onClick,
+  plate,
+  width,
+}: {
+  className?: string;
+  height: number;
+  onClick?: () => void;
+  plate: LayoutPlate;
+  width: number;
+}) {
+  if (plate.points && plate.points.length >= 3) {
+    return (
+      <polygon
+        className={className}
+        onClick={onClick}
+        points={plate.points.map((point) => `${point.x * width},${point.y * height}`).join(" ")}
+      />
+    );
+  }
+  return (
+    <rect
+      className={className}
+      height={plate.height * height}
+      onClick={onClick}
+      width={plate.width * width}
+      x={plate.x * width}
+      y={plate.y * height}
+    />
+  );
+}
+
+function SourceFloorCorrosionImage({
+  clipPathId,
+  height,
+  overlay,
+  plate,
+  width,
+}: {
+  clipPathId: string;
+  height: number;
+  overlay: FloorCorrosionOverlay;
+  plate: LayoutPlate;
+  width: number;
+}) {
+  const href = safeCorrosionImageHref(overlay.inlineImageDataUrl ?? overlay.artifactUri);
+  if (!href || overlay.status === "blocked") return null;
+  const rect = sourceFloorPlateRect(plate, width, height);
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  const swapsAxes = overlay.rotationDegrees === 90 || overlay.rotationDegrees === 270;
+  const imageWidth = swapsAxes ? rect.height : rect.width;
+  const imageHeight = swapsAxes ? rect.width : rect.height;
+  const transform = [
+    `translate(${centerX} ${centerY})`,
+    `rotate(${overlay.rotationDegrees})`,
+    `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
+    `translate(${-centerX} ${-centerY})`,
+  ].join(" ");
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      <image
+        className="floor-corrosion-overlay"
+        height={imageHeight}
+        href={href}
+        opacity={overlay.opacity}
+        preserveAspectRatio="xMidYMid slice"
+        transform={transform}
+        width={imageWidth}
+        x={centerX - imageWidth / 2}
+        y={centerY - imageHeight / 2}
+      />
+    </g>
   );
 }
 
@@ -335,54 +523,154 @@ function CircularMapPreview({
 }) {
   const center = CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2;
   const radius = CIRCULAR_MAP.size * 0.42;
+  const annularWidthRatio = layoutMap.appMap?.floor?.annularWidthRatio ?? 0.12;
+  const annularRadius = radius * (1 + Math.min(Math.max(annularWidthRatio, 0.06), 0.18));
+  const annularPlates = layoutMap.plates.filter(isAnnularPlate);
+  const mainPlates = layoutMap.plates.filter((plate) => !isAnnularPlate(plate));
+  const platesById = new Map(layoutMap.plates.map((plate) => [plate.id, plate]));
+  const activeCorrosionOverlay = layoutMap.floorCorrosion?.overlays.find(
+    (overlay) => overlay.hostPlateId === activePlateId,
+  );
+  const appFigureHref = layoutMap.appMap?.surfaceType === "floor"
+    ? appOwnedSvgDataUri(layoutMap.appFigure?.svg)
+    : null;
+
+  if (appFigureHref) {
+    return (
+      <ImportedAppFloorFigure
+        activeMarkerId={activeMarkerId}
+        activePlateId={activePlateId}
+        figureHref={appFigureHref}
+        layoutMap={layoutMap}
+        onMarkerSelect={onMarkerSelect}
+        onPlateSelect={onPlateSelect}
+      />
+    );
+  }
 
   return (
     <g>
+      <defs>
+        {layoutMap.plates.map((plate) => (
+          <clipPath id={floorPlateClipId(layoutMap.id, plate.id)} key={`clip-${plate.id}`}>
+            <CircularPlateShape plate={plate} />
+          </clipPath>
+        ))}
+      </defs>
       <text className="android-map-title" x={CIRCULAR_MAP.x} y={38}>
-        {layoutMap.appMap?.surfaceType === "floor" ? "Floor Layout Map" : "Roof Layout Map"}
+        {layoutMap.floorCorrosion
+          ? "Floor Plate Corrosion Map"
+          : layoutMap.appMap?.surfaceType === "floor"
+            ? "Floor Layout Map"
+            : "Roof Layout Map"}
       </text>
       <text className="android-map-subtitle" x={CIRCULAR_MAP.x} y={58}>
         Reference: 0 degree = {layoutMap.appMap?.referenceMode ?? layoutMap.drawingBlock.referenceMode}
       </text>
+      {annularPlates.map((plate) => (
+        <CircularPlateShape
+          className={plate.id === activePlateId ? "android-plate android-plate-active" : "android-plate"}
+          key={plate.id}
+          onClick={() => {
+            onPlateSelect(plate.id);
+            onMarkerSelect(null);
+          }}
+          plate={plate}
+        />
+      ))}
       <circle className="android-circular-fill" cx={center} cy={center} r={radius} />
-      <line className="android-reference-line" x1={center} x2={center} y1={center} y2={center - radius} />
-      <text className="android-zero-label" x={center - 8} y={center - radius - 10}>
+      <line className="android-reference-line" x1={center} x2={center} y1={center} y2={center - annularRadius} />
+      <text className="android-zero-label" x={center - 8} y={center - annularRadius - 10}>
         0°
       </text>
 
       <g clipPath={`url(#${clipPathId})`}>
-        {layoutMap.plates.map((plate) => {
-          const rect = circularPlateRect(plate);
+        {mainPlates.map((plate) => {
           const isActive = plate.id === activePlateId;
 
           return (
-            <rect
+            <CircularPlateShape
               className={isActive ? "android-plate android-plate-active" : "android-plate"}
-              height={rect.height}
               key={plate.id}
               onClick={() => {
                 onPlateSelect(plate.id);
                 onMarkerSelect(null);
               }}
-              rx="4"
-              width={rect.width}
-              x={rect.x}
-              y={rect.y}
+              plate={plate}
             />
           );
         })}
+
+        {layoutMap.appMap?.surfaceType === "floor"
+          ? layoutMap.floorCorrosion?.overlays.map((overlay) => {
+              const plate = platesById.get(overlay.hostPlateId);
+              return plate && !isAnnularPlate(plate) ? (
+                <FloorCorrosionImage
+                  clipPathId={floorPlateClipId(layoutMap.id, plate.id)}
+                  key={overlay.id}
+                  overlay={overlay}
+                  plate={plate}
+                />
+              ) : null;
+            })
+          : null}
       </g>
 
+      {layoutMap.appMap?.surfaceType === "floor"
+        ? layoutMap.floorCorrosion?.overlays.map((overlay) => {
+            const plate = platesById.get(overlay.hostPlateId);
+            return plate && isAnnularPlate(plate) ? (
+              <FloorCorrosionImage
+                clipPathId={floorPlateClipId(layoutMap.id, plate.id)}
+                key={overlay.id}
+                overlay={overlay}
+                plate={plate}
+              />
+            ) : null;
+          })
+        : null}
+
       <circle className="android-circular-outline" cx={center} cy={center} r={radius} />
+      {annularPlates.length > 0 ? (
+        <circle className="android-circular-outline" cx={center} cy={center} r={annularRadius} />
+      ) : null}
+
+      {layoutMap.floorCorrosion ? <FloorCorrosionLegend /> : null}
+      {layoutMap.floorCorrosion ? (
+        <FloorSourcePlatePreview
+          activePlateId={activePlateId}
+          overlay={activeCorrosionOverlay}
+        />
+      ) : null}
 
       {layoutMap.plates.map((plate) => {
-        const rect = circularPlateRect(plate);
-        const labelX = rect.x + rect.width / 2;
-        const labelY = rect.y + rect.height / 2 + 4;
+        const displayLabel = plate.mapLabel ?? plate.label;
+        if (displayLabel === "") return null;
+        const labelX = CIRCULAR_MAP.x + (plate.labelX ?? plate.x + plate.width / 2) * CIRCULAR_MAP.size;
+        const labelY = CIRCULAR_MAP.y + (plate.labelY ?? plate.y + plate.height / 2) * CIRCULAR_MAP.size + 4;
+        const selectPlate = () => {
+          onPlateSelect(plate.id);
+          onMarkerSelect(null);
+        };
 
         return (
-          <text className="android-plate-label" key={`${plate.id}-label`} x={labelX} y={labelY}>
-            {plate.label}
+          <text
+            aria-label={`Select floor plate ${plate.label}`}
+            className={plate.id === activePlateId ? "android-plate-label android-plate-label-active" : "android-plate-label"}
+            key={`${plate.id}-label`}
+            onClick={selectPlate}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                selectPlate();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            x={labelX}
+            y={labelY}
+          >
+            {displayLabel}
           </text>
         );
       })}
@@ -398,6 +686,334 @@ function CircularMapPreview({
         }}
         onMarkerSelect={onMarkerSelect}
         onPlateSelect={onPlateSelect}
+      />
+    </g>
+  );
+}
+
+function ImportedAppFloorFigure({
+  activeMarkerId,
+  activePlateId,
+  figureHref,
+  layoutMap,
+  onMarkerSelect,
+  onPlateSelect,
+}: {
+  activeMarkerId: string | null;
+  activePlateId: string | null;
+  figureHref: string;
+  layoutMap: LayoutMapData;
+  onMarkerSelect: (markerId: string | null) => void;
+  onPlateSelect: (plateId: string | null) => void;
+}) {
+  const findingMarkers = layoutMap.markers.filter((marker) => marker.type !== "element");
+  const elementMarkers = layoutMap.markers.filter((marker) => marker.type === "element");
+  const platesById = new Map(layoutMap.plates.map((plate) => [plate.id, plate]));
+  const annularWidthRatio = layoutMap.appMap?.floor?.annularWidthRatio ?? 0.12;
+  const outerTankRadius = CIRCULAR_MAP.size * 0.42
+    * (1 + Math.min(Math.max(annularWidthRatio, 0.06), 0.18));
+  const selectablePlates = [
+    ...layoutMap.plates.filter(isAnnularPlate),
+    ...layoutMap.plates.filter((plate) => !isAnnularPlate(plate)),
+  ];
+  const activeCorrosionOverlay = layoutMap.floorCorrosion?.overlays.find(
+    (overlay) => overlay.hostPlateId === activePlateId,
+  );
+
+  return (
+    <g className="app-owned-floor-figure">
+      <defs>
+        <clipPath id={floorTankClipId(layoutMap.id)}>
+          <circle
+            cx={CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2}
+            cy={CIRCULAR_MAP.y + CIRCULAR_MAP.size / 2}
+            r={outerTankRadius}
+          />
+        </clipPath>
+        {layoutMap.plates.map((plate) => (
+          <clipPath id={floorPlateClipId(layoutMap.id, plate.id)} key={`app-floor-clip-${plate.id}`}>
+            <CircularPlateShape plate={plate} />
+          </clipPath>
+        ))}
+      </defs>
+      <text className="android-map-title" x={CIRCULAR_MAP.x} y={38}>Floor Layout Map</text>
+      <text className="android-map-subtitle" x={CIRCULAR_MAP.x} y={58}>
+        Reference: 0 degree = {layoutMap.appMap?.referenceMode ?? layoutMap.drawingBlock.referenceMode}
+      </text>
+      <image
+        height={CIRCULAR_MAP.size}
+        href={figureHref}
+        pointerEvents="none"
+        preserveAspectRatio="xMidYMid meet"
+        width={CIRCULAR_MAP.size}
+        x={CIRCULAR_MAP.x}
+        y={CIRCULAR_MAP.y}
+      />
+      <g clipPath={`url(#${floorTankClipId(layoutMap.id)})`}>
+        {layoutMap.floorCorrosion?.overlays.map((overlay) => {
+          const plate = platesById.get(overlay.hostPlateId);
+          return plate ? (
+            <FloorCorrosionImage
+              clipPathId={floorPlateClipId(layoutMap.id, plate.id)}
+              key={overlay.id}
+              overlay={overlay}
+              plate={plate}
+            />
+          ) : null;
+        })}
+      </g>
+      {selectablePlates.map((plate) => (
+        <CircularPlateShape
+          ariaLabel={`Select floor plate ${plate.label}`}
+          className={plate.id === activePlateId ? "app-floor-hit app-floor-hit-active" : "app-floor-hit"}
+          key={`app-floor-hit-${plate.id}`}
+          onClick={() => {
+            onPlateSelect(plate.id);
+            onMarkerSelect(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onPlateSelect(plate.id);
+              onMarkerSelect(null);
+            }
+          }}
+          plate={plate}
+          role="button"
+          tabIndex={0}
+        />
+      ))}
+      {elementMarkers.map((marker) => {
+        const point = markerPoint(marker, {
+          x: CIRCULAR_MAP.x,
+          y: CIRCULAR_MAP.y,
+          width: CIRCULAR_MAP.size,
+          height: CIRCULAR_MAP.size,
+        });
+        return (
+          <circle
+            aria-label={`Select ${marker.label}`}
+            className={marker.id === activeMarkerId ? "app-element-hit app-element-hit-active" : "app-element-hit"}
+            cx={point.x}
+            cy={point.y}
+            key={`app-element-hit-${marker.id}`}
+            onClick={() => {
+              onMarkerSelect(marker.id);
+              onPlateSelect(null);
+            }}
+            r="15"
+            role="button"
+            tabIndex={0}
+          />
+        );
+      })}
+      {findingMarkers.length > 0 ? (
+        <MapMarkers
+          activeMarkerId={activeMarkerId}
+          layoutMap={{ ...layoutMap, markers: findingMarkers }}
+          mapBox={{ x: CIRCULAR_MAP.x, y: CIRCULAR_MAP.y, width: CIRCULAR_MAP.size, height: CIRCULAR_MAP.size }}
+          onMarkerSelect={onMarkerSelect}
+          onPlateSelect={onPlateSelect}
+        />
+      ) : null}
+      {layoutMap.floorCorrosion ? <FloorCorrosionLegend /> : null}
+      {layoutMap.floorCorrosion ? (
+        <FloorSourcePlatePreview activePlateId={activePlateId} overlay={activeCorrosionOverlay} />
+      ) : null}
+    </g>
+  );
+}
+
+function appOwnedSvgDataUri(svg: string | undefined): string | null {
+  if (!svg || !/^<svg\b/i.test(svg)) return null;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function FloorSourcePlatePreview({
+  activePlateId,
+  overlay,
+}: {
+  activePlateId: string | null;
+  overlay?: FloorCorrosionOverlay;
+}) {
+  const x = 764;
+  const y = 198;
+  const width = 328;
+  const height = 342;
+  const href = safeCorrosionImageHref(
+    overlay?.sourcePreviewInlineImageDataUrl ?? overlay?.sourcePreviewArtifactUri,
+  );
+
+  return (
+    <g aria-label={overlay ? `Original MFL scan for plate ${overlay.scanPlateId}` : "Original MFL plate preview"} className="floor-source-preview">
+      <rect height={height} rx="12" width={width} x={x} y={y} />
+      <text className="floor-source-preview-title" x={x + 18} y={y + 30}>
+        {overlay ? `Original MFL Plate ${overlay.scanPlateId}` : "Original MFL Plate"}
+      </text>
+      {overlay && href ? (
+        <>
+          <rect className="floor-source-preview-image-bg" height="238" rx="6" width="292" x={x + 18} y={y + 48} />
+          <image
+            height="226"
+            href={href}
+            preserveAspectRatio="xMidYMid meet"
+            width="280"
+            x={x + 24}
+            y={y + 54}
+          />
+          <text className="floor-source-preview-meta" x={x + 18} y={y + 308}>
+            {`Source page ${overlay.sourcePage} · ${formatDimension(overlay.sourceWidthMm)} × ${formatDimension(overlay.sourceHeightMm)} mm`}
+          </text>
+          <text className="floor-source-preview-note" x={x + 18} y={y + 329}>
+            Original scan · no overlay transform applied
+          </text>
+        </>
+      ) : (
+        <>
+          <text className="floor-source-preview-empty" x={x + width / 2} y={y + 150}>
+            {activePlateId ? `No matched MFL scan for ${activePlateId}` : "Select a floor plate"}
+          </text>
+          <text className="floor-source-preview-empty floor-source-preview-empty-subtitle" x={x + width / 2} y={y + 178}>
+            to compare its original source image
+          </text>
+        </>
+      )}
+    </g>
+  );
+}
+
+function formatDimension(value: number) {
+  return Number.isFinite(value) ? Number(value.toFixed(1)).toLocaleString("en-US") : "—";
+}
+
+function FloorCorrosionLegend() {
+  const bands = [
+    { label: "20", color: "#ffffff" },
+    { label: "30", color: "#12fbff" },
+    { label: "40", color: "#0ec800" },
+    { label: "50", color: "#001dc8" },
+    { label: "60", color: "#ef0700" },
+    { label: "70", color: "#dc006e" },
+    { label: "80", color: "#470073" },
+  ];
+  const x = 804;
+  const y = 86;
+  const swatchWidth = 34;
+
+  return (
+    <g className="floor-corrosion-legend">
+      <rect height="92" rx="8" width="276" x={x} y={y} />
+      <text x={x + 14} y={y + 23}>CORROSION PERCENTAGE</text>
+      {bands.map((band, index) => (
+        <g key={band.label}>
+          <text x={x + 18 + index * swatchWidth} y={y + 45}>{band.label}</text>
+          <rect
+            fill={band.color}
+            height="22"
+            stroke="#1c2f45"
+            strokeWidth="1"
+            width={swatchWidth}
+            x={x + 14 + index * swatchWidth}
+            y={y + 54}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function CircularPlateShape({
+  ariaLabel,
+  className,
+  onClick,
+  onKeyDown,
+  plate,
+  role,
+  tabIndex,
+}: {
+  ariaLabel?: string;
+  className?: string;
+  onClick?: () => void;
+  onKeyDown?: React.KeyboardEventHandler<SVGPolygonElement | SVGRectElement>;
+  plate: LayoutPlate;
+  role?: string;
+  tabIndex?: number;
+}) {
+  if (plate.points && plate.points.length >= 3) {
+    return (
+      <polygon
+        aria-label={ariaLabel}
+        className={className}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        points={plate.points
+          .map((point) => `${CIRCULAR_MAP.x + point.x * CIRCULAR_MAP.size},${CIRCULAR_MAP.y + point.y * CIRCULAR_MAP.size}`)
+          .join(" ")}
+        role={role}
+        tabIndex={tabIndex}
+      />
+    );
+  }
+
+  const rect = circularPlateRect(plate);
+  return (
+    <rect
+      aria-label={ariaLabel}
+      className={className}
+      height={rect.height}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      role={role}
+      rx="4"
+      tabIndex={tabIndex}
+      width={rect.width}
+      x={rect.x}
+      y={rect.y}
+    />
+  );
+}
+
+function isAnnularPlate(plate: LayoutPlate): boolean {
+  return plate.plateKind === "annular" || /^AR\d+$/i.test(plate.id);
+}
+
+function FloorCorrosionImage({
+  clipPathId,
+  overlay,
+  plate,
+}: {
+  clipPathId: string;
+  overlay: FloorCorrosionOverlay;
+  plate: LayoutPlate;
+}) {
+  const href = safeCorrosionImageHref(overlay.inlineImageDataUrl ?? overlay.artifactUri);
+  if (!href || overlay.status === "blocked") return null;
+
+  const rect = circularPlateRect(plate);
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  const swapsAxes = overlay.rotationDegrees === 90 || overlay.rotationDegrees === 270;
+  const imageWidth = swapsAxes ? rect.height : rect.width;
+  const imageHeight = swapsAxes ? rect.width : rect.height;
+  const transform = [
+    `translate(${centerX} ${centerY})`,
+    `rotate(${overlay.rotationDegrees})`,
+    `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
+    `translate(${-centerX} ${-centerY})`,
+  ].join(" ");
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      <image
+        className="floor-corrosion-overlay"
+        height={imageHeight}
+        href={href}
+        opacity={overlay.opacity}
+        preserveAspectRatio="xMidYMid slice"
+        transform={transform}
+        width={imageWidth}
+        x={centerX - imageWidth / 2}
+        y={centerY - imageHeight / 2}
       />
     </g>
   );
@@ -598,6 +1214,35 @@ function circularPlateRect(plate: LayoutPlate) {
     width: plate.width * CIRCULAR_MAP.size,
     height: plate.height * CIRCULAR_MAP.size,
   };
+}
+
+function sourceFloorPlateRect(plate: LayoutPlate, width: number, height: number) {
+  return {
+    x: plate.x * width,
+    y: plate.y * height,
+    width: plate.width * width,
+    height: plate.height * height,
+  };
+}
+
+function floorPlateClipId(layoutMapId: string, plateId: string) {
+  return `floor-plate-clip-${`${layoutMapId}-${plateId}`.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function floorTankClipId(layoutMapId: string) {
+  return `floor-tank-clip-${layoutMapId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function sourceFloorPlateClipId(layoutMapId: string, plateId: string) {
+  return `source-floor-plate-clip-${`${layoutMapId}-${plateId}`.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function safeCorrosionImageHref(value?: string) {
+  if (!value) return null;
+  if (/^data:image\/png;base64,[a-z0-9+/=]+$/i.test(value)) return value;
+  if (/^data:image\/svg\+xml;base64,[a-z0-9+/=]+$/i.test(value)) return value;
+  if (/^\/api\/v1\/report-jobs\//.test(value)) return value;
+  return null;
 }
 
 function shellPlateRect(plate: LayoutPlate) {

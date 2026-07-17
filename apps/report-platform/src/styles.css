@@ -54,6 +54,156 @@ button:disabled {
   min-height: 0;
 }
 
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px;
+  overflow: auto;
+  background:
+    linear-gradient(135deg, rgba(13, 79, 144, 0.08), transparent 42%),
+    linear-gradient(315deg, rgba(239, 76, 87, 0.08), transparent 38%),
+    #f4f7fb;
+}
+
+.auth-card {
+  width: min(760px, 100%);
+  padding: 34px;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--brand-blue);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: var(--field-shadow);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.auth-card h1 {
+  margin: 2px 0 0;
+  color: var(--brand-blue-dark);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.auth-intro {
+  margin: 22px 0;
+  color: #52677e;
+  font-size: 1.02rem;
+}
+
+.auth-development-panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.auth-mode-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue-dark);
+}
+
+.auth-mode-note span {
+  color: #5b718a;
+  font-size: 0.82rem;
+}
+
+.auth-user-list {
+  display: grid;
+}
+
+.auth-user-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.auth-user-button:first-child {
+  border-top: 0;
+}
+
+.auth-user-button:hover:not(:disabled) {
+  background: #f7faff;
+}
+
+.auth-user-button span {
+  display: grid;
+  gap: 2px;
+}
+
+.auth-user-button small {
+  color: #66788d;
+}
+
+.auth-user-button em {
+  color: var(--brand-blue);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 700;
+  text-align: right;
+}
+
+.auth-error {
+  padding: 11px 13px;
+  border-left: 4px solid var(--brand-red);
+  background: var(--brand-red-soft);
+  color: #932a34;
+}
+
+.auth-sso-button {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: var(--brand-blue);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-loading-line {
+  height: 5px;
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--brand-blue-soft);
+}
+
+.auth-loading-line span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  background: var(--brand-red);
+  animation: auth-loading 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes auth-loading {
+  from { transform: translateX(0); }
+  to { transform: translateX(122%); }
+}
+
 .workspace-app {
   display: flex;
   flex-direction: column;
@@ -118,6 +268,33 @@ button:disabled {
   align-items: center;
   margin-bottom: 8px;
   z-index: 2;
+}
+
+.topbar-account {
+  display: grid;
+  align-content: center;
+  min-width: 126px;
+  padding: 7px 10px;
+  border-left: 1px solid var(--line);
+}
+
+.topbar-account span {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-account button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-blue);
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .brand-lockup {
@@ -1760,8 +1937,32 @@ button:disabled {
   font-family: "Aptos", "Segoe UI", sans-serif;
 }
 
+.android-layout-svg-source {
+  min-width: 760px;
+  max-height: none;
+  background: #ffffff;
+}
+
+.source-floor-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.source-floor-hit:hover,
+.source-floor-hit-active {
+  fill: rgba(13, 79, 144, 0.08);
+  stroke: #0d4f90;
+}
+
+.source-floor-map-foreground {
+  user-select: none;
+}
+
 .android-map-page {
   fill: #ffffff;
+  pointer-events: none;
   stroke: rgba(13, 79, 144, 0.14);
 }
 
@@ -1785,15 +1986,18 @@ button:disabled {
 
 .android-circular-fill {
   fill: rgba(13, 79, 144, 0.06);
+  pointer-events: none;
 }
 
 .android-circular-outline {
   fill: none;
+  pointer-events: none;
   stroke: rgba(239, 76, 87, 0.78);
   stroke-width: 3.5;
 }
 
 .android-reference-line {
+  pointer-events: none;
   stroke: rgba(13, 79, 144, 0.86);
   stroke-width: 3.4;
 }
@@ -1802,6 +2006,77 @@ button:disabled {
   fill: var(--brand-red);
   font-size: 12px;
   font-weight: 900;
+  pointer-events: none;
+}
+
+.floor-corrosion-legend > rect {
+  fill: #ffffff;
+  stroke: rgba(13, 79, 144, 0.65);
+  stroke-width: 1.3;
+}
+
+.floor-corrosion-legend text {
+  fill: var(--brand-blue-dark);
+  font-size: 10px;
+  font-weight: 850;
+  text-anchor: middle;
+}
+
+.floor-corrosion-legend > text {
+  font-size: 12px;
+  text-anchor: start;
+}
+
+.floor-corrosion-overlay {
+  pointer-events: none;
+}
+
+.floor-corrosion-legend,
+.floor-source-preview,
+.android-drawing-block {
+  pointer-events: none;
+}
+
+.floor-source-preview > rect {
+  fill: #ffffff;
+  stroke: rgba(13, 79, 144, 0.42);
+  stroke-width: 1.3;
+}
+
+.floor-source-preview .floor-source-preview-image-bg {
+  fill: #f7f9fc;
+  stroke: rgba(13, 79, 144, 0.16);
+}
+
+.floor-source-preview-title {
+  fill: var(--brand-blue-dark);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.floor-source-preview-meta,
+.floor-source-preview-note {
+  fill: #52647b;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.floor-source-preview-note {
+  fill: #6f7e91;
+  font-weight: 600;
+}
+
+.floor-source-preview-empty {
+  fill: var(--brand-blue-dark);
+  font-size: 15px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.floor-source-preview-empty-subtitle {
+  fill: #6f7e91;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .android-plate {
@@ -1822,13 +2097,56 @@ button:disabled {
   stroke-width: 2;
 }
 
+.app-floor-hit,
+.app-element-hit {
+  cursor: pointer;
+  fill: transparent;
+  stroke: transparent;
+}
+
+.app-floor-hit {
+  stroke-width: 2.4;
+}
+
+.app-floor-hit:hover,
+.app-floor-hit-active {
+  fill: rgba(13, 79, 144, 0.08);
+  stroke: var(--brand-blue-dark);
+}
+
+.app-element-hit {
+  stroke-width: 3;
+}
+
+.app-element-hit:hover,
+.app-element-hit-active {
+  fill: rgba(239, 76, 87, 0.12);
+  stroke: var(--brand-red);
+}
+
 .android-plate-label,
 .android-shell-region-label {
   fill: #253447;
   font-size: 10px;
   font-weight: 800;
-  pointer-events: none;
   text-anchor: middle;
+}
+
+.android-plate-label {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.android-plate-label:hover,
+.android-plate-label:focus,
+.android-plate-label-active {
+  fill: var(--brand-red);
+  font-weight: 950;
+  outline: none;
+}
+
+.android-shell-region-label {
+  pointer-events: none;
 }
 
 .android-shell-segment {
@@ -1919,6 +2237,147 @@ button:disabled {
   overflow-x: auto;
   flex: 0 0 auto;
   padding: 10px 0 14px;
+}
+
+.floor-corrosion-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(13, 79, 144, 0.14);
+  border-radius: 14px;
+  background: #f7fafd;
+}
+
+.floor-corrosion-action {
+  align-items: center;
+  background: #0c4c83;
+  border: 1px solid #0c4c83;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.floor-corrosion-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.floor-layout-page-input {
+  display: grid;
+  grid-template-columns: auto 58px;
+  align-items: center;
+  gap: 8px;
+  color: #53677f;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.floor-layout-page-input input {
+  width: 58px;
+  min-height: 38px;
+  border: 1px solid rgba(13, 79, 144, 0.22);
+  border-radius: 9px;
+  padding: 0 8px;
+  background: #ffffff;
+  color: var(--brand-blue-dark);
+  font: inherit;
+}
+
+.floor-corrosion-import {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--brand-blue-dark);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.floor-corrosion-test-layout {
+  min-height: 42px;
+  border: 1px solid rgba(13, 79, 144, 0.34);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #0d4f90;
+  font: 800 0.84rem/1 "Aptos", "Trebuchet MS", sans-serif;
+  cursor: pointer;
+}
+
+.floor-corrosion-test-layout:hover {
+  border-color: #0d4f90;
+  background: #eef5fc;
+}
+
+.floor-corrosion-import.is-busy {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.floor-corrosion-import input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floor-corrosion-status {
+  display: grid;
+  gap: 2px;
+  color: var(--brand-blue-dark);
+}
+
+.floor-corrosion-status span,
+.floor-corrosion-toolbar > p {
+  margin: 0;
+  color: #62738a;
+  font-size: 0.76rem;
+}
+
+.floor-corrosion-placement-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.floor-corrosion-placement-controls strong {
+  margin-right: 4px;
+  color: var(--brand-blue-dark);
+  font-size: 0.8rem;
+}
+
+.floor-corrosion-placement-controls button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(13, 79, 144, 0.2);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--brand-blue-dark);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.floor-corrosion-placement-controls button.primary {
+  border-color: var(--brand-blue-dark);
+  background: var(--brand-blue-dark);
+  color: #fff;
 }
 
 .layout-map-tab {

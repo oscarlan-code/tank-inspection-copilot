@@ -31,10 +31,15 @@ export function createReportStore({ dbFilePath }) {
 
   return {
     approveSection,
+    ensureDevelopmentUsers,
     ensureSeedReport,
     generateSection,
     getHealth,
+    getReportScope,
+    getUserPrincipal,
+    getUserPrincipalBySubject,
     importAndroidV2ProductExport,
+    listDevelopmentUsers,
     loadEvalRuns,
     loadBootstrapReport,
     loadReportJobState,
@@ -74,6 +79,8 @@ export function createReportStore({ dbFilePath }) {
       bootstrapKey,
       exportPackage,
       manualSupplementOverrides,
+      actorUserId: exportPackage.profile.userId,
+      allowIdentityBootstrap: true,
     });
   }
 
@@ -81,6 +88,8 @@ export function createReportStore({ dbFilePath }) {
     bootstrapKey = null,
     exportPackage,
     manualSupplementOverrides = {},
+    actorUserId = null,
+    allowIdentityBootstrap = false,
   }) {
     const validationIssues = validateAndroidV2ProductExport(exportPackage);
     if (validationIssues.length > 0) {
@@ -95,11 +104,33 @@ export function createReportStore({ dbFilePath }) {
     let reportJobId;
 
     inTransaction(() => {
-      upsertIdentityRecords(exportPackage, nowIso);
+      if (allowIdentityBootstrap) {
+        upsertIdentityRecords(exportPackage, nowIso);
+      } else {
+        ensureUserWorkspaceMembership(actorUserId, exportPackage.tenantId, exportPackage.workspaceId);
+      }
+
+      const persistedExportedByUserId = resolvePersistedExportedByUserId(
+        exportPackage,
+        actorUserId,
+      );
 
       const existingImport = db
-        .prepare("SELECT import_id FROM report_imports WHERE inspection_id = ?")
+        .prepare("SELECT import_id, tenant_id, workspace_id FROM report_imports WHERE inspection_id = ?")
         .get(exportPackage.inspectionId);
+      if (
+        existingImport &&
+        (
+          existingImport.tenant_id !== exportPackage.tenantId ||
+          existingImport.workspace_id !== exportPackage.workspaceId
+        )
+      ) {
+        throw new ApiError(
+          409,
+          "Inspection identifier is already assigned to another tenant or workspace.",
+          "inspection_scope_conflict",
+        );
+      }
       const importId = existingImport?.import_id ?? randomUUID();
 
       db.prepare(
@@ -135,7 +166,7 @@ export function createReportStore({ dbFilePath }) {
         exportPackage.packageType,
         exportPackage.schemaVersion,
         exportPackage.inspectionReference,
-        exportPackage.exportedByUserId,
+        persistedExportedByUserId,
         exportPackage.exportedAtIso,
         JSON.stringify(exportPackage),
         nowIso,
@@ -194,7 +225,7 @@ export function createReportStore({ dbFilePath }) {
         exportPackage.inspectionId,
         exportPackage.tenantId,
         exportPackage.workspaceId,
-        exportPackage.exportedByUserId,
+        actorUserId || persistedExportedByUserId,
         buildDefaultManualSupplement(exportPackage, manualSupplementOverrides).reportReference,
         "API 653 Internal & External Inspection Workspace",
         exportPackage.task.client,
@@ -267,6 +298,194 @@ export function createReportStore({ dbFilePath }) {
     }
 
     return loadReportJobState(row.report_job_id);
+  }
+
+  function getReportScope(reportJobId) {
+    const row = db
+      .prepare(
+        `SELECT report_job_id, tenant_id, workspace_id, status_code
+        FROM report_jobs
+        WHERE report_job_id = ?`,
+      )
+      .get(reportJobId);
+
+    return row
+      ? {
+          reportJobId: row.report_job_id,
+          tenantId: row.tenant_id,
+          workspaceId: row.workspace_id,
+          statusCode: row.status_code,
+        }
+      : null;
+  }
+
+  function getUserPrincipal(userId) {
+    const user = db
+      .prepare(
+        `SELECT
+          pu.user_id,
+          pu.tenant_id,
+          pu.workspace_id,
+          pu.display_name,
+          pu.role_label,
+          pu.identity_provider,
+          pu.external_subject,
+          pu.account_status,
+          t.tenant_name
+        FROM platform_users pu
+        JOIN tenants t ON t.tenant_id = pu.tenant_id
+        WHERE pu.user_id = ?`,
+      )
+      .get(userId);
+    if (!user || user.account_status !== "active") {
+      return null;
+    }
+
+    const memberships = db
+      .prepare(
+        `SELECT
+          wrm.workspace_id,
+          w.workspace_name,
+          wrm.role_label
+        FROM workspace_role_memberships wrm
+        JOIN workspaces w ON w.workspace_id = wrm.workspace_id
+        WHERE wrm.user_id = ? AND w.tenant_id = ?
+        ORDER BY wrm.workspace_id, wrm.role_label`,
+      )
+      .all(user.user_id, user.tenant_id);
+    const membershipsByWorkspace = new Map();
+    for (const membership of memberships) {
+      const current = membershipsByWorkspace.get(membership.workspace_id) ?? {
+        workspaceId: membership.workspace_id,
+        workspaceName: membership.workspace_name,
+        roles: [],
+      };
+      current.roles.push(membership.role_label);
+      membershipsByWorkspace.set(membership.workspace_id, current);
+    }
+
+    const workspaceMemberships = [...membershipsByWorkspace.values()];
+    const platformRoles = workspaceMemberships
+      .flatMap((membership) => membership.roles)
+      .filter((role) => String(role).trim().toLowerCase() === "super admin");
+
+    return {
+      userId: user.user_id,
+      displayName: user.display_name,
+      tenantId: user.tenant_id,
+      tenantName: user.tenant_name,
+      primaryWorkspaceId: user.workspace_id,
+      platformRoles,
+      workspaceMemberships,
+      identityProvider: user.identity_provider,
+    };
+  }
+
+  function getUserPrincipalBySubject(providerCode, subject) {
+    const row = db
+      .prepare(
+        `SELECT user_id
+        FROM platform_users
+        WHERE identity_provider = ? AND external_subject = ? AND account_status = 'active'`,
+      )
+      .get(providerCode, subject);
+    return row?.user_id ? getUserPrincipal(row.user_id) : null;
+  }
+
+  function listDevelopmentUsers() {
+    return db
+      .prepare(
+        `SELECT user_id
+        FROM platform_users pu
+        WHERE pu.account_status = 'active'
+          AND (
+            pu.user_id IN (
+              'demo-super-admin',
+              'demo-manager',
+              'demo-reviewer',
+              'demo-client-viewer',
+              'demo-isolated-inspector'
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM report_jobs rj
+              WHERE rj.bootstrap_key = 'api-standard-v10'
+                AND rj.created_by_user_id = pu.user_id
+            )
+          )
+        ORDER BY
+          CASE pu.role_label
+            WHEN 'Inspector' THEN 1
+            WHEN 'Reviewer' THEN 2
+            WHEN 'Manager' THEN 3
+            WHEN 'Client Viewer' THEN 4
+            WHEN 'Super Admin' THEN 5
+            ELSE 6
+          END,
+          pu.display_name`,
+      )
+      .all()
+      .map((row) => getUserPrincipal(row.user_id))
+      .filter(Boolean);
+  }
+
+  function ensureDevelopmentUsers() {
+    const seed = db
+      .prepare(
+        `SELECT
+          rj.tenant_id,
+          rj.workspace_id,
+          t.tenant_name,
+          w.workspace_name
+        FROM report_jobs rj
+        JOIN tenants t ON t.tenant_id = rj.tenant_id
+        JOIN workspaces w ON w.workspace_id = rj.workspace_id
+        ORDER BY CASE WHEN rj.bootstrap_key = 'api-standard-v10' THEN 0 ELSE 1 END,
+          rj.created_at_iso DESC
+        LIMIT 1`,
+      )
+      .get();
+    if (!seed) return;
+
+    const nowIso = new Date().toISOString();
+    const controlledUsers = [
+      { userId: "demo-super-admin", displayName: "Demo LAIQ Administrator", roleLabel: "Super Admin" },
+      { userId: "demo-manager", displayName: "Demo Report Manager", roleLabel: "Manager" },
+      { userId: "demo-reviewer", displayName: "Demo Technical Reviewer", roleLabel: "Reviewer" },
+      { userId: "demo-client-viewer", displayName: "Demo Client Viewer", roleLabel: "Client Viewer" },
+    ];
+
+    inTransaction(() => {
+      for (const user of controlledUsers) {
+        upsertControlledDevelopmentUser({
+          ...user,
+          tenantId: seed.tenant_id,
+          workspaceId: seed.workspace_id,
+          nowIso,
+        });
+      }
+
+      const isolatedTenantId = "tenant-auth-isolation-demo";
+      const isolatedWorkspaceId = "workspace-auth-isolation-demo";
+      db.prepare(
+        `INSERT INTO tenants (tenant_id, tenant_name, created_at_iso, updated_at_iso)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(tenant_id) DO NOTHING`,
+      ).run(isolatedTenantId, "Isolation Demo Tenant", nowIso, nowIso);
+      db.prepare(
+        `INSERT INTO workspaces (workspace_id, tenant_id, workspace_name, created_at_iso, updated_at_iso)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(workspace_id) DO NOTHING`,
+      ).run(isolatedWorkspaceId, isolatedTenantId, "Isolation Workspace", nowIso, nowIso);
+      upsertControlledDevelopmentUser({
+        userId: "demo-isolated-inspector",
+        displayName: "Isolated Tenant Inspector",
+        roleLabel: "Inspector",
+        tenantId: isolatedTenantId,
+        workspaceId: isolatedWorkspaceId,
+        nowIso,
+      });
+    });
   }
 
   function loadReportJobState(reportJobId) {
@@ -417,7 +636,7 @@ export function createReportStore({ dbFilePath }) {
       })),
       layoutOverrides: layoutOverrideRows.map((layoutOverride) => ({
         sectionId: layoutOverride.section_id,
-        layoutMap: JSON.parse(layoutOverride.layout_json),
+        layoutMap: normalizePersistedLayoutMap(JSON.parse(layoutOverride.layout_json)),
         updatedAtIso: layoutOverride.updated_at_iso,
       })),
       generationRun: latestGenerationRun
@@ -625,7 +844,13 @@ export function createReportStore({ dbFilePath }) {
         ON CONFLICT(report_job_id, section_id) DO UPDATE SET
           layout_json = excluded.layout_json,
           updated_at_iso = excluded.updated_at_iso`,
-      ).run(reportJobId, sectionId, JSON.stringify(layoutMap), nowIso);
+      ).run(reportJobId, sectionId, JSON.stringify(normalizePersistedLayoutMap(layoutMap)), nowIso);
+
+      db.prepare(
+        `UPDATE report_section_drafts
+        SET approved = 0, review_required = 1, updated_at_iso = ?
+        WHERE report_job_id = ? AND section_id = ?`,
+      ).run(nowIso, reportJobId, sectionId);
 
       touchReportJob(reportJobId, nowIso);
     });
@@ -821,6 +1046,7 @@ export function createReportStore({ dbFilePath }) {
   function approveSection(reportJobId, sectionId, { actorUserId, note = "" } = {}) {
     ensureReportJobExists(reportJobId);
     ensureKnownSection(sectionId);
+    ensureFloorCorrosionReadyForApproval(reportJobId, sectionId);
     const nowIso = new Date().toISOString();
     const actor = ensureActorUserExists(actorUserId || getReportJobActorUserId(reportJobId));
     const existingSectionDraft = db
@@ -882,7 +1108,7 @@ export function createReportStore({ dbFilePath }) {
 
   function getHealth() {
     return {
-      databasePath: dbFilePath,
+      databaseDriver: "sqlite-development",
       reportJobCount: db.prepare("SELECT COUNT(*) AS count FROM report_jobs").get().count,
       importCount: db.prepare("SELECT COUNT(*) AS count FROM report_imports").get().count,
       tenantCount: db.prepare("SELECT COUNT(*) AS count FROM tenants").get().count,
@@ -903,6 +1129,53 @@ export function createReportStore({ dbFilePath }) {
     }
   }
 
+  function ensureFloorCorrosionReadyForApproval(reportJobId, sectionId) {
+    if (sectionId !== "floor-plate-corrosion-plan") return;
+    const row = db
+      .prepare(
+        `SELECT layout_json
+        FROM report_layout_overrides
+        WHERE report_job_id = ? AND section_id = ?`,
+      )
+      .get(reportJobId, sectionId);
+    if (!row?.layout_json) {
+      throw new ApiError(
+        409,
+        "Import the individual MFL plate maps before approving the floor corrosion plan.",
+        "floor_corrosion_source_required",
+      );
+    }
+
+    let layoutMap;
+    try {
+      layoutMap = JSON.parse(row.layout_json);
+    } catch {
+      throw new ApiError(500, "Stored layout map is invalid.", "layout_map_invalid");
+    }
+
+    const floorCorrosion = layoutMap?.floorCorrosion;
+    if (!floorCorrosion || (floorCorrosion.overlays ?? []).length === 0) {
+      throw new ApiError(
+        409,
+        "No matched MFL plate scans are available for the floor corrosion plan.",
+        "floor_corrosion_source_required",
+      );
+    }
+    const errorCount = (floorCorrosion.validationIssues ?? []).filter(
+      (issue) => issue.severity === "error",
+    ).length;
+    const reviewRequiredCount = (floorCorrosion.overlays ?? []).filter(
+      (overlay) => overlay.status !== "approved",
+    ).length;
+    if (errorCount > 0 || reviewRequiredCount > 0) {
+      throw new ApiError(
+        409,
+        `Floor corrosion map requires review before approval: ${errorCount} matching error(s), ${reviewRequiredCount} placement(s) awaiting approval.`,
+        "floor_corrosion_review_required",
+      );
+    }
+  }
+
   function ensureActorUserExists(actorUserId) {
     if (!actorUserId || typeof actorUserId !== "string") {
       throw new ApiError(400, "actorUserId is required.", "actor_user_required");
@@ -914,6 +1187,32 @@ export function createReportStore({ dbFilePath }) {
     }
 
     return actorUserId;
+  }
+
+  function ensureUserWorkspaceMembership(userId, tenantId, workspaceId) {
+    const principal = getUserPrincipal(userId);
+    const hasWorkspace = principal?.tenantId === tenantId && principal.workspaceMemberships.some(
+      (membership) => membership.workspaceId === workspaceId,
+    );
+    if (!hasWorkspace) {
+      throw new ApiError(
+        403,
+        "Authenticated user is not assigned to the import tenant and workspace.",
+        "import_scope_denied",
+      );
+    }
+    return principal;
+  }
+
+  function resolvePersistedExportedByUserId(exportPackage, actorUserId) {
+    const exportedBy = getUserPrincipal(exportPackage.exportedByUserId);
+    const hasMatchingScope = exportedBy?.tenantId === exportPackage.tenantId && exportedBy.workspaceMemberships.some(
+      (membership) => membership.workspaceId === exportPackage.workspaceId,
+    );
+    if (hasMatchingScope) {
+      return exportedBy.userId;
+    }
+    return ensureActorUserExists(actorUserId);
   }
 
   function getReportJobActorUserId(reportJobId) {
@@ -997,6 +1296,59 @@ export function createReportStore({ dbFilePath }) {
       nowIso,
       nowIso,
     );
+  }
+
+  function upsertControlledDevelopmentUser({
+    userId,
+    tenantId,
+    workspaceId,
+    displayName,
+    roleLabel,
+    nowIso,
+  }) {
+    db.prepare(
+      `INSERT INTO platform_users (
+        user_id,
+        tenant_id,
+        workspace_id,
+        display_name,
+        role_label,
+        identity_provider,
+        external_subject,
+        account_status,
+        created_at_iso,
+        updated_at_iso
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        tenant_id = excluded.tenant_id,
+        workspace_id = excluded.workspace_id,
+        display_name = excluded.display_name,
+        role_label = excluded.role_label,
+        account_status = excluded.account_status,
+        updated_at_iso = excluded.updated_at_iso`,
+    ).run(
+      userId,
+      tenantId,
+      workspaceId,
+      displayName,
+      roleLabel,
+      "development",
+      userId,
+      "active",
+      nowIso,
+      nowIso,
+    );
+    db.prepare(
+      `INSERT INTO workspace_role_memberships (
+        workspace_id,
+        user_id,
+        role_label,
+        created_at_iso,
+        updated_at_iso
+      ) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(workspace_id, user_id, role_label) DO UPDATE SET
+        updated_at_iso = excluded.updated_at_iso`,
+    ).run(workspaceId, userId, roleLabel, nowIso, nowIso);
   }
 
   function upsertDefaultManualInputs(reportJobId, defaultValues, nowIso) {
@@ -1098,6 +1450,9 @@ function ensureSchema(db) {
       display_name TEXT NOT NULL,
       role_label TEXT NOT NULL,
       device_id TEXT,
+      identity_provider TEXT,
+      external_subject TEXT,
+      account_status TEXT NOT NULL DEFAULT 'active',
       created_at_iso TEXT NOT NULL,
       updated_at_iso TEXT NOT NULL
     );
@@ -1250,6 +1605,14 @@ function ensureSchema(db) {
   ensureColumn(db, "report_generation_runs", "used_live_model", "ALTER TABLE report_generation_runs ADD COLUMN used_live_model INTEGER");
   ensureColumn(db, "report_generation_runs", "fallback_reason", "ALTER TABLE report_generation_runs ADD COLUMN fallback_reason TEXT");
   ensureColumn(db, "report_generation_runs", "assistant_summary", "ALTER TABLE report_generation_runs ADD COLUMN assistant_summary TEXT");
+  ensureColumn(db, "platform_users", "identity_provider", "ALTER TABLE platform_users ADD COLUMN identity_provider TEXT");
+  ensureColumn(db, "platform_users", "external_subject", "ALTER TABLE platform_users ADD COLUMN external_subject TEXT");
+  ensureColumn(db, "platform_users", "account_status", "ALTER TABLE platform_users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'");
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_users_external_identity
+      ON platform_users (identity_provider, external_subject)
+      WHERE identity_provider IS NOT NULL AND external_subject IS NOT NULL;
+  `);
 }
 
 function buildDefaultManualSupplement(exportPackage, overrides = {}) {
@@ -1331,7 +1694,114 @@ function validateAndroidV2ProductExport(exportPackage) {
     issues.push("taskSnapshots cannot be empty.");
   }
 
+  const floorTarget = exportPackage.layoutTargets?.find((target) => target.targetKey === "floor");
+  const floorConfig = exportPackage.layoutConfigs?.find((config) => config.targetKey === "floor");
+  if (floorTarget?.inLayoutScope || floorConfig) {
+    const layout = floorConfig?.customCircularLayout;
+    const mainGeometry = Array.isArray(layout?.resolvedMainPlateGeometry)
+      ? layout.resolvedMainPlateGeometry
+      : [];
+    const annularGeometry = Array.isArray(layout?.resolvedAnnularPlateGeometry)
+      ? layout.resolvedAnnularPlateGeometry
+      : [];
+
+    if (layout?.resolvedGeometryVersion !== 2 || mainGeometry.length === 0) {
+      issues.push("The V3 floor layout must include resolvedGeometryVersion 2 and resolvedMainPlateGeometry from the LAIQ inspection app.");
+    }
+
+    const expectedAnnularCount = floorConfig?.floorTemplate === "circular_plate_ar"
+      ? floorConfig.floorAnnularSectionCount ?? 0
+      : 0;
+    if (annularGeometry.length !== expectedAnnularCount) {
+      issues.push(
+        `The V3 floor layout must include ${expectedAnnularCount} app-resolved annular polygons; received ${annularGeometry.length}.`,
+      );
+    }
+
+    if (floorConfig?.floorPlateCount && mainGeometry.length !== floorConfig.floorPlateCount) {
+      issues.push(
+        `The V3 floor layout resolved ${mainGeometry.length} main plates but floorPlateCount is ${floorConfig.floorPlateCount}.`,
+      );
+    }
+
+    const floorFigure = exportPackage.layoutFigures?.find((figure) => figure.targetKey === "floor");
+    if (!floorFigure) {
+      issues.push("The V3 floor layout must include the app-owned floor SVG in layoutFigures[].");
+    } else {
+      issues.push(...validateAppOwnedFloorFigure(floorFigure));
+    }
+  }
+
+  for (const element of exportPackage.elements ?? []) {
+    if (
+      !Number.isFinite(element.normalizedX) ||
+      !Number.isFinite(element.normalizedY) ||
+      element.normalizedX < 0 ||
+      element.normalizedX > 1 ||
+      element.normalizedY < 0 ||
+      element.normalizedY > 1
+    ) {
+      issues.push(`Element ${element.elementId} has invalid normalized app-map coordinates.`);
+    }
+  }
+
   return issues;
+}
+
+function validateAppOwnedFloorFigure(figure) {
+  const issues = [];
+  if (figure?.mediaType !== "image/svg+xml") {
+    issues.push("The app-owned floor figure mediaType must be image/svg+xml.");
+  }
+  if (figure?.renderVersion !== 1 || figure?.sourceGeometryVersion !== 2) {
+    issues.push("The app-owned floor figure must use renderVersion 1 and sourceGeometryVersion 2.");
+  }
+  if (figure?.width !== 1000 || figure?.height !== 1000 || figure?.viewBox !== "0 0 1000 1000") {
+    issues.push("The app-owned floor figure must use the normalized 1000 x 1000 app viewport.");
+  }
+  if (!/^[a-f0-9]{64}$/i.test(figure?.sha256 ?? "")) {
+    issues.push("The app-owned floor figure requires a SHA-256 digest.");
+  }
+  if (!isSafeAppOwnedSvg(figure?.svg)) {
+    issues.push("The app-owned floor figure contains unsupported or unsafe SVG content.");
+  } else {
+    const actualSha256 = createHash("sha256").update(figure.svg, "utf8").digest("hex");
+    if (actualSha256 !== figure.sha256.toLowerCase()) {
+      issues.push("The app-owned floor figure SHA-256 digest does not match its SVG bytes.");
+    }
+  }
+  return issues;
+}
+
+function isSafeAppOwnedSvg(svg) {
+  if (typeof svg !== "string" || svg.length === 0 || svg.length > 500_000 || !/^<svg\b/i.test(svg)) return false;
+  const withoutInternalUrls = svg.replace(/url\(#[A-Za-z0-9_.:-]+\)/g, "");
+  return !/<(?:script|foreignObject|image|use|a)\b/i.test(svg)
+    && !/\bon[a-z]+\s*=/i.test(svg)
+    && !/\b(?:href|xlink:href)\s*=/i.test(svg)
+    && !/<!DOCTYPE|<!ENTITY/i.test(svg)
+    && !/javascript:|data:/i.test(svg)
+    && !/url\s*\(/i.test(withoutInternalUrls)
+    && !/https?:\/\/(?!www\.w3\.org\/2000\/svg)/i.test(svg);
+}
+
+function normalizePersistedLayoutMap(layoutMap) {
+  if (!layoutMap || typeof layoutMap !== "object" || Array.isArray(layoutMap)) {
+    return layoutMap;
+  }
+
+  const normalizeSource = (item) => ({
+    ...item,
+    source: typeof item?.source === "string" && item.source.trim() !== ""
+      ? item.source
+      : "report-platform:legacy-layout-override",
+  });
+
+  return {
+    ...layoutMap,
+    markers: Array.isArray(layoutMap.markers) ? layoutMap.markers.map(normalizeSource) : [],
+    plates: Array.isArray(layoutMap.plates) ? layoutMap.plates.map(normalizeSource) : [],
+  };
 }
 
 function formatExportedDate(exportedAtIso) {

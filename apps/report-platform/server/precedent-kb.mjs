@@ -660,11 +660,14 @@ export function searchPrecedentPack({
   const index = loadOrBuildIndex({ indexPath, allowBuild });
   const profile = EFFECTIVE_SECTION_PROFILES[sectionId] ?? buildDefaultSectionProfile(sectionId);
   const queryTerms = buildQueryTerms(profile, reportState);
+  const accessScope = buildRetrievalAccessScope(reportState);
   const blockedSourceNames = buildBlockedPrecedentSourceNames(reportState);
-  const excludedSourceChunks = index.chunks.filter((chunk) =>
+  const accessibleChunks = index.chunks.filter((chunk) => isKbSourceAccessible(chunk, accessScope));
+  const accessDeniedChunkCount = index.chunks.length - accessibleChunks.length;
+  const excludedSourceChunks = accessibleChunks.filter((chunk) =>
     chunk.sourceType !== "code_pdf" && isBlockedPrecedentSource(chunk, blockedSourceNames),
   );
-  const approvedChunks = index.chunks
+  const approvedChunks = accessibleChunks
     .filter((chunk) => chunk.approvalStatus === "approved_for_retrieval")
     .filter((chunk) => chunk.sourceType === "code_pdf" || !isBlockedPrecedentSource(chunk, blockedSourceNames));
   const scoredCandidates = approvedChunks
@@ -729,6 +732,8 @@ export function searchPrecedentPack({
     sampleReportsDir: index.sampleReportsDir,
     documentsSearched: index.documents.length,
     chunksSearched: index.chunks.length,
+    accessScope,
+    accessDeniedChunkCount,
     blockedSourceNames: [...blockedSourceNames],
     excludedSourceChunkCount: excludedSourceChunks.length,
     queryTerms,
@@ -749,6 +754,31 @@ export function searchPrecedentPack({
     ],
     warnings: buildRetrievalWarnings(index, wordingPrecedents, excludedSourceChunks),
   };
+}
+
+function buildRetrievalAccessScope(reportState) {
+  return {
+    tenantId: reportState?.reportJob?.tenantId ?? reportState?.authorizationContext?.tenantId ?? null,
+    workspaceId: reportState?.reportJob?.workspaceId ?? reportState?.authorizationContext?.workspaceId ?? null,
+  };
+}
+
+function isKbSourceAccessible(source, accessScope) {
+  if (["platform_library", "platform_codes_library"].includes(source.visibilityScope)) {
+    return true;
+  }
+  if (source.visibilityScope === "tenant_private") {
+    return Boolean(accessScope.tenantId && source.tenantId === accessScope.tenantId);
+  }
+  if (source.visibilityScope === "workspace_private") {
+    return Boolean(
+      accessScope.tenantId &&
+      accessScope.workspaceId &&
+      source.tenantId === accessScope.tenantId &&
+      source.workspaceId === accessScope.workspaceId,
+    );
+  }
+  return source.tenantId === "platform";
 }
 
 export function buildPrecedentAudit({
