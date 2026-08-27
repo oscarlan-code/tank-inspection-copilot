@@ -129,6 +129,10 @@ function validateLayout(layout, { requireAppFigure, requireCorrosion = false, re
       `Overlay ${scanId} is missing its immutable source preview.`,
     );
     assert([0, 90, 180, 270].includes(Number(overlay.rotationDegrees)), `Overlay ${scanId} has an invalid rotation.`);
+    assertBounded(overlay.scaleX ?? 1, 0.5, 2.5, `Overlay ${scanId} scaleX`);
+    assertBounded(overlay.scaleY ?? 1, 0.5, 2.5, `Overlay ${scanId} scaleY`);
+    assertBounded(overlay.offsetX ?? 0, -0.75, 0.75, `Overlay ${scanId} offsetX`);
+    assertBounded(overlay.offsetY ?? 0, -0.75, 0.75, `Overlay ${scanId} offsetY`);
     if (requireApproved) assert(overlay.status === "approved", `Overlay ${scanId} is not approved.`);
   }
 
@@ -146,6 +150,12 @@ function validateLayout(layout, { requireAppFigure, requireCorrosion = false, re
     approvedOverlayCount: overlays.filter((overlay) => overlay.status === "approved").length,
     validationErrorCount: errorIssues.length,
   };
+}
+
+function assertBounded(value, minimum, maximum, label) {
+  const numeric = Number(value);
+  assert(Number.isFinite(numeric), `${label} must be finite.`);
+  assert(numeric >= minimum && numeric <= maximum, `${label} must be between ${minimum} and ${maximum}.`);
 }
 
 function validatePlateGeometry(plate, plateId) {

@@ -1,5 +1,10 @@
 # Codex Roles And Tooling
 
+> **Status: historical design reference.** This file preserves earlier product
+> reasoning and may contain superseded V2, prototype, review, or output
+> assumptions. Use `SYSTEM_ARCHITECTURE.md` and `DOCUMENTATION_INDEX.md` for
+> current implementation decisions.
+
 ## Goal
 
 Define the product-standard role split for Codex in `apps/report-platform`, and clarify which work should be done by:

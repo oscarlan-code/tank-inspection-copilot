@@ -9,13 +9,14 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { rebuildPrecedentKbIndex } from "./precedent-kb.mjs";
+import { filterRetrievalCandidates } from "./training-harness.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const appRoot = join(__dirname, "..");
 const defaultPrecedentIndexPath = join(appRoot, ".data", "precedent-kb", "precedent-kb.index.json");
 const defaultDataDir = join(appRoot, ".data", "fact-recommendation-kb");
 const defaultIndexPath = join(defaultDataDir, "fact-recommendation-kb.index.json");
-const INDEX_SCHEMA_VERSION = 1;
+const INDEX_SCHEMA_VERSION = 2;
 
 const CURRENT_MOCK_GOLD_SOURCE_NAMES = [
   "22PE1-4 TK V10 Internal & External Inspection Report",
@@ -177,13 +178,15 @@ export function searchFactRecommendationPairs({
   indexPath = defaultIndexPath,
   allowBuild = true,
   limit = 24,
+  retrievalFirewallContext = null,
 } = {}) {
   const index = loadOrBuildIndex({ indexPath, allowBuild });
   const evidenceProfile = buildCurrentEvidenceProfile(reportState, sectionId);
   const blockedSourceNames = buildBlockedSourceNames(reportState);
   const accessScope = buildRetrievalAccessScope(reportState);
   const accessiblePairs = (index.pairs ?? []).filter((pair) => isKbSourceAccessible(pair, accessScope));
-  const allowedPairs = accessiblePairs.filter((pair) => !isBlockedSource(pair.sourceReportName, blockedSourceNames));
+  const firewallResult = filterRetrievalCandidates(accessiblePairs, retrievalFirewallContext);
+  const allowedPairs = firewallResult.eligible.filter((pair) => !isBlockedSource(pair.sourceReportName, blockedSourceNames));
   const scored = allowedPairs
     .map((pair) => ({
       pair,
@@ -211,6 +214,11 @@ export function searchFactRecommendationPairs({
     accessDeniedPairCount: (index.pairs ?? []).length - accessiblePairs.length,
     blockedSourceNames: [...blockedSourceNames],
     excludedPairCount: (index.pairs ?? []).length - allowedPairs.length,
+    retrievalFirewall: retrievalFirewallContext ? {
+      mode: "evaluation",
+      excludedPairCount: firewallResult.excluded.length,
+      exclusionReasonCounts: firewallResult.reasonCounts,
+    } : { mode: "live", excludedPairCount: 0, exclusionReasonCounts: {} },
     evidenceProfile,
     totalMatchCount: scored.length,
     pairs: matches,
@@ -374,6 +382,11 @@ function buildPairFromBlock(chunk, block, blockIndex) {
     pairId: `frp_${shortHash(sourceKey)}`,
     sourceChunkId: chunk.chunkId,
     sourceDocumentId: chunk.documentId,
+    documentId: chunk.documentId,
+    chunkId: chunk.chunkId,
+    sourceType: chunk.sourceType,
+    sourceSha256: chunk.sourceSha256,
+    approvalStatus: chunk.approvalStatus,
     sourceReportName: chunk.sourceReportName,
     sourceReportFamily: chunk.reportFamily,
     sourceInspectionType: chunk.inspectionType,

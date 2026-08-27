@@ -442,7 +442,15 @@ Checks:
 
 ### Offline / CI Harness
 
-Offline evaluators run against gold fixtures and should not be in the live user path.
+Offline evaluators run through governed Truth Cases and should not
+be in the live inspector path. The complete Truth Case Builder, inspector-variation,
+gold-firewall, batch-evaluation, and policy-learning design is defined in
+`TRAINING_HARNESS_ARCHITECTURE.md`.
+
+The harness does not map one Historical Gold Report directly to one fixture. It builds a
+reviewed Truth Graph and Answerability Map, then produces multiple
+versioned Capture Variants that model different inspector behavior without
+changing the underlying inspection truth.
 
 #### No-Leak Harness
 
@@ -452,7 +460,9 @@ This should be enforced by the harness, not by trusting agent behavior.
 
 #### Regression Harness
 
-Run per-section scorecards against held-out sample reports.
+Run per-section scorecards across grouped Truth Cases and Capture Variant
+profiles. All Capture Variants from one Truth Case stay in the same dataset
+split and are averaged within that Truth Case before cross-case aggregation.
 
 Score dimensions:
 
@@ -573,7 +583,8 @@ Build the loop before expanding the section army.
 
 ### 1. Harness First
 
-Build gold fixtures, hard leak barrier, and per-section scorecards.
+Build reviewed Truth Cases, Answerability Maps, deterministic
+capture profiles, a hard gold leak barrier, and per-section scorecards.
 
 Each section scorecard should cover:
 
@@ -581,6 +592,13 @@ Each section scorecard should cover:
 - completeness
 - grounding
 - format
+
+Harness promotion evidence must also cover:
+
+- capture-profile robustness
+- case-macro performance
+- worst-profile performance
+- validation and untouched hidden-test cases
 
 ### 2. Adapter And Validator
 

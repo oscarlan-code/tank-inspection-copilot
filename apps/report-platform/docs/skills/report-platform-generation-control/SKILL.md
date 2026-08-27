@@ -46,6 +46,7 @@ AI must not:
 Supported action families include:
 
 - exact section/block replacement
+- selection-scoped paragraph/list rewrite with preview and explicit acceptance
 - whole-section text style
 - table-scoped style
 - checklist marker transform
@@ -56,6 +57,11 @@ Supported action families include:
 ## Required Guardrails
 
 - Snapshot drafts before mutation.
+- Bind targeted proposals to the section version plus document and selection hashes.
+- Verify that content outside an accepted targeted range remains unchanged.
+- Keep popup quick actions and right-panel selection chat on the same targeted-edit endpoint.
+- Pin the exact selected text in right-panel selection mode and keep the report unchanged until the user applies a proposal.
+- After apply, require the nearby Keep/Undo confirmation before closing selection mode.
 - Preserve app-sourced measurements and checklist rows.
 - Keep missing values pending.
 - Surface provenance where practical.

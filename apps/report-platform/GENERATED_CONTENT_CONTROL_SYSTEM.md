@@ -36,6 +36,23 @@ The current controller supports:
 - `move_marker`
 - `resize_plate`
 
+## Shared Targeted Editing And AI Panel
+
+The generated-content popup and the right LAIQ AI Engine panel now share one selection-scoped editing pipeline.
+
+```text
+highlight report content
+  -> quick action in the nearby popup
+     OR Continue in AI Panel
+  -> selection bound to section version + document hash + selection hash
+  -> targeted-edit proposal
+  -> explicit Apply to Selection
+  -> only the protected range changes
+  -> nearby Keep / Undo confirmation
+```
+
+Right-panel selection mode pins the exact highlighted content and supports follow-up instructions. Conversation can refine the latest proposal, but it cannot change the report draft until the user clicks `Apply to Selection`. Switching section, exiting selection mode, or choosing Undo clears the pinned context. The popup and right panel therefore provide two interfaces over the same controlled backend path rather than two independent AI editors.
+
 The new content-transform layer reduces hard-coded chat behavior by forcing edit requests to produce real actions. It can inspect generated HTML as report blocks with stable `blockId` values, plan exact text replacement, safe block replacement, checklist marker transforms, whole-section style actions, or table-scoped style actions, and then emit a concrete UI action. The next product step is to persist these report blocks as first-class section data rather than reconstructing them from HTML.
 
 ## Implemented V1 Beta Transform Layer
@@ -225,6 +242,25 @@ The executor should not expose:
 - access to hidden gold report text for the same inspection
 
 This gives us flexibility without turning the AI into an unsafe free-form editor. If a user asks for something new, Codex can generate a targeted transform plan or script. If the script passes validation, the report changes. If it fails, the user sees a controlled explanation.
+
+## Selection-Scoped Editing
+
+Step 3 supports targeted narrative editing without replacing the complete section.
+
+```text
+highlight report content
+-> capture TipTap range and document/selection hashes
+-> persist the current draft version
+-> ask the existing LAIQ AI Engine for replacement HTML only
+-> validate safe markup and protected app facts
+-> preview Accept / Try Again / Cancel
+-> replace only the captured range
+-> save a targeted_ai_edit revision
+```
+
+The selection contract carries limited surrounding context for coherence, but the context is read-only. The worker must return replacement HTML for the captured range rather than a complete section. The browser rejects a proposal if the section, document hash, selection hash, or optimistic-concurrency version changed while the worker was running.
+
+Narrative paragraphs, headings, and lists are supported. Table structure, measurement geometry, checklist rows, and layout maps remain under their specialized deterministic tools.
 
 ## Rollback Guardrail
 

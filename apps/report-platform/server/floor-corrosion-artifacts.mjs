@@ -1,12 +1,18 @@
 import { randomUUID } from "node:crypto";
 import {
+  closeSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
+  openSync,
+  readSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import {
   composeFloorCorrosionMap,
   extractMflPlateScans,
@@ -22,7 +28,10 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
   mkdirSync(root, { recursive: true });
 
   return {
+    deleteReportArtifacts,
     getArtifactContentType,
+    deleteArtifactRun,
+    listRunArtifactFiles,
     updatePlacement,
     hydrateInlineArtifacts,
     importLayoutPdf,
@@ -30,22 +39,55 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
     readArtifact,
   };
 
+  function deleteReportArtifacts(reportJobId) {
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(String(reportJobId ?? ""))) {
+      throw new FloorCorrosionError(400, "Invalid report job identifier.", "report_job_id_invalid");
+    }
+    const reportDirectory = join(root, reportJobId);
+    assertInsideRoot(reportDirectory);
+    rmSync(reportDirectory, { recursive: true, force: true });
+  }
+
+  function deleteArtifactRun({ reportJobId, runId }) {
+    const runDirectory = safeRunDirectory(reportJobId, runId);
+    rmSync(runDirectory, { recursive: true, force: true });
+  }
+
+  function listRunArtifactFiles({ reportJobId, runId }) {
+    const runDirectory = safeRunDirectory(reportJobId, runId);
+    if (!existsSync(runDirectory)) {
+      throw new FloorCorrosionError(404, "Floor corrosion artifact run was not found.", "floor_corrosion_run_not_found");
+    }
+    return listFilesRecursively(runDirectory)
+      .map((localPath) => {
+        const relativePath = relative(runDirectory, localPath).split(sep).join("/");
+        const stats = statSync(localPath);
+        return {
+          byteSize: stats.size,
+          localPath,
+          mediaType: getRunArtifactContentType(relativePath),
+          relativePath,
+        };
+      })
+      .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+  }
+
   function importLayoutPdf({
     reportJobId,
     pdfBuffer,
+    pdfPath,
     sourceDocumentName,
     sourcePage,
     client,
     tank,
     reference,
   }) {
-    validatePdfBuffer(pdfBuffer, "Floor layout");
     const runId = randomUUID();
     const runDirectory = safeRunDirectory(reportJobId, runId);
     const artifactDirectory = join(runDirectory, "scans");
     mkdirSync(artifactDirectory, { recursive: true });
     const sourcePath = join(runDirectory, "source.pdf");
-    writeFileSync(sourcePath, pdfBuffer, { mode: 0o600 });
+    stagePdfInput({ pdfBuffer, pdfPath, sourcePath, label: "Floor layout" });
 
     let rendered;
     try {
@@ -55,6 +97,7 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
         outputDirectory: artifactDirectory,
       });
     } catch (error) {
+      rmSync(runDirectory, { recursive: true, force: true });
       const message = error instanceof Error ? error.message : "Floor layout extraction failed.";
       throw new FloorCorrosionError(422, message, "floor_layout_extraction_failed");
     }
@@ -97,17 +140,16 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
     reportJobId,
     layoutMap,
     pdfBuffer,
+    pdfPath,
     sourceDocumentName,
     sourceLayoutName = "LAIQ inspection app floor layout",
   }) {
-    validatePdfBuffer(pdfBuffer, "MFL");
-
     const runId = randomUUID();
     const runDirectory = safeRunDirectory(reportJobId, runId);
     const scanDirectory = join(runDirectory, "scans");
     mkdirSync(scanDirectory, { recursive: true });
     const sourcePath = join(runDirectory, "source.pdf");
-    writeFileSync(sourcePath, pdfBuffer, { mode: 0o600 });
+    stagePdfInput({ pdfBuffer, pdfPath, sourcePath, label: "MFL" });
 
     let extractionManifest;
     try {
@@ -167,6 +209,10 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
     rotationDegrees,
     flipX,
     flipY,
+    scaleX,
+    scaleY,
+    offsetX,
+    offsetY,
     opacity,
     approved = false,
     actorUserId,
@@ -190,6 +236,12 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
       throw new FloorCorrosionError(400, "Rotation must be 0, 90, 180, or 270 degrees.", "floor_corrosion_rotation_invalid");
     }
 
+    const currentOverlay = floorCorrosion.overlays[overlayIndex];
+    const nextScaleX = boundedPlacementNumber(scaleX, currentOverlay.scaleX ?? 1, 0.5, 2.5, "scaleX");
+    const nextScaleY = boundedPlacementNumber(scaleY, currentOverlay.scaleY ?? 1, 0.5, 2.5, "scaleY");
+    const nextOffsetX = boundedPlacementNumber(offsetX, currentOverlay.offsetX ?? 0, -0.75, 0.75, "offsetX");
+    const nextOffsetY = boundedPlacementNumber(offsetY, currentOverlay.offsetY ?? 0, -0.75, 0.75, "offsetY");
+    const nextOpacity = boundedPlacementNumber(opacity, currentOverlay.opacity, 0.1, 1, "opacity");
     const isApproved = approved === true;
     const overlays = floorCorrosion.overlays.map((overlay, index) => (
       index === overlayIndex
@@ -197,9 +249,13 @@ export function createFloorCorrosionArtifactService({ artifactRoot }) {
             ...overlay,
             hostPlateId,
             rotationDegrees: rotation,
-            flipX: Boolean(flipX),
-            flipY: Boolean(flipY),
-            opacity: clamp(Number(opacity ?? overlay.opacity), 0.1, 1),
+            flipX: false,
+            flipY: false,
+            scaleX: nextScaleX,
+            scaleY: nextScaleY,
+            offsetX: nextOffsetX,
+            offsetY: nextOffsetY,
+            opacity: nextOpacity,
             status: isApproved ? "approved" : "orientation_review_required",
             reviewedByUserId: isApproved ? actorUserId : undefined,
             reviewedAtIso: isApproved ? new Date().toISOString() : undefined,
@@ -349,6 +405,21 @@ function getArtifactContentType(artifactFileName) {
     : "image/png";
 }
 
+function getRunArtifactContentType(relativePath) {
+  const lower = String(relativePath ?? "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".json")) return "application/json";
+  return getArtifactContentType(lower);
+}
+
+function listFilesRecursively(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const childPath = join(directory, entry.name);
+    if (entry.isDirectory()) return listFilesRecursively(childPath);
+    return entry.isFile() ? [childPath] : [];
+  });
+}
+
 export class FloorCorrosionError extends Error {
   constructor(statusCode, message, code, details) {
     super(message);
@@ -417,6 +488,38 @@ function validatePdfBuffer(pdfBuffer, label) {
   }
 }
 
+function stagePdfInput({ pdfBuffer, pdfPath, sourcePath, label }) {
+  if (pdfPath) {
+    validatePdfPath(pdfPath, label);
+    copyFileSync(pdfPath, sourcePath);
+    return;
+  }
+
+  validatePdfBuffer(pdfBuffer, label);
+  writeFileSync(sourcePath, pdfBuffer, { mode: 0o600 });
+}
+
+function validatePdfPath(pdfPath, label) {
+  const stats = statSync(pdfPath);
+  if (!stats.isFile() || stats.size === 0) {
+    throw new FloorCorrosionError(400, `${label} PDF upload is empty.`, "pdf_empty");
+  }
+  if (stats.size > MAX_UPLOAD_BYTES) {
+    throw new FloorCorrosionError(413, `${label} PDF upload exceeds 100 MB.`, "pdf_too_large");
+  }
+
+  const descriptor = openSync(pdfPath, "r");
+  const magic = Buffer.alloc(5);
+  try {
+    readSync(descriptor, magic, 0, magic.length, 0);
+  } finally {
+    closeSync(descriptor);
+  }
+  if (magic.toString("ascii") !== "%PDF-") {
+    throw new FloorCorrosionError(400, `${label} upload must be a PDF file.`, "pdf_invalid");
+  }
+}
+
 function sanitizeFileName(value) {
   const clean = basename(String(value ?? "MFL plate maps.pdf"))
     .replace(/[\r\n\0]/g, " ")
@@ -457,4 +560,16 @@ function normalizeRotation(value) {
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function boundedPlacementNumber(value, fallback, minimum, maximum, fieldName) {
+  const numeric = Number(value ?? fallback);
+  if (!Number.isFinite(numeric)) {
+    throw new FloorCorrosionError(
+      400,
+      `${fieldName} must be a finite number.`,
+      "floor_corrosion_transform_invalid",
+    );
+  }
+  return clamp(numeric, minimum, maximum);
 }

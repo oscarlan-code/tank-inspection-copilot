@@ -1,5 +1,10 @@
 # Report Platform Implementation Plan
 
+> **Status: historical design reference.** This file preserves earlier product
+> reasoning and may contain superseded V2, prototype, review, or output
+> assumptions. Use `SYSTEM_ARCHITECTURE.md` and `DOCUMENTATION_INDEX.md` for
+> current implementation decisions.
+
 ## Goal
 
 Build the product-standard reporting platform in `apps/report-platform` for converting Android V2 Product exports into browser-based inspection report previews and final PDFs.

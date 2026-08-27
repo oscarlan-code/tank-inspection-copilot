@@ -83,21 +83,10 @@ function buildSourceFloorFigureSvg(layoutMap) {
     const href = safeInlineCorrosionImage(overlay.inlineImageDataUrl);
     if (!plate || !href || overlay.status === "blocked") return [];
     const rect = sourcePlateRect(plate, width, height);
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    const rotation = normalizeRotation(overlay.rotationDegrees);
-    const swapsAxes = rotation === 90 || rotation === 270;
-    const imageWidth = swapsAxes ? rect.height : rect.width;
-    const imageHeight = swapsAxes ? rect.width : rect.height;
-    const transform = [
-      `translate(${centerX} ${centerY})`,
-      `rotate(${rotation})`,
-      `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
-      `translate(${-centerX} ${-centerY})`,
-    ].join(" ");
+    const placement = resolveFloorCorrosionPlacement(rect, overlay);
     return [
       `<g clip-path="url(#${sourceFloorPlateClipId(layoutMap.id, plate.id)})">`,
-      `<image class="floor-corrosion-overlay" href="${href}" x="${centerX - imageWidth / 2}" y="${centerY - imageHeight / 2}" width="${imageWidth}" height="${imageHeight}" opacity="${clamp(overlay.opacity ?? 0.88, 0.1, 1)}" preserveAspectRatio="xMidYMid slice" transform="${transform}" />`,
+      renderFloorCorrosionPlacementImage(href, overlay, placement),
       "</g>",
     ];
   });
@@ -500,25 +489,59 @@ function renderFloorCorrosionOverlays(layoutMap, plateKind) {
     if (!plate || !href || overlay.status === "blocked" || isAnnularPlate(plate) !== (plateKind === "annular")) return [];
 
     const rect = circularPlateRect(plate);
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    const rotation = normalizeRotation(overlay.rotationDegrees);
-    const swapsAxes = rotation === 90 || rotation === 270;
-    const imageWidth = swapsAxes ? rect.height : rect.width;
-    const imageHeight = swapsAxes ? rect.width : rect.height;
-    const transform = [
-      `translate(${centerX} ${centerY})`,
-      `rotate(${rotation})`,
-      `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
-      `translate(${-centerX} ${-centerY})`,
-    ].join(" ");
+    const placement = resolveFloorCorrosionPlacement(rect, overlay);
 
     return [
       `<g clip-path="url(#${floorPlateClipId(layoutMap.id, plate.id)})">`,
-      `<image class="floor-corrosion-overlay" href="${href}" x="${centerX - imageWidth / 2}" y="${centerY - imageHeight / 2}" width="${imageWidth}" height="${imageHeight}" opacity="${clamp(overlay.opacity ?? 0.88, 0.1, 1)}" preserveAspectRatio="xMidYMid slice" transform="${transform}" />`,
+      renderFloorCorrosionPlacementImage(href, overlay, placement),
       "</g>",
     ];
   });
+}
+
+function resolveFloorCorrosionPlacement(rect, overlay) {
+  const rotation = normalizeRotation(overlay.rotationDegrees);
+  const swapsAxes = rotation === 90 || rotation === 270;
+  const scaleX = clamp(overlay.scaleX ?? 1, 0.5, 2.5);
+  const scaleY = clamp(overlay.scaleY ?? 1, 0.5, 2.5);
+  const offsetX = clamp(overlay.offsetX ?? 0, -0.75, 0.75);
+  const offsetY = clamp(overlay.offsetY ?? 0, -0.75, 0.75);
+  const sourceWidth = Math.max(1, Number(overlay.sourceWidthMm) || 1);
+  const sourceHeight = Math.max(1, Number(overlay.sourceHeightMm) || 1);
+  const viewWidth = swapsAxes ? sourceHeight : sourceWidth;
+  const viewHeight = swapsAxes ? sourceWidth : sourceHeight;
+  const x = rect.x + rect.width * offsetX;
+  const y = rect.y + rect.height * offsetY;
+  const width = rect.width * scaleX;
+  const height = rect.height * scaleY;
+  const orientationTransform = [
+    `translate(${viewWidth / 2} ${viewHeight / 2})`,
+    `rotate(${rotation})`,
+  ].join(" ");
+
+  return {
+    height,
+    orientationTransform,
+    scaleX,
+    scaleY,
+    sourceHeight,
+    sourceWidth,
+    viewHeight,
+    viewWidth,
+    width,
+    x,
+    y,
+  };
+}
+
+function renderFloorCorrosionPlacementImage(href, overlay, placement) {
+  return [
+    `<svg class="floor-corrosion-overlay" data-host-plate-id="${escapeXml(overlay.hostPlateId)}" data-placement-anchor="top-left" data-scale-x="${placement.scaleX}" data-scale-y="${placement.scaleY}" x="${placement.x}" y="${placement.y}" width="${placement.width}" height="${placement.height}" viewBox="0 0 ${placement.viewWidth} ${placement.viewHeight}" preserveAspectRatio="none" opacity="${clamp(overlay.opacity ?? 0.88, 0.1, 1)}">`,
+    `<g transform="${placement.orientationTransform}">`,
+    `<image href="${href}" x="${-placement.sourceWidth / 2}" y="${-placement.sourceHeight / 2}" width="${placement.sourceWidth}" height="${placement.sourceHeight}" preserveAspectRatio="none" />`,
+    "</g>",
+    "</svg>",
+  ].join("");
 }
 
 function isAnnularPlate(plate) {

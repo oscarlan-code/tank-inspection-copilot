@@ -31,6 +31,19 @@ const blockedTopSources = audit.sections.flatMap((section) =>
     ))
     .map((source) => `${section.sectionId}: ${source.sourceReportName}`),
 );
+const ineligiblePrecedents = audit.sections.flatMap((section) =>
+  section.topSources
+    .filter((source) =>
+      !section.expectedChunkTypes.includes(source.chunkType)
+      || !section.expectedSourceSectionKeys.includes(source.sectionKey),
+    )
+    .map((source) => ({
+      sectionId: section.sectionId,
+      chunkType: source.chunkType,
+      sourceReportName: source.sourceReportName,
+      pageStart: source.pageStart,
+    })),
+);
 
 console.log(`Precedent KB audit: ${audit.createdAtIso}`);
 
@@ -56,6 +69,16 @@ if (blockedTopSources.length > 0) {
   console.error("\nBlocked same-report/gold sources appeared in wording precedent results:");
   for (const source of blockedTopSources.slice(0, 12)) {
     console.error(`- ${source}`);
+  }
+  process.exit(1);
+}
+
+if (ineligiblePrecedents.length > 0) {
+  console.error("\nIneligible precedent block types appeared in wording results:");
+  for (const precedent of ineligiblePrecedents.slice(0, 12)) {
+    console.error(
+      `- ${precedent.sectionId}: ${precedent.chunkType} from ${precedent.sourceReportName} page ${precedent.pageStart}`,
+    );
   }
   process.exit(1);
 }

@@ -1,6 +1,6 @@
 ---
 name: report-platform-mfl-overlay
-description: Compose individual MFL plate-map PDFs onto immutable LAIQ app floor layouts. Use for floor corrosion plans, MFL extraction, crop/grid removal, plate-ID matching, rotation or flip review, source-scan comparison, browser/DOCX parity, or debugging a layout that changes after MFL import.
+description: Compose individual MFL plate-map PDFs onto immutable LAIQ app floor layouts. Use for floor corrosion plans, MFL extraction, crop/grid removal, plate-ID matching, per-plate size/offset/rotation review, source-scan comparison, browser/DOCX parity, or debugging a layout that changes after MFL import.
 ---
 
 # Report Platform MFL Overlay
@@ -27,10 +27,10 @@ Read:
 3. Run the metadata-only MFL/layout preflight. Require every scan plate name/number to resolve to exactly one layout plate and, by default, require complete plate coverage.
 4. Start image extraction only after preflight succeeds. Preserve an untouched source preview and retain only configured corrosion-band pixels in the overlay PNG.
 5. Match scan IDs to stable host plate IDs or explicit aliases. Block unmatched, duplicate, or ambiguous mappings.
-6. Suggest initial orientation from physical and host-plate aspect ratios. Require human review for rotation and flips.
-7. Scale with aspect ratio preserved, crop to fit, clip to the host plate, then clip to the outer tank boundary.
+6. Suggest initial orientation from physical and host-plate aspect ratios. Require human review for X/Y scale, X/Y offset, and rotation. Flip controls are not part of the product workflow.
+7. At 100%, map the complete extracted scan to the complete host-plate bounds without `slice` cropping. Anchor X scaling at the left edge and Y scaling at the top edge so each control moves only its corresponding far edge. Apply normalized offset to the entire placement, then clip to the host plate and outer tank boundary. Never mutate the original source preview; the review UI rotates it for direction comparison but does not apply map-only scale or offset.
 8. Verify that the composed layout has the same geometry fingerprint as the baseline.
-9. Visually select representative main and annular plates, compare their source previews, and test rotate/flip/approval controls.
+9. Visually select representative main and annular plates, compare their source previews, and test one-sided X/Y size, offset, rotate, reset, and approval controls.
 10. Verify browser and server/DOCX renderers use the same normalized layout and overlay transforms.
 
 ## Reusable Command
@@ -85,7 +85,7 @@ node apps/report-platform/docs/skills/report-platform-mfl-overlay/scripts/verify
 
 - Do not infer or move layout geometry from MFL pixels.
 - Do not silently map scans by page order.
-- Do not stretch scans; use aspect-preserving crop-to-fit.
+- Do not rewrite scan pixels. The overlay renderer uses the full transparent scan with non-cropping mapping; X/Y controls change only the final map placement rectangle.
 - Do not remove the original app figure, elements, findings, datum, or labels.
 - Do not claim completion when matching errors exist.
 - Do not approve orientation automatically.
@@ -98,7 +98,14 @@ node apps/report-platform/docs/skills/report-platform-mfl-overlay/scripts/verify
 npm --prefix apps/report-platform run build
 npm --prefix apps/report-platform run logic:audit
 npm --prefix apps/report-platform run floor-corrosion:audit
+npm --prefix apps/report-platform run floor-corrosion:durability-audit
 npm --prefix apps/report-platform run api:audit
 ```
 
-For a UI change, also run a browser test that imports an MFL PDF, selects a main plate and an annular plate, confirms the original source preview, and checks the browser console.
+With S3-compatible test storage configured, also run:
+
+```bash
+npm --prefix apps/report-platform run floor-corrosion:object-storage-audit
+```
+
+For a UI change, also run a browser test that imports an MFL PDF, selects a main plate and an annular plate, confirms rotation orients the immutable source preview, confirms 100% contains the full scan, confirms X moves only the right edge and Y moves only the bottom edge, confirms offsets do not resize, verifies approval is invalidated, approves the placement, and checks the browser console.

@@ -9,6 +9,8 @@ export const REPORT_PERMISSIONS = Object.freeze({
   EXPORT: "report:export",
   KB_SEARCH: "knowledge-base:search",
   KB_MANAGE: "knowledge-base:manage",
+  SYSTEM_RL_MANAGE: "system-rl:manage",
+  ACCOUNT_MANAGE: "account:manage",
 });
 
 const ROLE_PERMISSIONS = new Map([
@@ -69,6 +71,29 @@ export function authorizeWorkspacePermission(principal, scope, permission) {
   if (!membership || !hasPermission(membership.roles, permission)) {
     throw forbidden(permission);
   }
+}
+
+export function authorizeReportOwnership(principal, scope) {
+  if (hasPermission(principal.platformRoles, REPORT_PERMISSIONS.READ)) {
+    return;
+  }
+
+  const membership = principal.workspaceMemberships.find(
+    (candidate) => candidate.workspaceId === scope.workspaceId,
+  );
+  const roleKeys = new Set((membership?.roles ?? []).map(normalizeRole));
+  if (roleKeys.has("manager") || roleKeys.has("reviewer")) {
+    return;
+  }
+  if (roleKeys.has("inspector") && scope.createdByUserId === principal.userId) {
+    return;
+  }
+
+  throw new ApiError(
+    403,
+    "This report is assigned to another account in the workspace.",
+    "report_owner_denied",
+  );
 }
 
 export function authorizeImportPackage(principal, exportPackage) {

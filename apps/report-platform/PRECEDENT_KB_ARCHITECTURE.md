@@ -1,8 +1,19 @@
 # Precedent Knowledge Base Architecture
 
+The offline historical-case, synthetic app-capture, evaluation, and policy
+learning boundary is defined in `TRAINING_HARNESS_ARCHITECTURE.md`. Precedent
+retrieval must honor that harness's immutable dataset roles, same-case gold
+exclusions, and `evidenceAsOf` cutoff; KB relevance alone never overrides those
+filters.
+
 ## Purpose
 
 Define the product-standard knowledge base for precedent retrieval in `apps/report-platform`.
+
+Full-corpus discovery, report/rendition grouping, dataset assignment, and the
+production ingestion sequence are defined in
+`KB_CORPUS_INGESTION_ARCHITECTURE.md`. The current V1 Beta index remains a
+curated root-level seed and must not be changed to blind recursive ingestion.
 
 The knowledge base should make report generation more reliable by retrieving approved examples of:
 
@@ -12,7 +23,9 @@ The knowledge base should make report generation more reliable by retrieving app
 - layout map conventions
 - appendix and attachment patterns
 
-This is not a loose PDF search folder. It is a governed product system aligned with the V2 Product tenant, workspace, user, role, and audit model.
+This is not a loose PDF search folder. It is a governed report-platform
+subsystem aligned with the V3 app handoff and report-platform tenant,
+workspace, user, role, and audit model.
 
 ## Core Product Rule
 
@@ -22,7 +35,7 @@ Precedent must not become the source of truth for the current inspection.
 
 The current report facts must come from:
 
-- Android V2 Product export
+- LAIQ inspection app V3 export
 - report-side inspector inputs
 - user edits approved in the report platform
 - deterministic calculations

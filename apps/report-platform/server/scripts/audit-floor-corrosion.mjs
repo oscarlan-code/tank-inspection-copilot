@@ -72,6 +72,10 @@ try {
     rotationDegrees: 0,
     flipX: false,
     flipY: false,
+    scaleX: 1,
+    scaleY: 1,
+    offsetX: 0,
+    offsetY: 0,
     approved: true,
     reviewedByUserId: "audit-user",
     reviewedAtIso: "2026-01-01T00:00:00.000Z",
@@ -149,6 +153,32 @@ try {
   }).render().asPng();
   assert(renderedSourceFigure.length > 100_000, "Composed vector floor map did not render as a substantive figure.");
   const firstOverlay = composed.floorCorrosion.overlays[0];
+  let invalidTransformError = null;
+  try {
+    artifactService.updatePlacement({
+      reportJobId: "floor-corrosion-audit",
+      layoutMap: composed,
+      scanPlateId: firstOverlay.scanPlateId,
+      hostPlateId: firstOverlay.hostPlateId,
+      rotationDegrees: 0,
+      flipX: false,
+      flipY: false,
+      scaleX: "not-a-number",
+      scaleY: 1,
+      offsetX: 0,
+      offsetY: 0,
+      opacity: firstOverlay.opacity,
+      approved: false,
+      actorUserId: "audit-user",
+    });
+  } catch (error) {
+    invalidTransformError = error;
+  }
+  assert(
+    invalidTransformError?.statusCode === 400
+      && invalidTransformError?.code === "floor_corrosion_transform_invalid",
+    "Invalid transform values must fail with a controlled product error.",
+  );
   const transformed = artifactService.updatePlacement({
     reportJobId: "floor-corrosion-audit",
     layoutMap: composed,
@@ -157,6 +187,10 @@ try {
     rotationDegrees: 90,
     flipX: true,
     flipY: false,
+    scaleX: 1.2,
+    scaleY: 0.9,
+    offsetX: 0.1,
+    offsetY: -0.1,
     opacity: firstOverlay.opacity,
     approved: false,
     actorUserId: "audit-user",
@@ -165,6 +199,21 @@ try {
   assert(
     transformedOverlay.status === "orientation_review_required",
     "Changing a placement must invalidate its prior approval.",
+  );
+  assert(
+    transformedOverlay.scaleX === 1.2
+      && transformedOverlay.scaleY === 0.9
+      && transformedOverlay.offsetX === 0.1
+      && transformedOverlay.offsetY === -0.1,
+    "Per-plate size and offset refinement must persist without changing the source scan.",
+  );
+  assert(
+    transformedOverlay.flipX === false && transformedOverlay.flipY === false,
+    "Deprecated flip inputs must be normalized off by the product placement service.",
+  );
+  assert(
+    transformedOverlay.sourcePreviewSha256 === firstOverlay.sourcePreviewSha256,
+    "Placement refinement must not mutate the immutable original MFL preview.",
   );
   assert(
     transformed.floorCorrosion.validationIssues.some(
@@ -178,13 +227,29 @@ try {
     scanPlateId: firstOverlay.scanPlateId,
     hostPlateId: firstOverlay.hostPlateId,
     rotationDegrees: 90,
-    flipX: true,
+    flipX: false,
     flipY: false,
+    scaleX: 1.2,
+    scaleY: 0.9,
+    offsetX: 0.1,
+    offsetY: -0.1,
     opacity: firstOverlay.opacity,
     approved: true,
     actorUserId: "audit-user",
   });
   assert(reapproved.floorCorrosion.overlays[0].status === "approved", "Explicit placement approval must be recorded.");
+  const refinedFigure = buildLayoutMapFigureSvg(reapproved);
+  assert(
+    refinedFigure.svg.includes('floor-corrosion-overlay')
+      && refinedFigure.svg.includes('rotate(90)')
+      && refinedFigure.svg.includes('data-placement-anchor="top-left"')
+      && refinedFigure.svg.includes('data-scale-x="1.2"')
+      && refinedFigure.svg.includes('data-scale-y="0.9"')
+      && refinedFigure.svg.includes('preserveAspectRatio="none"')
+      && !refinedFigure.svg.includes('xMidYMid slice')
+      && !refinedFigure.svg.includes('scale(-1'),
+    "DOCX-safe figure rendering must use the one-sided, non-cropping placement contract.",
+  );
   assert(
     !reapproved.floorCorrosion.validationIssues.some(
       (issue) => issue.code === "mfl_orientation_review_required" && issue.plateId === firstOverlay.scanPlateId,
@@ -194,6 +259,13 @@ try {
 
   const figure = buildLayoutMapFigureSvg(composed);
   assert(figure?.svg.includes("floor-corrosion-overlay"), "Rendered SVG does not contain floor corrosion overlays.");
+  assert(
+    figure.svg.includes('data-scale-x="1"')
+      && figure.svg.includes('data-scale-y="1"')
+      && figure.svg.includes('preserveAspectRatio="none"')
+      && !figure.svg.includes('xMidYMid slice'),
+    "A 100% placement must map the complete extracted scan without SVG slice cropping.",
+  );
   assert(!figure.svg.includes("189,227,192"), "Rendered SVG unexpectedly contains the source grid color.");
 
   console.log(JSON.stringify({

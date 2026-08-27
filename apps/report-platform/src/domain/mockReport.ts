@@ -147,6 +147,34 @@ export type ApiEvalRun = {
     referenceOnlyFacts: string[];
     notes: string[];
   };
+  metricSchemaVersion?: number;
+  evaluationCase?: {
+    caseId: string;
+    displayName: string;
+    goldReferenceRole: string;
+    literalGoldFactComparison: boolean;
+  } | null;
+  retrievalEvaluation?: {
+    available: boolean;
+    k: number;
+    precisionAtK: number;
+    recallAtK: number;
+    f1AtK: number;
+    reciprocalRank: number;
+    ndcgAtK: number;
+    sameGoldRetrievedCount: number;
+    labelConfidence: number;
+    labelSource: string | null;
+    labelReviewStatus?: string;
+  };
+  generatedContentEvaluation?: {
+    claimPrecisionAvailable: boolean;
+    claimPrecision: number;
+    requiredFactRecallAvailable: boolean;
+    requiredFactRecall: number;
+    unsupportedClaims: string[];
+    missingRequiredFactKeys: string[];
+  };
   dimensions: Array<{
     key: string;
     label: string;
@@ -176,6 +204,17 @@ export type ApiReportJobState = {
     reportJobId: string;
     reportReference?: string;
     inspectedDate?: string;
+    sourceRevision?: {
+      importId: string;
+      packageSha256: string;
+      revisionNumber: number;
+      sourceObjectKey: string | null;
+      sourceByteSize: number | null;
+      sourceSha256: string | null;
+      sourceMediaType: string | null;
+      storageStatus: "legacy" | "stored";
+    };
+    manualInputsRevision?: number;
   };
   exportPackage?: V2ProductExportPackage;
   package?: V2ProductExportPackage;
@@ -187,12 +226,14 @@ export type ApiReportJobState = {
     edited: boolean;
     approved: boolean;
     reviewRequired: boolean;
+    version: number;
     updatedAtIso: string;
     previousVersionCount?: number;
   }>;
   layoutOverrides?: Array<{
     sectionId: string;
     layoutMap: LayoutMapData;
+    version: number;
     updatedAtIso: string;
   }>;
   generationRun?: ApiGenerationRun;
@@ -337,6 +378,7 @@ function buildWorkspaceReport(
     client: exportPackage.task.client,
     tank: `Tank ${exportPackage.task.tankNumber}`,
     inspectedDate: manualSupplement.inspectedDate,
+    manualInputsRevision: 0,
     importSummary: {
       dataSourceMode,
       packageType: exportPackage.packageType,
@@ -399,8 +441,12 @@ export function hydrateWorkspaceFromApiState(
     payload.sectionDrafts,
     payload.layoutOverrides,
   );
+  const manualInputsRevision = payload.reportJob?.manualInputsRevision ?? 0;
 
-  return { baselineReport, report };
+  return {
+    baselineReport: { ...baselineReport, manualInputsRevision },
+    report: { ...report, manualInputsRevision },
+  };
 }
 
 function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {
@@ -416,6 +462,7 @@ function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {
     saveLayoutOverridePath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/layout-overrides/:sectionId"),
     generateSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/generate"),
     sectionChatPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/chat"),
+    targetedEditPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/targeted-edit"),
     restorePreviousSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/restore-previous"),
     approveSectionPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/sections/:sectionId/approve"),
     exportDocxPath: buildApiUrl(apiBaseUrl, "/api/v1/report-jobs/:reportJobId/exports/final-report.docx"),
@@ -1269,9 +1316,8 @@ This section is report-side by design: the LAIQ app export supplies the factual 
       makeField({
         id: "recommendationOwner",
         label: "Recommendation Owner",
-        input: "select",
+        input: "text",
         value: manualSupplement.recommendationOwner,
-        options: ["Client", "IRS", "Mechanical Contractor"],
         suggestion: "Client",
         reason: "Recommendation ownership still needs explicit confirmation before issue.",
         source: "Report-side manual input",
@@ -2939,14 +2985,15 @@ function applyPersistedState(
 ): WorkspaceReport {
   const sectionDraftMap = new Map((sectionDrafts ?? []).map((sectionDraft) => [sectionDraft.sectionId, sectionDraft]));
   const layoutOverrideMap = new Map(
-    (layoutOverrides ?? []).map((layoutOverride) => [layoutOverride.sectionId, layoutOverride.layoutMap]),
+    (layoutOverrides ?? []).map((layoutOverride) => [layoutOverride.sectionId, layoutOverride]),
   );
 
   return {
     ...report,
     sections: report.sections.map((section) => {
       const sectionDraft = sectionDraftMap.get(section.id);
-      const layoutOverride = layoutOverrideMap.get(section.id);
+      const layoutOverrideState = layoutOverrideMap.get(section.id);
+      const layoutOverride = layoutOverrideState?.layoutMap;
       const compatibleLayoutOverride = isCompatibleLayoutOverride(section.layoutMap, layoutOverride)
         ? layoutOverride
         : undefined;
@@ -2958,6 +3005,8 @@ function applyPersistedState(
         edited: sectionDraft?.edited ?? section.edited,
         approved: sectionDraft?.approved ?? section.approved,
         reviewRequired: sectionDraft?.reviewRequired ?? section.reviewRequired,
+        version: sectionDraft?.version ?? section.version ?? 0,
+        layoutVersion: layoutOverrideState?.version ?? section.layoutVersion ?? 0,
         previousVersionCount: sectionDraft?.previousVersionCount ?? section.previousVersionCount ?? 0,
         layoutMap: compatibleLayoutOverride
           ? mergeLayoutOverrideWithBaseline(section.layoutMap, compatibleLayoutOverride)

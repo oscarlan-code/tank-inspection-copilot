@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type {
   AndroidLayoutMapConfig,
   FloorCorrosionOverlay,
@@ -17,6 +17,8 @@ type Props = {
   onLayoutMapChange: (nextLayoutMap: LayoutMapData, summary: string) => void;
   onMarkerSelect: (markerId: string | null) => void;
   onPlateSelect: (plateId: string | null) => void;
+  floorReviewControls?: ReactNode;
+  showFloorSourcePreview?: boolean;
   showEvidenceInspector?: boolean;
   variant?: "workspace" | "reportFigure";
 };
@@ -48,6 +50,8 @@ export function LayoutMapEditor({
   onLayoutMapChange,
   onMarkerSelect,
   onPlateSelect,
+  floorReviewControls,
+  showFloorSourcePreview = true,
   showEvidenceInspector = true,
   variant = "workspace",
 }: Props) {
@@ -64,6 +68,16 @@ export function LayoutMapEditor({
   const sourceDrawing = appMap?.surfaceType === "floor" ? safeLayoutMap.sourceDrawing : undefined;
   const svgWidth = sourceDrawing?.width ?? SVG_WIDTH;
   const svgHeight = sourceDrawing?.height ?? SVG_HEIGHT;
+  const activeCorrosionOverlay = safeLayoutMap.floorCorrosion?.overlays.find(
+    (overlay) => overlay.hostPlateId === activePlateId,
+  );
+  const showsFloorReviewRail = variant === "workspace"
+    && appMap?.surfaceType === "floor"
+    && Boolean(safeLayoutMap.floorCorrosion)
+    && Boolean(floorReviewControls);
+  const svgViewBox = showsFloorReviewRail && !sourceDrawing
+    ? `0 0 748 ${SVG_HEIGHT}`
+    : `0 0 ${svgWidth} ${svgHeight}`;
   void onLayoutMapChange;
 
   return (
@@ -76,13 +90,14 @@ export function LayoutMapEditor({
           </div>
         </div>
 
-        <div className="android-map-shell">
-          <svg
-            aria-label={safeLayoutMap.title}
-            className={`android-layout-svg ${sourceDrawing ? "android-layout-svg-source" : ""}`}
-            role="img"
-            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          >
+        <div className={showsFloorReviewRail ? "mfl-map-review-grid" : undefined}>
+          <div className="android-map-shell">
+            <svg
+              aria-label={safeLayoutMap.title}
+              className={`android-layout-svg ${sourceDrawing ? "android-layout-svg-source" : ""}`}
+              role="img"
+              viewBox={svgViewBox}
+            >
             {!sourceDrawing ? (
               <defs>
                 <clipPath id={`circle-clip-${safeLayoutMap.id}`}>
@@ -123,11 +138,23 @@ export function LayoutMapEditor({
                 layoutMap={safeLayoutMap}
                 onMarkerSelect={onMarkerSelect}
                 onPlateSelect={onPlateSelect}
+                showFloorSourcePreview={showFloorSourcePreview && !showsFloorReviewRail}
               />
             )}
 
             {!sourceDrawing ? <DrawingBlock layoutMap={safeLayoutMap} /> : null}
-          </svg>
+            </svg>
+          </div>
+
+          {showsFloorReviewRail ? (
+            <aside className="mfl-review-rail" aria-label="MFL plate review">
+              <FloorSourcePlateReviewCard
+                activePlateId={activePlateId}
+                overlay={activeCorrosionOverlay}
+              />
+              {floorReviewControls}
+            </aside>
+          ) : null}
         </div>
       </div>
 
@@ -288,30 +315,14 @@ function SourceFloorCorrosionImage({
   const href = safeCorrosionImageHref(overlay.inlineImageDataUrl ?? overlay.artifactUri);
   if (!href || overlay.status === "blocked") return null;
   const rect = sourceFloorPlateRect(plate, width, height);
-  const centerX = rect.x + rect.width / 2;
-  const centerY = rect.y + rect.height / 2;
-  const swapsAxes = overlay.rotationDegrees === 90 || overlay.rotationDegrees === 270;
-  const imageWidth = swapsAxes ? rect.height : rect.width;
-  const imageHeight = swapsAxes ? rect.width : rect.height;
-  const transform = [
-    `translate(${centerX} ${centerY})`,
-    `rotate(${overlay.rotationDegrees})`,
-    `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
-    `translate(${-centerX} ${-centerY})`,
-  ].join(" ");
+  const placement = resolveFloorCorrosionPlacement(rect, overlay);
 
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <image
-        className="floor-corrosion-overlay"
-        height={imageHeight}
+      <FloorCorrosionPlacementImage
         href={href}
-        opacity={overlay.opacity}
-        preserveAspectRatio="xMidYMid slice"
-        transform={transform}
-        width={imageWidth}
-        x={centerX - imageWidth / 2}
-        y={centerY - imageHeight / 2}
+        overlay={overlay}
+        placement={placement}
       />
     </g>
   );
@@ -513,6 +524,7 @@ function CircularMapPreview({
   layoutMap,
   onMarkerSelect,
   onPlateSelect,
+  showFloorSourcePreview,
 }: {
   activeMarkerId: string | null;
   activePlateId: string | null;
@@ -520,6 +532,7 @@ function CircularMapPreview({
   layoutMap: LayoutMapData;
   onMarkerSelect: (markerId: string | null) => void;
   onPlateSelect: (plateId: string | null) => void;
+  showFloorSourcePreview: boolean;
 }) {
   const center = CIRCULAR_MAP.x + CIRCULAR_MAP.size / 2;
   const radius = CIRCULAR_MAP.size * 0.42;
@@ -544,6 +557,7 @@ function CircularMapPreview({
         layoutMap={layoutMap}
         onMarkerSelect={onMarkerSelect}
         onPlateSelect={onPlateSelect}
+        showFloorSourcePreview={showFloorSourcePreview}
       />
     );
   }
@@ -636,7 +650,7 @@ function CircularMapPreview({
       ) : null}
 
       {layoutMap.floorCorrosion ? <FloorCorrosionLegend /> : null}
-      {layoutMap.floorCorrosion ? (
+      {layoutMap.floorCorrosion && showFloorSourcePreview ? (
         <FloorSourcePlatePreview
           activePlateId={activePlateId}
           overlay={activeCorrosionOverlay}
@@ -698,6 +712,7 @@ function ImportedAppFloorFigure({
   layoutMap,
   onMarkerSelect,
   onPlateSelect,
+  showFloorSourcePreview,
 }: {
   activeMarkerId: string | null;
   activePlateId: string | null;
@@ -705,6 +720,7 @@ function ImportedAppFloorFigure({
   layoutMap: LayoutMapData;
   onMarkerSelect: (markerId: string | null) => void;
   onPlateSelect: (plateId: string | null) => void;
+  showFloorSourcePreview: boolean;
 }) {
   const findingMarkers = layoutMap.markers.filter((marker) => marker.type !== "element");
   const elementMarkers = layoutMap.markers.filter((marker) => marker.type === "element");
@@ -712,6 +728,7 @@ function ImportedAppFloorFigure({
   const annularWidthRatio = layoutMap.appMap?.floor?.annularWidthRatio ?? 0.12;
   const outerTankRadius = CIRCULAR_MAP.size * 0.42
     * (1 + Math.min(Math.max(annularWidthRatio, 0.06), 0.18));
+  // Main-plate hit areas render last so annular polygons cannot steal clicks at shared seams.
   const selectablePlates = [
     ...layoutMap.plates.filter(isAnnularPlate),
     ...layoutMap.plates.filter((plate) => !isAnnularPlate(plate)),
@@ -817,7 +834,7 @@ function ImportedAppFloorFigure({
         />
       ) : null}
       {layoutMap.floorCorrosion ? <FloorCorrosionLegend /> : null}
-      {layoutMap.floorCorrosion ? (
+      {layoutMap.floorCorrosion && showFloorSourcePreview ? (
         <FloorSourcePlatePreview activePlateId={activePlateId} overlay={activeCorrosionOverlay} />
       ) : null}
     </g>
@@ -843,6 +860,7 @@ function FloorSourcePlatePreview({
   const href = safeCorrosionImageHref(
     overlay?.sourcePreviewInlineImageDataUrl ?? overlay?.sourcePreviewArtifactUri,
   );
+  const orientation = overlay ? resolveMflOrientationPreview(overlay) : null;
 
   return (
     <g aria-label={overlay ? `Original MFL scan for plate ${overlay.scanPlateId}` : "Original MFL plate preview"} className="floor-source-preview">
@@ -853,19 +871,31 @@ function FloorSourcePlatePreview({
       {overlay && href ? (
         <>
           <rect className="floor-source-preview-image-bg" height="238" rx="6" width="292" x={x + 18} y={y + 48} />
-          <image
+          <svg
+            aria-label={`Orientation preview at ${orientation?.label}`}
+            className="floor-source-preview-oriented-image"
             height="226"
-            href={href}
             preserveAspectRatio="xMidYMid meet"
+            viewBox={`0 0 ${orientation?.viewWidth} ${orientation?.viewHeight}`}
             width="280"
             x={x + 24}
             y={y + 54}
-          />
+          >
+            <g transform={orientation?.transform}>
+              <image
+                height={orientation?.sourceHeight}
+                href={href}
+                width={orientation?.sourceWidth}
+                x={-(orientation?.sourceWidth ?? 0) / 2}
+                y={-(orientation?.sourceHeight ?? 0) / 2}
+              />
+            </g>
+          </svg>
           <text className="floor-source-preview-meta" x={x + 18} y={y + 308}>
             {`Source page ${overlay.sourcePage} · ${formatDimension(overlay.sourceWidthMm)} × ${formatDimension(overlay.sourceHeightMm)} mm`}
           </text>
           <text className="floor-source-preview-note" x={x + 18} y={y + 329}>
-            Original scan · no overlay transform applied
+            {`Direction ${orientation?.label} · size/offset shown on map only`}
           </text>
         </>
       ) : (
@@ -880,6 +910,87 @@ function FloorSourcePlatePreview({
       )}
     </g>
   );
+}
+
+export function FloorSourcePlateReviewCard({
+  activePlateId,
+  overlay,
+}: {
+  activePlateId: string | null;
+  overlay?: FloorCorrosionOverlay;
+}) {
+  const href = safeCorrosionImageHref(
+    overlay?.sourcePreviewInlineImageDataUrl ?? overlay?.sourcePreviewArtifactUri,
+  );
+  const orientation = overlay ? resolveMflOrientationPreview(overlay) : null;
+
+  return (
+    <section
+      aria-label={overlay ? `Original MFL scan for plate ${overlay.scanPlateId}` : "Original MFL plate preview"}
+      className="mfl-source-review-card"
+    >
+      <header>
+        <div>
+          <span>Original MFL plate</span>
+          <strong>{overlay?.scanPlateId ?? activePlateId ?? "Select a plate"}</strong>
+        </div>
+        {overlay ? <small>Source page {overlay.sourcePage}</small> : null}
+      </header>
+      {overlay && href ? (
+        <>
+          <div className="mfl-source-review-image">
+            <svg
+              aria-label={`Original MFL scan for plate ${overlay.scanPlateId}, oriented ${orientation?.label}`}
+              data-rotation-degrees={overlay.rotationDegrees}
+              preserveAspectRatio="xMidYMid meet"
+              role="img"
+              viewBox={`0 0 ${orientation?.viewWidth} ${orientation?.viewHeight}`}
+            >
+              <g transform={orientation?.transform}>
+                <image
+                  height={orientation?.sourceHeight}
+                  href={href}
+                  width={orientation?.sourceWidth}
+                  x={-(orientation?.sourceWidth ?? 0) / 2}
+                  y={-(orientation?.sourceHeight ?? 0) / 2}
+                />
+              </g>
+            </svg>
+          </div>
+          <footer>
+            <span>{formatDimension(overlay.sourceWidthMm)} × {formatDimension(overlay.sourceHeightMm)} mm · {orientation?.label}</span>
+            <span>Direction only · size/offset excluded</span>
+          </footer>
+        </>
+      ) : (
+        <div className="mfl-source-review-empty">
+          {activePlateId ? `No matched MFL scan for ${activePlateId}` : "Select a floor plate to compare its original scan."}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function resolveMflOrientationPreview(overlay: FloorCorrosionOverlay) {
+  const sourceWidth = Math.max(1, overlay.sourceWidthMm);
+  const sourceHeight = Math.max(1, overlay.sourceHeightMm);
+  const rotation = overlay.rotationDegrees;
+  const swapsAxes = rotation === 90 || rotation === 270;
+  const viewWidth = swapsAxes ? sourceHeight : sourceWidth;
+  const viewHeight = swapsAxes ? sourceWidth : sourceHeight;
+  const transform = [
+    `translate(${viewWidth / 2} ${viewHeight / 2})`,
+    `rotate(${rotation})`,
+  ].join(" ");
+
+  return {
+    label: `${rotation}°`,
+    sourceHeight,
+    sourceWidth,
+    transform,
+    viewHeight,
+    viewWidth,
+  };
 }
 
 function formatDimension(value: number) {
@@ -990,33 +1101,97 @@ function FloorCorrosionImage({
   if (!href || overlay.status === "blocked") return null;
 
   const rect = circularPlateRect(plate);
-  const centerX = rect.x + rect.width / 2;
-  const centerY = rect.y + rect.height / 2;
-  const swapsAxes = overlay.rotationDegrees === 90 || overlay.rotationDegrees === 270;
-  const imageWidth = swapsAxes ? rect.height : rect.width;
-  const imageHeight = swapsAxes ? rect.width : rect.height;
-  const transform = [
-    `translate(${centerX} ${centerY})`,
-    `rotate(${overlay.rotationDegrees})`,
-    `scale(${overlay.flipX ? -1 : 1} ${overlay.flipY ? -1 : 1})`,
-    `translate(${-centerX} ${-centerY})`,
-  ].join(" ");
+  const placement = resolveFloorCorrosionPlacement(rect, overlay);
 
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <image
-        className="floor-corrosion-overlay"
-        height={imageHeight}
+      <FloorCorrosionPlacementImage
         href={href}
-        opacity={overlay.opacity}
-        preserveAspectRatio="xMidYMid slice"
-        transform={transform}
-        width={imageWidth}
-        x={centerX - imageWidth / 2}
-        y={centerY - imageHeight / 2}
+        overlay={overlay}
+        placement={placement}
       />
     </g>
   );
+}
+
+function FloorCorrosionPlacementImage({
+  href,
+  overlay,
+  placement,
+}: {
+  href: string;
+  overlay: FloorCorrosionOverlay;
+  placement: ReturnType<typeof resolveFloorCorrosionPlacement>;
+}) {
+  return (
+    <svg
+      className="floor-corrosion-overlay"
+      data-host-plate-id={overlay.hostPlateId}
+      data-placement-anchor="top-left"
+      data-scale-x={placement.scaleX}
+      data-scale-y={placement.scaleY}
+      height={placement.height}
+      opacity={overlay.opacity}
+      preserveAspectRatio="none"
+      viewBox={`0 0 ${placement.viewWidth} ${placement.viewHeight}`}
+      width={placement.width}
+      x={placement.x}
+      y={placement.y}
+    >
+      <g transform={placement.orientationTransform}>
+        <image
+          height={placement.sourceHeight}
+          href={href}
+          preserveAspectRatio="none"
+          width={placement.sourceWidth}
+          x={-placement.sourceWidth / 2}
+          y={-placement.sourceHeight / 2}
+        />
+      </g>
+    </svg>
+  );
+}
+
+function resolveFloorCorrosionPlacement(
+  rect: { x: number; y: number; width: number; height: number },
+  overlay: FloorCorrosionOverlay,
+) {
+  const rotation = overlay.rotationDegrees;
+  const swapsAxes = rotation === 90 || rotation === 270;
+  const scaleX = clamp(overlay.scaleX ?? 1, 0.5, 2.5);
+  const scaleY = clamp(overlay.scaleY ?? 1, 0.5, 2.5);
+  const offsetX = clamp(overlay.offsetX ?? 0, -0.75, 0.75);
+  const offsetY = clamp(overlay.offsetY ?? 0, -0.75, 0.75);
+  const sourceWidth = Math.max(1, overlay.sourceWidthMm);
+  const sourceHeight = Math.max(1, overlay.sourceHeightMm);
+  const viewWidth = swapsAxes ? sourceHeight : sourceWidth;
+  const viewHeight = swapsAxes ? sourceWidth : sourceHeight;
+  const x = rect.x + rect.width * offsetX;
+  const y = rect.y + rect.height * offsetY;
+  const width = rect.width * scaleX;
+  const height = rect.height * scaleY;
+  const orientationTransform = [
+    `translate(${viewWidth / 2} ${viewHeight / 2})`,
+    `rotate(${rotation})`,
+  ].join(" ");
+
+  return {
+    height,
+    orientationTransform,
+    scaleX,
+    scaleY,
+    sourceHeight,
+    sourceWidth,
+    viewHeight,
+    viewWidth,
+    width,
+    x,
+    y,
+  };
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
 }
 
 function ShellMapPreview({

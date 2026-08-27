@@ -1,14 +1,27 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 
-const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const defaultModelId = "gpt-5.6-sol";
 const minimumGpt56CodexCliVersion = "0.144.0";
 const configuredModelId = process.env.REPORT_PLATFORM_CODEX_MODEL?.trim() || defaultModelId;
 const codexTimeoutMs = parsePositiveInteger(process.env.REPORT_PLATFORM_CODEX_TIMEOUT_MS, 120000);
+const codexMaxConcurrency = parsePositiveInteger(process.env.REPORT_PLATFORM_CODEX_MAX_CONCURRENCY, 2);
+const codexMaxQueueLength = parsePositiveInteger(process.env.REPORT_PLATFORM_CODEX_MAX_QUEUE_LENGTH, 50);
+const codexQueueWaitTimeoutMs = parsePositiveInteger(
+  process.env.REPORT_PLATFORM_CODEX_QUEUE_WAIT_TIMEOUT_MS,
+  120000,
+);
+const targetedEditTimeoutMs = parsePositiveInteger(
+  process.env.REPORT_PLATFORM_TARGETED_EDIT_TIMEOUT_MS,
+  Math.min(codexTimeoutMs, 60000),
+);
+const codexQueue = createBoundedQueue({
+  maxConcurrency: codexMaxConcurrency,
+  maxQueueLength: codexMaxQueueLength,
+  waitTimeoutMs: codexQueueWaitTimeoutMs,
+});
 const codexAvailability = detectCodexAvailability();
 
 export function getAiStatus() {
@@ -38,6 +51,7 @@ export function getAiStatus() {
     codexCliVersion: codexAvailability.version,
     minimumCodexCliVersion: needsGpt56Support ? minimumGpt56CodexCliVersion : null,
     timeoutMs: codexTimeoutMs,
+    workerQueue: codexQueue.getStatus(),
     checkedAtIso: new Date().toISOString(),
   };
 }
@@ -45,46 +59,60 @@ export function getAiStatus() {
 export async function runStructuredCodexJob({
   prompt,
   schema,
+  reasoningEffort,
+  timeoutMs = codexTimeoutMs,
 }) {
   const status = getAiStatus();
   if (!status.configured) {
     throw new Error(status.detail);
   }
 
-  const workingDir = await mkdtemp(join(tmpdir(), "report-platform-codex-"));
-  const schemaPath = join(workingDir, "schema.json");
-  const outputPath = join(workingDir, "output.json");
+  return codexQueue.run(async () => {
+    const workingDir = await mkdtemp(join(tmpdir(), "report-platform-codex-"));
+    const schemaPath = join(workingDir, "schema.json");
+    const outputPath = join(workingDir, "output.json");
 
-  await writeFile(schemaPath, JSON.stringify(schema, null, 2), "utf8");
+    await writeFile(schemaPath, JSON.stringify(schema, null, 2), "utf8");
 
-  try {
-    await runCodexExec({
-      outputPath,
-      prompt,
-      schemaPath,
-    });
+    try {
+      await runCodexExec({
+        outputPath,
+        prompt,
+        reasoningEffort,
+        schemaPath,
+        timeoutMs,
+        workingDir,
+      });
 
-    const raw = await readFile(outputPath, "utf8");
-    return {
-      aiStatus: status,
-      parsed: JSON.parse(raw),
-      raw,
-    };
-  } finally {
-    await rm(workingDir, { recursive: true, force: true });
-  }
+      const raw = await readFile(outputPath, "utf8");
+      return {
+        aiStatus: status,
+        parsed: JSON.parse(raw),
+        raw,
+      };
+    } finally {
+      await rm(workingDir, { recursive: true, force: true });
+    }
+  });
 }
 
 function runCodexExec({
   outputPath,
   prompt,
+  reasoningEffort,
   schemaPath,
+  timeoutMs,
+  workingDir,
 }) {
   return new Promise((resolve, reject) => {
     const args = ["-a", "never"];
     if (configuredModelId) {
       args.push("-m", configuredModelId);
     }
+    if (reasoningEffort) {
+      args.push("-c", `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`);
+    }
+    args.push("-c", "shell_environment_policy.inherit=none");
     args.push(
       "exec",
       "--sandbox",
@@ -92,6 +120,9 @@ function runCodexExec({
       "--ephemeral",
       "--ignore-user-config",
       "--ignore-rules",
+      "--skip-git-repo-check",
+      "--cd",
+      workingDir,
       "--output-schema",
       schemaPath,
       "-o",
@@ -100,7 +131,7 @@ function runCodexExec({
     );
 
     const child = spawn("codex", args, {
-      cwd: appRoot,
+      cwd: workingDir,
       env: buildCodexWorkerEnv(),
       stdio: ["pipe", "ignore", "pipe"],
     });
@@ -111,8 +142,10 @@ function runCodexExec({
       if (settled) return;
       settled = true;
       child.kill("SIGTERM");
-      reject(new Error(`LAIQ AI Engine worker timed out after ${codexTimeoutMs}ms using ${configuredModelId}.`));
-    }, codexTimeoutMs);
+      const forceKill = setTimeout(() => child.kill("SIGKILL"), 2000);
+      forceKill.unref();
+      reject(new Error(`LAIQ AI Engine worker timed out after ${timeoutMs}ms using ${configuredModelId}.`));
+    }, timeoutMs);
 
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
@@ -147,6 +180,13 @@ function runCodexExec({
     child.stdin.write(prompt);
     child.stdin.end();
   });
+}
+
+export function getTargetedEditWorkerOptions() {
+  return {
+    reasoningEffort: "low",
+    timeoutMs: targetedEditTimeoutMs,
+  };
 }
 
 function detectCodexAvailability() {
@@ -207,8 +247,90 @@ function parsePositiveInteger(value, fallback) {
 }
 
 function buildCodexWorkerEnv() {
+  const allowedKeys = [
+    "CODEX_CI",
+    "CODEX_HOME",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "USER",
+  ];
+  const workerEnv = {};
+  for (const key of allowedKeys) {
+    if (process.env[key]) workerEnv[key] = process.env[key];
+  }
+
+  if (process.env.REPORT_PLATFORM_CODEX_TEST_MODE === "1") {
+    for (const key of [
+      "TARGETED_EDIT_FAKE_ARGS_PATH",
+      "TARGETED_EDIT_FAKE_DELAY_SECONDS",
+      "TARGETED_EDIT_FAKE_RESPONSE",
+    ]) {
+      if (process.env[key]) workerEnv[key] = process.env[key];
+    }
+  }
+
+  return workerEnv;
+}
+
+function createBoundedQueue({ maxConcurrency, maxQueueLength, waitTimeoutMs }) {
+  let activeCount = 0;
+  const waiting = [];
+
+  function drain() {
+    while (activeCount < maxConcurrency && waiting.length > 0) {
+      const entry = waiting.shift();
+      clearTimeout(entry.waitTimer);
+      activeCount += 1;
+      Promise.resolve()
+        .then(entry.task)
+        .then(entry.resolve, entry.reject)
+        .finally(() => {
+          activeCount -= 1;
+          drain();
+        });
+    }
+  }
+
+  function run(task) {
+    if (activeCount >= maxConcurrency && waiting.length >= maxQueueLength) {
+      const error = new Error("LAIQ AI Engine is at capacity. Retry after the queued report work completes.");
+      error.code = "codex_worker_queue_full";
+      return Promise.reject(error);
+    }
+
+    return new Promise((resolve, reject) => {
+      const entry = { task, resolve, reject, waitTimer: null };
+      entry.waitTimer = setTimeout(() => {
+        const index = waiting.indexOf(entry);
+        if (index < 0) return;
+        waiting.splice(index, 1);
+        const error = new Error("LAIQ AI Engine queue wait timed out. Retry this action.");
+        error.code = "codex_worker_queue_timeout";
+        reject(error);
+      }, waitTimeoutMs);
+      entry.waitTimer.unref?.();
+      waiting.push(entry);
+      drain();
+    });
+  }
+
   return {
-    ...process.env,
-    REPORT_PLATFORM_CODEX_MODEL: configuredModelId,
+    getStatus() {
+      return {
+        activeCount,
+        maxConcurrency,
+        maxQueueLength,
+        queuedCount: waiting.length,
+        waitTimeoutMs,
+      };
+    },
+    run,
   };
 }

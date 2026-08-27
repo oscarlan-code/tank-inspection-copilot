@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${REPORT_PLATFORM_POSTGRES_DB:-laiq_report_platform}
+      POSTGRES_PASSWORD: ${REPORT_PLATFORM_POSTGRES_PASSWORD:?Set REPORT_PLATFORM_POSTGRES_PASSWORD in apps/report-platform/.env}
+      POSTGRES_USER: ${REPORT_PLATFORM_POSTGRES_USER:-laiq_report_platform}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laiq_report_platform -d laiq_report_platform"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "${REPORT_PLATFORM_DATABASE_BIND_ADDRESS:-127.0.0.1}:55432:5432"
+    restart: unless-stopped
+    volumes:
+      - report-platform-postgres:/var/lib/postgresql/data
+
+  object-storage:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${REPORT_PLATFORM_S3_ACCESS_KEY_ID:?Set REPORT_PLATFORM_S3_ACCESS_KEY_ID in apps/report-platform/.env}
+      MINIO_ROOT_PASSWORD: ${REPORT_PLATFORM_S3_SECRET_ACCESS_KEY:?Set REPORT_PLATFORM_S3_SECRET_ACCESS_KEY in apps/report-platform/.env}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "${REPORT_PLATFORM_OBJECT_BIND_ADDRESS:-127.0.0.1}:59000:9000"
+      - "127.0.0.1:59001:9001"
+    restart: unless-stopped
+    volumes:
+      - report-platform-objects:/data
+
+  object-storage-init:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      object-storage:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://object-storage:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$REPORT_PLATFORM_S3_BUCKET &&
+      mc anonymous set none local/$$REPORT_PLATFORM_S3_BUCKET
+      "
+    environment:
+      MINIO_ROOT_USER: ${REPORT_PLATFORM_S3_ACCESS_KEY_ID:?Set REPORT_PLATFORM_S3_ACCESS_KEY_ID in apps/report-platform/.env}
+      MINIO_ROOT_PASSWORD: ${REPORT_PLATFORM_S3_SECRET_ACCESS_KEY:?Set REPORT_PLATFORM_S3_SECRET_ACCESS_KEY in apps/report-platform/.env}
+      REPORT_PLATFORM_S3_BUCKET: ${REPORT_PLATFORM_S3_BUCKET:-laiq-report-platform}
+    restart: "no"
+
+volumes:
+  report-platform-objects:
+  report-platform-postgres:

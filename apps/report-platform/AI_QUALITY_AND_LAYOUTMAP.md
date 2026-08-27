@@ -1,5 +1,10 @@
 # AI Quality And Layout Map Control
 
+> **Status: historical design reference.** This file preserves earlier product
+> reasoning and may contain superseded V2, prototype, review, or output
+> assumptions. Use `SYSTEM_ARCHITECTURE.md` and `DOCUMENTATION_INDEX.md` for
+> current implementation decisions.
+
 ## Goal
 
 Explain in concrete terms how Codex should be used to generate high-quality reports without inventing facts, and how layout maps should be controlled because the Android app already defines the metadata and map structure.

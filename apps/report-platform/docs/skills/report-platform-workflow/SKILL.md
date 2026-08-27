@@ -55,4 +55,6 @@ LAIQ inspection app V3 export
 npm --prefix apps/report-platform run build
 npm --prefix apps/report-platform run logic:audit
 npm --prefix apps/report-platform run api:audit
+npm --prefix apps/report-platform run storage:audit
+npm --prefix apps/report-platform run object-upload:audit
 ```

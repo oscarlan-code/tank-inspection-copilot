@@ -5,6 +5,13 @@ MODE="${1:---standard}"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
+REPORT_ENV="$REPO_ROOT/apps/report-platform/.env"
+if [[ -f "$REPORT_ENV" ]]; then
+  set -a
+  source "$REPORT_ENV"
+  set +a
+fi
+
 if [[ "$MODE" == "--help" || "$MODE" == "-h" ]]; then
   cat <<'USAGE'
 Usage:
@@ -87,7 +94,12 @@ fi
 echo "Running report-platform guardrails in mode: $MODE"
 
 npm --prefix apps/report-platform run build
+npm --prefix apps/report-platform run architecture:audit
 npm --prefix apps/report-platform run logic:audit
+npm --prefix apps/report-platform run storage:audit
+npm --prefix apps/report-platform run training-harness:storage-audit
+npm --prefix apps/report-platform run object-upload:audit
+npm --prefix apps/report-platform run floor-corrosion:durability-audit
 
 if [[ "$MODE" == "--quick" ]]; then
   echo "Report-platform quick guardrails passed."
@@ -103,6 +115,7 @@ if [[ "$MODE" == "--standard" ]]; then
 fi
 
 if [[ "$MODE" == "--full" ]]; then
+  npm --prefix apps/report-platform run floor-corrosion:object-storage-audit
   npm --prefix apps/report-platform run kb:audit
   npm --prefix apps/report-platform run recommendation-kb:audit
   npm --prefix apps/report-platform run report:eval

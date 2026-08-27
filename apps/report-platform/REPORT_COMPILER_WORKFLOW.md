@@ -118,7 +118,7 @@ Current implementation:
 
 ## Canonical Inspection Package
 
-Android V2 Product export is the current import contract.
+The LAIQ inspection app V3 export is the current product import contract.
 
 The long-term target is a canonical package with stable objects:
 

@@ -16,6 +16,7 @@ import {
   API_STANDARD_REPORT_TOC,
   getApiStandardTocSectionForPage,
 } from "./report-toc.mjs";
+import { filterRetrievalCandidates } from "./training-harness.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const appRoot = join(__dirname, "..");
@@ -26,7 +27,7 @@ const defaultSampleReportsDir = process.env.PRECEDENT_SAMPLE_REPORTS_DIR
 const defaultStandardsCodesDir = process.env.PRECEDENT_CODES_DIR
   || "/Users/oscar/Public/irs/Codes";
 
-const INDEX_SCHEMA_VERSION = 1;
+const INDEX_SCHEMA_VERSION = 2;
 const MAX_EXCERPT_LENGTH = 1700;
 
 const SECTION_PROFILES = {
@@ -405,12 +406,14 @@ const EFFECTIVE_SECTION_PROFILES = {
     ...SECTION_PROFILES.cover,
     preferredPageStart: 1,
     preferredFamilies: ["internal-external", "shell-internal", "internal", "external"],
+    expectedChunkTypes: ["heading_block"],
   },
 };
 
 function buildApiStandardSectionProfiles() {
   return Object.fromEntries(
     API_STANDARD_REPORT_TOC.map((section) => {
+      const specialistProfile = SECTION_PROFILES[section.id] ?? {};
       const baseTerms = [
         section.title,
         section.shortLabel,
@@ -419,12 +422,27 @@ function buildApiStandardSectionProfiles() {
         "vertical aboveground storage tank",
       ];
       const profile = {
+        ...specialistProfile,
         sectionKey: section.id,
         preferredPageStart: section.pageStart,
-        preferredFamilies: ["internal-external", "shell-internal", "internal", "external"],
-        exactPhrases: [section.title],
-        queryTerms: baseTerms,
+        preferredFamilies: dedupe([
+          ...(specialistProfile.preferredFamilies ?? []),
+          "internal-external",
+          "shell-internal",
+          "internal",
+          "external",
+        ]),
+        exactPhrases: dedupe([section.title, ...(specialistProfile.exactPhrases ?? [])]),
+        queryTerms: dedupe([...baseTerms, ...(specialistProfile.queryTerms ?? [])]),
+        expectedChunkTypes: expectedChunkTypesForSection(section),
+        expectedSourceSectionKeys: dedupe([
+          ...(specialistProfile.sectionKey && specialistProfile.sectionKey !== section.id
+            ? [specialistProfile.sectionKey]
+            : []),
+          ...expectedSourceSectionKeysForSection(section),
+        ]),
         formatPatterns: [
+          ...(specialistProfile.formatPatterns ?? []),
           {
             patternId: `kbfp_api653_${section.id}`,
             patternType: `${section.kind}_api653_section_format`,
@@ -435,6 +453,7 @@ function buildApiStandardSectionProfiles() {
 
       if (section.kind === "map") {
         profile.layoutPatterns = [
+          ...(specialistProfile.layoutPatterns ?? []),
           {
             patternId: `kblp_api653_${section.id}`,
             patternType: `${section.layoutSurface ?? "tank"}_layout_page`,
@@ -447,6 +466,24 @@ function buildApiStandardSectionProfiles() {
       return [section.id, profile];
     }),
   );
+}
+
+function expectedChunkTypesForSection(section) {
+  if (section.kind === "map") return ["layout_page", "layout_legend"];
+  if (section.kind === "attachment") return ["photo_caption_group", "attachment_form_block"];
+  if (section.kind === "structured") return ["fact_table", "calculation_summary"];
+  if (section.id === "repair-recommendations") return ["recommendation_group", "paragraph_block"];
+  return ["paragraph_block", "section_intro"];
+}
+
+function expectedSourceSectionKeysForSection(section) {
+  if (section.kind === "map") return ["layout-sketches"];
+  if (section.id === "photographs") return ["photographs"];
+  if (section.id === "guidelines-interpretation-tru-flux-data-sheets") {
+    return ["inspection-maintenance-regime"];
+  }
+  if (section.id.startsWith("shell-settlement-survey-")) return ["settlement"];
+  return [section.id];
 }
 
 const COVER_DETECTOR = {
@@ -549,6 +586,13 @@ export function getPrecedentKbStatus({ indexPath = defaultIndexPath } = {}) {
   };
 }
 
+export function loadPrecedentKbIndex({
+  indexPath = defaultIndexPath,
+  allowBuild = true,
+} = {}) {
+  return loadOrBuildIndex({ indexPath, allowBuild });
+}
+
 export function rebuildPrecedentKbIndex({
   sampleReportsDir = defaultSampleReportsDir,
   standardsCodesDir = defaultStandardsCodesDir,
@@ -564,10 +608,16 @@ export function rebuildPrecedentKbIndex({
 
   mkdirSync(dirname(indexPath), { recursive: true });
 
-  const pdfSources = [
+  const discoveredPdfSources = [
     ...listPdfSources(sampleReportsDir, "sample_pdf"),
     ...listPdfSources(standardsCodesDir, "code_pdf"),
   ];
+  const pdfSources = [...discoveredPdfSources.reduce((sources, source) => {
+    const key = `${source.sourceType}:${basename(source.sourcePath).toLowerCase()}`;
+    const existing = sources.get(key);
+    if (!existing || source.sourcePath.length < existing.sourcePath.length) sources.set(key, source);
+    return sources;
+  }, new Map()).values()];
 
   const documents = [];
   const chunks = [];
@@ -656,34 +706,54 @@ export function searchPrecedentPack({
   indexPath = defaultIndexPath,
   allowBuild = true,
   limit = 5,
+  retrievalPolicy = null,
+  retrievalFirewallContext = null,
 } = {}) {
+  const effectiveLimit = boundedRetrievalInteger(retrievalPolicy?.precedentLimit, 1, 12, limit);
+  const minimumScore = boundedRetrievalInteger(retrievalPolicy?.precedentMinimumScore, 0, 100, 45);
+  const candidateMultiplier = boundedRetrievalInteger(retrievalPolicy?.precedentCandidateMultiplier, 1, 8, 4);
+  const wordingLimit = boundedRetrievalInteger(retrievalPolicy?.wordingLimit, 1, 6, 3);
+  const standardsLimit = boundedRetrievalInteger(retrievalPolicy?.standardsLimit, 0, 5, 3);
+  const precedentFamilyMode = ["compatible", "exact"].includes(retrievalPolicy?.precedentFamilyMode)
+    ? retrievalPolicy.precedentFamilyMode
+    : "compatible";
   const index = loadOrBuildIndex({ indexPath, allowBuild });
-  const profile = EFFECTIVE_SECTION_PROFILES[sectionId] ?? buildDefaultSectionProfile(sectionId);
+  const baseProfile = EFFECTIVE_SECTION_PROFILES[sectionId] ?? buildDefaultSectionProfile(sectionId);
+  const horizontalTank = isHorizontalReportState(reportState);
+  const profile = horizontalTank
+    ? { ...baseProfile, preferredFamilies: ["horizontal-internal-external"] }
+    : baseProfile;
   const queryTerms = buildQueryTerms(profile, reportState);
   const accessScope = buildRetrievalAccessScope(reportState);
   const blockedSourceNames = buildBlockedPrecedentSourceNames(reportState);
   const accessibleChunks = index.chunks.filter((chunk) => isKbSourceAccessible(chunk, accessScope));
   const accessDeniedChunkCount = index.chunks.length - accessibleChunks.length;
-  const excludedSourceChunks = accessibleChunks.filter((chunk) =>
+  const firewallResult = filterRetrievalCandidates(accessibleChunks, retrievalFirewallContext);
+  const firewallEligibleChunks = firewallResult.eligible;
+  const excludedSourceChunks = firewallEligibleChunks.filter((chunk) =>
     chunk.sourceType !== "code_pdf" && isBlockedPrecedentSource(chunk, blockedSourceNames),
   );
-  const approvedChunks = accessibleChunks
+  const approvedChunks = firewallEligibleChunks
     .filter((chunk) => chunk.approvalStatus === "approved_for_retrieval")
-    .filter((chunk) => chunk.sourceType === "code_pdf" || !isBlockedPrecedentSource(chunk, blockedSourceNames));
-  const scoredCandidates = approvedChunks
+    .filter((chunk) => chunk.sourceType === "code_pdf" || !isBlockedPrecedentSource(chunk, blockedSourceNames))
+    .filter((chunk) => chunk.sourceType === "code_pdf" || !horizontalTank || chunk.reportFamily === "horizontal-internal-external");
+  const familyEligibleChunks = approvedChunks.filter((chunk) => chunk.sourceType === "code_pdf"
+    || isCompatiblePrecedentFamily(chunk.reportFamily, reportState, precedentFamilyMode));
+  const scoredCandidates = familyEligibleChunks
     .filter((chunk) => chunk.sourceType !== "code_pdf")
+    .filter((chunk) => isEligibleWordingChunk(chunk, profile))
     .map((chunk) => ({
       chunk,
       score: scoreChunk(chunk, profile, queryTerms),
     }))
-    .filter((candidate) => candidate.score > 0)
+    .filter((candidate) => candidate.score >= minimumScore)
     .sort((left, right) => right.score - left.score)
-    .slice(0, limit * 4);
+    .slice(0, effectiveLimit * candidateMultiplier);
   const scoredChunks = [
     ...scoredCandidates.filter((candidate) => candidate.chunk.sectionKey === profile.sectionKey),
     ...scoredCandidates.filter((candidate) => candidate.chunk.sectionKey !== profile.sectionKey),
-  ].slice(0, limit);
-  const standardsCandidates = approvedChunks
+  ].slice(0, effectiveLimit);
+  const standardsCandidates = familyEligibleChunks
     .filter((chunk) => chunk.sourceType === "code_pdf")
     .map((chunk) => ({
       chunk,
@@ -691,9 +761,9 @@ export function searchPrecedentPack({
     }))
     .filter((candidate) => candidate.score > 0)
     .sort((left, right) => right.score - left.score)
-    .slice(0, 3);
+    .slice(0, standardsLimit);
 
-  const wordingPrecedents = scoredChunks.slice(0, 3).map(({ chunk, score }) => ({
+  const wordingPrecedents = scoredChunks.slice(0, wordingLimit).map(({ chunk, score }) => ({
     chunkId: chunk.chunkId,
     key: chunk.chunkId,
     sourceReportName: chunk.sourceReportName,
@@ -725,7 +795,7 @@ export function searchPrecedentPack({
   return {
     sectionKey: sectionId,
     canonicalSectionKey: profile.sectionKey,
-    reportFamily: API_STANDARD_PRIMARY_REPORT.reportFamily,
+    reportFamily: reportState?.reportClassification?.reportFamilyId ?? API_STANDARD_PRIMARY_REPORT.reportFamily,
     retrievalRunId: `kbrr_${randomUUID()}`,
     retrievalMode: "local_lexical_precedent_index",
     indexBuiltAtIso: index.builtAtIso,
@@ -736,7 +806,27 @@ export function searchPrecedentPack({
     accessDeniedChunkCount,
     blockedSourceNames: [...blockedSourceNames],
     excludedSourceChunkCount: excludedSourceChunks.length,
+    retrievalFirewall: retrievalFirewallContext
+      ? {
+          mode: "evaluation",
+          snapshotId: retrievalFirewallContext.snapshotId,
+          benchmarkTrack: retrievalFirewallContext.benchmarkTrack,
+          evidenceAsOf: retrievalFirewallContext.evidenceAsOf,
+          excludedChunkCount: firewallResult.excluded.length,
+          exclusionReasonCounts: firewallResult.reasonCounts,
+        }
+      : { mode: "live", excludedChunkCount: 0, exclusionReasonCounts: {} },
     queryTerms,
+    expectedChunkTypes: profile.expectedChunkTypes ?? [],
+    expectedSourceSectionKeys: profile.expectedSourceSectionKeys ?? [profile.sectionKey],
+    retrievalPolicy: {
+      minimumScore,
+      candidateMultiplier,
+      precedentLimit: effectiveLimit,
+      wordingLimit,
+      standardsLimit,
+      precedentFamilyMode,
+    },
     wordingPrecedents,
     standardsReferences,
     formatPatterns: profile.formatPatterns ?? [],
@@ -745,15 +835,47 @@ export function searchPrecedentPack({
       "Do not copy old report facts into the current report.",
       "Use Android export facts and report-side inputs as authoritative current facts.",
       `Use ${API_STANDARD_PRIMARY_REPORT.reference} as the primary API-standard format precedent when available.`,
-      "The current inspection is for a vertical aboveground storage tank.",
-      "Do not use any retrieved horizontal tank wording unless it refers only to horizontal weld orientation.",
+      horizontalTank
+        ? "The current inspection is a horizontal tank; reject vertical-shell, roof-plate, floor-plate, and settlement precedent unless current evidence explicitly requires it."
+        : "The current inspection is for a vertical aboveground storage tank.",
       "List missing current facts as open questions or Pending confirmation.",
       "Use precedent only for wording style, structure, formatting, and layout conventions.",
-      "Do not retrieve from the current mock/gold report for answer generation; same-report sources are blocked before scoring.",
+      "Do not retrieve from the current report or matching Hidden Gold for answer generation; same-report sources are blocked before scoring.",
       "Same-customer historical reports from different report jobs may be used as historical/reference context, but old facts must not be treated as current facts unless confirmed by the current export or manual report-side input.",
     ],
     warnings: buildRetrievalWarnings(index, wordingPrecedents, excludedSourceChunks),
   };
+}
+
+function isCompatiblePrecedentFamily(chunkFamily, reportState, mode) {
+  const scenarioFamily = String(reportState?.exportPackage?.captureScenarioProvenance?.reportFamily ?? "").toLowerCase();
+  if (!scenarioFamily) return true;
+  const expected = mapScenarioFamilyToPrecedentFamilies(scenarioFamily);
+  if (expected.size === 0) return true;
+  const normalizedChunk = String(chunkFamily ?? "").toLowerCase();
+  if (mode === "exact") return expected.has(normalizedChunk);
+  if (expected.has(normalizedChunk)) return true;
+  return expected.has("internal-external") && ["internal", "external"].includes(normalizedChunk);
+}
+
+function mapScenarioFamilyToPrecedentFamilies(value) {
+  const family = String(value).replaceAll("_", "-");
+  if (family === "tank-survey") return new Set(["survey"]);
+  if (family === "settlement-survey") return new Set(["settlement-survey", "survey"]);
+  if (family === "internal-external-api653") return new Set(["internal-external"]);
+  if (family === "horizontal-internal-external") return new Set(["horizontal-internal-external"]);
+  if (family === "internal-inspection") return new Set(["internal"]);
+  if (family === "external-inspection") return new Set(["external"]);
+  if (family === "post-repair") return new Set(["post-repair"]);
+  if (family === "profile-3d-scan" || family === "mfl-floor-scan") return new Set(["floor-3d-scan"]);
+  if (family === "mpi-repair") return new Set(["mpi-shell-repairs"]);
+  return new Set();
+}
+
+function boundedRetrievalInteger(value, minimum, maximum, fallback) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return fallback;
+  return Math.max(minimum, Math.min(maximum, parsed));
 }
 
 function buildRetrievalAccessScope(reportState) {
@@ -799,6 +921,8 @@ export function buildPrecedentAudit({
     return {
       sectionId,
       canonicalSectionKey: pack.canonicalSectionKey,
+      expectedChunkTypes: pack.expectedChunkTypes,
+      expectedSourceSectionKeys: pack.expectedSourceSectionKeys,
       topSources: pack.wordingPrecedents.map((precedent) => ({
         sourceReportName: precedent.sourceReportName,
         pageStart: precedent.pageStart,
@@ -906,14 +1030,33 @@ function loadOrBuildIndex({ indexPath, allowBuild }) {
 }
 
 function listPdfSources(sourceRoot, sourceType) {
-  return readdirSync(sourceRoot)
+  const topLevel = readdirSync(sourceRoot)
     .filter((fileName) => fileName.toLowerCase().endsWith(".pdf"))
+    .map((fileName) => join(sourceRoot, fileName));
+  const controlledFamilySources = sourceType === "sample_pdf"
+    ? listPdfFilesRecursive(sourceRoot).filter((sourcePath) => /23PE1-[2-6]\s+TK\s+FU\s*(?:47|48|49|50|51)\s+Internal\s*&\s*External\s+Inspection\s+Report\.pdf$/i.test(sourcePath))
+    : [];
+  return [...new Set([...topLevel, ...controlledFamilySources])]
     .sort((left, right) => left.localeCompare(right))
-    .map((fileName) => ({
-      sourcePath: join(sourceRoot, fileName),
+    .map((sourcePath) => ({
+      sourcePath,
       sourceRoot,
       sourceType,
     }));
+}
+
+function listPdfFilesRecursive(rootPath) {
+  const files = [];
+  const pending = [rootPath];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const sourcePath = join(directory, entry.name);
+      if (entry.isDirectory()) pending.push(sourcePath);
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith(".pdf")) files.push(sourcePath);
+    }
+  }
+  return files;
 }
 
 function readIndex(indexPath) {
@@ -958,6 +1101,7 @@ function buildDocumentRecord({ sourcePath, sourceRoot, sourceType }) {
     tankType: classification.tankType,
     appendixTypes: classification.appendixTypes,
     fileSizeBytes: stats.size,
+    sourceSha256: createHash("sha256").update(readFileSync(sourcePath)).digest("hex"),
     modifiedAtIso: stats.mtime.toISOString(),
     qualityScore: classification.qualityScore,
   };
@@ -1041,6 +1185,7 @@ function buildChunkRecord({
     sourceReportName: document.sourceReportName,
     sourcePath: document.sourcePath,
     sourceType: document.sourceType,
+    sourceSha256: document.sourceSha256,
     tenantId: document.tenantId,
     workspaceId: document.workspaceId,
     visibilityScope: document.visibilityScope,
@@ -1068,6 +1213,10 @@ function buildChunkRecord({
 
 function classifyReport(fileName) {
   const lowerName = fileName.toLowerCase();
+
+  if (/23pe1-[2-6].*fu\s*(?:47|48|49|50|51)/.test(lowerName)) {
+    return buildClassification("horizontal-internal-external", "horizontal-internal-external", ["photos", "attachments"], 0.96);
+  }
 
   if (lowerName.includes("fieldsheet")) {
     return buildClassification("fieldsheet-fullscope", "checklist-fieldsheet", ["checklist"], 0.88);
@@ -1226,6 +1375,10 @@ function buildDefaultSectionProfile(sectionId) {
   };
 }
 
+function isHorizontalReportState(reportState) {
+  return reportState?.reportClassification?.reportFamilyId === "horizontal-internal-external";
+}
+
 function buildQueryTerms(profile, reportState) {
   const exportPackage = reportState?.exportPackage;
   const reportClassification = reportState?.reportClassification;
@@ -1339,6 +1492,12 @@ function scoreChunk(chunk, profile, queryTerms) {
 
   score += chunk.qualityScore * 8;
   return Math.max(0, score);
+}
+
+function isEligibleWordingChunk(chunk, profile) {
+  if (chunk.chunkType === "toc") return false;
+  if (!(profile.expectedChunkTypes ?? []).includes(chunk.chunkType)) return false;
+  return (profile.expectedSourceSectionKeys ?? [profile.sectionKey]).includes(chunk.sectionKey);
 }
 
 function scoreStandardsChunk(chunk, profile, queryTerms) {

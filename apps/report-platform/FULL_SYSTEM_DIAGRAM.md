@@ -1,5 +1,10 @@
 # Full System Diagram
 
+> **Status: historical design reference.** This file preserves earlier product
+> reasoning and may contain superseded V2, prototype, review, or output
+> assumptions. Use `SYSTEM_ARCHITECTURE.md` and `DOCUMENTATION_INDEX.md` for
+> current implementation decisions.
+
 ## Purpose
 
 This page shows the full report-generation system in one place so the product flow is easier to understand.

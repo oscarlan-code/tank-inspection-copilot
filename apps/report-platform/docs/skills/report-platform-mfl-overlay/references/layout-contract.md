@@ -70,13 +70,14 @@ For every scan:
 Initial orientation is a suggestion, not approval. Store:
 
 - rotation: `0`, `90`, `180`, or `270`
-- `flipX`
-- `flipY`
+- legacy `flipX` and `flipY` fields remain `false` for package compatibility and are not exposed as product controls
+- `scaleX` and `scaleY`: `0.5-2.5`, default `1`
+- `offsetX` and `offsetY`: normalized host-plate fractions from `-0.75` to `0.75`, default `0`
 - opacity
 - status
 - reviewer and review timestamp
 
-Changing any transform invalidates prior approval.
+Changing any transform invalidates prior approval. At scale `1`, the complete scan maps to the complete host bounds without source cropping. X scaling is left-anchored, Y scaling is top-anchored, and offsets translate the complete placement rectangle. The immutable source preview artifact and checksum remain unchanged; the UI applies rotation only for direction comparison and never applies overlay scale or offset to that preview.
 
 ## Fail-Closed Conditions
 

@@ -23,6 +23,10 @@ export type ReportClassification = {
 
 export function classifyReportPackage(exportPackage: V2ProductExportPackage): ReportClassification {
   const hasInternalExternalScope = true;
+  const declaredFamily = String((exportPackage as any).captureScenarioProvenance?.reportFamily
+    ?? (exportPackage.inspectionRecord as any)?.reportFamily ?? "").toLowerCase();
+  const isHorizontalTank = /horizontal/.test(declaredFamily)
+    || String((exportPackage.inspectionRecord as any)?.tankOrientation ?? "").toLowerCase() === "horizontal";
   const isVerticalAst = Boolean(exportPackage.inspectionRecord?.heightM && exportPackage.inspectionRecord?.diameterM);
   const hasShellEvidence = exportPackage.layoutConfigs.some((config) => config.targetKey === "shell");
   const hasMpiEvidence = exportPackage.findings.some((finding) => /mpi|hw|weld/i.test(finding.itemLabel));
@@ -99,15 +103,16 @@ export function classifyReportPackage(exportPackage: V2ProductExportPackage): Re
   ];
 
   return {
-    reportFamilyId: hasInternalExternalScope ? "api653-internal-external" : "api653-general",
-    reportFamilyLabel: hasInternalExternalScope
+    reportFamilyId: isHorizontalTank ? "horizontal-internal-external" : hasInternalExternalScope ? "api653-internal-external" : "api653-general",
+    reportFamilyLabel: isHorizontalTank ? "Horizontal Tank Internal & External Inspection" : hasInternalExternalScope
       ? "API 653 Internal & External AST Inspection"
       : "API 653 AST Inspection",
     inspectionMode: hasInternalExternalScope ? "Internal and external" : "General inspection",
-    tankType: isVerticalAst ? "Vertical aboveground storage tank" : "Aboveground storage tank",
+    tankType: isHorizontalTank ? "Horizontal aboveground storage tank" : isVerticalAst ? "Vertical aboveground storage tank" : "Aboveground storage tank",
     primaryFormatPrecedent: `${API_STANDARD_PRIMARY_REPORT.reference} - ${API_STANDARD_PRIMARY_REPORT.title}`,
-    formatRationale:
-      "The Android export is classified as a vertical AST inspection package, so the platform follows the API-standard internal/external sample report ToC and formatting before applying section-specific edits.",
+    formatRationale: isHorizontalTank
+      ? "The immutable capture provenance classifies this package as a horizontal-tank inspection, so only compatible horizontal-tank precedents may control its format."
+      : "The Android export is classified as a vertical AST inspection package, so the platform follows the API-standard internal/external sample report ToC and formatting before applying section-specific edits.",
     primaryCodes,
     supportingCodes,
     excludedCodes,

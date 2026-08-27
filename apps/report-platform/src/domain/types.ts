@@ -11,6 +11,7 @@ export type MissingField = {
   input: MissingFieldInput;
   value: string;
   suggestion?: string;
+  detectedDraftValue?: string;
   reason: string;
   source: string;
   options?: string[];
@@ -83,6 +84,61 @@ export type AssistantAction = {
   heightDelta?: number;
 };
 
+export type TargetedEditAction =
+  | "rephrase"
+  | "shorten"
+  | "enhance"
+  | "to_points"
+  | "to_paragraph"
+  | "custom";
+
+export type TargetedEditSelectionKind = "inline" | "block";
+
+export type TargetedEditSelection = {
+  from: number;
+  to: number;
+  selectedText: string;
+  selectedHtml: string;
+  documentHtml: string;
+  documentHash: string;
+  documentTextHash: string;
+  selectionHash: string;
+  selectionKind: TargetedEditSelectionKind;
+  contextBefore: string;
+  contextAfter: string;
+};
+
+export type TargetedEditRequest = {
+  action: TargetedEditAction;
+  instruction: string;
+  expectedVersion: number;
+  selection: TargetedEditSelection;
+};
+
+export type TargetedEditProposal = {
+  proposalId: string;
+  sectionId: string;
+  action: TargetedEditAction;
+  instruction: string;
+  replacementHtml: string;
+  replacementText: string;
+  explanation: string;
+  warnings: string[];
+  expectedVersion: number;
+  documentHash: string;
+  selectionHash: string;
+  providerCode: string;
+  modelId: string | null;
+  usedLiveModel: boolean;
+  createdAtIso: string;
+};
+
+export type TargetedEditExecution = {
+  executionId: string;
+  proposal: TargetedEditProposal;
+  selection: TargetedEditSelection;
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
@@ -90,6 +146,8 @@ export type ChatMessage = {
   actions?: AssistantAction[];
   controlTrace?: AiControlTrace;
   pendingConfirmation?: AssistantPendingConfirmation;
+  scope?: "section" | "selection";
+  selectionPreview?: string;
 };
 
 export type LayoutMarkerType = "finding" | "element" | "weld";
@@ -190,6 +248,10 @@ export type FloorCorrosionOverlay = {
   rotationDegrees: 0 | 90 | 180 | 270;
   flipX: boolean;
   flipY: boolean;
+  scaleX?: number;
+  scaleY?: number;
+  offsetX?: number;
+  offsetY?: number;
   opacity: number;
   status: FloorCorrosionOverlayStatus;
   reviewedByUserId?: string;
@@ -347,6 +409,7 @@ export type WorkspaceApiLinks = {
   saveLayoutOverridePath: string;
   generateSectionPath: string;
   sectionChatPath: string;
+  targetedEditPath: string;
   restorePreviousSectionPath: string;
   approveSectionPath: string;
   exportDocxPath: string;
@@ -368,6 +431,8 @@ export type ReportSection = {
   templateExpectation: string;
   sourceSummary: string;
   rawAppData?: string;
+  version?: number;
+  layoutVersion?: number;
   previousVersionCount?: number;
   missingFields: MissingField[];
   layoutMap?: LayoutMapData;
@@ -380,6 +445,7 @@ export type WorkspaceReport = {
   client: string;
   tank: string;
   inspectedDate: string;
+  manualInputsRevision: number;
   importSummary: WorkspaceImportSummary;
   apiLinks: WorkspaceApiLinks;
   sections: ReportSection[];

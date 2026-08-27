@@ -12,7 +12,9 @@ Detailed precedent retrieval, KB tuning, and evaluation procedures are defined i
 
 - `apps/report-platform/PRECEDENT_KB_ARCHITECTURE.md`
 
-This architecture must align with the V2 Product tenant/workspace/user model and support section-by-section Codex CLI generation.
+This architecture implements the report-platform control plane defined in
+`SYSTEM_ARCHITECTURE.md`. It aligns with the LAIQ inspection app V3
+tenant/workspace/user contract while remaining an independent application.
 
 ## Storage Layers
 
@@ -26,13 +28,14 @@ Purpose:
 - persist report workflow state
 - persist provenance and audit data
 
-Recommended default:
+Required database:
 - `Postgres`
 
-SQLite status:
-- acceptable only for local development, internal V1 Beta validation, deterministic audits, and single-node demos
-- not the commercial multi-tenant primary database
-- should remain available as a fallback adapter until the Postgres path is stable
+Implementation status:
+- PostgreSQL is the only runtime and audit database.
+- Startup requires `DATABASE_URL` and runs versioned migrations.
+- Local development uses the same PostgreSQL engine through `compose.yaml`.
+- Embedded/file database fallbacks are intentionally unsupported.
 
 Commercial scale target:
 - approximately 200 user accounts in the early commercial stage
@@ -63,8 +66,15 @@ Purpose:
 Recommended default:
 - S3-compatible object storage or equivalent blob storage
 
+Implementation status:
+- V3 attachment ingestion uses authenticated PostgreSQL upload sessions and short-lived signed S3-compatible URLs.
+- The server issues opaque object keys and independently verifies uploaded bytes against SHA-256, byte size, and media type before report import.
+- Authorized report evidence reads use short-lived signed URLs; bucket listing and object keys are never exposed to the app.
+- Report-side MFL imports persist source PDFs, extraction/map manifests, transparent corrosion overlays, immutable plate previews, and source-layout vectors in S3-compatible storage.
+- PostgreSQL owns MFL artifact scope and provenance; local disk is temporary processing space only, and browser/DOCX reads verify stored size, media type, and SHA-256.
+
 Primary responsibilities:
-- imported Android export JSON files
+- imported LAIQ inspection app V3 export packages
 - imported field attachments
 - source PDF reports
 - OCR text extracts
@@ -158,8 +168,7 @@ Recommended common fields on report-side entities:
 Suggested object prefixes:
 
 ```text
-tenants/{tenantId}/workspaces/{workspaceId}/imports/{inspectionId}/package.json
-tenants/{tenantId}/workspaces/{workspaceId}/imports/{inspectionId}/attachments/{attachmentId}
+tenants/{tenantScopeHash}/workspaces/{workspaceScopeHash}/inspections/{inspectionScopeHash}/objects/{objectId}
 tenants/{tenantId}/workspaces/{workspaceId}/reports/{reportJobId}/drafts/{sectionKey}.json
 tenants/{tenantId}/workspaces/{workspaceId}/reports/{reportJobId}/preview/{artifactId}
 tenants/{tenantId}/workspaces/{workspaceId}/reports/{reportJobId}/final/{fileName}.pdf
@@ -173,6 +182,7 @@ Object storage rules:
 - version generated outputs
 - signed URL access only
 - no direct cross-tenant listing
+- no client filenames or raw tenant/customer labels in trusted object keys
 
 ## Vector Database Role
 
@@ -258,12 +268,12 @@ Recommended enforcement methods:
 
 ## Role-Aware Access Rules
 
-Aligned with V2 Product:
+Aligned with the report-platform identity and tenancy contract:
 
 - `Super Admin`: can manage platform libraries and tenant setup
 - `Manager`: can view/manage report jobs and publication policy inside allowed scope
 - `Inspector`: can create report jobs, edit manual inputs, and run section generation
-- `Reviewer`: can review drafts, add comments, and approve when policy requires
+- `Reviewer`: optional future role for tenants that require independent review
 - `Client Viewer`: read-only access to approved assigned outputs
 
 Users may carry multiple roles.
@@ -368,26 +378,21 @@ Define these contracts early:
 6. `GenerationRunRecord`
 7. object storage key conventions
 8. vector metadata filter contract
-9. `StorageProvider` interface with local SQLite and production Postgres implementations
+9. PostgreSQL repository/query contracts with no alternate database implementation
 10. `JobQueue` interface for generation, export, indexing, and eval work
 11. optimistic concurrency fields such as `version`, `updatedAt`, and `updatedByUserId`
 
 That will let the frontend, backend, retrieval, and Codex CLI orchestration evolve against a shared product-standard backend model.
 
-## Migration Direction From V1 Beta
+## Product Hardening Direction
 
-The current SQLite store should be treated as a working reference implementation of the domain model, not the final database engine.
+PostgreSQL-only storage and versioned schema migrations are implemented. Remaining hardening phases:
 
-Recommended migration phases:
-
-1. Introduce a storage interface around the existing report store methods.
-2. Move schema creation into versioned migrations.
-3. Add Postgres DDL matching the current entities and indexes.
-4. Add row-level tenant/workspace filters and authorization checks at every query boundary.
-5. Add optimistic concurrency for report section drafts and manual inputs.
-6. Move generated DOCX/PDF/map artifacts and source imports to object storage.
-7. Add queue-backed background workers for generation, DOCX export, KB indexing, and eval runs.
-8. Keep SQLite only for local development and deterministic test fixtures.
+1. Add row-level tenant/workspace policies in PostgreSQL in addition to API authorization.
+2. Extend the implemented section-draft optimistic concurrency guard to approval, manual-input, and layout-override writes.
+3. Move final DOCX/PDF outputs, KB source files, and remaining generated figures to object storage; app evidence and MFL source/derivative artifacts are already on this boundary.
+4. Add queue-backed background workers for generation, DOCX export, KB indexing, and eval runs.
+5. Add managed backup, restore, observability, and connection-pool alerting.
 
 For 50 concurrent active users, the most important backend behaviors are:
 

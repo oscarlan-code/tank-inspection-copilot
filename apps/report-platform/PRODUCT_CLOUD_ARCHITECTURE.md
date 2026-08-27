@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram shows the intended product-standard cloud architecture for the report generation platform before the storage migration is implemented.
+This diagram shows the product-standard deployment target for the complete
+report platform. Whole-system product boundaries are governed by
+`SYSTEM_ARCHITECTURE.md`.
 
 It assumes the first commercial scale target:
 
@@ -21,8 +23,8 @@ Remote-editor image version:
 
 ## Key Decisions
 
-- SQLite remains a local development and internal demo fallback only.
-- Postgres becomes the transactional product database.
+- PostgreSQL is the only transactional database in development, audits, and deployment.
+- PostgreSQL is the transactional product database.
 - pgvector is the first production vector retrieval layer.
 - S3-compatible object storage owns imported packages, attachments, rendered map figures, DOCX/PDF outputs, and KB source documents.
 - Queue-backed workers own long-running generation, export, indexing, and eval tasks.
@@ -42,7 +44,7 @@ Remote-editor image version:
 
 ## Implementation Boundary
 
-Before implementation, use this architecture as the target contract for:
+Use this architecture as the deployment target for:
 
 - storage-provider interface design
 - Postgres schema and migrations
@@ -55,20 +57,27 @@ Before implementation, use this architecture as the target contract for:
 
 ## Current Implementation Status
 
-The first authentication and tenancy foundation is implemented in V1 Beta:
+Implemented in the V1 Beta product baseline:
 
 - users must sign in before the browser workspace loads
 - API requests derive the actor from the authenticated session
 - report and import routes enforce tenant/workspace scope and role permissions
 - app export metadata cannot create users or grant roles
 - KB retrieval filters platform, tenant-private, and workspace-private sources before scoring
-- development identities are blocked automatically in production mode
-- OIDC issuer/audience/JWKS token verification is available for a pre-provisioned commercial identity
+- username/password credentials use salted scrypt hashes
+- persistent session-token hashes and login throttles are stored in PostgreSQL
+- production cookies are Secure, HttpOnly, and SameSite=Strict
+- PostgreSQL is the only transactional runtime and test database
+- pgvector schema and tenant-scoped KB records are present
+- app evidence and MFL artifacts use checksum-verified S3-compatible storage
+- section drafts and approvals use optimistic concurrency
+- Super Admin account management, KB review, and evaluation surfaces exist
 
 Still required to reach the full diagram:
 
-- commercial browser SSO flow and account provisioning UI
+- self-service password reset and optional MFA
 - dedicated Reviewer, Manager, Super Admin, and approved Client Viewer surfaces
-- Postgres, pgvector, and object storage adapters
 - queue-backed generation, export, indexing, and eval workers
-- optimistic concurrency and persistent audit events
+- production pgvector publication/retrieval hardening
+- PostgreSQL row-level security, managed secrets, monitoring, and restore drills
+- horizontally scalable API/worker deployment

@@ -227,5 +227,5 @@
 
   <!-- Guardrail note -->
   <rect class="note" x="54" y="1118" width="1692" height="38" rx="19"/>
-  <text class="text" x="84" y="1143">Storage rule: SQLite is local/internal fallback only. Commercial platform uses Postgres + pgvector + object storage + queue workers with tenant/workspace authorization at every boundary.</text>
+  <text class="text" x="84" y="1143">Storage rule: PostgreSQL is the only transactional database. Product platform uses Postgres + pgvector + object storage + queue workers with tenant/workspace authorization at every boundary.</text>
 </svg>

@@ -1,264 +1,104 @@
-# Product Storage Migration Plan
+# Product Storage Implementation
+
+## Current Implementation Checkpoint
+
+The active product path now uses:
+
+- PostgreSQL-only transactional storage;
+- S3-compatible source, evidence, and artifact storage;
+- immutable app-export source objects with SHA-256 metadata;
+- append-only inspection export revisions;
+- report jobs pinned to one `import_id`;
+- idempotent same-package re-upload;
+- a new revision and report job when captured evidence changes.
+
+Mac mini staging lifecycle and backup operations are documented in `MAC_MINI_STAGING.md`.
 
 ## Decision
 
-The report platform should move from the current SQLite V1 Beta store to a product-standard Postgres backend before commercial customer rollout.
+The report platform uses PostgreSQL as its only transactional database. Development, automated audits, demos, and deployed environments all use the same database engine.
 
-SQLite remains useful for:
+There is intentionally no embedded database fallback and no runtime database-driver switch.
 
-- local development
-- deterministic audits
-- offline demos
-- single-process internal validation
+## Implemented Baseline
 
-SQLite should not be the commercial multi-tenant primary database for the report generator.
+- `DATABASE_URL` is required at API startup.
+- PostgreSQL connections use a bounded pool.
+- Versioned migrations run under a PostgreSQL advisory lock.
+- Transactional tables cover tenants, workspaces, identities, roles, imports, report jobs, manual inputs, drafts, draft history, approvals, generation runs, eval runs, and layout overrides.
+- Imported packages and structured orchestration payloads use `JSONB`.
+- `pgvector` is enabled and tenant/workspace-scoped KB document and chunk tables are created.
+- API and storage hardening tests use disposable PostgreSQL schemas under the normal least-privilege application database account.
+- `storage:audit` rejects reintroduction of SQLite code, file paths, or database-driver switches.
+- Section-draft updates require the current version and return a controlled `409 section_version_conflict` for stale edits.
+- Section approval requires the exact persisted draft version and performs an atomic version-guarded update; stale tabs reload instead of approving newer content.
+- Generation, restore, approval, and layout invalidation advance the stored section-draft version.
+- Upload-session and evidence-object metadata are stored in PostgreSQL with account-scoped idempotency keys.
+- Attachment binaries use S3-compatible object storage through server-issued opaque keys and short-lived signed URLs.
+- Finalization independently streams each object and verifies SHA-256, byte size, and media type before importing the report.
+- Evidence reads require normal report authorization and return short-lived signed URLs.
+- Direct report-workspace MFL imports use the same S3-compatible boundary: source PDF, extraction manifest, transparent corrosion PNGs, immutable source-preview PNGs, and map manifest are persisted under opaque object keys.
+- PostgreSQL stores the tenant/workspace/report/run ownership, media type, byte size, and SHA-256 for every MFL artifact.
+- The local artifact root is temporary processing space only. Browser and DOCX reads resolve through PostgreSQL and checksum-verified object storage, with no local-disk durability fallback.
+
+## Local Runtime
+
+```bash
+cd apps/report-platform
+docker compose up -d postgres object-storage object-storage-init
+export DATABASE_URL=postgresql://laiq_report_platform:laiq_local_product@127.0.0.1:55432/laiq_report_platform
+export REPORT_PLATFORM_DB_SSL=disable
+export REPORT_PLATFORM_S3_BUCKET=laiq-report-platform
+export REPORT_PLATFORM_S3_ENDPOINT=http://127.0.0.1:59000
+export REPORT_PLATFORM_S3_REGION=us-east-1
+export REPORT_PLATFORM_S3_FORCE_PATH_STYLE=true
+export REPORT_PLATFORM_S3_ACCESS_KEY_ID=laiq_local_object_admin
+export REPORT_PLATFORM_S3_SECRET_ACCESS_KEY=laiq_local_object_password
+npm run api
+```
 
 ## Commercial Scale Target
 
-Initial commercial planning target:
-
 - up to 200 report-platform users
-- approximately 50 concurrent active editors/reviewers
+- approximately 50 concurrent active editors
 - multiple tenants and workspaces
-- section-by-section editing and approval
-- background AI generation, DOCX export, KB indexing, and eval runs
+- concurrent AI generation, export, indexing, and eval work
 
-This requires a backend that handles concurrent writes, auditability, tenant isolation, backup/restore, and future horizontal API scaling.
+PostgreSQL provides the required transaction isolation, pooled connections, migration history, tenant filtering, backup/restore path, JSONB evidence storage, and vector retrieval foundation.
 
-## Target Storage Architecture
+## Remaining Product Hardening
 
-Use three storage layers:
+### Complete Concurrency Coverage
 
-- Postgres: transactional product data
-- pgvector: first production vector retrieval layer
-- S3-compatible object storage: large immutable artifacts
+- require explicit current versions on manual-input and layout-override writes; section approval is implemented
+- add idempotency keys to generation, import, approval, and export commands
+- preserve the implemented section-draft conflict guard while extending it to every mutable report resource
 
-Transactional Postgres should own:
+### Object Storage Follow-Through
 
-- tenants
-- workspaces
-- users
-- role memberships
-- imports
-- report jobs
-- manual inputs
-- section drafts
-- section draft versions
-- layout overrides
-- review decisions
-- generation runs
-- eval runs
-- audit events
-- KB document and chunk metadata
+App-captured attachment ingestion and report-side MFL source/derivative persistence are implemented. MFL source PDFs remain a direct authenticated report-workspace input, not an Android upload. Continue moving final DOCX/PDF outputs, KB source files, and other generated figures to the same object-storage boundary, with lifecycle jobs for expired/abandoned uploads and retained published evidence.
 
-Object storage should own:
+### Queue Workers
 
-- imported app export packages
-- original attachments and photos
-- source sample/reference PDFs
-- OCR/text extraction artifacts
-- rendered layout-map figures
-- generated DOCX/PDF outputs
-- debug screenshots when explicitly retained
+Move generation, export, rendering, indexing, and eval work to durable queue jobs with idempotency keys, tenant/workspace scope, retries, and audit records.
 
-## Why Postgres
+### Database Security And Operations
 
-Postgres is the right default for this product stage because it supports:
+- add PostgreSQL row-level tenant/workspace policies
+- use separate migration and application database roles
+- configure managed backups and restore drills
+- monitor pool saturation, slow queries, locks, and storage growth
+- rotate credentials through a cloud secret manager
 
-- concurrent editors
-- robust transactions
-- row-level tenant/workspace filtering
-- migrations
-- backup and restore
-- connection pooling
-- audit queries
-- JSONB evidence payloads where needed
-- pgvector retrieval for the first KB version
-
-## Concurrency Model
-
-Use section-level optimistic concurrency.
-
-Recommended fields:
-
-- `version`
-- `updated_at`
-- `updated_by_user_id`
-- `approved_at`
-- `approved_by_user_id`
-- `source_package_fingerprint`
-
-Write behavior:
-
-- section draft updates include the expected current version
-- stale edits return a controlled conflict response
-- AI generation creates a new draft version rather than overwriting silently
-- approval checks the latest draft version and required inputs
-- undo/restore reads from version history
-
-This avoids locking the whole report while different users work on different sections.
-
-## Background Work Model
-
-Long-running work should not happen inside normal request transactions.
-
-Queue-backed jobs should handle:
-
-- section generation
-- final DOCX/PDF export
-- layout-map figure rendering
-- KB indexing
-- eval runs
-- leak audits
-
-Each job should have:
-
-- idempotency key
-- tenant/workspace scope
-- actor user id
-- status
-- input payload hash
-- output artifact references
-- error summary
-- retry count
-
-## Migration Phases
-
-### Phase 0: Authentication And Tenant Boundary
-
-Status: V1 Beta foundation implemented.
-
-Implemented baseline:
-
-- login gate and development-only sessions
-- OIDC/JWT verification boundary
-- server-side permission checks
-- tenant/workspace-scoped report and import operations
-- tenant/workspace-scoped private KB retrieval
-- prevention of role provisioning from app export data
-
-Remaining before commercial rollout:
-
-- selected identity-provider browser flow
-- account invitation and provisioning administration
-- role-specific product screens
-- Postgres-backed memberships and immutable access audit events
-
-### Phase 1: Storage Boundary
-
-Goal: wrap the current SQLite implementation behind a storage-provider interface.
-
-Likely files:
-
-- `server/store.mjs`
-- new `server/storage/` modules
-- API hardening tests
-
-Validation:
+## Validation
 
 ```bash
+npm --prefix apps/report-platform run storage:audit
+DATABASE_URL=... npm --prefix apps/report-platform run object-upload:audit
+DATABASE_URL=... npm --prefix apps/report-platform run floor-corrosion:durability-audit
+DATABASE_URL=... REPORT_PLATFORM_S3_BUCKET=... npm --prefix apps/report-platform run floor-corrosion:object-storage-audit
+DATABASE_URL=... npm --prefix apps/report-platform run api:audit
 npm --prefix apps/report-platform run build
 npm --prefix apps/report-platform run logic:audit
-npm --prefix apps/report-platform run api:audit
-```
-
-### Phase 2: Versioned Schema
-
-Goal: move schema creation from inline `CREATE TABLE IF NOT EXISTS` into versioned migrations.
-
-Likely files:
-
-- `server/storage/migrations/`
-- `server/store.mjs`
-- migration runner script
-
-Validation:
-
-```bash
-npm --prefix apps/report-platform run api:audit
-```
-
-### Phase 3: Postgres Adapter
-
-Goal: implement the same report-store contract using Postgres.
-
-Likely files:
-
-- `server/storage/postgres-store.mjs`
-- `server/storage/sqlite-store.mjs`
-- `server/storage/index.mjs`
-- `package.json`
-
-Validation:
-
-```bash
-REPORT_PLATFORM_DB_DRIVER=postgres npm --prefix apps/report-platform run api:audit
-```
-
-### Phase 4: Object Storage
-
-Goal: move large artifacts out of transactional storage.
-
-Likely files:
-
-- `server/object-storage/`
-- import routes
-- DOCX export route
-- layout-map figure renderer
-
-Validation:
-
-```bash
-npm --prefix apps/report-platform run report:eval
-```
-
-### Phase 5: Queue Workers
-
-Goal: move generation/export/indexing/eval work out of synchronous API routes.
-
-Likely files:
-
-- `server/jobs/`
-- generation route
-- export route
-- KB rebuild routes
-
-Validation:
-
-```bash
-npm --prefix apps/report-platform run logic:audit
-npm --prefix apps/report-platform run api:audit
-```
-
-### Phase 6: Tenant-Safe Production Hardening
-
-Goal: enforce tenant/workspace authorization across all reads, writes, retrieval, generation, and export.
-
-Likely files:
-
-- `server/authz/`
-- storage adapters
-- API routes
-- audit scripts
-
-Validation:
-
-```bash
 STRICT_SAMPLE_LEAK=1 npm --prefix apps/report-platform run leak:audit
-npm --prefix apps/report-platform run api:audit
 ```
-
-## Acceptance Criteria
-
-The migration is product-ready when:
-
-- API routes work against Postgres
-- SQLite remains available only for local/dev fallback
-- 50 concurrent section-draft updates produce no lost updates
-- stale writes return controlled conflict responses
-- all generated outputs have version history
-- approved sections cannot be overwritten silently
-- final export uses approved selected sections only
-- tenant/workspace filters are applied to every query
-- object artifacts are not stored as large DB blobs
-- generation/export/index/eval jobs are retryable and auditable

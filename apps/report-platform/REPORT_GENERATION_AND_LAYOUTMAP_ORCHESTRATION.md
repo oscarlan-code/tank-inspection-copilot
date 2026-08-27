@@ -101,7 +101,7 @@ Purpose:
 
 Recommended implementation:
 - local/backend API
-- SQLite now, cloud relational DB later
+- PostgreSQL for local, audit, and cloud transactional state
 - JSON normalization layer
 
 Current examples:

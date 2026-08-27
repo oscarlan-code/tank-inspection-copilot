@@ -6,17 +6,22 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { LayoutMapEditor } from "../components/LayoutMapEditor";
+import {
+  LayoutMapEditor,
+} from "../components/LayoutMapEditor";
+import { AccountManagement } from "../components/AccountManagement";
+import { EvaluationLab } from "../components/EvaluationLab";
+import { KnowledgeBaseReview } from "../components/KnowledgeBaseReview";
 import { RichTextSectionEditor } from "../components/RichTextSectionEditor";
 import { useAuth } from "../auth/AuthGate";
 import {
+  type ApiReportJobState,
   type ApiEvalRun,
   type ApiAiStatus,
   buildInitialChats,
   hydrateWorkspaceFromApiState,
   loadWorkspaceBootstrap,
 } from "../domain/mockReport";
-import type { ReportClassification } from "../domain/reportClassification";
 import type {
   AssistantAction,
   ChatMessage,
@@ -26,6 +31,11 @@ import type {
   MissingField,
   ReportSection,
   SectionStatus,
+  TargetedEditAction,
+  TargetedEditExecution,
+  TargetedEditProposal,
+  TargetedEditRequest,
+  TargetedEditSelection,
   WorkspaceReport,
 } from "../domain/types";
 import { ensureLayoutMapData } from "../lib/layoutMapGeometry";
@@ -33,23 +43,32 @@ import { isMflCompatibleFloorLayout } from "../fixtures/matchingMflFloorLayout";
 import {
   normalizeSectionContent,
 } from "../lib/reportContent";
+import { createBrowserId } from "../lib/browserId";
 import {
   approveSection as approveSectionApi,
   approveFloorCorrosionPlacement,
   downloadFinalReportDocx,
   generateSection as generateSectionApi,
   importFloorCorrosionMfl,
+  ReportApiError,
+  requestTargetedSectionEdit as requestTargetedSectionEditApi,
   restorePreviousSectionDraft as restorePreviousSectionDraftApi,
   resetReportDrafts as resetReportDraftsApi,
   saveLayoutOverride as saveLayoutOverrideApi,
+  saveManualInputValues as saveManualInputValuesApi,
   saveManualInputs as saveManualInputsApi,
   saveSectionDraft as saveSectionDraftApi,
   sendSectionChat as sendSectionChatApi,
 } from "../lib/reportApi";
-
-type ImportSummaryWithClassification = WorkspaceReport["importSummary"] & {
-  reportClassification: ReportClassification;
-};
+import {
+  addDraftSuggestionsToMissingFields,
+  applyConfirmedDraftManualInputs,
+} from "../lib/manualInputRecognition";
+import {
+  loadReportInbox,
+  loadReportJob,
+  type ReportInboxItem,
+} from "../lib/reportInboxApi";
 
 function deriveStatus(section: ReportSection, generatedPreviewSectionIds?: Set<string>): SectionStatus {
   const hasGeneratedPreview = generatedPreviewSectionIds == null || generatedPreviewSectionIds.has(section.id);
@@ -59,8 +78,34 @@ function deriveStatus(section: ReportSection, generatedPreviewSectionIds?: Set<s
   return "editing";
 }
 
+function formatSectionStatus(status: SectionStatus): string {
+  return status === "not started" ? "Not started" : status === "editing" ? "Editing" : "Approved";
+}
+
 function cloneReport(report: WorkspaceReport): WorkspaceReport {
   return JSON.parse(JSON.stringify(report)) as WorkspaceReport;
+}
+
+function applyPersistedRevisions(
+  report: WorkspaceReport,
+  state: ApiReportJobState,
+): WorkspaceReport {
+  const draftVersions = new Map(
+    (state.sectionDrafts ?? []).map((draft) => [draft.sectionId, draft.version]),
+  );
+  const layoutVersions = new Map(
+    (state.layoutOverrides ?? []).map((layout) => [layout.sectionId, layout.version]),
+  );
+
+  return {
+    ...report,
+    manualInputsRevision: state.reportJob?.manualInputsRevision ?? report.manualInputsRevision,
+    sections: report.sections.map((section) => ({
+      ...section,
+      version: draftVersions.get(section.id) ?? section.version,
+      layoutVersion: layoutVersions.get(section.id) ?? section.layoutVersion,
+    })),
+  };
 }
 
 const LAYOUT_SURFACE_ORDER: LayoutSurfaceType[] = ["roof", "shell", "floor"];
@@ -68,6 +113,25 @@ const MIN_SIDE_PANEL_WIDTH = 240;
 const MAX_SIDE_PANEL_WIDTH = 560;
 const DEFAULT_LEFT_PANEL_WIDTH = 340;
 const DEFAULT_RIGHT_PANEL_WIDTH = 340;
+type WorkspaceContextPanel = "app-data" | "layout-map";
+const PREFERRED_LAYOUT_SECTION_IDS: Record<LayoutSurfaceType, string> = {
+  roof: "roof-plate-layout",
+  shell: "shell-plate-layout",
+  floor: "floor-plate-corrosion-plan",
+};
+
+function GenerationHourglass() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="generation-hourglass-icon"
+      viewBox="0 0 24 24"
+    >
+      <path className="generation-hourglass-frame" d="M6 3h12M6 21h12M7 3v3c0 3 2 4.5 5 6-3 1.5-5 3-5 6v3m10-18v3c0 3-2 4.5-5 6 3 1.5 5 3 5 6v3" />
+      <path className="generation-hourglass-sand" d="M9 7h6l-3 3-3-3Zm0 11 3-3 3 3H9Z" />
+    </svg>
+  );
+}
 
 function formatLayoutSurfaceTab(surface: LayoutSurfaceType | undefined) {
   if (surface === "roof") return "Roof";
@@ -226,6 +290,7 @@ function preserveReportOutputAfterLayoutHydration(
         edited: currentSection.edited,
         approved: hydratedSection.id === changedSectionId ? false : currentSection.approved,
         reviewRequired: hydratedSection.id === changedSectionId ? true : currentSection.reviewRequired,
+        version: hydratedSection.version ?? currentSection.version,
         previousVersionCount: currentSection.previousVersionCount,
       };
     }),
@@ -269,6 +334,55 @@ function saveRawGenerationInputs(reportId: string, userId: string, inputs: Recor
   window.localStorage.setItem(rawInputStorageKey(reportId, userId), JSON.stringify(inputs));
 }
 
+type TargetedChatTurn = {
+  instruction: string;
+  proposedText: string;
+};
+
+type TargetedChatContext = {
+  proposal: TargetedEditProposal | null;
+  reportId: string;
+  sectionId: string;
+  sectionTitle: string;
+  selection: TargetedEditSelection;
+  turns: TargetedChatTurn[];
+};
+
+function targetedEditActionLabel(action: TargetedEditAction) {
+  const labels: Record<TargetedEditAction, string> = {
+    custom: "Refine",
+    enhance: "Enhance",
+    rephrase: "Rephrase",
+    shorten: "Shorten",
+    to_paragraph: "Convert to text",
+    to_points: "Convert to points",
+  };
+  return labels[action];
+}
+
+function summarizeSelection(value: string, limit = 180) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > limit ? `${normalized.slice(0, limit - 1).trimEnd()}…` : normalized;
+}
+
+function buildTargetedConversationInstruction(
+  turns: TargetedChatTurn[],
+  instruction: string,
+) {
+  const recentTurns = turns.slice(-3);
+  if (recentTurns.length === 0) return instruction;
+
+  return [
+    "Continue this selection-scoped editing conversation.",
+    ...recentTurns.flatMap((turn, index) => [
+      `Previous instruction ${index + 1}: ${turn.instruction}`,
+      `Previous proposal ${index + 1}: ${turn.proposedText}`,
+    ]),
+    `Current instruction: ${instruction}`,
+    "Return one revised replacement for the original protected selection.",
+  ].join("\n");
+}
+
 function App() {
   const { principal, signOut } = useAuth();
   const [report, setReport] = useState<WorkspaceReport | null>(null);
@@ -276,6 +390,8 @@ function App() {
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>({});
+  const [targetedChatContext, setTargetedChatContext] = useState<TargetedChatContext | null>(null);
+  const [externalTargetedEdit, setExternalTargetedEdit] = useState<TargetedEditExecution | null>(null);
   const [flashMessage, setFlashMessage] = useState("Load the V10 LAIQ inspection app V3 mockup export to begin.");
   const [rawGenerationInputs, setRawGenerationInputs] = useState<Record<string, string>>({});
   const [sectionOutputHistory, setSectionOutputHistory] = useState<Record<string, string>>({});
@@ -287,6 +403,18 @@ function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<ApiAiStatus | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [reportInbox, setReportInbox] = useState<ReportInboxItem[]>([]);
+  const [reportInboxError, setReportInboxError] = useState<string | null>(null);
+  const [isLoadingReportInbox, setIsLoadingReportInbox] = useState(true);
+  const [showAccountManagement, setShowAccountManagement] = useState(
+    () => window.location.pathname.replace(/\/+$/, "") === "/admin/accounts",
+  );
+  const [showEvaluationLab, setShowEvaluationLab] = useState(
+    () => window.location.pathname.replace(/\/+$/, "") === "/admin/evaluation",
+  );
+  const [showKnowledgeBaseReview, setShowKnowledgeBaseReview] = useState(
+    () => window.location.pathname.replace(/\/+$/, "") === "/admin/knowledge-base",
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChatBusy, setIsChatBusy] = useState(false);
   const [isGenerationDialogOpen, setIsGenerationDialogOpen] = useState(false);
@@ -295,16 +423,85 @@ function App() {
   const [selectedExportSectionIds, setSelectedExportSectionIds] = useState<Set<string>>(() => new Set());
   const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [isImportingMfl, setIsImportingMfl] = useState(false);
-  const [isRawDataExpanded, setIsRawDataExpanded] = useState(false);
+  const [isUpdatingMflPlacement, setIsUpdatingMflPlacement] = useState(false);
+  const [activeContextPanel, setActiveContextPanel] = useState<WorkspaceContextPanel | null>(null);
   const [generationProgress, setGenerationProgress] = useState<{
     current: number;
     total: number;
     label: string;
   } | null>(null);
+  const [generatingSectionId, setGeneratingSectionId] = useState<string | null>(null);
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
   const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement | null>(null);
   const chatsRef = useRef<Record<string, ChatMessage[]>>({});
+  const isSuperAdmin = principal.platformRoles.some(
+    (role) => role.trim().toLowerCase() === "super admin",
+  );
+
+  const refreshReportInbox = async () => {
+    setIsLoadingReportInbox(true);
+    setReportInboxError(null);
+    try {
+      setReportInbox(await loadReportInbox());
+    } catch (error) {
+      setReportInboxError(formatErrorMessage(error));
+    } finally {
+      setIsLoadingReportInbox(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshReportInbox();
+  }, [principal.userId]);
+
+  useEffect(() => {
+    const handleNavigation = () => {
+      const path = window.location.pathname.replace(/\/+$/, "");
+      setShowAccountManagement(path === "/admin/accounts");
+      setShowEvaluationLab(path === "/admin/evaluation");
+      setShowKnowledgeBaseReview(path === "/admin/knowledge-base");
+    };
+    window.addEventListener("popstate", handleNavigation);
+    return () => window.removeEventListener("popstate", handleNavigation);
+  }, []);
+
+  const openAccountManagement = () => {
+    window.history.pushState({}, "", "/admin/accounts");
+    setShowAccountManagement(true);
+    setShowEvaluationLab(false);
+    setShowKnowledgeBaseReview(false);
+  };
+
+  const closeAccountManagement = () => {
+    window.history.pushState({}, "", "/");
+    setShowAccountManagement(false);
+  };
+
+  const openEvaluationLab = () => {
+    window.history.pushState({}, "", "/admin/evaluation");
+    setShowAccountManagement(false);
+    setShowEvaluationLab(true);
+    setShowKnowledgeBaseReview(false);
+  };
+
+  const closeEvaluationLab = () => {
+    window.history.pushState({}, "", "/");
+    setShowEvaluationLab(false);
+  };
+
+  const openKnowledgeBaseReview = () => {
+    window.history.pushState({}, "", "/admin/knowledge-base");
+    setShowAccountManagement(false);
+    setShowEvaluationLab(false);
+    setShowKnowledgeBaseReview(true);
+  };
+
+  const closeKnowledgeBaseReview = () => {
+    window.history.pushState({}, "", "/");
+    setShowKnowledgeBaseReview(false);
+  };
 
   const updateChats = (updater: (current: Record<string, ChatMessage[]>) => Record<string, ChatMessage[]>) => {
     setChats((current) => {
@@ -312,6 +509,13 @@ function App() {
       chatsRef.current = next;
       return next;
     });
+  };
+
+  const appendSectionChatMessage = (sectionId: string, message: ChatMessage) => {
+    updateChats((current) => ({
+      ...current,
+      [sectionId]: [...(current[sectionId] ?? []), message],
+    }));
   };
 
   const handleLoadMockupData = async () => {
@@ -346,6 +550,8 @@ function App() {
         },
       );
       setGeneratedPreviewSectionIds(new Set());
+      setTargetedChatContext(null);
+      setExternalTargetedEdit(null);
       setSectionOutputHistory({});
       setEvalRuns({});
       setGenerationProgress(null);
@@ -353,7 +559,7 @@ function App() {
       setSelectedGenerationSectionIds(new Set());
       setIsExportDialogOpen(false);
       setSelectedExportSectionIds(new Set());
-      setIsRawDataExpanded(false);
+      setActiveContextPanel(null);
       setFlashMessage(
         "Loaded V10 mockup export as evidence only. Click Generate Sections and choose which sections to create.",
       );
@@ -364,6 +570,55 @@ function App() {
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Unable to load the workspace.");
       setFlashMessage("Unable to load the V10 mockup export.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  const handleOpenReportJob = async (reportJobId: string) => {
+    setIsLoadingData(true);
+    setLoadError(null);
+    setFlashMessage("Opening the inspection app export and report workspace...");
+    try {
+      const payload = await loadReportJob(reportJobId);
+      const hydration = hydrateWorkspaceFromApiState(payload);
+      const nextReport = payload.sectionDrafts?.length
+        ? cloneReport(hydration.report)
+        : resetReportOutputState(cloneReport(hydration.baselineReport));
+      setReport(nextReport);
+      setBaselineReport(cloneReport(hydration.baselineReport));
+      const defaultSection =
+        nextReport.sections.find((section) => section.id === "scope-of-inspection")?.id ??
+        nextReport.sections[0]?.id ??
+        "";
+      setSelectedSectionId(defaultSection);
+      const initialChats = buildInitialChats(nextReport);
+      setChats(initialChats);
+      chatsRef.current = initialChats;
+      const defaultRawInputs = Object.fromEntries(
+        nextReport.sections.map((section) => [section.id, buildDefaultRawGenerationInput(section)]),
+      );
+      setRawGenerationInputs({
+        ...defaultRawInputs,
+        ...loadSavedRawGenerationInputs(nextReport.id, principal.userId),
+      });
+      setGeneratedPreviewSectionIds(new Set(
+        nextReport.sections.filter((section) => section.generated).map((section) => section.id),
+      ));
+      setTargetedChatContext(null);
+      setExternalTargetedEdit(null);
+      setSectionOutputHistory({});
+      setEvalRuns(payload.evalRun ? { [payload.evalRun.sectionId]: payload.evalRun } : {});
+      setGenerationProgress(null);
+      setActiveContextPanel(null);
+      setActiveMarkerId(null);
+      setActivePlateId(null);
+      setSelectedLayoutSurface("roof");
+      setAiStatus(payload.aiStatus ?? null);
+      setFlashMessage("Opened the report created from the authenticated LAIQ inspection app export.");
+    } catch (error) {
+      setReportInboxError(formatErrorMessage(error));
+      setFlashMessage("Unable to open the selected report job.");
     } finally {
       setIsLoadingData(false);
     }
@@ -415,10 +670,21 @@ function App() {
   ).length;
 
   const currentChat = selectedSection ? chats[selectedSection.id] ?? [] : [];
+  const activeTargetedChatContext = report && selectedSection
+    && targetedChatContext?.reportId === report.id
+    && targetedChatContext?.sectionId === selectedSection.id
+    ? targetedChatContext
+    : null;
   const selectedRawGenerationInput = rawGenerationInputs[selectedSection?.id ?? ""] ?? "";
   const hasGeneratedPreview = selectedSection
     ? generatedPreviewSectionIds.has(selectedSection.id) || selectedSection.generated
     : false;
+  const selectedSectionStatus = selectedSection
+    ? deriveStatus(selectedSection, generatedPreviewSectionIds)
+    : "not started";
+  const isSelectedSectionGenerating = Boolean(
+    isGenerating && selectedSection && generatingSectionId === selectedSection.id,
+  );
   const selectedEvalRun = selectedSection ? evalRuns[selectedSection.id] : undefined;
   const selectedPreviousOutput = selectedSection ? sectionOutputHistory[selectedSection.id] : undefined;
   const selectedCanRestorePrevious = Boolean(
@@ -427,29 +693,40 @@ function App() {
   const unresolvedMissingCount = selectedSection
     ? selectedSection.missingFields.filter((field) => !field.value.trim()).length
     : 0;
+  const selectedEvalMatchesManualInputs = useMemo(() => {
+    if (!selectedSection || !selectedEvalRun) return true;
+    const currentMissingIds = selectedSection.missingFields
+      .filter((field) => !field.value.trim())
+      .map((field) => field.id)
+      .sort();
+    const evaluatedMissingIds = selectedEvalRun.missingUserInputs.missingManualFields
+      .map((field) => field.fieldKey)
+      .sort();
+    return currentMissingIds.join("|") === evaluatedMissingIds.join("|");
+  }, [selectedEvalRun, selectedSection]);
+  const selectedMissingFields = useMemo(
+    () => selectedSection
+      ? addDraftSuggestionsToMissingFields(selectedSection.missingFields, selectedSection.content)
+      : [],
+    [selectedSection],
+  );
   const layoutMapSections = useMemo(() => {
-    const sectionsBySurface = new Map<LayoutSurfaceType, ReportSection>();
-
-    for (const section of report?.sections ?? []) {
-      const surface = section.layoutMap?.appMap?.surfaceType;
-      if (surface && !sectionsBySurface.has(surface)) {
-        sectionsBySurface.set(surface, section);
-      }
-    }
-
-    return LAYOUT_SURFACE_ORDER.map((surface) => sectionsBySurface.get(surface)).filter(
-      (section): section is ReportSection => section != null,
-    );
+    const sections = report?.sections ?? [];
+    return LAYOUT_SURFACE_ORDER.map((surface) => {
+      const preferredSection = sections.find(
+        (section) =>
+          section.id === PREFERRED_LAYOUT_SECTION_IDS[surface]
+          && section.layoutMap?.appMap?.surfaceType === surface,
+      );
+      return preferredSection
+        ?? sections.find((section) => section.layoutMap?.appMap?.surfaceType === surface);
+    }).filter((section): section is ReportSection => section != null);
   }, [report]);
   const activeLayoutSection = useMemo(
-    () => {
-      if (selectedSection?.layoutMap?.appMap?.surfaceType === selectedLayoutSurface) {
-        return selectedSection;
-      }
-      return layoutMapSections.find((section) => section.layoutMap?.appMap?.surfaceType === selectedLayoutSurface) ??
-        layoutMapSections[0];
-    },
-    [layoutMapSections, selectedLayoutSurface, selectedSection],
+    () => layoutMapSections.find(
+      (section) => section.layoutMap?.appMap?.surfaceType === selectedLayoutSurface,
+    ) ?? layoutMapSections[0],
+    [layoutMapSections, selectedLayoutSurface],
   );
   const visibleLayoutMap = useMemo(
     () => (activeLayoutSection?.layoutMap ? ensureLayoutMapData(activeLayoutSection.layoutMap) : undefined),
@@ -460,6 +737,7 @@ function App() {
     () => visibleLayoutMap?.floorCorrosion?.overlays.find((overlay) => overlay.hostPlateId === activePlateId),
     [activePlateId, visibleLayoutMap],
   );
+
   const workspaceGridStyle = useMemo(
     () =>
       ({
@@ -479,6 +757,99 @@ function App() {
     });
   }, [currentChat.length, selectedSectionId]);
 
+  useEffect(() => {
+    if (!targetedChatContext) return;
+    if (targetedChatContext.reportId === report?.id && targetedChatContext.sectionId === selectedSectionId) return;
+    setTargetedChatContext(null);
+    setExternalTargetedEdit(null);
+  }, [report?.id, selectedSectionId, targetedChatContext]);
+
+  if (showAccountManagement && isSuperAdmin) {
+    return <AccountManagement currentUserId={principal.userId} onClose={closeAccountManagement} />;
+  }
+
+  if (showEvaluationLab && isSuperAdmin) {
+    return (
+      <EvaluationLab
+        onClose={closeEvaluationLab}
+        onOpenAccounts={openAccountManagement}
+        onOpenKnowledgeBase={openKnowledgeBaseReview}
+        principal={principal}
+      />
+    );
+  }
+
+  if (showKnowledgeBaseReview && isSuperAdmin) {
+    return (
+      <KnowledgeBaseReview
+        onClose={closeKnowledgeBaseReview}
+        onOpenAccounts={openAccountManagement}
+        onOpenEvaluation={openEvaluationLab}
+        principal={principal}
+      />
+    );
+  }
+
+  if (showAccountManagement) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <div className="auth-brand">
+            <img alt="LAIQ" className="auth-logo" src="/laiq-logo.png" />
+            <div>
+              <p className="eyebrow">LAIQ Report Platform</p>
+              <h1>Super Admin access required</h1>
+            </div>
+          </div>
+          <p className="auth-intro">This account cannot manage platform users.</p>
+          <button className="auth-retry-button" onClick={closeAccountManagement} type="button">
+            Back to reports
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (showEvaluationLab) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <div className="auth-brand">
+            <img alt="LAIQ" className="auth-logo" src="/laiq-logo.png" />
+            <div>
+              <p className="eyebrow">LAIQ Report Platform</p>
+              <h1>Super Admin access required</h1>
+            </div>
+          </div>
+          <p className="auth-intro">The Evaluation Lab is isolated from inspector report workspaces.</p>
+          <button className="auth-retry-button" onClick={closeEvaluationLab} type="button">
+            Back to reports
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (showKnowledgeBaseReview) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <div className="auth-brand">
+            <img alt="LAIQ" className="auth-logo" src="/laiq-logo.png" />
+            <div>
+              <p className="eyebrow">LAIQ Report Platform</p>
+              <h1>Super Admin access required</h1>
+            </div>
+          </div>
+          <p className="auth-intro">Knowledge-base ingestion review is isolated from inspector report workspaces.</p>
+          <button className="auth-retry-button" onClick={closeKnowledgeBaseReview} type="button">
+            Back to reports
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   if (loadError) {
     return (
       <div className="workspace-app">
@@ -495,33 +866,88 @@ function App() {
   if (!report || !baselineReport || !selectedSection) {
     return (
       <div className="workspace-app">
-        <section className="load-data-shell">
-          <div className="load-data-card panel">
-            <p className="eyebrow">LAIQ Report Platform</p>
-            <h1>Start From LAIQ Inspection App V3 Export</h1>
-            <p>
-              Load the latest V10 mockup export fixture, then review the pre-processed readable app-data preview before
-              asking LAIQ AI Engine to generate any report section.
-            </p>
-            <div className="load-data-paths">
-              <code>apps/field-android/.../v3product/preview/ProductMockTaskSeed.kt</code>
-              <code>apps/report-platform/src/fixtures/v3-product-export-shell-internal.json</code>
+        <header className="report-inbox-topbar">
+          <div className="brand-lockup">
+            <img alt="LAIQ logo" className="brand-logo" src="/laiq-logo.png" />
+            <div>
+              <p className="eyebrow">LAIQ Report Platform</p>
+              <h1>Your Inspection Reports</h1>
+            </div>
+          </div>
+          <div className="report-inbox-actions">
+            {isSuperAdmin ? (
+              <>
+                <button className="toolbar-button toolbar-button-primary" onClick={openKnowledgeBaseReview} type="button">
+                  Review KB
+                </button>
+                <button className="toolbar-button toolbar-button-primary" onClick={openEvaluationLab} type="button">
+                  Evaluation Lab
+                </button>
+                <button className="toolbar-button" onClick={openAccountManagement} type="button">
+                  Manage accounts
+                </button>
+              </>
+            ) : null}
+            <div className="topbar-account" title={`${principal.tenantName} · ${principal.userId}`}>
+              <span>{principal.displayName}</span>
+              <button onClick={() => void signOut()} type="button">Sign out</button>
+            </div>
+          </div>
+        </header>
+
+        <main className="report-inbox-shell">
+          <section className="report-inbox-heading">
+            <div>
+              <p className="eyebrow">Connected App Data</p>
+              <h2>Reports received from the LAIQ inspection app</h2>
+              <p>Sign in to the inspection app with this same account, export a task, and send it here. It will appear in this list.</p>
+            </div>
+            <button className="toolbar-button" disabled={isLoadingReportInbox} onClick={() => void refreshReportInbox()} type="button">
+              {isLoadingReportInbox ? "Refreshing..." : "Refresh"}
+            </button>
+          </section>
+
+          {reportInboxError ? <p className="admin-feedback admin-feedback-error">{reportInboxError}</p> : null}
+          {isLoadingReportInbox ? <p className="report-inbox-empty">Loading connected reports...</p> : null}
+          {!isLoadingReportInbox && reportInbox.filter((item) => !item.isDemo).length === 0 ? (
+            <div className="report-inbox-empty">
+              <strong>No app exports received yet.</strong>
+              <span>Use Send to Report Platform from the inspection app, then refresh this page.</span>
+            </div>
+          ) : null}
+
+          <div className="report-inbox-grid">
+            {reportInbox.filter((item) => !item.isDemo).map((item) => (
+              <button
+                className="report-inbox-card"
+                disabled={isLoadingData}
+                key={item.reportJobId}
+                onClick={() => void handleOpenReportJob(item.reportJobId)}
+                type="button"
+              >
+                <span className="report-inbox-card-status">{item.statusCode}</span>
+                <strong>{item.reportReference}</strong>
+                <span>{item.client} · {item.tank}</span>
+                <small>{item.workspaceName} · Updated {new Date(item.updatedAtIso).toLocaleString()}</small>
+              </button>
+            ))}
+          </div>
+
+          <section className="report-demo-panel">
+            <div>
+              <p className="eyebrow">Demo Workspace</p>
+              <h2>V10 training package</h2>
+              <p>Use the synthetic fixture only for demonstrations and report-generation testing.</p>
             </div>
             <button className="toolbar-button toolbar-button-primary" disabled={isLoadingData} onClick={handleLoadMockupData} type="button">
-              {isLoadingData ? "Loading Mockup Data…" : "Load Mockup Data"}
+              {isLoadingData ? "Loading..." : "Open demo report"}
             </button>
-            <small>No LAIQ AI Engine generation runs until you click Generate Sections or use the chat panel.</small>
-          </div>
-        </section>
+          </section>
+          <small className="report-inbox-note">No LAIQ AI Engine generation runs until you explicitly choose Generate.</small>
+        </main>
       </div>
     );
   }
-
-  const reportClassification = (report.importSummary as ImportSummaryWithClassification).reportClassification;
-  const codeBasis = [
-    ...reportClassification.primaryCodes.map((code) => code.label),
-    ...reportClassification.supportingCodes.slice(0, 3).map((code) => code.label),
-  ].join(" · ");
 
   const updateSection = (sectionId: string, updater: (section: ReportSection) => ReportSection) => {
     setReport((current) =>
@@ -600,7 +1026,7 @@ function App() {
 
   const selectReportSection = (section: ReportSection) => {
     setSelectedSectionId(section.id);
-    setIsRawDataExpanded(false);
+    setActiveContextPanel(null);
     setActiveMarkerId(null);
     setActivePlateId(null);
     if (section.layoutMap?.appMap?.surfaceType) {
@@ -618,12 +1044,20 @@ function App() {
   };
 
   const syncSectionToBackend = async (section: ReportSection, includeLayoutOverride: boolean) => {
-    await saveManualInputsApi(report, section);
-    await saveSectionDraftApi(report, section);
+    const manualState = await saveManualInputsApi(report, section);
+    let persistedReport = applyPersistedRevisions(report, manualState);
+    let state = await saveSectionDraftApi(persistedReport, section);
+    persistedReport = applyPersistedRevisions(persistedReport, state);
 
     if (includeLayoutOverride && section.layoutMap) {
-      await saveLayoutOverrideApi(report, section.id, ensureLayoutMapData(section.layoutMap));
+      state = await saveLayoutOverrideApi(persistedReport, section.id, ensureLayoutMapData(section.layoutMap));
     }
+    syncPersistedSectionVersion(section.id, state);
+    return state;
+  };
+
+  const syncPersistedSectionVersion = (_sectionId: string, state: ApiReportJobState) => {
+    setReport((current) => current ? applyPersistedRevisions(current, state) : current);
   };
 
   const handleContentChange = (value: string) => {
@@ -633,6 +1067,224 @@ function App() {
       edited: true,
       approved: false,
     }));
+  };
+
+  const handleTargetedEditRequested = (request: {
+    action: TargetedEditAction;
+    instruction: string;
+    selectedText: string;
+  }) => {
+    appendSectionChatMessage(selectedSection.id, {
+      id: createBrowserId("targeted-user"),
+      role: "user",
+      content: request.instruction
+        ? `${targetedEditActionLabel(request.action)} selected content: ${request.instruction}`
+        : `${targetedEditActionLabel(request.action)} the selected content.`,
+      scope: "selection",
+      selectionPreview: summarizeSelection(request.selectedText),
+    });
+  };
+
+  const handleContinueTargetedEditInChat = (selection: TargetedEditSelection) => {
+    const context: TargetedChatContext = {
+      proposal: null,
+      reportId: report.id,
+      sectionId: selectedSection.id,
+      sectionTitle: selectedSection.title,
+      selection,
+      turns: [],
+    };
+    setTargetedChatContext(context);
+    setExternalTargetedEdit(null);
+    appendSectionChatMessage(selectedSection.id, {
+      id: createBrowserId("targeted-handoff"),
+      role: "assistant",
+      content: "Selection mode is active. Ask a follow-up below; I will change only the pinned text and preserve the rest of the section.",
+      scope: "selection",
+      selectionPreview: summarizeSelection(selection.selectedText),
+    });
+    setFlashMessage(`Transferred the highlighted content to the LAIQ AI Engine for ${selectedSection.title}.`);
+    window.requestAnimationFrame(() => chatInputRef.current?.focus({ preventScroll: false }));
+  };
+
+  const handleCancelTargetedChat = () => {
+    if (activeTargetedChatContext) {
+      appendSectionChatMessage(activeTargetedChatContext.sectionId, {
+        id: createBrowserId("targeted-exit"),
+        role: "assistant",
+        content: "Exited selection mode without changing the selected content.",
+        scope: "selection",
+        selectionPreview: summarizeSelection(activeTargetedChatContext.selection.selectedText),
+      });
+    }
+    setTargetedChatContext(null);
+    setExternalTargetedEdit(null);
+    setFlashMessage("Selection-scoped AI editing was cancelled. The report draft was not changed.");
+  };
+
+  const handleApplyTargetedChatProposal = () => {
+    if (!activeTargetedChatContext?.proposal) return;
+    setExternalTargetedEdit({
+      executionId: createBrowserId("targeted-execution"),
+      proposal: activeTargetedChatContext.proposal,
+      selection: activeTargetedChatContext.selection,
+    });
+  };
+
+  const handleExternalTargetedEditComplete = (result: { applied: boolean; executionId: string }) => {
+    setExternalTargetedEdit((current) => current?.executionId === result.executionId ? null : current);
+    if (result.applied || !activeTargetedChatContext) return;
+    appendSectionChatMessage(activeTargetedChatContext.sectionId, {
+      id: createBrowserId("targeted-failed"),
+      role: "assistant",
+      content: "The selection-scoped proposal was not applied. The original section remains available; refine the instruction or exit selection mode.",
+      scope: "selection",
+      selectionPreview: summarizeSelection(activeTargetedChatContext.selection.selectedText),
+    });
+  };
+
+  const handleRequestTargetedEdit = async (
+    request: Omit<TargetedEditRequest, "expectedVersion">,
+  ): Promise<TargetedEditProposal> => {
+    if (!hasGeneratedPreview) {
+      throw new Error("Generate this section before using targeted editing.");
+    }
+
+    if (selectedSection.version != null) {
+      try {
+        return await requestTargetedSectionEditApi(report, selectedSection.id, {
+          ...request,
+          expectedVersion: selectedSection.version,
+        });
+      } catch (error) {
+        const hasUnsavedEditorContent = error instanceof ReportApiError
+          && error.code === "targeted_edit_document_conflict";
+        if (!hasUnsavedEditorContent) throw error;
+      }
+    }
+
+    const currentDraft: ReportSection = {
+      ...selectedSection,
+      content: request.selection.documentHtml,
+      edited: true,
+      reviewRequired: true,
+    };
+    const savedState = await saveSectionDraftApi(report, currentDraft);
+    const savedDraft = savedState.sectionDrafts?.find(
+      (draft) => draft.sectionId === selectedSection.id,
+    );
+    if (!savedDraft) {
+      throw new Error("The saved section version could not be verified.");
+    }
+
+    updateSection(selectedSection.id, (section) => ({
+      ...section,
+      content: request.selection.documentHtml,
+      edited: true,
+      approved: savedDraft.approved,
+      reviewRequired: savedDraft.reviewRequired,
+      version: savedDraft.version,
+      previousVersionCount: savedDraft.previousVersionCount,
+    }));
+
+    return requestTargetedSectionEditApi(report, selectedSection.id, {
+      ...request,
+      expectedVersion: savedDraft.version,
+    });
+  };
+
+  const handleAcceptTargetedEdit = async (
+    nextContent: string,
+    proposal: TargetedEditProposal,
+  ) => {
+    if (proposal.sectionId !== selectedSection.id) {
+      throw new Error("This proposal belongs to another report section.");
+    }
+
+    snapshotSectionOutput(selectedSection);
+    const nextSection: ReportSection = {
+      ...selectedSection,
+      content: nextContent,
+      generated: true,
+      edited: true,
+      approved: false,
+      reviewRequired: true,
+      version: proposal.expectedVersion,
+    };
+    const state = await saveSectionDraftApi(report, nextSection, {
+      reasonCode: "targeted_ai_edit",
+    });
+    const savedDraft = state.sectionDrafts?.find(
+      (draft) => draft.sectionId === selectedSection.id,
+    );
+
+    updateSection(selectedSection.id, (section) => ({
+      ...section,
+      content: nextContent,
+      generated: true,
+      edited: true,
+      approved: false,
+      reviewRequired: true,
+      version: savedDraft?.version ?? section.version,
+      previousVersionCount: savedDraft?.previousVersionCount ?? section.previousVersionCount,
+    }));
+    setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
+    setFlashMessage(
+      `Updated only the highlighted content in ${selectedSection.title}. The previous version is available through Undo / Restore.`,
+    );
+    appendSectionChatMessage(selectedSection.id, {
+      id: createBrowserId("targeted-applied"),
+      role: "assistant",
+      content: "Applied the selection-scoped proposal. Review the highlighted replacement, then choose Keep or Undo beside the edited text.",
+      scope: "selection",
+      selectionPreview: summarizeSelection(
+        activeTargetedChatContext?.selection.selectedText ?? proposal.replacementText,
+      ),
+    });
+  };
+
+  const confirmDraftManualInputs = async (
+    section: ReportSection,
+  ): Promise<ReturnType<typeof applyConfirmedDraftManualInputs>> => {
+    const recognition = applyConfirmedDraftManualInputs(report, section);
+    if (recognition.confirmed.length === 0) return recognition;
+
+    const state = await saveManualInputValuesApi(
+      report,
+      Object.fromEntries(recognition.confirmed.map((candidate) => [candidate.fieldId, candidate.value])),
+    );
+    const nextReport = applyPersistedRevisions(recognition.report, state);
+    setReport(nextReport);
+    return { ...recognition, report: nextReport };
+  };
+
+  const handleKeepTargetedEdit = async (content: string): Promise<boolean> => {
+    try {
+      const recognition = await confirmDraftManualInputs({ ...selectedSection, content });
+      const confirmedLabels = recognition.confirmed
+        .map((candidate) => recognition.section.missingFields.find((field) => field.id === candidate.fieldId)?.label)
+        .filter((label): label is string => Boolean(label));
+      setFlashMessage(
+        confirmedLabels.length > 0
+          ? `Kept the targeted edit and saved confirmed report details: ${confirmedLabels.join(", ")}.`
+          : `Kept the targeted edit in ${selectedSection.title}.`,
+      );
+      appendSectionChatMessage(selectedSection.id, {
+        id: createBrowserId("targeted-kept"),
+        role: "assistant",
+        content: "Kept the selection-scoped edit and recorded it in the section version history.",
+        scope: "selection",
+        selectionPreview: summarizeSelection(
+          activeTargetedChatContext?.proposal?.replacementText ?? content,
+        ),
+      });
+      setTargetedChatContext(null);
+      setExternalTargetedEdit(null);
+      return true;
+    } catch (error) {
+      setFlashMessage(`The edit was kept, but detected report details were not saved: ${formatErrorMessage(error)}`);
+      return false;
+    }
   };
 
   const handleFieldChange = (fieldId: string, value: string) => {
@@ -668,9 +1320,19 @@ function App() {
       return;
     }
 
-    const hasMissing = selectedSection.missingFields.some((field) => !field.value.trim());
-    if (hasMissing) {
-      setFlashMessage("Complete the missing-content panel before approving this section.");
+    let approvalSection = selectedSection;
+    try {
+      approvalSection = (await confirmDraftManualInputs(selectedSection)).section;
+    } catch (error) {
+      setFlashMessage(`Unable to confirm report details before approval: ${formatErrorMessage(error)}`);
+      return;
+    }
+
+    const missingFields = approvalSection.missingFields.filter((field) => !field.value.trim());
+    if (missingFields.length > 0) {
+      setFlashMessage(
+        `Complete this information before approval: ${missingFields.map((field) => field.label).join(", ")}.`,
+      );
       return;
     }
 
@@ -691,23 +1353,52 @@ function App() {
     }
 
     const nextSection: ReportSection = {
-      ...selectedSection,
+      ...approvalSection,
       approved: false,
       reviewRequired: true,
       layoutMap: safeLayoutMap,
     };
 
     try {
-      await syncSectionToBackend(nextSection, Boolean(nextSection.layoutMap));
-      await approveSectionApi(report, selectedSection.id);
+      const syncedState = await syncSectionToBackend(nextSection, Boolean(nextSection.layoutMap));
+      const expectedVersion = syncedState.sectionDrafts
+        ?.find((draft) => draft.sectionId === selectedSection.id)
+        ?.version;
+      if (expectedVersion == null) {
+        throw new Error("The saved section version could not be confirmed before approval.");
+      }
+      const approvedState = await approveSectionApi(report, selectedSection.id, expectedVersion);
+      const approvedVersion = approvedState.sectionDrafts
+        ?.find((draft) => draft.sectionId === selectedSection.id)
+        ?.version;
       updateSection(selectedSection.id, (section) => ({
         ...section,
         approved: true,
         reviewRequired: false,
+        missingFields: nextSection.missingFields,
         layoutMap: safeLayoutMap,
+        version: approvedVersion ?? section.version,
       }));
       setFlashMessage(`${selectedSection.title} approved and persisted to the backend report job.`);
     } catch (error) {
+      if (error instanceof ReportApiError && error.code === "section_version_conflict") {
+        try {
+          const payload = await loadReportJob(report.id);
+          const hydration = hydrateWorkspaceFromApiState(payload);
+          setReport(cloneReport(hydration.report));
+          setBaselineReport(cloneReport(hydration.baselineReport));
+          setSelectedSectionId(selectedSection.id);
+          setFlashMessage(
+            `${selectedSection.title} changed in another session. The latest saved version has been reloaded for review.`,
+          );
+          return;
+        } catch (reloadError) {
+          setFlashMessage(
+            `Approval was blocked by a newer section version, and reload failed: ${formatErrorMessage(reloadError)}`,
+          );
+          return;
+        }
+      }
       setFlashMessage(`Unable to approve ${selectedSection.title}: ${formatErrorMessage(error)}`);
     }
   };
@@ -800,18 +1491,16 @@ function App() {
     }
   };
 
-  const handleGenerateSelectedSections = async () => {
+  const generateSections = async (sectionsToGenerate: ReportSection[]) => {
     if (!report) return;
 
-    const sectionsToGenerate = reportTocSections.filter((section) =>
-      selectedGenerationSectionIds.has(section.id),
-    );
     if (sectionsToGenerate.length === 0) {
       setFlashMessage("Select at least one report section before starting generation.");
       return;
     }
 
     setIsGenerating(true);
+    setGeneratingSectionId(null);
     setEvalRuns((current) => {
       const next = { ...current };
       for (const section of sectionsToGenerate) {
@@ -837,6 +1526,7 @@ function App() {
         const section = workingReport.sections.find((item) => item.id === sectionId) ?? sectionsToGenerate[index];
         const label = `${index + 1}/${sectionsToGenerate.length} · ${section.title}`;
 
+        setGeneratingSectionId(section.id);
         setGenerationProgress({
           current: index,
           total: sectionsToGenerate.length,
@@ -845,7 +1535,8 @@ function App() {
         setSelectedSectionId(section.id);
         setFlashMessage(`Generating section ${label}.`);
 
-        await saveManualInputsApi(workingReport, section);
+        const manualState = await saveManualInputsApi(workingReport, section);
+        workingReport = applyPersistedRevisions(workingReport, manualState);
         const userInstruction = rawGenerationInputs[section.id] ?? buildDefaultRawGenerationInput(section);
         const payload = await generateSectionApi(workingReport, section.id, userInstruction);
         const hydrated = hydrateWorkspaceFromApiState(payload, getHydrationApiBaseUrl(workingReport));
@@ -890,8 +1581,38 @@ function App() {
     } catch (error) {
       setFlashMessage(`Generation stopped: ${formatErrorMessage(error)}`);
     } finally {
+      setGeneratingSectionId(null);
       setIsGenerating(false);
     }
+  };
+
+  const handleGenerateSelectedSections = async () => {
+    const sectionsToGenerate = reportTocSections.filter((section) =>
+      selectedGenerationSectionIds.has(section.id),
+    );
+    await generateSections(sectionsToGenerate);
+  };
+
+  const handleGenerateSectionShortcut = async (section: ReportSection) => {
+    if (isGenerating) {
+      setFlashMessage("Wait for the current generation queue to finish before starting another section.");
+      return;
+    }
+
+    setSelectedSectionId(section.id);
+    setActiveContextPanel(null);
+    setSelectedGenerationSectionIds(new Set([section.id]));
+
+    if (section.approved) {
+      setIsGenerationDialogOpen(true);
+      setIsExportDialogOpen(false);
+      setFlashMessage(
+        `${section.title} is approved. Confirm Generate Selected to replace it with a new editable version.`,
+      );
+      return;
+    }
+
+    await generateSections([section]);
   };
 
   const handleSaveDraft = async () => {
@@ -900,23 +1621,29 @@ function App() {
       return;
     }
 
-    const nextSection: ReportSection = {
+    const draftSection: ReportSection = {
       ...selectedSection,
       edited: true,
       approved: false,
       layoutMap: safeLayoutMap,
     };
 
-    updateSection(selectedSection.id, (section) => ({
-      ...section,
-      edited: true,
-      approved: false,
-      layoutMap: safeLayoutMap,
-    }));
-
     try {
+      const recognition = await confirmDraftManualInputs(draftSection);
+      const nextSection = recognition.section;
+      updateSection(selectedSection.id, (section) => ({
+        ...section,
+        edited: true,
+        approved: false,
+        missingFields: nextSection.missingFields,
+        layoutMap: safeLayoutMap,
+      }));
       await syncSectionToBackend(nextSection, Boolean(nextSection.layoutMap));
-      setFlashMessage(`${selectedSection.title} saved to the backend report job as a working draft.`);
+      setFlashMessage(
+        recognition.confirmed.length > 0
+          ? `${selectedSection.title} saved with ${recognition.confirmed.length} confirmed detail${recognition.confirmed.length === 1 ? "" : "s"} recognized from the draft.`
+          : `${selectedSection.title} saved to the backend report job as a working draft.`,
+      );
     } catch (error) {
       setFlashMessage(
         `${selectedSection.title} saved locally, but backend draft persistence failed: ${formatErrorMessage(error)}`,
@@ -927,7 +1654,7 @@ function App() {
   const handleRestorePreviousOutput = async () => {
     if (!selectedCanRestorePrevious) {
       setFlashMessage("No previous generated output is available for this section yet.");
-      return;
+      return false;
     }
 
     if ((selectedSection.previousVersionCount ?? 0) > 0) {
@@ -948,11 +1675,11 @@ function App() {
         setFlashMessage(
           `Restored the previous generated output for ${restoredSection?.title ?? selectedSection.title} from backend version history.`,
         );
-        return;
+        return true;
       } catch (error) {
         if (!selectedPreviousOutput) {
           setFlashMessage(`Unable to restore previous output from backend history: ${formatErrorMessage(error)}`);
-          return;
+          return false;
         }
 
         setFlashMessage(
@@ -963,7 +1690,7 @@ function App() {
 
     if (!selectedPreviousOutput) {
       setFlashMessage("No local previous generated output is available for this section yet.");
-      return;
+      return false;
     }
 
     const nextSection: ReportSection = {
@@ -992,13 +1719,33 @@ function App() {
     });
 
     try {
-      await saveSectionDraftApi(report, nextSection);
+      const state = await saveSectionDraftApi(report, nextSection);
+      syncPersistedSectionVersion(selectedSection.id, state);
       setFlashMessage(`Restored the previous generated output for ${selectedSection.title}. Review it before approval.`);
+      return true;
     } catch (error) {
       setFlashMessage(
         `Restored ${selectedSection.title} locally, but backend draft persistence failed: ${formatErrorMessage(error)}`,
       );
+      return false;
     }
+  };
+
+  const handleUndoTargetedEdit = async () => {
+    const restored = await handleRestorePreviousOutput();
+    if (!restored) return false;
+    appendSectionChatMessage(selectedSection.id, {
+      id: createBrowserId("targeted-undone"),
+      role: "assistant",
+      content: "Undid the selection-scoped edit and restored the previous section version.",
+      scope: "selection",
+      selectionPreview: activeTargetedChatContext
+        ? summarizeSelection(activeTargetedChatContext.selection.selectedText)
+        : undefined,
+    });
+    setTargetedChatContext(null);
+    setExternalTargetedEdit(null);
+    return true;
   };
 
   const persistLayoutMap = async (nextLayoutMap: LayoutMapData, summary: string) => {
@@ -1017,7 +1764,8 @@ function App() {
     }));
 
     try {
-      await saveLayoutOverrideApi(report, selectedSection.id, persistedLayoutMap);
+      const state = await saveLayoutOverrideApi(report, selectedSection.id, persistedLayoutMap);
+      syncPersistedSectionVersion(selectedSection.id, state);
       setFlashMessage(`${summary} and persisted it to the backend layout override store.`);
     } catch (error) {
       setFlashMessage(`${summary} locally, but backend layout persistence failed: ${formatErrorMessage(error)}`);
@@ -1025,18 +1773,22 @@ function App() {
   };
 
   const handleMflImport = async (file: File) => {
-    if (selectedSection.id !== "floor-plate-corrosion-plan") return;
+    const floorSectionId = activeLayoutSurface === "floor" ? activeLayoutSection?.id : undefined;
+    if (!floorSectionId) {
+      setFlashMessage("Open the Floor layout before importing MFL plate maps.");
+      return;
+    }
     setIsImportingMfl(true);
     setFlashMessage(`Extracting corrosion pixels from ${file.name} and matching plate IDs...`);
     try {
-      const state = await importFloorCorrosionMfl(report, selectedSection.id, file);
+      const state = await importFloorCorrosionMfl(report, floorSectionId, file);
       const hydrated = hydrateWorkspaceFromApiState(state, getHydrationApiBaseUrl(report));
-      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, selectedSection.id)));
+      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, floorSectionId)));
       setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
       setSelectedLayoutSurface("floor");
       setActiveMarkerId(null);
       setActivePlateId(null);
-      const map = hydrated.report.sections.find((section) => section.id === selectedSection.id)?.layoutMap?.floorCorrosion;
+      const map = hydrated.report.sections.find((section) => section.id === floorSectionId)?.layoutMap?.floorCorrosion;
       const errors = map?.validationIssues.filter((issue) => issue.severity === "error").length ?? 0;
       const reviews = map?.overlays.filter((overlay) => overlay.status === "orientation_review_required").length ?? 0;
       setFlashMessage(
@@ -1051,22 +1803,34 @@ function App() {
 
   const updateFloorCorrosionPlacement = async (
     overlay: FloorCorrosionOverlay,
-    changes: Partial<Pick<FloorCorrosionOverlay, "rotationDegrees" | "flipX" | "flipY" | "opacity">>,
+    changes: Partial<Pick<FloorCorrosionOverlay,
+      "rotationDegrees" | "scaleX" | "scaleY" | "offsetX" | "offsetY" | "opacity"
+    >>,
     summary: string,
     approved = false,
   ) => {
+    const floorSectionId = activeLayoutSurface === "floor" ? activeLayoutSection?.id : undefined;
+    if (!floorSectionId) {
+      setFlashMessage("Open the Floor layout before refining an MFL plate placement.");
+      return;
+    }
+    setIsUpdatingMflPlacement(true);
     try {
-      const state = await approveFloorCorrosionPlacement(report, selectedSection.id, {
+      const state = await approveFloorCorrosionPlacement(report, floorSectionId, {
         scanPlateId: overlay.scanPlateId,
         hostPlateId: overlay.hostPlateId,
         rotationDegrees: changes.rotationDegrees ?? overlay.rotationDegrees,
-        flipX: changes.flipX ?? overlay.flipX,
-        flipY: changes.flipY ?? overlay.flipY,
+        flipX: false,
+        flipY: false,
+        scaleX: changes.scaleX ?? overlay.scaleX ?? 1,
+        scaleY: changes.scaleY ?? overlay.scaleY ?? 1,
+        offsetX: changes.offsetX ?? overlay.offsetX ?? 0,
+        offsetY: changes.offsetY ?? overlay.offsetY ?? 0,
         opacity: changes.opacity ?? overlay.opacity,
         approved,
       });
       const hydrated = hydrateWorkspaceFromApiState(state, getHydrationApiBaseUrl(report));
-      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, selectedSection.id)));
+      setReport(cloneReport(preserveReportOutputAfterLayoutHydration(report, hydrated.report, floorSectionId)));
       setBaselineReport(resetReportOutputState(cloneReport(hydrated.baselineReport)));
       setFlashMessage(
         approved
@@ -1075,6 +1839,8 @@ function App() {
       );
     } catch (error) {
       setFlashMessage(`Unable to update MFL plate placement: ${formatErrorMessage(error)}`);
+    } finally {
+      setIsUpdatingMflPlacement(false);
     }
   };
 
@@ -1108,7 +1874,8 @@ function App() {
     setActivePlateId(null);
 
     try {
-      await saveLayoutOverrideApi(report, selectedSection.id, normalized);
+      const state = await saveLayoutOverrideApi(report, selectedSection.id, normalized);
+      syncPersistedSectionVersion(selectedSection.id, state);
       setFlashMessage(`Reset draft map overrides for ${selectedSection.title} and synced the baseline to the backend.`);
     } catch (error) {
       setFlashMessage(
@@ -1117,9 +1884,89 @@ function App() {
     }
   };
 
+  const sendTargetedChatPrompt = async (
+    prompt: string,
+    context: TargetedChatContext,
+  ) => {
+    const userMessage: ChatMessage = {
+      id: createBrowserId("targeted-chat-user"),
+      role: "user",
+      content: prompt,
+      scope: "selection",
+      selectionPreview: summarizeSelection(context.selection.selectedText),
+    };
+    appendSectionChatMessage(context.sectionId, userMessage);
+    setChatInput("");
+    setIsChatBusy(true);
+
+    try {
+      const proposal = await handleRequestTargetedEdit({
+        action: "custom",
+        instruction: buildTargetedConversationInstruction(context.turns, prompt),
+        selection: context.selection,
+      });
+      const nextTurn = {
+        instruction: prompt,
+        proposedText: proposal.replacementText,
+      };
+      setTargetedChatContext((current) => current?.sectionId === context.sectionId
+        ? {
+            ...current,
+            proposal,
+            turns: [...current.turns, nextTurn],
+          }
+        : current);
+      appendSectionChatMessage(context.sectionId, {
+        id: createBrowserId("targeted-chat-assistant"),
+        role: "assistant",
+        content: [
+          proposal.explanation || "Prepared a selection-scoped replacement.",
+          `Proposed replacement: ${proposal.replacementText}`,
+          proposal.warnings.length > 0 ? `Review note: ${proposal.warnings.join(" ")}` : "",
+          "Choose Apply to Selection, send another instruction to refine this proposal, or exit selection mode.",
+        ].filter(Boolean).join("\n\n"),
+        scope: "selection",
+        selectionPreview: summarizeSelection(context.selection.selectedText),
+        controlTrace: {
+          intent: prompt,
+          planner: "structured_planner",
+          risk: proposal.warnings.length > 0 ? "medium" : "low",
+          target: `${context.sectionId}:selection:${context.selection.selectionHash}`,
+          operation: "selection.proposeReplacement",
+          status: "needs_confirmation",
+          guardrails: [
+            "The proposal is bound to the selected range, section version, document hash, and protected app facts.",
+          ],
+          validation: [
+            "No report content changes until Apply to Selection is chosen.",
+          ],
+          userConfirmationRequired: true,
+          undoSnapshot: true,
+          reason: "LAIQ AI prepared a replacement for the pinned selection only.",
+        },
+      });
+      setFlashMessage(`Prepared a selection-scoped proposal for ${context.sectionTitle}.`);
+    } catch (error) {
+      appendSectionChatMessage(context.sectionId, {
+        id: createBrowserId("targeted-chat-error"),
+        role: "assistant",
+        content: `I could not prepare that selection-scoped edit: ${formatErrorMessage(error)} The report draft was not changed.`,
+        scope: "selection",
+        selectionPreview: summarizeSelection(context.selection.selectedText),
+      });
+      setFlashMessage(`Unable to prepare the selection-scoped edit for ${context.sectionTitle}.`);
+    } finally {
+      setIsChatBusy(false);
+    }
+  };
+
   const sendChatPrompt = async (prompt: string) => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
+    if (activeTargetedChatContext) {
+      await sendTargetedChatPrompt(trimmed, activeTargetedChatContext);
+      return;
+    }
     const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: trimmed };
     const latestSectionChat = chatsRef.current[selectedSection.id] ?? currentChat;
     const conversationHistory = [...latestSectionChat, userMessage].map((message) => ({
@@ -1140,8 +1987,10 @@ function App() {
     setIsChatBusy(true);
 
     try {
-      await saveManualInputsApi(report, selectedSection);
-      const reply = await sendSectionChatApi(report, selectedSection.id, trimmed, conversationHistory);
+      const manualState = await saveManualInputsApi(report, selectedSection);
+      const reportWithManualRevision = applyPersistedRevisions(report, manualState);
+      setReport(reportWithManualRevision);
+      const reply = await sendSectionChatApi(reportWithManualRevision, selectedSection.id, trimmed, conversationHistory);
       const actions = reply.actions ?? [];
       const replyContent = normalizeAssistantChatContent(reply.content, selectedSection.title);
       updateChats((current) => ({
@@ -1253,7 +2102,8 @@ function App() {
       setGeneratedPreviewSectionIds((current) => new Set(current).add(selectedSection.id));
 
       try {
-        await saveSectionDraftApi(report, nextSection);
+        const state = await saveSectionDraftApi(report, nextSection);
+        syncPersistedSectionVersion(selectedSection.id, state);
         setFlashMessage(`${action.label} applied through the LAIQ AI Engine controller.`);
       } catch (error) {
         setFlashMessage(`${action.label} applied locally, but draft persistence failed: ${formatErrorMessage(error)}`);
@@ -1368,6 +2218,30 @@ function App() {
           >
             {isExportingDocx ? "Exporting" : "Final DOCX"}
           </button>
+          <button
+            className="topbar-nav-button"
+            onClick={() => {
+              setReport(null);
+              setBaselineReport(null);
+              void refreshReportInbox();
+            }}
+            type="button"
+          >
+            Reports
+          </button>
+            {isSuperAdmin ? (
+              <>
+                <button className="topbar-nav-button" onClick={openKnowledgeBaseReview} type="button">
+                  Review KB
+                </button>
+                <button className="topbar-nav-button" onClick={openEvaluationLab} type="button">
+                Evaluation
+              </button>
+              <button className="topbar-nav-button" onClick={openAccountManagement} type="button">
+                Accounts
+              </button>
+            </>
+          ) : null}
           <div className="topbar-account" title={`${principal.tenantName} · ${principal.userId}`}>
             <span>{principal.displayName}</span>
             <button onClick={() => void signOut()} type="button">Sign out</button>
@@ -1387,34 +2261,6 @@ function App() {
           <span>{generationProgress.label}</span>
         </div>
       ) : null}
-      <section className="import-strip">
-        <div className="import-card">
-          <span className="meta-label">Source</span>
-          <strong>LAIQ Inspection App V3 Export</strong>
-          <p>{report.importSummary.dataSourceMode === "api" ? "Loaded from API" : "Loaded from fixture"}</p>
-        </div>
-        <div className="import-card">
-          <span className="meta-label">Inspection</span>
-          <strong>{report.importSummary.inspectionReference}</strong>
-          <p>
-            {report.importSummary.workflowScreen} · {report.importSummary.validationResults.filter((item) => item.passed).length}/
-            {report.importSummary.validationResults.length} validations passed
-          </p>
-        </div>
-        <div className="import-card">
-          <span className="meta-label">Classification</span>
-          <strong>{reportClassification.reportFamilyLabel}</strong>
-          <p>{reportClassification.primaryFormatPrecedent} · {codeBasis}</p>
-        </div>
-        <div className="import-card">
-          <span className="meta-label">LAIQ AI Engine</span>
-          <strong>Idle until user action</strong>
-          <p>
-            No generation runs on page load. {aiStatus?.statusLabel ?? "Worker status is available after load."}
-          </p>
-        </div>
-      </section>
-
       <main className="workspace-grid" style={workspaceGridStyle}>
         <aside className="panel sidebar">
           <div className="panel-header">
@@ -1439,12 +2285,19 @@ function App() {
             {reportTocSections.map((section) => {
               const status = deriveStatus(section, generatedPreviewSectionIds);
               const isActive = section.id === selectedSection.id;
+              const isSectionGenerating = isGenerating && generatingSectionId === section.id;
               const pageLabel = getSectionPageLabel(section);
               return (
                 <button
-                  className={`section-item ${isActive ? "section-item-active" : ""}`}
+                  className={[
+                    "section-item",
+                    isActive ? "section-item-active" : "",
+                    isSectionGenerating ? "section-item-generating" : "",
+                  ].filter(Boolean).join(" ")}
                   key={section.id}
                   onClick={() => selectReportSection(section)}
+                  onDoubleClick={() => void handleGenerateSectionShortcut(section)}
+                  title="Click to open. Double-click to generate this section."
                   type="button"
                 >
                   <div className="toc-row">
@@ -1452,11 +2305,21 @@ function App() {
                     <strong>{formatTocTitle(section)}</strong>
                     <span className="toc-leader" />
                     {pageLabel ? <span className="toc-page">{pageLabel}</span> : null}
-                    <span
-                      aria-label={`Section status: ${status}`}
-                      className={`toc-status-dot status-${status.replace(/\s+/g, "-")}`}
-                      title={status}
-                    />
+                    {isSectionGenerating ? (
+                      <span
+                        aria-label={`Generating ${section.title}`}
+                        className="toc-generation-indicator"
+                        title="LAIQ AI Engine is generating this section"
+                      >
+                        <GenerationHourglass />
+                      </span>
+                    ) : (
+                      <span
+                        aria-label={`Section status: ${status}`}
+                        className={`toc-status-dot status-${status.replace(/\s+/g, "-")}`}
+                        title={status}
+                      />
+                    )}
                   </div>
                 </button>
               );
@@ -1478,7 +2341,24 @@ function App() {
               <p className="eyebrow">{selectedSection.kind} section</p>
               <h2>{selectedSection.title}</h2>
             </div>
-            <div className="toolbar">
+            <div className="workspace-context-actions">
+              <button
+                aria-expanded={activeContextPanel === "app-data"}
+                className={`toolbar-button context-toggle-button ${activeContextPanel === "app-data" ? "context-toggle-button-active" : ""}`}
+                onClick={() => setActiveContextPanel((current) => current === "app-data" ? null : "app-data")}
+                type="button"
+              >
+                App Data
+              </button>
+              <button
+                aria-expanded={activeContextPanel === "layout-map"}
+                className={`toolbar-button context-toggle-button ${activeContextPanel === "layout-map" ? "context-toggle-button-active" : ""}`}
+                disabled={layoutMapSections.length === 0}
+                onClick={() => setActiveContextPanel((current) => current === "layout-map" ? null : "layout-map")}
+                type="button"
+              >
+                Layout Map
+              </button>
               <button className="toolbar-button" disabled={!hasGeneratedPreview} onClick={handleSaveDraft} type="button">
                 Save Draft
               </button>
@@ -1486,24 +2366,23 @@ function App() {
           </div>
 
           <div className="report-workflow-stack">
-            <section className="panel-subsection raw-data-pane">
-              <div className="subsection-header">
-                <div>
-                  <p className="eyebrow">Step 1 · App Export Evidence</p>
-                  <h3>Prompt + Readable App Data Preview</h3>
-                  <p className="source-note">{selectedSection.sourceSummary}</p>
+            {activeContextPanel === "app-data" ? (
+              <section className="panel-subsection workspace-context-drawer raw-data-pane">
+                <div className="subsection-header">
+                  <div>
+                    <p className="eyebrow">Section Context</p>
+                    <h3>App Data And Generation Guidance</h3>
+                    <p className="source-note">{selectedSection.sourceSummary}</p>
+                  </div>
+                  <div className="raw-data-actions">
+                    <button className="toolbar-button toolbar-button-primary" onClick={handleSaveRawGenerationInput} type="button">
+                      Save Input
+                    </button>
+                    <button className="toolbar-button" onClick={() => setActiveContextPanel(null)} type="button">
+                      Close
+                    </button>
+                  </div>
                 </div>
-                <div className="raw-data-actions">
-                  <button className="toolbar-button" onClick={() => setIsRawDataExpanded((current) => !current)} type="button">
-                    {isRawDataExpanded ? "Hide" : "Preview / Edit"}
-                  </button>
-                  <button className="toolbar-button toolbar-button-primary" onClick={handleSaveRawGenerationInput} type="button">
-                    Save Input
-                  </button>
-                </div>
-              </div>
-
-              {isRawDataExpanded ? (
                 <div className="raw-generation-card">
                   <div className="mini-card-header">
                     <strong>Editable LAIQ AI Engine input for this section</strong>
@@ -1520,21 +2399,14 @@ function App() {
                     </small>
                   </div>
                 </div>
-              ) : (
-                <div className="raw-generation-collapsed">
-                  <strong>Evidence is ready for this section.</strong>
-                  <p>
-                    Hidden to save workspace height. Open Preview / Edit if you want to tune the prompt or readable
-                    app-data block before generation.
-                  </p>
-                </div>
-              )}
-            </section>
+              </section>
+            ) : null}
 
-            <section className="panel-subsection map-pane">
+            {activeContextPanel === "layout-map" ? (
+            <section className="panel-subsection workspace-context-drawer map-pane">
               <div className="subsection-header">
                 <div>
-                  <p className="eyebrow">Step 2 · Layout Tool</p>
+                  <p className="eyebrow">Visual Context</p>
                   <h3>App Layout Maps</h3>
                   <p>
                     {visibleLayoutMap
@@ -1542,14 +2414,19 @@ function App() {
                       : "This section does not require a layout drawing in the first UI slice."}
                   </p>
                 </div>
-                {visibleLayoutMap ? (
-                  <span className="layout-surface-pill">
-                    {formatLayoutSurfaceTab(activeLayoutSurface)}
-                  </span>
-                ) : null}
+                <div className="workspace-context-drawer-actions">
+                  {visibleLayoutMap ? (
+                    <span className="layout-surface-pill">
+                      {formatLayoutSurfaceTab(activeLayoutSurface)}
+                    </span>
+                  ) : null}
+                  <button className="toolbar-button" onClick={() => setActiveContextPanel(null)} type="button">
+                    Close
+                  </button>
+                </div>
               </div>
 
-              {selectedSection.id === "floor-plate-corrosion-plan" ? (
+              {activeLayoutSurface === "floor" ? (
                 <div className="floor-corrosion-toolbar">
                   <label className={`floor-corrosion-import ${isImportingMfl ? "is-busy" : ""}`}>
                     <input
@@ -1580,53 +2457,6 @@ function App() {
                         : "The app-exported floor plate IDs do not match this MFL report family. Correct the app layout before importing scans."}
                     </p>
                   )}
-                  {activeCorrosionOverlay ? (
-                    <div className="floor-corrosion-placement-controls" aria-label={`MFL placement for plate ${activeCorrosionOverlay.scanPlateId}`}>
-                      <strong>Plate {activeCorrosionOverlay.scanPlateId}</strong>
-                      <button
-                        onClick={() => void updateFloorCorrosionPlacement(
-                          activeCorrosionOverlay,
-                          { rotationDegrees: ((activeCorrosionOverlay.rotationDegrees + 90) % 360) as 0 | 90 | 180 | 270 },
-                          "Rotated the corrosion scan by 90 degrees.",
-                        )}
-                        type="button"
-                      >
-                        Rotate 90°
-                      </button>
-                      <button
-                        onClick={() => void updateFloorCorrosionPlacement(
-                          activeCorrosionOverlay,
-                          { flipX: !activeCorrosionOverlay.flipX },
-                          "Flipped the corrosion scan horizontally.",
-                        )}
-                        type="button"
-                      >
-                        Flip H
-                      </button>
-                      <button
-                        onClick={() => void updateFloorCorrosionPlacement(
-                          activeCorrosionOverlay,
-                          { flipY: !activeCorrosionOverlay.flipY },
-                          "Flipped the corrosion scan vertically.",
-                        )}
-                        type="button"
-                      >
-                        Flip V
-                      </button>
-                      <button
-                        className="primary"
-                        onClick={() => void updateFloorCorrosionPlacement(
-                          activeCorrosionOverlay,
-                          {},
-                          "Approved the current corrosion-scan orientation.",
-                          true,
-                        )}
-                        type="button"
-                      >
-                        Approve Placement
-                      </button>
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 
@@ -1650,22 +2480,40 @@ function App() {
               ) : null}
 
               {visibleLayoutMap ? (
-                <LayoutMapEditor
-                  activeMarkerId={activeMarkerId}
-                  activePlateId={activePlateId}
-                  layoutMap={visibleLayoutMap}
-                  onLayoutMapChange={persistLayoutMap}
-                  onMarkerSelect={setActiveMarkerId}
-                  onPlateSelect={setActivePlateId}
-                />
+                <>
+                  <LayoutMapEditor
+                    activeMarkerId={activeMarkerId}
+                    activePlateId={activePlateId}
+                    floorReviewControls={activeCorrosionOverlay ? (
+                      <FloorCorrosionRefinementControls
+                        disabled={isUpdatingMflPlacement}
+                        onUpdate={(changes, summary, approved) => void updateFloorCorrosionPlacement(
+                          activeCorrosionOverlay,
+                          changes,
+                          summary,
+                          approved,
+                        )}
+                        overlay={activeCorrosionOverlay}
+                      />
+                    ) : undefined}
+                    layoutMap={visibleLayoutMap}
+                    onLayoutMapChange={persistLayoutMap}
+                    onMarkerSelect={setActiveMarkerId}
+                    onPlateSelect={setActivePlateId}
+                    showFloorSourcePreview={!activeCorrosionOverlay}
+                  />
+                </>
               ) : (
                 <div className="empty-map-pane">
                   <p>Lower workspace is available for maps, sketches, photos, or form-like visual blocks when a section requires them.</p>
                 </div>
               )}
             </section>
+            ) : null}
 
-            <section className="panel-subsection text-pane">
+            <section
+              className={`panel-subsection text-pane ${isSelectedSectionGenerating ? "text-pane-generating" : ""}`}
+            >
               <div className="subsection-header">
                 <div>
                   <p className="eyebrow">Step 3 · AI Draft</p>
@@ -1689,13 +2537,32 @@ function App() {
                       Undo / Restore
                     </button>
                   ) : null}
-                  <span className={`output-approval-pill ${selectedSection.approved ? "output-approval-pill-approved" : ""}`}>
-                    {selectedSection.approved ? "Approved" : "Pending approval"}
-                  </span>
+                  {isSelectedSectionGenerating ? (
+                    <span className="output-approval-pill output-approval-pill-generating">
+                      <GenerationHourglass />
+                      Generating
+                    </span>
+                  ) : (
+                    <span
+                      className={`output-approval-pill output-approval-pill-${selectedSectionStatus.replace(/\s+/g, "-")}`}
+                    >
+                      {formatSectionStatus(selectedSectionStatus)}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {hasGeneratedPreview && selectedEvalRun ? (
+              {isSelectedSectionGenerating ? (
+                <div className="section-generation-status" role="status">
+                  <GenerationHourglass />
+                  <div>
+                    <strong>LAIQ AI Engine is generating this section</strong>
+                    <span>The draft will appear here when validation and provenance checks finish.</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {hasGeneratedPreview && selectedEvalRun && selectedEvalMatchesManualInputs ? (
                 <div className={`eval-result-card eval-result-${selectedEvalRun.outcomeCode.replace(/_/g, "-")}`}>
                   <div className="eval-result-main">
                     <div>
@@ -1725,14 +2592,34 @@ function App() {
                 </div>
               ) : null}
 
-              {!hasGeneratedPreview ? (
-                <div className="draft-empty-state">
-                  <h4>No generated draft yet</h4>
-                  <p>
-                    Choose this section from Generate Sections. After generation, the editable report output will appear
-                    here for review and approval.
-                  </p>
+              {hasGeneratedPreview && selectedEvalRun && !selectedEvalMatchesManualInputs ? (
+                <div className="eval-result-card eval-result-refresh-required">
+                  <div className="eval-result-main">
+                    <div>
+                      <p className="eyebrow">Eval Guard</p>
+                      <h4>Refresh required</h4>
+                      <p>Confirmed report details changed after this evaluation. Regenerate the section to refresh its score.</p>
+                    </div>
+                  </div>
                 </div>
+              ) : null}
+
+              {!hasGeneratedPreview ? (
+                isSelectedSectionGenerating ? (
+                  <div className="draft-empty-state draft-generation-state" aria-hidden="true">
+                    <span className="draft-generation-line" />
+                    <span className="draft-generation-line draft-generation-line-short" />
+                    <span className="draft-generation-line" />
+                  </div>
+                ) : (
+                  <div className="draft-empty-state">
+                    <h4>No generated draft yet</h4>
+                    <p>
+                      Choose this section from Generate Sections. After generation, the editable report output will appear
+                      here for review and approval.
+                    </p>
+                  </div>
+                )
               ) : (
                 <>
                   {safeLayoutMap && selectedSection.kind === "map" ? (
@@ -1756,7 +2643,19 @@ function App() {
                       />
                     </div>
                   ) : null}
-                  <RichTextSectionEditor content={selectedSection.content} onChange={handleContentChange} />
+                  <RichTextSectionEditor
+                    content={selectedSection.content}
+                    externalTargetedEdit={externalTargetedEdit}
+                    onAcceptTargetedEdit={handleAcceptTargetedEdit}
+                    onChange={handleContentChange}
+                    onContinueTargetedEditInChat={handleContinueTargetedEditInChat}
+                    onExternalTargetedEditComplete={handleExternalTargetedEditComplete}
+                    onKeepTargetedEdit={handleKeepTargetedEdit}
+                    onRequestTargetedEdit={handleRequestTargetedEdit}
+                    onTargetedEditRequested={handleTargetedEditRequested}
+                    onUndoTargetedEdit={handleUndoTargetedEdit}
+                    targetedChatActive={Boolean(activeTargetedChatContext)}
+                  />
                   <div className="content-approval-footer">
                     <div>
                       <strong>{selectedSection.approved ? "Output approved" : "Ready after review?"}</strong>
@@ -1800,8 +2699,11 @@ function App() {
           tabIndex={0}
         />
 
-        <aside className="rightbar" aria-label="AI command and missing content panel">
-          <section className="panel ai-command-panel">
+        <aside
+          className="rightbar"
+          aria-label="AI command and missing content panel"
+        >
+          <section className={`panel ai-command-panel${activeTargetedChatContext ? " ai-command-panel-targeted" : ""}`}>
             <div className="assistant-panel-header">
               <div>
                 <p className="eyebrow">AI Command</p>
@@ -1825,9 +2727,9 @@ function App() {
               <span className={`assistant-missing-pill ${unresolvedMissingCount > 0 ? "assistant-missing-pill-alert" : ""}`}>
                 {unresolvedMissingCount} missing
               </span>
-              {selectedSection.missingFields.length > 0 ? (
+              {selectedMissingFields.length > 0 ? (
                 <div className="missing-inline-list" aria-label="Missing fields for this section">
-                  {selectedSection.missingFields.map((field) => (
+                  {selectedMissingFields.map((field) => (
                     <MissingFieldInlineEditor
                       field={field}
                       key={field.id}
@@ -1838,10 +2740,52 @@ function App() {
               ) : null}
             </div>
 
+            {activeTargetedChatContext ? (
+              <div className="targeted-chat-context-card" aria-label="Pinned selected content">
+                <div className="targeted-chat-context-header">
+                  <div>
+                    <span>Selection mode</span>
+                    <strong>Only this content can change</strong>
+                  </div>
+                  <button
+                    disabled={isChatBusy || Boolean(externalTargetedEdit)}
+                    onClick={handleCancelTargetedChat}
+                    type="button"
+                  >
+                    Exit
+                  </button>
+                </div>
+                <blockquote>{activeTargetedChatContext.selection.selectedText}</blockquote>
+                {activeTargetedChatContext.proposal ? (
+                  <div className="targeted-chat-proposal" aria-live="polite">
+                    <span>Latest proposal</span>
+                    <p>{activeTargetedChatContext.proposal.replacementText}</p>
+                    <button
+                      disabled={isChatBusy || Boolean(externalTargetedEdit)}
+                      onClick={handleApplyTargetedChatProposal}
+                      type="button"
+                    >
+                      {externalTargetedEdit ? "Applying…" : "Apply to Selection"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="targeted-chat-guidance">
+                    Ask a follow-up below. The rest of the section remains protected.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             <div className="chat-thread" aria-label="Assistant conversation" ref={chatThreadRef}>
               {currentChat.map((message, index) => (
                 <div className={`chat-bubble chat-${message.role}`} key={message.id}>
-                  <span className="chat-role">{message.role}</span>
+                  <div className="chat-message-heading">
+                    <span className="chat-role">{message.role}</span>
+                    {message.scope === "selection" ? <span className="chat-scope-pill">Selected content</span> : null}
+                  </div>
+                  {message.selectionPreview ? (
+                    <span className="chat-selection-preview">“{message.selectionPreview}”</span>
+                  ) : null}
                   <p>{message.content}</p>
                   {message.controlTrace ? (
                     <div className={`control-trace-card control-trace-${message.controlTrace.status}`}>
@@ -1899,7 +2843,10 @@ function App() {
                   }
                 }}
                 onChange={(event) => setChatInput(event.target.value)}
-                placeholder="Ask LAIQ AI to refine this section..."
+                placeholder={activeTargetedChatContext
+                  ? "Ask LAIQ AI to change only the pinned selection..."
+                  : "Ask LAIQ AI to refine this section..."}
+                ref={chatInputRef}
                 value={chatInput}
               />
               <button
@@ -2052,6 +2999,184 @@ function App() {
   );
 }
 
+type FloorCorrosionTransformChanges = Partial<Pick<FloorCorrosionOverlay,
+  "rotationDegrees" | "scaleX" | "scaleY" | "offsetX" | "offsetY" | "opacity"
+>>;
+
+function FloorCorrosionRefinementControls({
+  disabled,
+  onUpdate,
+  overlay,
+}: {
+  disabled: boolean;
+  onUpdate: (changes: FloorCorrosionTransformChanges, summary: string, approved?: boolean) => void;
+  overlay: FloorCorrosionOverlay;
+}) {
+  const scaleX = overlay.scaleX ?? 1;
+  const scaleY = overlay.scaleY ?? 1;
+  const offsetX = overlay.offsetX ?? 0;
+  const offsetY = overlay.offsetY ?? 0;
+  const adjust = (
+    changes: FloorCorrosionTransformChanges,
+    summary: string,
+  ) => onUpdate(changes, summary, false);
+
+  return (
+    <div className="floor-corrosion-refinement-shell">
+      <section
+        aria-label={`Refine MFL placement for plate ${overlay.scanPlateId}`}
+        className="floor-corrosion-refinement-panel"
+      >
+        <header>
+          <div>
+            <strong>Plate {overlay.scanPlateId} refinement</strong>
+            <span>Adjust the corrosion overlay; the original MFL preview stays unchanged.</span>
+          </div>
+          <span className={overlay.status === "approved" ? "is-approved" : "is-review"}>
+            {overlay.status === "approved" ? "Approved" : "Review required"}
+          </span>
+        </header>
+
+        <div className="floor-corrosion-nudge-grid">
+          <MflNudgeControl
+            disabled={disabled}
+            label="Size X"
+            onDecrease={() => adjust(
+              { scaleX: roundTransform(clampNumber(scaleX - 0.1, 0.5, 2.5)) },
+              "Moved the corrosion overlay right edge left by 10% of the plate width.",
+            )}
+            onIncrease={() => adjust(
+              { scaleX: roundTransform(clampNumber(scaleX + 0.1, 0.5, 2.5)) },
+              "Moved the corrosion overlay right edge right by 10% of the plate width.",
+            )}
+            value={formatTransformPercent(scaleX)}
+          />
+          <MflNudgeControl
+            disabled={disabled}
+            label="Size Y"
+            onDecrease={() => adjust(
+              { scaleY: roundTransform(clampNumber(scaleY - 0.1, 0.5, 2.5)) },
+              "Moved the corrosion overlay bottom edge up by 10% of the plate height.",
+            )}
+            onIncrease={() => adjust(
+              { scaleY: roundTransform(clampNumber(scaleY + 0.1, 0.5, 2.5)) },
+              "Moved the corrosion overlay bottom edge down by 10% of the plate height.",
+            )}
+            value={formatTransformPercent(scaleY)}
+          />
+          <MflNudgeControl
+            decreaseLabel="Move left"
+            disabled={disabled}
+            increaseLabel="Move right"
+            label="Offset X"
+            onDecrease={() => adjust(
+              { offsetX: roundTransform(clampNumber(offsetX - 0.05, -0.75, 0.75)) },
+              "Moved the corrosion overlay left by 5% of the plate width.",
+            )}
+            onIncrease={() => adjust(
+              { offsetX: roundTransform(clampNumber(offsetX + 0.05, -0.75, 0.75)) },
+              "Moved the corrosion overlay right by 5% of the plate width.",
+            )}
+            value={formatSignedTransformPercent(offsetX)}
+          />
+          <MflNudgeControl
+            decreaseLabel="Move up"
+            disabled={disabled}
+            increaseLabel="Move down"
+            label="Offset Y"
+            onDecrease={() => adjust(
+              { offsetY: roundTransform(clampNumber(offsetY - 0.05, -0.75, 0.75)) },
+              "Moved the corrosion overlay up by 5% of the plate height.",
+            )}
+            onIncrease={() => adjust(
+              { offsetY: roundTransform(clampNumber(offsetY + 0.05, -0.75, 0.75)) },
+              "Moved the corrosion overlay down by 5% of the plate height.",
+            )}
+            value={formatSignedTransformPercent(offsetY)}
+          />
+        </div>
+
+        <div className="floor-corrosion-transform-actions">
+          <button
+            disabled={disabled}
+            onClick={() => adjust(
+              { rotationDegrees: ((overlay.rotationDegrees + 90) % 360) as 0 | 90 | 180 | 270 },
+              "Rotated the corrosion overlay by 90 degrees.",
+            )}
+            type="button"
+          >
+            Rotate 90°
+          </button>
+          <button
+            disabled={disabled}
+            onClick={() => adjust(
+              {
+                rotationDegrees: 0,
+                scaleX: 1,
+                scaleY: 1,
+                offsetX: 0,
+                offsetY: 0,
+              },
+              "Reset the corrosion overlay transform.",
+            )}
+            type="button"
+          >
+            Reset
+          </button>
+          <button
+            className="primary"
+            disabled={disabled}
+            onClick={() => onUpdate({}, "Approved the current corrosion-overlay placement.", true)}
+            type="button"
+          >
+            {disabled ? "Saving..." : "Approve Placement"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MflNudgeControl({
+  decreaseLabel,
+  disabled,
+  increaseLabel,
+  label,
+  onDecrease,
+  onIncrease,
+  value,
+}: {
+  decreaseLabel?: string;
+  disabled: boolean;
+  increaseLabel?: string;
+  label: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  value: string;
+}) {
+  return (
+    <div className="floor-corrosion-nudge-control">
+      <span>{label}</span>
+      <button aria-label={decreaseLabel ?? `Decrease ${label}`} disabled={disabled} onClick={onDecrease} type="button">−</button>
+      <output>{value}</output>
+      <button aria-label={increaseLabel ?? `Increase ${label}`} disabled={disabled} onClick={onIncrease} type="button">+</button>
+    </div>
+  );
+}
+
+function roundTransform(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function formatTransformPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatSignedTransformPercent(value: number): string {
+  const percent = Math.round(value * 100);
+  return `${percent > 0 ? "+" : ""}${percent}%`;
+}
+
 function MissingFieldInlineEditor({
   field,
   onChange,
@@ -2068,6 +3193,11 @@ function MissingFieldInlineEditor({
       <small>
         {field.source} · {field.reason}
       </small>
+      {field.detectedDraftValue && isMissing ? (
+        <small className="missing-draft-detection">
+          Detected in the generated draft. Confirm it to use it as a structured report detail.
+        </small>
+      ) : null}
       {field.input === "textarea" ? (
         <textarea onChange={(event) => onChange(event.target.value)} value={field.value} />
       ) : field.input === "select" ? (
@@ -2084,7 +3214,7 @@ function MissingFieldInlineEditor({
       )}
       {hasSuggestion ? (
         <button className="missing-suggestion-button" onClick={() => onChange(field.suggestion ?? "")} type="button">
-          Use suggestion: {field.suggestion}
+          {field.detectedDraftValue ? "Confirm draft value" : "Use suggestion"}: {field.suggestion}
         </button>
       ) : null}
     </label>

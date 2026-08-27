@@ -5,6 +5,10 @@ description: Use when working in apps/report-platform to keep product boundaries
 
 # Report Platform Boundaries
 
+Read `SYSTEM_ARCHITECTURE.md` for whole-product boundaries and
+`DOCUMENTATION_INDEX.md` for the authoritative subsystem contract before
+using an older topology or implementation-plan file.
+
 ## Core Rule
 
 `apps/report-platform` is an independent product app. Do not mix report-platform changes with Android, root prototype, or commercial-output changes unless the user explicitly asks.
@@ -53,5 +57,6 @@ The LAIQ inspection app owns field capture and export packages. App facts enter 
 Before handoff:
 
 ```bash
+node apps/report-platform/server/scripts/audit-architecture-consistency.mjs
 apps/report-platform/scripts/report-platform-guardrails.sh --standard
 ```

@@ -22,16 +22,21 @@ Before report-platform work, read the relevant project-local skills:
 
 Use these as source-of-truth documents. Skills are compact operating checklists and should route back here instead of duplicating the full product thinking.
 
-- `README.md`: V1 Beta product status, runtime workflow, commands, and boundaries.
-- `GENERATED_CONTENT_CONTROL_SYSTEM.md`: LAIQ AI Engine control model, action traces, rollback, and future scripted transforms.
-- `AGENTIC_SYSTEM_DESIGN.md`: report compiler architecture, deterministic spine, section classes, evidence packs, and constrained LLM workers.
-- `REPORT_COMPILER_WORKFLOW.md`: product compiler workflow from app export to approved report export.
-- `BACKEND_STORAGE_ARCHITECTURE.md`: storage model, tenant/workspace alignment, and backend topology.
-- `PRECEDENT_KB_ARCHITECTURE.md`: precedent and standards KB design.
-- `EVAL_SYSTEM.md`: section evals, leak guard, missing-input discipline, and tuning loop.
-- `REPORT_GENERATION_AND_LAYOUTMAP_ORCHESTRATION.md`: report generation and layout-map orchestration.
-- `SAMPLE_REPORT_FORMATTING_REVIEW.md`: sample-report formatting conventions.
-- `FLOOR_CORROSION_MAP_PIPELINE.md`: deterministic MFL extraction, plate matching, orientation review, clipping, and floor-corrosion rendering.
+- `SYSTEM_ARCHITECTURE.md`: authoritative whole-product architecture and invariants.
+- `PRODUCT_TERMINOLOGY.md`: authoritative UI, workflow, and operator vocabulary.
+- `DOCUMENTATION_INDEX.md`: subsystem ownership, conflict order, and historical-document classification.
+- `README.md`: current V1 Beta capability, operation, and command summary.
+- Follow the authoritative subsystem contracts listed in `DOCUMENTATION_INDEX.md`.
+
+Do not treat `FULL_SYSTEM_DIAGRAM.md`, `REPORT_GENERATION_TOPOLOGY.md`,
+`AI_ENGINE_SYSTEM_DIAGRAM.md`, `AI_QUALITY_AND_LAYOUTMAP.md`,
+`CODEX_ROLES_AND_TOOLING.md`, `IMPLEMENTATION_PLAN.md`, or
+`PRODUCT_DEVELOPMENT_PLAN.md` as current implementation authority. They are
+historical design records.
+
+Use `Truth Case Builder` and `Truth Case` in all product-facing text. Stable
+database identifiers such as `report_training_cases` and `training_case_id`
+remain internal compatibility names and must not leak into UI labels.
 
 ## Product Boundary
 
@@ -65,14 +70,16 @@ Do not casually edit runtime/generated folders:
 
 ## Storage Rule
 
-SQLite is a local/internal V1 Beta fallback only. Do not design new commercial backend behavior that depends on SQLite file semantics, single-process writes, or local `.data` persistence.
+PostgreSQL is the only supported report-platform transactional database. Do not add SQLite, an embedded database fallback, a selectable database driver, or local database-file semantics.
 
-Product-standard backend work should target:
+Product-standard backend work must use:
 
 - Postgres for transactional tenant/workspace/report/audit state
 - pgvector for the first production vector retrieval layer
 - S3-compatible object storage for imports, attachments, layout-map figures, DOCX/PDF outputs, and KB source files
 - queue-backed workers for AI generation, export, indexing, and eval tasks
+
+Local development and automated audits use PostgreSQL through `compose.yaml`, so tests exercise the same database engine as deployment.
 
 Assume the first commercial deployment needs to support about 200 users and 50 concurrent active editors/reviewers.
 
@@ -82,8 +89,8 @@ Assume the first commercial deployment needs to support about 200 users and 50 c
 - API code must derive the actor from the authenticated principal, never from request-body actor or role fields.
 - App export metadata is provenance only and must never provision accounts or grant roles.
 - Every report, import, generation, review, export, and private KB query must enforce tenant and workspace scope.
-- Development identities are local/internal only and must fail closed in production.
-- Commercial identity integration should use the provider-neutral OIDC boundary documented in `AUTHENTICATION_AND_TENANCY.md`.
+- Username/password is the only current authentication path. Do not add a second runtime identity pathway without an explicit product decision.
+- Password hashes, hashed persistent sessions, and login throttles belong in PostgreSQL; plaintext passwords and raw session tokens must never be persisted.
 
 ## Runtime AI Rule
 
@@ -193,9 +200,20 @@ Use evidence before claiming success. For normal report-platform code changes, r
 
 ```bash
 npm --prefix apps/report-platform run build
+npm --prefix apps/report-platform run architecture:audit
 npm --prefix apps/report-platform run logic:audit
 STRICT_SAMPLE_LEAK=1 npm --prefix apps/report-platform run leak:audit
 npm --prefix apps/report-platform run api:audit
+npm --prefix apps/report-platform run storage:audit
+npm --prefix apps/report-platform run object-upload:audit
+npm --prefix apps/report-platform run floor-corrosion:durability-audit
+```
+
+For MFL persistence or rendering changes, also run the real reference/S3 integration with configured object storage:
+
+```bash
+npm --prefix apps/report-platform run floor-corrosion:audit
+npm --prefix apps/report-platform run floor-corrosion:object-storage-audit
 ```
 
 For demo or larger generation changes, also run:
@@ -208,5 +226,7 @@ For KB changes, also run:
 
 ```bash
 npm --prefix apps/report-platform run kb:audit
+npm --prefix apps/report-platform run kb:ingestion:audit
+npm --prefix apps/report-platform run kb:review:audit
 npm --prefix apps/report-platform run recommendation-kb:audit
 ```

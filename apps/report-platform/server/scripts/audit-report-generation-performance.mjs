@@ -1,6 +1,12 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  buildSectionRequiredFacts,
+  deriveWeakGoldRelevanceJudgments,
+  scoreGeneratedFactMetrics,
+  scoreRetrievalRanking,
+} from "../evaluation-metrics.mjs";
 
 // Keep this product gate deterministic. Live LAIQ AI Engine runs can be
 // evaluated separately once the baseline harness is stable.
@@ -77,6 +83,42 @@ for (const section of API_STANDARD_REPORT_TOC) {
     const goldText = findGoldTextForSection(section.id);
     const generatedText = normalizeText(stripHtml(result.draft.content));
     const goldSimilarity = scoreTokenF1(redactReferenceOnlyFacts(generatedText), redactReferenceOnlyFacts(goldText));
+    const relevanceLabels = deriveWeakGoldRelevanceJudgments({
+      chunks: precedentIndex.chunks,
+      goldSourceReportName,
+      maximumRelevantChunks: 12,
+      sectionId: section.id,
+    });
+    const retrievalApplicable = isRetrievalEvaluationApplicable(section);
+    const retrieval = retrievalApplicable
+      ? scoreRetrievalRanking({
+          goldChunkIds: relevanceLabels.goldChunkIds,
+          judgments: relevanceLabels.judgments,
+          k: 3,
+          retrieved: result.orchestration.evidenceChain?.precedentRefs ?? [],
+        })
+      : {
+          available: false,
+          notApplicable: true,
+          precisionAtK: 0,
+          recallAtK: 0,
+          f1AtK: 0,
+          ndcgAtK: 0,
+          reciprocalRank: 0,
+          sameGoldRetrievedCount: 0,
+        };
+    const generatedFacts = scoreGeneratedFactMetrics({
+      allowedEvidence: {
+        exportPackage: reportState.exportPackage,
+        manualInputs: reportState.manualSupplement,
+        calculations: result.orchestration.calculationOutputs,
+        mapArtifacts: result.orchestration.mapArtifacts,
+        standardRuleChecks: result.orchestration.standardRuleChecks,
+        reportClassification: result.orchestration.reportClassification,
+      },
+      generatedContent: result.draft.content,
+      requiredFacts: buildSectionRequiredFacts({ reportState, sectionId: section.id }),
+    });
     const structure = scoreStructure({ section, generatedContent: result.draft.content, generatedText });
     const evidence = scoreEvidenceCoverage({
       section,
@@ -92,13 +134,17 @@ for (const section of API_STANDARD_REPORT_TOC) {
       reportState,
     });
     const missingManualFields = getMissingManualFields(section.id);
-    const rawScore = clamp(
-      structure.score * 0.25 +
-        evidence.score * 0.25 +
-        goldSimilarity.f1 * 0.2 +
-        routing.score * 0.15 +
-        leakage.score * 0.15,
-    );
+    const rawScore = weightedAvailableScore([
+      metric(structure.score, 0.15),
+      metric(evidence.score, 0.15),
+      metric(goldSimilarity.f1, 0.1),
+      metric(routing.score, 0.1),
+      metric(leakage.score, 0.15),
+      metric(retrieval.precisionAtK, 0.1, retrieval.available),
+      metric(retrieval.recallAtK, 0.1, retrieval.available),
+      metric(generatedFacts.claimPrecision, 0.075, generatedFacts.claimPrecisionAvailable),
+      metric(generatedFacts.requiredFactRecall, 0.075, generatedFacts.requiredFactRecallAvailable),
+    ]);
     const score = applyCaps(rawScore, {
       missingManualFields,
       blockers: result.generationRun.blockers,
@@ -118,6 +164,11 @@ for (const section of API_STANDARD_REPORT_TOC) {
         goldStyleSimilarity: goldSimilarity.f1,
         routing: routing.score,
         leakageSafety: leakage.score,
+        retrievalPrecisionAt3: retrieval.available ? retrieval.precisionAtK : null,
+        retrievalRecallAt3: retrieval.available ? retrieval.recallAtK : null,
+        retrievalNdcgAt3: retrieval.available ? retrieval.ndcgAtK : null,
+        claimPrecision: generatedFacts.claimPrecisionAvailable ? generatedFacts.claimPrecision : null,
+        requiredFactRecall: generatedFacts.requiredFactRecallAvailable ? generatedFacts.requiredFactRecall : null,
         builtInEval: templateEval.score,
       },
       generatedLength: generatedText.length,
@@ -136,6 +187,13 @@ for (const section of API_STANDARD_REPORT_TOC) {
         tokenRecall: goldSimilarity.recall,
         overlapTokenCount: goldSimilarity.overlapCount,
       },
+      retrievalEvaluation: {
+        ...retrieval,
+        labelSource: relevanceLabels.labelSource,
+        labelReviewStatus: "machine_proposed",
+        labelReason: relevanceLabels.reason,
+      },
+      generatedContentEvaluation: generatedFacts,
       leakage,
       structureNotes: structure.notes,
       evidenceNotes: evidence.notes,
@@ -161,6 +219,11 @@ for (const section of API_STANDARD_REPORT_TOC) {
         goldStyleSimilarity: 0,
         routing: 0,
         leakageSafety: 0,
+        retrievalPrecisionAt3: null,
+        retrievalRecallAt3: null,
+        retrievalNdcgAt3: null,
+        claimPrecision: null,
+        requiredFactRecall: null,
         builtInEval: 0,
       },
       generatedLength: 0,
@@ -179,6 +242,20 @@ for (const section of API_STANDARD_REPORT_TOC) {
         tokenRecall: 0,
         overlapTokenCount: 0,
       },
+      retrievalEvaluation: {
+        available: false,
+        precisionAtK: 0,
+        recallAtK: 0,
+        f1AtK: 0,
+        ndcgAtK: 0,
+        reciprocalRank: 0,
+      },
+      generatedContentEvaluation: {
+        claimPrecisionAvailable: false,
+        claimPrecision: 0,
+        requiredFactRecallAvailable: false,
+        requiredFactRecall: 0,
+      },
       leakage: {
         score: 0,
         restrictedHits: [],
@@ -195,7 +272,7 @@ for (const section of API_STANDARD_REPORT_TOC) {
 
 const summary = buildSummary(sectionResults);
 const output = {
-  auditKey: "report_generation_performance.v1",
+  auditKey: "report_generation_performance.v2",
   createdAtIso: new Date().toISOString(),
   elapsedMs: Date.now() - startedAt,
   fixturePath,
@@ -208,7 +285,7 @@ const output = {
   },
   scoringPolicy: {
     sectionScore:
-      "0.25 structure + 0.25 current evidence coverage + 0.20 gold style/token similarity + 0.15 routing/tool correctness + 0.15 leakage safety.",
+      "Available-metric weighted score: 0.15 structure + 0.15 current evidence coverage + 0.10 lexical gold style + 0.10 routing + 0.15 leakage safety + 0.10 retrieval Precision@3 + 0.10 retrieval Recall@3 + 0.075 claim precision + 0.075 required-fact recall.",
     caps:
       "Generation blockers cap at 0.35. Restricted sample-report leaks cap at 0.38. Missing report-side fields cap at 0.72 because those sections can be structurally correct but not final.",
     interpretation:
@@ -243,6 +320,12 @@ function getMissingManualFields(sectionId) {
   return template.requiredManualFields
     .filter((fieldKey) => !String(reportState.manualSupplement[fieldKey] ?? "").trim())
     .map((fieldKey) => fieldKey);
+}
+
+function isRetrievalEvaluationApplicable(section) {
+  if (section.kind === "map") return false;
+  if (section.id === "tank-inspection-checklist") return false;
+  return !/thickness-measurements/.test(section.id);
 }
 
 function scoreStructure({ section, generatedContent, generatedText }) {
@@ -443,7 +526,19 @@ function applyCaps(rawScore, { missingManualFields, blockers, leakage }) {
 
 function buildSummary(sections) {
   const avg = average(sections.map((section) => section.score));
-  const dimensions = ["structure", "evidence", "goldStyleSimilarity", "routing", "leakageSafety", "builtInEval"];
+  const dimensions = [
+    "structure",
+    "evidence",
+    "goldStyleSimilarity",
+    "routing",
+    "leakageSafety",
+    "retrievalPrecisionAt3",
+    "retrievalRecallAt3",
+    "retrievalNdcgAt3",
+    "claimPrecision",
+    "requiredFactRecall",
+    "builtInEval",
+  ];
   return {
     sectionCount: sections.length,
     passCount: sections.filter((section) => section.status === "pass").length,
@@ -453,7 +548,9 @@ function buildSummary(sections) {
     averageDimensions: Object.fromEntries(
       dimensions.map((dimension) => [
         dimension,
-        average(sections.map((section) => section.dimensions[dimension] ?? 0)),
+        average(sections
+          .map((section) => section.dimensions[dimension])
+          .filter((value) => value != null)),
       ]),
     ),
     missingManualFieldSections: sections.filter((section) => section.missingManualFieldCount > 0).length,
@@ -509,10 +606,10 @@ function buildMarkdownReport(output) {
     "",
     "## Section Results",
     "",
-    "| # | Section | Kind | Status | Score | Structure | Evidence | Gold style | Routing | Leak safety | Missing fields |",
-    "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    "| # | Section | Status | Score | P@3 | R@3 | nDCG@3 | Claim P | Fact R | Leak safety | Missing |",
+    "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ...output.sections.map((section) =>
-      `| ${section.number} | ${escapeMarkdown(section.title)} | ${section.kind} | ${section.status} | ${percent(section.score)} | ${percent(section.dimensions.structure)} | ${percent(section.dimensions.evidence)} | ${percent(section.dimensions.goldStyleSimilarity)} | ${percent(section.dimensions.routing)} | ${percent(section.dimensions.leakageSafety)} | ${section.missingManualFieldCount} |`,
+      `| ${section.number} | ${escapeMarkdown(section.title)} | ${section.status} | ${percent(section.score)} | ${optionalPercent(section.dimensions.retrievalPrecisionAt3)} | ${optionalPercent(section.dimensions.retrievalRecallAt3)} | ${optionalPercent(section.dimensions.retrievalNdcgAt3)} | ${optionalPercent(section.dimensions.claimPrecision)} | ${optionalPercent(section.dimensions.requiredFactRecall)} | ${percent(section.dimensions.leakageSafety)} | ${section.missingManualFieldCount} |`,
     ),
     "",
     "## Weakest Sections",
@@ -524,6 +621,8 @@ function buildMarkdownReport(output) {
     "## Notes",
     "",
     "- Gold report text is used only after generation as an evaluator reference.",
+    "- Retrieval Precision@3, Recall@3, MRR, and nDCG@3 use machine-proposed qrels derived from the hidden gold section and non-gold precedent chunks. Promotion-grade use requires label review.",
+    "- Claim precision covers verifiable identifiers and numeric/unit claims; required-fact recall covers section-labelled facts from the paired app capture.",
     "- Low gold-style similarity is not automatically a failure when the current V3 app export intentionally uses sanitized/different facts.",
     "- Sections with missing report-side fields are capped because they are expected to need inspector/client input before final approval.",
   ];
@@ -570,6 +669,21 @@ function scoreTokenF1(leftText, rightText) {
     f1: precision + recall === 0 ? 0 : clamp((2 * precision * recall) / (precision + recall)),
     overlapCount,
   };
+}
+
+function metric(score, weight, available = true) {
+  return { available, score, weight };
+}
+
+function weightedAvailableScore(metrics) {
+  const available = metrics.filter((item) => item.available);
+  const weightTotal = available.reduce((sum, item) => sum + item.weight, 0);
+  if (weightTotal === 0) return 0;
+  return clamp(available.reduce((sum, item) => sum + item.score * item.weight, 0) / weightTotal);
+}
+
+function optionalPercent(value) {
+  return value == null ? "N/A" : percent(value);
 }
 
 function countTokens(tokens) {

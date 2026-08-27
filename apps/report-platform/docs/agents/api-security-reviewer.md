@@ -6,7 +6,7 @@ Use this role to review report-platform API, storage, demo exposure, and tenant/
 
 - API has no accidental public exposure
 - CORS/auth assumptions are explicit
-- raw export JSON and local SQLite are protected
+- raw export JSON and PostgreSQL tenant/workspace records are protected
 - tenant/workspace/user boundaries are respected
 - negative API paths return controlled errors
 - health/debug endpoints do not expose sensitive information in production mode

@@ -1,9 +1,313 @@
 import { randomUUID } from "node:crypto";
 import { getSectionTemplate, MANUAL_FIELD_LABELS } from "./generation.mjs";
-import { searchPrecedentPack } from "./precedent-kb.mjs";
+import {
+  loadPrecedentKbIndex,
+  searchPrecedentPack,
+} from "./precedent-kb.mjs";
 import { API_STANDARD_PRIMARY_REPORT } from "./report-toc.mjs";
+import { resolveEvaluationCase } from "./evaluation-cases.mjs";
+import {
+  buildSectionRequiredFacts,
+  deriveWeakGoldRelevanceJudgments,
+  EVALUATION_METRIC_SCHEMA_VERSION,
+  scoreGeneratedFactMetrics,
+  scoreRetrievalRanking,
+} from "./evaluation-metrics.mjs";
 
-const EVALUATOR_KEY = "deterministic_reference_guard.v1";
+const EVALUATOR_KEY = "deterministic_reference_guard.v2";
+
+export function evaluateTruthGraphRecovery({ facts = [], generatedContent }) {
+  const text = normalizeText(stripHtml(generatedContent)).toLowerCase();
+  const observable = facts.filter((fact) => ["app_observable", "voice_observable", "deterministic_derived"].includes(fact.answerability_class));
+  const required = observable.filter((fact) => Boolean(fact.required_fact));
+  const protectedFacts = observable.filter((fact) => ["measurement", "layout_geometry"].includes(fact.evidence_class)
+    || fact.safety_criticality === "critical");
+  const protectedDefaultUnit = /all readings (?:are |in )*mm\b/.test(observable.flatMap(factValueTokens).join(" ")) ? "mm" : "";
+  const requiredChecks = required.flatMap((fact) => ["measurement", "layout_geometry"].includes(fact.evidence_class)
+    ? buildProtectedChecks(fact, protectedDefaultUnit)
+    : [{ factId:fact.fact_id,kind:"fact",expected:factValueTokens(fact)[0]??fact.fact_id,matches:(value)=>matchesTruthFact(value,fact) }]);
+  const requiredMatchedChecks = requiredChecks.filter((check) => check.matches(text));
+  const protectedChecks = protectedFacts.flatMap((fact) => buildProtectedChecks(fact, protectedDefaultUnit));
+  const protectedMatchedChecks = protectedChecks.filter((check) => check.matches(text));
+  const verifiableClaims = extractNarrativeVerifiableClaims(text);
+  const goldText = normalizeText(observable.flatMap(factValueTokens).join(" "));
+  const unsupportedClaims = verifiableClaims.filter((claim) => !goldContainsEquivalentClaim(claim, goldText)
+    && !matchesDeterministicDifference(claim, text, goldText));
+  const claimPrecision = verifiableClaims.length === 0 ? 1 : (verifiableClaims.length - unsupportedClaims.length) / verifiableClaims.length;
+  const protectedFactAccuracy = protectedChecks.length === 0 ? 1 : protectedMatchedChecks.length / protectedChecks.length;
+  return {
+    goldStandardType: "approved_truth_graph",
+    observableFactCount: observable.length,
+    requiredFactCount: requiredChecks.length,
+    requiredSourceFactCount: required.length,
+    matchedRequiredFactCount: requiredMatchedChecks.length,
+    requiredFactRecall: requiredChecks.length === 0 ? 1 : requiredMatchedChecks.length / requiredChecks.length,
+    claimPrecision,
+    protectedFactCount: protectedChecks.length,
+    protectedSourceFactCount: protectedFacts.length,
+    protectedFactAccuracy,
+    protectedFactMismatchCount: protectedChecks.length - protectedMatchedChecks.length,
+    protectedFactMismatches: protectedChecks.filter((check) => !check.matches(text)).slice(0,20).map((check) => ({ factId:check.factId,kind:check.kind,expected:check.expected })),
+    unsupportedClaimCount: unsupportedClaims.length,
+    unsupportedClaims: unsupportedClaims.slice(0, 20),
+    containsGoldContentInGenerationState: false,
+  };
+}
+
+function extractNarrativeVerifiableClaims(text) {
+  const claims=[];
+  const pattern=/(?<![a-z0-9.])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|m|%|psi|mpa|bar))?\b/g;
+  for(const match of text.matchAll(pattern)){
+    const value=String(match[1]??"");
+    const unit=String(match[2]??"").toLowerCase();
+    const start=match.index??0;
+    const context=text.slice(Math.max(0,start-45),Math.min(text.length,start+value.length+45));
+    const signed=/^[+\-]/.test(value);
+    const measurementContext=/\b(?:thickness|reading|measurement|diameter|depth|loss|corrosion rate|remaining|minimum|maximum|limit|tolerance)\b/.test(context);
+    const codeReference=/\b(?:api|clause|section|item|figure|table|appendix)\s*[a-z.-]*\s*$/i.test(text.slice(Math.max(0,start-24),start));
+    if(unit||signed||(measurementContext&&!codeReference))claims.push(`${value}${unit?` ${unit}`:""}`.trim());
+  }
+  return claims;
+}
+
+export function evaluateGoldSectionRecovery({ goldContent = "", generatedContent = "", evaluationMode = "direct_recovery", minimumContentCoverage = 0.55 }) {
+  const goldText = normalizeText(stripHtml(goldContent)).toLowerCase();
+  const generatedText = normalizeText(stripHtml(generatedContent)).toLowerCase();
+  const goldTokens = new Set(contentTokens(goldText));
+  const generatedTokens = new Set(contentTokens(generatedText));
+  const matchedTokens = [...goldTokens].filter((token) => generatedTokens.has(token));
+  const contentCoverage = goldTokens.size === 0 ? null : matchedTokens.length / goldTokens.size;
+  const lengthRatio = goldText.length === 0 ? null : generatedText.length / goldText.length;
+  const lengthBalance = lengthRatio == null || lengthRatio <= 0 ? null : Math.min(lengthRatio, 1 / lengthRatio);
+  const goldTableRows = countTableRows(goldContent);
+  const generatedTableRows = countTableRows(generatedContent);
+  const tableStructureCoverage = goldTableRows === 0
+    ? (generatedTableRows === 0 ? null : 0)
+    : Math.min(generatedTableRows, goldTableRows) / goldTableRows;
+  return {
+    evaluationMode,
+    minimumContentCoverage:Number(minimumContentCoverage),
+    goldTokenCount: goldTokens.size,
+    matchedGoldTokenCount: matchedTokens.length,
+    contentCoverage,
+    goldCharacterCount: goldText.length,
+    generatedCharacterCount: generatedText.length,
+    lengthRatio,
+    lengthBalance,
+    goldTableRowCount: goldTableRows,
+    generatedTableRowCount: generatedTableRows,
+    tableStructureCoverage,
+  };
+}
+
+export function evaluateSectionFormatContract({ sectionId, goldContent = "", generatedContent = "" }) {
+  const gold = sectionStructure(goldContent);
+  const generated = sectionStructure(generatedContent);
+  const expectedKind = expectedSectionKind(sectionId, gold);
+  const checks = [
+    formatCheck("clean_export", "Clean export markup", generated.artifactCount === 0, generated.artifactCount === 0 ? 1 : 0, generated.artifacts),
+    formatCheck("section_heading", "Section heading", generated.headingCount > 0, generated.headingCount > 0 ? 1 : 0, ["A numbered section heading is required."]),
+    formatCheck("body_structure", "Readable body structure", generated.blockCount > 0, generated.blockCount > 0 ? 1 : 0, ["The section contains no readable report blocks."]),
+  ];
+  if (expectedKind === "table") {
+    checks.push(formatCheck("table_structure", "Table structure", generated.tableCount > 0, generated.tableCount > 0 ? rowBalance(gold.tableRowCount, generated.tableRowCount) : 0, ["This section requires a structured table."]));
+  } else if (expectedKind === "list") {
+    checks.push(formatCheck("finding_structure", "Finding/list structure", generated.listItemCount > 0, generated.listItemCount > 0 ? countBalance(gold.listItemCount, generated.listItemCount) : 0, ["This section requires grouped findings or recommendations."]));
+  } else {
+    checks.push(formatCheck("paragraph_structure", "Paragraph structure", generated.paragraphCount > 0, generated.paragraphCount > 0 ? countBalance(gold.paragraphCount, generated.paragraphCount) : 0, ["This section requires professional narrative paragraphs."]));
+  }
+  const score = checks.reduce((sum, check) => sum + check.score, 0) / checks.length;
+  return {
+    contractVersion: "irs_pdf_section_v1",
+    expectedKind,
+    score,
+    pass: score >= 0.8 && checks.every((check) => check.required !== true || check.pass),
+    checks,
+    goldStructure: gold,
+    generatedStructure: generated,
+  };
+}
+
+function sectionStructure(value) {
+  const source = String(value ?? "");
+  const text = normalizeText(stripHtml(source));
+  const markdownLines = source.split(/\r?\n/);
+  const markdownTableRows = markdownLines.filter((line) => /^\s*\|.*\|\s*$/.test(line) && !/^\s*\|(?:\s*:?-{3,}:?\s*\|)+\s*$/.test(line)).length;
+  const htmlTableRows = (source.match(/<tr\b/gi) ?? []).length;
+  const headingCount = (source.match(/<h[1-4]\b/gi) ?? []).length + markdownLines.filter((line) => /^\s*\d+(?:\.\d+)*\s+[A-Z]/.test(line)).length;
+  const listItemCount = (source.match(/<li\b/gi) ?? []).length + markdownLines.filter((line) => /^\s*(?:[•▪-]|\d+[.)])\s+/.test(line)).length;
+  const paragraphCount = Math.max((source.match(/<p\b/gi) ?? []).length, text.split(/\n\s*\n/).filter((item) => item.trim().length > 30).length);
+  const artifacts = [
+    ...(/(?:&quot;|\\n|\uFFFD|\{\s*"(?:text|sourceHeading|sourceBlockType)"\s*:)/i.test(source) ? ["Raw extraction or JSON artifacts are visible."] : []),
+    ...(/\b(?:lorem ipsum|undefined|null)\b/i.test(text) ? ["Placeholder or invalid values are visible."] : []),
+    ...(/\bpending confirmation\b/i.test(text) ? ["Unresolved placeholder language is visible."] : []),
+  ];
+  return {
+    characterCount: text.length,
+    headingCount,
+    paragraphCount,
+    listItemCount,
+    tableCount: (source.match(/<table\b/gi) ?? []).length + (markdownTableRows > 0 ? 1 : 0),
+    tableRowCount: Math.max(markdownTableRows, htmlTableRows),
+    blockCount: paragraphCount + listItemCount + Math.max(markdownTableRows, htmlTableRows),
+    artifactCount: artifacts.length,
+    artifacts,
+  };
+}
+
+function expectedSectionKind(sectionId, gold) {
+  if (/information|checklist|measurement|calculation|test-information/.test(String(sectionId))) return "table";
+  if (/inspection-report|recommendation|finding|scope/.test(String(sectionId)) || gold.listItemCount > 1) return "list";
+  if (gold.tableCount > 0) return "table";
+  return "narrative";
+}
+
+function formatCheck(key, label, pass, score, notes = []) {
+  return { key, label, pass, score: Math.max(0, Math.min(1, Number(score) || 0)), required: ["clean_export", "section_heading", "body_structure"].includes(key), notes: pass ? [] : notes };
+}
+
+function countBalance(expected, actual) {
+  if (!expected) return actual > 0 ? 1 : 0;
+  return Math.min(actual / expected, expected / Math.max(actual, 1));
+}
+
+function rowBalance(expected, actual) { return countBalance(expected, actual); }
+
+const CONTENT_STOP_WORDS = new Set("the a an and or of to in is are was were be been for from with by on at as that this it its their should may can could would report section tank inspection".split(" "));
+function contentTokens(value) { return (String(value).match(/[a-z][a-z0-9-]{2,}/g) ?? []).filter((token) => !CONTENT_STOP_WORDS.has(token)); }
+function countTableRows(value) {
+  const markdownRows = String(value).split(/\r?\n/).filter((line) => /^\s*\|.*\|\s*$/.test(line) && !/^\s*\|(?:\s*:?-{3,}:?\s*\|)+\s*$/.test(line)).length;
+  const htmlRows = (String(value).match(/<tr\b/gi) ?? []).length;
+  return Math.max(markdownRows, htmlRows);
+}
+
+function goldContainsEquivalentClaim(claim, goldText) {
+  if (goldText.includes(claim)) return true;
+  const parsed = String(claim).match(/^([+\-]?\d+(?:\.\d+)?)\s*(mm|cm|m|%|psi|mpa|bar)?$/);
+  if (!parsed) return false;
+  const targetNumber = canonicalNumber(parsed[1]);
+  const targetUnit = String(parsed[2] ?? "").toLowerCase();
+  return [...goldText.matchAll(/(?<![a-z0-9.])([+\-]?\d+(?:\.\d+)?)\s*(mm|cm|m|%|psi|mpa|bar)?\b/g)].some((match) => {
+    const sourceUnit = String(match[2] ?? "").toLowerCase();
+    return canonicalNumber(match[1]) === targetNumber && (!targetUnit || !sourceUnit || sourceUnit === targetUnit);
+  });
+}
+
+function matchesDeterministicDifference(claim, generatedText, goldText) {
+  const target = Number(String(claim).match(/[+\-]?\d+(?:\.\d+)?/)?.[0]);
+  if (!Number.isFinite(target)) return false;
+  const claimIndex = generatedText.indexOf(String(claim).toLowerCase());
+  if (claimIndex < 0) return false;
+  const nearby = generatedText.slice(Math.max(0, claimIndex - 100), claimIndex + String(claim).length + 100);
+  if (!/\b(?:difference|differential|exceed(?:ed|ing|s)?|above|below|margin|reduction|increase)\b/.test(nearby)) return false;
+  const sourceNumbers = [...goldText.matchAll(/[+\-]?\d+(?:\.\d+)?/g)].map((match) => Number(match[0])).filter(Number.isFinite);
+  for (let left = 0; left < sourceNumbers.length; left += 1) {
+    for (let right = left + 1; right < sourceNumbers.length; right += 1) {
+      if (Math.abs(Math.abs(sourceNumbers[left] - sourceNumbers[right]) - Math.abs(target)) < 0.000001) return true;
+    }
+  }
+  return false;
+}
+
+function buildProtectedChecks(fact, defaultUnit = "") {
+  if (!["measurement", "layout_geometry"].includes(fact.evidence_class)) {
+    return [{ factId: fact.fact_id, kind: "fact", expected: factValueTokens(fact)[0] ?? fact.fact_id, matches: (text) => matchesTruthFact(text, fact) }];
+  }
+  const source = factValueTokens(fact).join(" ");
+  const atomic = extractAtomicProtectedClaims(source, defaultUnit);
+  if (atomic.length === 0) return [{ factId: fact.fact_id, kind: "fact", expected: source, matches: (text) => matchesTruthFact(text, fact) }];
+  return atomic.map((claim) => ({ factId: fact.fact_id, ...claim, matches: (text) => claimMatches(text, claim) }));
+}
+
+function extractAtomicProtectedClaims(value, defaultUnit = "") {
+  const text = normalizeMeasurementText(value);
+  const claims = [];
+  for (const match of text.matchAll(/\b(?:station|course|plate|tank(?:\s+(?:no|number))?)\s*[:#.-]?\s*[a-z]?-?\d+(?:\.\d+)?\b/gi)) {
+    claims.push({ kind: "identity", expected: normalizeText(match[0]).toLowerCase() });
+  }
+  for (const match of text.matchAll(/(?:^|[^a-z0-9])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|mpa|psi|bar|ft|in|m|%))?/gi)) {
+    const explicitUnit = String(match[2] ?? "").toLowerCase();
+    const numeric = canonicalNumber(match[1]);
+    if (numeric == null || (!explicitUnit && Number(numeric) >= 1900 && Number(numeric) <= 2100)) continue;
+    const numericOffset=(match.index??0)+match[0].indexOf(match[1]);
+    const unit = explicitUnit || (defaultUnit && isBareTableNumericCell(text,numericOffset) ? defaultUnit : "");
+    claims.push({ kind: unit ? "measurement" : "numeric_identity", expected: unit ? `${numeric} ${unit}` : numeric, numeric, unit });
+  }
+  const seen = new Set();
+  return claims.filter((claim) => {
+    const key = `${claim.kind}:${claim.expected}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isBareTableNumericCell(text,index){const left=text.lastIndexOf("|",index);const right=text.indexOf("|",index);if(left<0||right<0)return false;const previousDelimiter=text.lastIndexOf("|",left-1);if(previousDelimiter<0||text.slice(previousDelimiter+1,left).trim()==="")return false;return /^[+\-]?\d+(?:\.\d+)?$/.test(text.slice(left+1,right).trim());}
+
+function claimMatches(generatedText, claim) {
+  const text = normalizeMeasurementText(generatedText);
+  if (claim.kind === "identity") return text.includes(claim.expected);
+  return extractGeneratedClaims(text).some((item) => item.numeric === claim.numeric && item.unit === claim.unit);
+}
+
+function extractGeneratedClaims(text) {
+  const claims = [];
+  for (const match of text.matchAll(/(?:^|[^a-z0-9])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|mpa|psi|bar|ft|in|m|%))?/gi)) {
+    const numeric = canonicalNumber(match[1]);
+    if (numeric != null) claims.push({ numeric, unit: String(match[2] ?? "").toLowerCase() });
+  }
+  return claims;
+}
+
+function canonicalNumber(value) {
+  const number = Number(String(value).replace(/^\+/, ""));
+  return Number.isFinite(number) ? String(number) : null;
+}
+
+function normalizeMeasurementText(value) {
+  return normalizeText(String(value ?? "").replace(/[−–—]/g, "-")).toLowerCase();
+}
+
+function factValueTokens(fact) {
+  const parsed = typeof fact.normalized_value_json === "string"
+    ? safeParseFactValue(fact.normalized_value_json)
+    : fact.normalized_value_json;
+  const values = collectPrimitiveFactValues(parsed);
+  const tokens = values.flatMap((value) => [value, fact.unit_code ? `${value} ${fact.unit_code}` : ""])
+    .map((item) => normalizeText(item).replace(/^[{"']+|[}"']+$/g, "").toLowerCase())
+    .filter((item) => item.length >= 2);
+  return [...new Set(tokens)];
+}
+
+function matchesTruthFact(generatedText, fact) {
+  const values = factValueTokens(fact);
+  if (values.some((value) => generatedText.includes(value))) return true;
+  const sourceWords = [...new Set(values.join(" ").match(/\b[a-z0-9][a-z0-9.-]{2,}\b/g) ?? [])];
+  if (sourceWords.length === 0) return false;
+  const numericWords = sourceWords.filter((word) => /\d/.test(word));
+  if (numericWords.length > 0 && !numericWords.every((word) => generatedText.includes(word))) return false;
+  const covered = sourceWords.filter((word) => generatedText.includes(word)).length;
+  const requiredCoverage = sourceWords.length <= 8 ? 0.75 : 0.35;
+  return covered / sourceWords.length >= requiredCoverage;
+}
+
+function safeParseFactValue(value) {
+  try { return JSON.parse(value); } catch { return value; }
+}
+
+function collectPrimitiveFactValues(value) {
+  if (value == null) return [];
+  if (["string", "number", "boolean"].includes(typeof value)) return [String(value)];
+  if (Array.isArray(value)) return value.flatMap(collectPrimitiveFactValues);
+  if (typeof value === "object") {
+    if (value.value != null) return collectPrimitiveFactValues(value.value);
+    if (value.text != null) return collectPrimitiveFactValues(value.text);
+    return Object.entries(value)
+      .filter(([key]) => !["sourceHeading", "sourceBlockType", "label", "type"].includes(key))
+      .flatMap(([, item]) => collectPrimitiveFactValues(item));
+  }
+  return [];
+}
 
 export function evaluateGeneratedSection({
   reportState,
@@ -15,8 +319,15 @@ export function evaluateGeneratedSection({
   const createdAtIso = new Date().toISOString();
   const template = getSectionTemplate(sectionId);
   const manualInputs = reportState.manualSupplement ?? {};
+  const hasCapturedSectionEvidence = (reportState.exportPackage?.captureFacts ?? [])
+    .some((fact) => fact.targetReportSectionId === sectionId);
   const missingManualFields = template.requiredManualFields
-    .filter((fieldKey) => !String(manualInputs[fieldKey] ?? "").trim())
+    .filter((fieldKey) => {
+      if (hasCapturedSectionEvidence && reportState.exportPackage?.captureScenarioProvenance) return false;
+      if (String(manualInputs[fieldKey] ?? "").trim()) return false;
+      if (hasCapturedSectionEvidence && (fieldKey === `${sectionId}-content-source` || fieldKey === `${sectionId}-layout-source`)) return false;
+      return true;
+    })
     .map((fieldKey) => ({
       fieldKey,
       label: MANUAL_FIELD_LABELS[fieldKey] ?? fieldKey,
@@ -26,7 +337,17 @@ export function evaluateGeneratedSection({
     reportState,
     limit: 10,
   });
-  const referenceChunks = selectReferenceChunks(precedentPack);
+  const evaluationCase = resolveEvaluationCase(reportState);
+  const precedentIndex = loadPrecedentKbIndex();
+  const goldSourceReportName = evaluationCase?.goldReference?.sourceReportName
+    ?? API_STANDARD_PRIMARY_REPORT.sourceReportName;
+  const goldReferenceChunks = precedentIndex.chunks.filter((chunk) => (
+    chunk.sourceReportName === goldSourceReportName
+      && chunk.sectionKey === sectionId
+  ));
+  const referenceChunks = goldReferenceChunks.length > 0
+    ? goldReferenceChunks
+    : selectReferenceChunks(precedentPack, goldSourceReportName);
   const referenceText = referenceChunks.map((chunk) => chunk.excerpt).join("\n\n");
   const generatedText = normalizeText(stripHtml(generatedContent));
   const allowedEvidenceText = normalizeText(
@@ -41,6 +362,53 @@ export function evaluateGeneratedSection({
   );
   const blockers = generationRun.blockers ?? [];
   const warnings = generationRun.warnings ?? [];
+  const relevanceLabels = deriveWeakGoldRelevanceJudgments({
+    chunks: precedentIndex.chunks,
+    goldSourceReportName,
+    maximumRelevantChunks:
+      evaluationCase?.retrievalLabels?.maximumRelevantChunksPerSection ?? 12,
+    sectionId,
+  });
+  const retrievalApplicable = isRetrievalEvaluationApplicable({
+    sectionId,
+    sectionKind: template.kind,
+    orchestration,
+  });
+  const retrievalMetrics = retrievalApplicable
+    ? scoreRetrievalRanking({
+        goldChunkIds: relevanceLabels.goldChunkIds,
+        judgments: relevanceLabels.judgments,
+        k: 3,
+        retrieved: orchestration?.evidenceChain?.precedentRefs
+          ?? (orchestration?.retrievalContext ?? []).filter((item) => item.sourceType === "precedent"),
+      })
+    : {
+        available: false,
+        notApplicable: true,
+        reason: "This section uses an approved deterministic compiler; precedent retrieval does not control its output.",
+        k: 3,
+        precisionAtK: 0,
+        recallAtK: 0,
+        f1AtK: 0,
+        reciprocalRank: 0,
+        ndcgAtK: 0,
+        sameGoldRetrievedCount: 0,
+        labelConfidence: relevanceLabels.labelConfidence,
+        labelSource: relevanceLabels.labelSource,
+      };
+  const generatedFactMetrics = scoreGeneratedFactMetrics({
+    allowedEvidence: {
+      exportPackage: reportState.exportPackage,
+      manualInputs,
+      calculations: orchestration?.calculationOutputs ?? [],
+      mapArtifacts: orchestration?.mapArtifacts ?? [],
+      standardRuleChecks: orchestration?.standardRuleChecks ?? [],
+      reportClassification: orchestration?.reportClassification ?? reportState.reportClassification,
+      userInstruction: orchestration?.userInstruction ?? "",
+    },
+    generatedContent,
+    requiredFacts: buildSectionRequiredFacts({ reportState, sectionId }),
+  });
   const referenceSimilarity = scoreReferenceSimilarity(generatedText, referenceText);
   const formatMatch = scoreFormatMatch({
     generatedText,
@@ -52,11 +420,12 @@ export function evaluateGeneratedSection({
     generatedText,
     missingManualFields,
   });
-  const leakage = detectReferenceLeakage({
+  const contentLeakage = detectReferenceLeakage({
     generatedText,
     referenceText,
     allowedEvidenceText,
   });
+  const leakage = mergeRetrievalLeakage(contentLeakage, retrievalMetrics);
   const sourceGrounding = scoreSourceGrounding({
     missingManualFields,
     blockers,
@@ -64,13 +433,25 @@ export function evaluateGeneratedSection({
     leakageRiskScore: leakage.riskScore,
   });
   const leakageSafety = clamp(1 - leakage.riskScore);
-  const rawScore = clamp(
-    formatMatch * 0.25 +
-      referenceSimilarity.score * 0.2 +
-      sourceGrounding * 0.25 +
-      missingInputDiscipline * 0.2 +
-      leakageSafety * 0.1,
-  );
+  const rawScore = weightedAvailableScore([
+    metricScore(formatMatch, 0.15),
+    metricScore(referenceSimilarity.score, 0.1),
+    metricScore(sourceGrounding, 0.15),
+    metricScore(missingInputDiscipline, 0.1),
+    metricScore(leakageSafety, 0.15),
+    metricScore(retrievalMetrics.precisionAtK, 0.1, retrievalMetrics.available),
+    metricScore(retrievalMetrics.recallAtK, 0.1, retrievalMetrics.available),
+    metricScore(
+      generatedFactMetrics.claimPrecision,
+      0.075,
+      generatedFactMetrics.claimPrecisionAvailable,
+    ),
+    metricScore(
+      generatedFactMetrics.requiredFactRecall,
+      0.075,
+      generatedFactMetrics.requiredFactRecallAvailable,
+    ),
+  ]);
   const caps = buildScoreCaps({
     missingManualFields,
     blockers,
@@ -102,6 +483,29 @@ export function evaluateGeneratedSection({
         : "No required manual fields are missing.",
     ]),
     buildDimension("leakage_safety", "Leakage Safety", leakageSafety, leakage.notes),
+    ...(retrievalMetrics.available
+      ? [
+          buildDimension("retrieval_precision_at_3", "Retrieval Precision@3", retrievalMetrics.precisionAtK, [
+            `${retrievalMetrics.relevantRetrievedAtK} of the first ${retrievalMetrics.k} retrieved precedent positions were labelled relevant.`,
+          ]),
+          buildDimension("retrieval_recall_at_3", "Retrieval Recall@3", retrievalMetrics.recallAtK, [
+            `${retrievalMetrics.relevantRetrievedAtK} of ${retrievalMetrics.relevantLabelCount} labelled relevant precedent chunks were retrieved in the first ${retrievalMetrics.k} positions.`,
+          ]),
+          buildDimension("retrieval_ndcg_at_3", "Retrieval nDCG@3", retrievalMetrics.ndcgAtK, [
+            "Measures whether the most relevant labelled chunks were ranked first.",
+          ]),
+        ]
+      : []),
+    ...(generatedFactMetrics.claimPrecisionAvailable
+      ? [buildDimension("claim_precision", "Verifiable Claim Precision", generatedFactMetrics.claimPrecision, [
+          `${generatedFactMetrics.supportedClaimCount} of ${generatedFactMetrics.verifiableClaimCount} deterministic identifier or numeric/unit claims were found in allowed current evidence.`,
+        ])]
+      : []),
+    ...(generatedFactMetrics.requiredFactRecallAvailable
+      ? [buildDimension("required_fact_recall", "Required Fact Recall", generatedFactMetrics.requiredFactRecall, [
+          `${generatedFactMetrics.matchedRequiredFactCount} of ${generatedFactMetrics.requiredFactCount} section-labelled app facts were represented.`,
+        ])]
+      : []),
   ];
 
   return {
@@ -129,6 +533,22 @@ export function evaluateGeneratedSection({
       noLeakRule:
         "The evaluator flags possible answer leakage when generated text copies long reference phrases or uses reference-only facts not present in allowed evidence.",
     },
+    evaluationCase: evaluationCase
+      ? {
+          caseId: evaluationCase.caseId,
+          displayName: evaluationCase.displayName,
+          goldReferenceRole: evaluationCase.goldReference.role,
+          literalGoldFactComparison: evaluationCase.outputFactReference.literalGoldFactComparison,
+        }
+      : null,
+    metricSchemaVersion: EVALUATION_METRIC_SCHEMA_VERSION,
+    retrievalEvaluation: {
+      ...retrievalMetrics,
+      labelMode: relevanceLabels.labelSource,
+      labelReviewStatus: evaluationCase?.retrievalLabels?.reviewStatus ?? "machine_proposed",
+      labelReason: retrievalApplicable ? relevanceLabels.reason : retrievalMetrics.reason,
+    },
+    generatedContentEvaluation: generatedFactMetrics,
     missingUserInputs: {
       missingManualFields,
       expectedBadUntilResolved: missingManualFields.length > 0,
@@ -136,7 +556,7 @@ export function evaluateGeneratedSection({
     },
     leakage,
     reference: {
-      sourceReportName: API_STANDARD_PRIMARY_REPORT.sourceReportName,
+      sourceReportName: goldSourceReportName,
       referenceChunkCount: referenceChunks.length,
       similarityScore: referenceSimilarity.score,
       overlapTokenCount: referenceSimilarity.overlapTokenCount,
@@ -161,12 +581,49 @@ export function evaluateGeneratedSection({
   };
 }
 
-function selectReferenceChunks(precedentPack) {
+function selectReferenceChunks(precedentPack, sourceReportName) {
   const primaryChunks = (precedentPack.wordingPrecedents ?? []).filter(
-    (chunk) => chunk.sourceReportName === API_STANDARD_PRIMARY_REPORT.sourceReportName,
+    (chunk) => chunk.sourceReportName === sourceReportName,
   );
 
   return primaryChunks.length > 0 ? primaryChunks : precedentPack.wordingPrecedents ?? [];
+}
+
+function mergeRetrievalLeakage(contentLeakage, retrievalMetrics) {
+  if (retrievalMetrics.sameGoldRetrievedCount === 0) return contentLeakage;
+  return {
+    ...contentLeakage,
+    riskScore: 1,
+    statusCode: "high",
+    sameGoldRetrievedCount: retrievalMetrics.sameGoldRetrievedCount,
+    notes: [
+      ...contentLeakage.notes,
+      `${retrievalMetrics.sameGoldRetrievedCount} hidden gold chunk${retrievalMetrics.sameGoldRetrievedCount === 1 ? " was" : "s were"} retrieved during generation.`,
+    ],
+  };
+}
+
+function metricScore(score, weight, available = true) {
+  return { available, score, weight };
+}
+
+function weightedAvailableScore(metrics) {
+  const available = metrics.filter((metric) => metric.available);
+  const weightTotal = available.reduce((sum, metric) => sum + metric.weight, 0);
+  if (weightTotal === 0) return 0;
+  return clamp(
+    available.reduce((sum, metric) => sum + metric.score * metric.weight, 0) / weightTotal,
+  );
+}
+
+function isRetrievalEvaluationApplicable({ sectionId, sectionKind, orchestration }) {
+  if (sectionKind === "map") return false;
+  if (sectionId === "tank-inspection-checklist") return false;
+  if (/thickness-measurements/.test(sectionId)) return false;
+  if (orchestration?.systemRlPolicy?.configuration?.agentRoute === "deterministic_first" && sectionKind === "structured") {
+    return false;
+  }
+  return true;
 }
 
 function scoreReferenceSimilarity(generatedText, referenceText) {
@@ -379,8 +836,13 @@ function formatScore(score) {
 function stripHtml(value) {
   return String(value ?? "")
     .replace(/<[^>]*>/g, " ")
+    .replace(/\\[nrt]/g, " ")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&");
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
 function normalizeText(value) {
