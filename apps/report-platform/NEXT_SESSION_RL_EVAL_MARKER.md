@@ -73,3 +73,43 @@ All final gates passed:
   rerun the same frozen 20-section validation cohort before hidden testing.
 - Do not weaken the hard-failure gate or use evaluator-only original content in
   generation to improve these results.
+
+## Entity-Binding Update — 2026-08-28
+
+- Added entity-bound mock and app evidence contract V1. Stable entity IDs bind
+  structured measurements, findings/photo metadata, and voice notes through
+  the LAIQ app `targetKey + itemKey` identity.
+- Added deterministic rejection for a measurement transferred to another
+  physical entity or emitted without its required entity identity.
+- Added pair contract 8 and offline policy candidate V11. Production remains
+  unchanged and the candidate is not promoted.
+- Contract 8 rebuilt 437 sections across 136 reports: 389 ready and 48
+  quarantined. Build, logic, storage, API, leakage/alignment, and entity-binding
+  audits passed.
+- Frozen V11 validation completed 20/20. Deterministic results were clean:
+  zero entity-binding violations, zero atomic-binding violations, and zero
+  unsupported numeric claims. Seven episodes still received a semantic unsafe
+  verdict for unsupported prose relationships.
+- Root cause of the remaining failures: legacy PDF-derived mock sentences do
+  not consistently retain original table-row/object identity. Do not infer
+  those relationships from sentence adjacency. Rebuild those mocks from
+  canonical structured table cells/object metadata, or quarantine them.
+
+## App-Structured Table Update — 2026-08-28
+
+- Added Android round-trip pass-through for app-owned structured tables, UT
+  records, checklist records, layout records, elements, findings, and
+  attachments. These collections are preserved as records rather than rebuilt
+  from prose.
+- Governed pair contract 9 extracts tables before voice simulation. Stored data
+  contains 160 structured tables across 133 of 437 pairs, with zero ordered
+  matrix mismatches, zero missing row/entity IDs, and zero table rows flattened
+  into voice notes.
+- Frozen V12 validation completed 20/20: grounded mean reward 0.872, grounded
+  evidence coverage 98.9%, and three total semantic hard failures. Seven
+  episodes contained tables; the one table-bearing failure was caused by an
+  unbound narrative completion date, not a table value/row mismatch.
+- Deterministic V12 totals remained clean: zero entity-binding violations, zero
+  atomic-binding violations, and zero unsupported numeric claims. Candidate is
+  still offline because semantic hard failures must reach zero before
+  promotion.

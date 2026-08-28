@@ -15,6 +15,15 @@ const request = {
     },
     appContractTarget: { packageType: "v3_product_export", schemaVersion: 3 },
     expectedMissingInputs: [],
+    appRecords: {
+      structuredTables: [{
+        tableId: "table-shell-course-ut",
+        targetKey: "shell",
+        columns: [{ columnId: "plate", label: "Plate" }, { columnId: "minimum", label: "Minimum thickness (mm)" }],
+        rows: [{ entityId: "entity-shell-a12", itemKey: "shell:plate:A12", cells: [{ columnId: "plate", value: "A12" }, { columnId: "minimum", value: "6.8" }] }],
+      }],
+      utMeasurements: [{ inspectionId: "source-inspection", targetKey: "shell", itemKey: "shell:plate:A12", itemLabel: "Shell plate A12", value1: 6.8, measured: true, confirmed: true }],
+    },
     captures: [{
       factId: "fact-voice-1",
       factType: "voice_finding_input",
@@ -72,4 +81,10 @@ if (note?.transcriptText === transcript || !note?.transcriptText?.includes(trans
   mismatches.push({ key: "transcriptText", expected: "style-varied transcript preserving the source fact", actual: note?.transcriptText });
 }
 if (mismatches.length) throw new Error(`App voice capture contract audit failed: ${JSON.stringify(mismatches)}`);
+if (JSON.stringify(exportPackage.structuredTables) !== JSON.stringify(request.scenario.appRecords.structuredTables)) {
+  throw new Error("Android round trip changed the structured table matrix or row identity.");
+}
+if (JSON.stringify(exportPackage.utMeasurements?.[0]) !== JSON.stringify(request.scenario.appRecords.utMeasurements[0])) {
+  throw new Error("Android round trip changed an app-owned UT measurement record.");
+}
 console.log(JSON.stringify({ passed: true, voiceNote: note }, null, 2));

@@ -83,6 +83,11 @@ function checkPreservation(scenario,exportPackage){
   const exportedIds=new Set(exported.keys());
   const leaked=(scenario.withheldFacts??[]).filter((fact)=>exportedIds.has(fact.factId));
   if(leaked.length)issues.push(`${leaked.length} withheld facts leaked`);
+  for(const key of ["layoutTargets","layoutConfigs","layoutFigures","elements","inspectionChecklistItems","inspectionChecklistSectionNotes","attachments","structuredTables"]){
+    if(JSON.stringify(exportPackage[key]??[])!==JSON.stringify(scenario.appRecords?.[key]??[]))issues.push(`${key}: app-owned records changed`);
+  }
+  const sourceUt=scenario.appRecords?.utMeasurements??[];
+  if(JSON.stringify((exportPackage.utMeasurements??[]).slice(0,sourceUt.length))!==JSON.stringify(sourceUt))issues.push("utMeasurements: app-owned records changed");
   return {passed:issues.length===0,includedFactCount:(scenario.captures??[]).length,withheldLeakCount:leaked.length,issues:issues.slice(0,20)};
 }
 function json(value){return typeof value==="string"?JSON.parse(value):value;}

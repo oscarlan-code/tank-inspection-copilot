@@ -20,6 +20,7 @@ import {
 } from "./report-toc.mjs";
 import { classifyReportPackage } from "./report-classification.mjs";
 import { buildStandardRuleChecks } from "./standard-rules.mjs";
+import { buildAppEntityEvidence } from "./evidence-entity-binding.mjs";
 import {
   buildReportBlockManifest,
   findReportBlock,
@@ -2175,6 +2176,7 @@ Use the supplied report classification as the controlling report family, format 
 Use the supplied standardRuleChecks as deterministic rule guidance; do not replace them with free-form assumptions.
 Follow the supplied systemRlPolicy instruction. It may change emphasis and context use, but it never overrides factual, leakage, or tenant guardrails.
 Never invent measurements, geometry, attachments, names, dates, or recommendations that are not grounded in the provided context.
+Treat inspectionWideContext.entityEvidence as the authoritative relationship graph. Measurements, findings, attachments, and voice notes may be combined only when they share the same entityId. Never infer an entity relationship from capture order or textual adjacency. Never print entityId values in client-facing content.
 ${captureCompletenessInstruction}
 ${sectionFormatInstruction}
 ${provenanceInstruction}
@@ -4724,6 +4726,7 @@ function buildInspectionWideContext(exportPackage) {
       floorPatternCountY: config.floorPatternCountY,
     })),
     measurementSummary: buildMeasurementSummaryByScope(exportPackage),
+    entityEvidence: buildAppEntityEvidence(exportPackage),
     elementSummary: buildElementSummaryByScope(exportPackage),
     findingNotes: exportPackage.findings.map((finding) => ({
       findingId: finding.findingId,

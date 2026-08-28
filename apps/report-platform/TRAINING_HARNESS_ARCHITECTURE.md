@@ -565,6 +565,23 @@ Variation changes capture behavior, never inspection truth. Critical
 measurements, units, identifiers, and finding relationships cannot be randomly
 altered in a normal positive-learning variant.
 
+Entity-bound evidence is the relationship authority. Each physical app object
+(for example a floor plate, shell plate/course location, nozzle, weld, or UT
+reading point) has a stable `entityId` derived from the inspection identity,
+`targetKey`, and `itemKey`. Structured measurements, findings and their photo
+metadata, and voice notes captured on that object retain the same entity ID.
+Generation may combine those inputs only inside one entity group; capture order
+or neighbouring prose is not evidence of a relationship. Evidence without a
+reliable item identity remains unbound and cannot support an entity-specific
+claim.
+
+Tables captured by the app remain tables throughout preparation and generation.
+Their ordered column definitions, row `itemKey` values, cell values, units,
+blank cells, and row entity identities are immutable evidence. Table rows must
+not be converted into simulated voice or flattened narrative. Capture-style
+variation applies only to inspector-authored voice attached to an existing app
+entity.
+
 Language-training variants include field data, voice/notes, photographs, and
 other app-captured evidence. Layout-map geometry stays outside language
 training and continues through deterministic geometry/parity validation. A

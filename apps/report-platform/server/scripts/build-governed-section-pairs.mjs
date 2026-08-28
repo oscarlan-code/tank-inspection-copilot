@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createPostgresDatabase } from "../storage/postgres.mjs";
 import { API_STANDARD_REPORT_TOC } from "../report-toc.mjs";
+import { buildEntityBoundEvidence, extractStructuredAppTables, removeStructuredTableLines, validateEntityBoundEvidence } from "../evidence-entity-binding.mjs";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 const taxonomyVersionId="report_taxonomy_content_v1";
@@ -28,7 +29,8 @@ try{
         const sectionChunks=chunks.filter((item)=>item.section_type===sectionKey);
         if(!sectionChunks.length)continue;
         const targetContent=normalizeGoldContent(sectionChunks.map((item)=>String(item.content??"").trim()).filter(Boolean).join("\n\n"));
-        const sentences=materialSentences(targetContent);
+        const structuredTables=extractStructuredAppTables({report,sectionKey,content:targetContent});
+        const sentences=materialSentences(removeStructuredTableLines(targetContent));
         const included=[],hidden=[];
         if(contractVersion>=5){
           const targetCount=Math.max(1,Math.min(sentences.length-1,Math.ceil(sentences.length*0.78)));
@@ -72,9 +74,33 @@ try{
         const pairId=stableId("governed-pair",report.corpus_report_id,sectionKey,contractVersion);
         const issues=[];
         if(targetContent.length<120)issues.push("gold_target_fragmentary");
-        if(included.length===0)issues.push("no_material_voice_capture");
-        if(hidden.every((item)=>!String(item).trim()))issues.push("gold_target_not_partitionable");
+        if(included.length===0&&structuredTables.length===0)issues.push("no_material_app_capture");
+        if(hidden.every((item)=>!String(item).trim())&&structuredTables.length===0)issues.push("gold_target_not_partitionable");
         if(!answerability.qaPassed)issues.push("mock_input_not_answerable");
+        const entityBoundEvidence=buildEntityBoundEvidence({report,sectionKey,transcripts:included});
+        for(const table of structuredTables){
+          for(const row of table.rows){
+            entityBoundEvidence.entities.push({entityId:row.entityId,assetLineageKey:report.asset_lineage_key,
+              reportReference:report.report_reference,sectionKey,entityType:"structured_table_row",entityKey:row.itemKey,
+              entityLabel:row.itemKey,aliases:[]});
+            const rowText=row.cells.map((cell)=>cell.value).join(" | ");
+            entityBoundEvidence.observations.push({observationId:stableId("table-observation",row.entityId),entityId:row.entityId,
+              sectionKey,entityMetadata:{assetLineageKey:report.asset_lineage_key,reportReference:report.report_reference,
+                sectionKey,entityType:"structured_table_row",entityKey:row.itemKey,entityLabel:row.itemKey},
+              fieldData:{tableId:table.tableId,itemKey:row.itemKey,cells:row.cells},boundClaims:{measurements:extractMeasurementClaims(rowText)},
+              evidenceRefs:[{sourceType:"android_structured_table",sourceId:table.tableId}]});
+          }
+        }
+        const mockInput={packageType:"laiq_section_generation_query",schemaVersion:contractVersion,
+          identity:{corpusReportId:report.corpus_report_id,reportReference:report.report_reference,
+            assetLineageKey:report.asset_lineage_key,datasetSplit:report.dataset_split,sectionKey},
+          reportProfile:report.profile_json,task:"Generate the complete report section from structured identity and entity-bound labelled voice notes.",
+          structuredFields:{reportReference:report.report_reference,sectionKey,coreFamily:report.core_family,
+            inspectionScope:report.profile_json.primaryInspectionScope,lifecycle:report.profile_json.lifecycle},
+          appRecords:{structuredTables},
+          ...entityBoundEvidence};
+        const entityBinding=validateEntityBoundEvidence(mockInput);
+        if(!entityBinding.valid)issues.push(...entityBinding.issues);
         const status=issues.length?"quarantined":"ready";
         const provenance={documentId:report.document_id,corpusReportId:report.corpus_report_id,
           assetLineageKey:report.asset_lineage_key,chunkIds:sectionChunks.map((item)=>item.chunk_id),
@@ -87,21 +113,13 @@ try{
            ) VALUES (?,?,?,?,?,?,?,?,?::jsonb,?,?,?,?)`,
         ).run(goldId,taxonomyVersionId,report.corpus_report_id,report.document_id,sectionKey,report.dataset_split,
           targetContent,sha(targetContent),JSON.stringify(provenance),status,nowIso,nowIso,contractVersion);
-        const mockInput={packageType:"laiq_section_generation_query",schemaVersion:contractVersion,
-          identity:{corpusReportId:report.corpus_report_id,reportReference:report.report_reference,
-            assetLineageKey:report.asset_lineage_key,datasetSplit:report.dataset_split,sectionKey},
-          reportProfile:report.profile_json,task:"Generate the complete report section from structured identity and labelled voice notes.",
-          structuredFields:{reportReference:report.report_reference,sectionKey,coreFamily:report.core_family,
-            inspectionScope:report.profile_json.primaryInspectionScope,lifecycle:report.profile_json.lifecycle},
-          voiceNotes:included.map((transcript,index)=>{const fieldLabel=inferVoiceLabel(transcript);return {voiceNoteId:`voice_${index+1}`,sectionKey,
-            fieldLabel,fieldPath:`sections.${sectionKey}.voiceNotes.${fieldLabel.toLowerCase().replace(/[^a-z0-9]+/g,"_")}`,transcript,captureOrder:index+1,source:"simulated_labelled_mobile_capture"};})};
         const protectedInvariants=[];
         const inputJson=JSON.stringify(mockInput);
         const validation={aligned:status==="ready",issues,deterministic:true,variationApplied:false,
           taskType:"section_query_answer",evaluationMode:"evidence_conditioned_semantic",
-          goldCharacterCount:targetContent.length,inputSentenceCount:included.length,hiddenSentenceCount:hidden.length,
+          goldCharacterCount:targetContent.length,inputSentenceCount:included.length,hiddenSentenceCount:hidden.length,structuredTableCount:structuredTables.length,
           evidenceCompletenessTarget:contractVersion>=6?"material_concept_context_blocks":contractVersion>=5?"material_concept_balanced_78":contractVersion>=4?"voice_rich_70_85":"partial_35_55",
-          answerability,protectedFactSource:"typed_structured_fields_only",sourceReportRetrievalForbidden:true,sourceLineageRetrievalForbidden:true};
+          answerability,entityBinding,protectedFactSource:"entity_bound_structured_fields_and_voice",sourceReportRetrievalForbidden:true,sourceLineageRetrievalForbidden:true};
         await db.prepare(
           `INSERT INTO report_governed_baseline_pairs (
             governed_pair_id,governed_gold_section_id,corpus_report_id,section_key,dataset_split,contract_version,
@@ -126,7 +144,6 @@ function normalizeGoldContent(value){return String(value??"")
   .split(/\r?\n/).map((line)=>line.replace(/[ \t]+/g," ").trim())
   .filter((line)=>line&&!/^(?:page|client|job no\.?|tank no\.?)\s*:\s*$/i.test(line))
   .join("\n").replace(/\n{3,}/g,"\n\n").trim();}
-function inferVoiceLabel(value){const text=String(value??"").trim();if(/^client\s*:/i.test(text))return "Client";if(/^(?:job|report)\s*(?:no\.?|reference)\s*:/i.test(text))return "Report reference";if(/^tank\s*no\.?\s*:/i.test(text))return "Tank identity";if(/^(?:date|completed)\s*:/i.test(text))return "Inspection date";if(/^item\s*:/i.test(text))return "Inspected item";if(/\brecommend/i.test(text))return "Recommendation note";if(/\b(?:inspect|examin|survey|scope)\b/i.test(text))return "Inspection scope note";if(/\b(?:reading|measurement|thickness|diameter|mm\b|cm\b|\bin\.)/i.test(text))return "Measurement note";return "Section narrative note";}
 function materialConcept(value){const text=String(value??"");if(/\b(?:mm|cm|metres?|meters?|inches?|\bin\.|%|mpa|psi|thickness|reading|measured|diameter|height|depth|tolerance|limit)\b/i.test(text))return "measurement";if(/\b(?:observed|found|identified|corrosion|pitting|crack|defect|damage|leak|bulge|settlement|deformation|condition)\b/i.test(text))return "finding";if(/\b(?:therefore|conclude|conclusion|assessment|acceptable|unacceptable|compliant|exceeded|remaining life|fitness)\b/i.test(text))return "conclusion";if(/\b(?:recommend|shall|should|repair|replace|monitor|reinspect|action|required)\b/i.test(text))return "recommendation";if(/\b(?:scope|inspect|inspection|examination|survey|testing|tested)\b/i.test(text))return "scope";if(/\b(?:however|unless|subject to|pending|provided that|where applicable|if required|may be)\b/i.test(text))return "qualification";if(/^(?:client|job|report|tank|item|date)\s*(?:no\.?|reference)?\s*:/i.test(text)||/\b(?:client|owner|operator|inspector|contractor)\b/i.test(text))return "identity";return "other";}
 function enforceMockAnswerability({sectionKey,targetContent,included,hidden}){
   const methodRules=[
@@ -155,4 +172,5 @@ function enforceMockAnswerability({sectionKey,targetContent,included,hidden}){
 function stableId(...values){return `${values[0]}_${sha(values.join(":" )).slice(0,24)}`;}
 function sha(value){return createHash("sha256").update(value).digest("hex");}
 function unique(values){return [...new Set(values)];}
+function extractMeasurementClaims(value){return unique((String(value??"").match(/\b[-+]?\d+(?:\.\d+)?\s*(?:mm|cm|m\b|in\.?|%|mpa|psi|years?)\b/gi)??[]).map((item)=>item.toLowerCase().replace(/\s+/g,"")));}
 function json(value,fallback){if(value==null)return fallback;if(typeof value!=="string")return value;try{return JSON.parse(value);}catch{return fallback;}}

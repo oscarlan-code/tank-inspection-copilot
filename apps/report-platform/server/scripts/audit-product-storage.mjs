@@ -246,6 +246,38 @@ for (const required of [
   }
 }
 
+const entityBoundValidationMigration = readFileSync(
+  join(appRoot, "server/storage/migrations/042_entity_bound_evidence_validation.sql"),
+  "utf8",
+);
+for (const required of [
+  "rl_policy_report_generation_v11_entity_bound_validation",
+  '"pairContract":8',
+  '"entityBindingContract":"entity_relationship_binding_v1"',
+  "rl_arm_v11_grounded",
+  "rl_arm_v11_evidence_recovery",
+]) {
+  if (!entityBoundValidationMigration.includes(required)) {
+    violations.push(`042_entity_bound_evidence_validation.sql: missing ${required}`);
+  }
+}
+
+const appStructuredTableValidationMigration = readFileSync(
+  join(appRoot, "server/storage/migrations/043_app_structured_table_validation.sql"),
+  "utf8",
+);
+for (const required of [
+  "rl_policy_report_generation_v12_app_table_validation",
+  '"pairContract":9',
+  '"structuredTableContract":"android_app_structured_table_v1"',
+  "rl_arm_v12_grounded",
+  "rl_arm_v12_evidence_recovery",
+]) {
+  if (!appStructuredTableValidationMigration.includes(required)) {
+    violations.push(`043_app_structured_table_validation.sql: missing ${required}`);
+  }
+}
+
 const evidenceRewardMigration = readFileSync(
   join(appRoot, "server/storage/migrations/036_evidence_conditioned_reward_candidate.sql"),
   "utf8",

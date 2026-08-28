@@ -3,6 +3,7 @@ import {runStructuredCodexJob} from "../codex-cli.mjs";
 import {evaluateGoldSectionRecovery,evaluateSectionFormatContract} from "../eval.mjs";
 import {evaluateEvidenceConditionedGeneration,evaluateSemanticSectionSimilarity} from "../semantic-eval.mjs";
 import {createPostgresDatabase} from "../storage/postgres.mjs";
+import {scoreEntityRelationshipBindings,validateEntityBoundEvidence} from "../evidence-entity-binding.mjs";
 
 const OUTPUT_SCHEMA={type:"object",additionalProperties:false,required:["sectionContent"],properties:{sectionContent:{type:"string"}}};
 if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is required.");
@@ -72,15 +73,16 @@ try{
       const protectedFacts=scoreProtected(pair.protected_invariants_json,generated);
       const unsupportedClaims=scoreUnsupportedClaims(pair.mock_input_json,generated);
       const atomicBindings=scoreAtomicBindings(pair.mock_input_json,generated);
+      const entityBindings=scoreEntityRelationshipBindings(pair.mock_input_json,generated);
       const [evidenceSemantic,goldBenchmark]=await Promise.all([
         evaluateEvidenceConditionedGeneration({sectionId:pair.section_key,allowedEvidence:pair.mock_input_json,generatedContent:generated}),
         evaluateSemanticSectionSimilarity({sectionId:pair.section_key,goldContent:pair.target_content,generatedContent:generated}),
       ]);
       const semantic={...evidenceSemantic,goldBenchmark};
-      const hardFailure=protectedFacts.mismatchedCount>0||unsupportedClaims.count>0||atomicBindings.violationCount>0||evidenceSemantic.verdict==="unsafe"||!generated;
+      const hardFailure=protectedFacts.mismatchedCount>0||unsupportedClaims.count>0||atomicBindings.violationCount>0||entityBindings.violationCount>0||evidenceSemantic.verdict==="unsafe"||!generated;
       const reward=hardFailure?0:bounded(0.30*Number(evidenceSemantic.evidenceCoverage??0)+0.25*Number(evidenceSemantic.evidenceFidelity??0)+0.15*Number(evidenceSemantic.safeAbstention??0)+0.15*Number(evidenceSemantic.professionalUsefulness??0)+0.15*Number(format.score??0));
       const finished=new Date().toISOString();
-      await db.prepare(`UPDATE report_governed_rag_training_runs SET generated_content=?,deterministic_metrics_json=?::jsonb,semantic_metrics_json=?::jsonb,reward_value=?,hard_failure=?,status_code='completed',completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(generated,JSON.stringify({recovery,format,protectedFacts,unsupportedClaims,atomicBindings}),JSON.stringify(semantic),reward,hardFailure,finished,finished,runId);
+      await db.prepare(`UPDATE report_governed_rag_training_runs SET generated_content=?,deterministic_metrics_json=?::jsonb,semantic_metrics_json=?::jsonb,reward_value=?,hard_failure=?,status_code='completed',completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(generated,JSON.stringify({recovery,format,protectedFacts,unsupportedClaims,atomicBindings,entityBindings}),JSON.stringify(semantic),reward,hardFailure,finished,finished,runId);
     }catch(error){const finished=new Date().toISOString();await db.prepare(`UPDATE report_governed_rag_training_runs SET status_code='failed',hard_failure=TRUE,error_message=?,completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(message(error).slice(0,2000),finished,finished,runId);throw error;}
   }
 
@@ -104,9 +106,11 @@ try{
   }
 }finally{await db.close();}
 
-function buildPrompt(pair,arm,config,precedents){const guidance=arm.arm_key==="grounded"?"Write a concise section containing only claims directly supported by current evidence. Do not expand missing context.":arm.arm_key==="balanced"?"Organize all current evidence into a complete professional section. Use precedent only to choose ordering and reporting style.":"Recover the fullest safe section possible from all current notes. Explicitly mark genuinely missing material as Pending confirmation; never fill it from precedent.";const characterLimit=Math.max(800,Math.min(3000,Number(config.precedentCharacterLimit??2000)));return `You generate one export-ready tank-inspection report section from current field evidence. Historical precedent is style and section-structure guidance only. Never copy precedent-specific client, asset, measurement, finding, conclusion, or recommendation facts. Never invent missing facts. Use Pending confirmation when a required fact is unavailable. Preserve every current-evidence measurement, identifier, unit, and relationship exactly. Preserve qualification strength exactly: may/can/should/shall/must are not interchangeable. Treat adjacent notes as related only when their wording or field labels establish the relationship. Treat each voice note's fieldLabel as authoritative context. Never assign an unlabeled company, person, date, or identifier a role that its fieldLabel does not establish.
+function buildPrompt(pair,arm,config,precedents){const entityContract=validateEntityBoundEvidence(pair.mock_input_json);if(!entityContract.valid)throw new Error(`Entity-bound evidence contract failed: ${entityContract.issues.join(", ")}`);const guidance=arm.arm_key==="grounded"?"Write a concise section containing only claims directly supported by current evidence. Do not expand missing context.":arm.arm_key==="balanced"?"Organize all current evidence into a complete professional section. Use precedent only to choose ordering and reporting style.":"Recover the fullest safe section possible from all current notes. Explicitly mark genuinely missing material as Pending confirmation; never fill it from precedent.";const characterLimit=Math.max(800,Math.min(3000,Number(config.precedentCharacterLimit??2000)));return `You generate one export-ready tank-inspection report section from current field evidence. Historical precedent is style and section-structure guidance only. Never copy precedent-specific client, asset, measurement, finding, conclusion, or recommendation facts. Never invent missing facts. Use Pending confirmation when a required fact is unavailable. Preserve every current-evidence measurement, identifier, unit, and relationship exactly. Preserve qualification strength exactly: may/can/should/shall/must are not interchangeable. Treat adjacent notes as related only when their wording or field labels establish the relationship. Treat each voice note's fieldLabel as authoritative context. Never assign an unlabeled company, person, date, or identifier a role that its fieldLabel does not establish. Entity IDs, observation IDs, and fallback labels ending in "observation N" are internal provenance only: never print them, describe them, or use them as report subjects.
 
-ATOMIC CLAIM RULE: Treat every voiceNoteId as a separate engineering claim. A subject/component, condition, qualifier, measurement or threshold, and action appearing in one voice note are bound together. You may paraphrase that claim, but never transfer, repeat, or extend any of those fields to another voice note. An absent threshold remains absent. Combining claims is allowed only when every original binding remains unambiguous and unchanged.
+ENTITY-BINDING RULE: Treat every observationId as one indivisible engineering observation. Its entityId binds the physical component, location, structured field data, voice note, measurement, threshold, condition, and action. Never move a field between entityIds or observationIds. Every sentence containing an entity-specific measurement must name that entity using its supplied entityLabel. An absent threshold remains absent. Combining observations is allowed only when every original binding remains explicit and unchanged.
+
+STRUCTURED TABLE RULE: appRecords.structuredTables are authoritative Android field records. Preserve their columns, row order, cell values, units, and row itemKey relationships exactly. Render them as clean report tables; never flatten table rows into prose or voice notes. Do not fill blank cells.
 
 POLICY-SPECIFIC ACTION: ${guidance}
 
@@ -115,12 +119,23 @@ RAG ARM: ${arm.arm_key}
 PROMPT MODE: ${config.promptVariant??"baseline_v1"}
 
 CURRENT FIELD EVIDENCE (authoritative):
-${JSON.stringify(pair.mock_input_json,null,2)}
+${JSON.stringify(generationEvidenceView(pair.mock_input_json),null,2)}
 
 HISTORICAL SAME-FAMILY/SAME-SECTION PRECEDENTS (format and phrasing patterns only):
 ${precedents.map((item,index)=>`PRECEDENT ${index+1}:\n${String(item.content).slice(0,characterLimit)}`).join("\n\n")||"No compatible precedent was retrieved."}
 
 Return only the complete section content in clean Markdown suitable for final report compilation. Include a numbered or clearly named section heading and professional paragraphs or lists as appropriate.`;}
+function generationEvidenceView(input){
+  const physicalEntityIds=new Set((input.entities??[]).filter((entity)=>entity.entityType!=="section_observation").map((entity)=>entity.entityId));
+  return {...input,
+    entities:(input.entities??[]).filter((entity)=>physicalEntityIds.has(entity.entityId)),
+    observations:(input.observations??[]).filter((observation)=>physicalEntityIds.has(observation.entityId)),
+    voiceNotes:(input.voiceNotes??[]).map((note)=>physicalEntityIds.has(note.entityId)?note:{
+      voiceNoteId:note.voiceNoteId,sectionKey:note.sectionKey,fieldLabel:note.fieldLabel,
+      transcript:note.transcript,captureOrder:note.captureOrder,source:note.source,
+    }),
+  };
+}
 function scoreProtected(values,generated){const items=json(values,[]);const missing=items.filter((item)=>!normalized(generated).includes(normalized(item.value)));return {count:items.length,matchedCount:items.length-missing.length,mismatchedCount:missing.length,accuracy:items.length?(items.length-missing.length)/items.length:1,missing:missing.map((x)=>x.value).slice(0,20)};}
 function scoreUnsupportedClaims(input,generated){const allowed=new Set(extractClaims(JSON.stringify(input)));const claims=extractClaims(generated);const unsupported=claims.filter((claim)=>!allowed.has(claim));return {count:unsupported.length,claims:unsupported.slice(0,20)};}
 function scoreAtomicBindings(input,generated){
