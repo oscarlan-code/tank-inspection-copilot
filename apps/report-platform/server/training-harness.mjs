@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mapSourcePageToReportSection } from "./capture-section-mapping.mjs";
+import { buildReportSpecificSectionResolver } from "./capture-section-mapping.mjs";
 
 export const BENCHMARK_ROLES = Object.freeze({
   TRAINING_PRECEDENT: "training_precedent",
@@ -58,7 +58,7 @@ const TRUTH_FACT_REVIEW_STATES = new Set([
   "approved",
   "rejected",
 ]);
-const CAPTURE_SCENARIO_VERSION = 3;
+const CAPTURE_SCENARIO_VERSION = 5;
 
 export class TrainingHarnessContractError extends Error {
   constructor(code, message) {
@@ -1796,6 +1796,7 @@ function buildCaptureVariantScenario({ truthCase, profile, seed, facts }) {
     ANSWERABILITY_CLASSES.APP_OBSERVABLE,
     ANSWERABILITY_CLASSES.VOICE_OBSERVABLE,
   ]);
+  const resolveTargetSection = buildReportSpecificSectionResolver(facts);
   const links = facts.map((fact, index) => {
     const materializable = materializableClasses.has(fact.answerability_class);
     const captureChannel = materializable
@@ -1825,12 +1826,15 @@ function buildCaptureVariantScenario({ truthCase, profile, seed, facts }) {
     const orderScore = sampledConditions.observationOrder === "deterministic_shuffle"
       ? deterministicUnit(variantId, fact.fact_id, "order")
       : index;
+    const sectionResolution = resolveTargetSection(fact);
     return {
       factId: fact.fact_id,
       factType: fact.fact_type,
       sectionKey: fact.section_key,
       sourcePageNumber: fact.source_page_number,
-      targetReportSectionId: mapSourcePageToReportSection(fact.source_page_number),
+      targetReportSectionId: sectionResolution.sectionId,
+      sectionResolutionBasis: sectionResolution.basis,
+      sectionAligned: sectionResolution.aligned,
       value: parseJson(fact.normalized_value_json),
       unitCode: fact.unit_code,
       evidenceClass: fact.evidence_class,
@@ -1897,10 +1901,11 @@ function buildCaptureVariantScenario({ truthCase, profile, seed, facts }) {
       modelVersion: 1,
       distributions: variationModel,
       sampledConditions,
-      hardConstraints: {
+    hardConstraints: {
         requiredFactsIncluded: profile.lane_code === "faithful_capture",
         protectedFactsPreserved: true,
         unobservableFactsWithheld: true,
+        sourceSectionAlignmentRequired: true,
       },
     },
     captures: included.map((link) => captureManifestFact(link)),
@@ -1950,7 +1955,12 @@ function validateCaptureVariantScenario(scenario, laneCode) {
     ![ANSWERABILITY_CLASSES.APP_OBSERVABLE, ANSWERABILITY_CLASSES.VOICE_OBSERVABLE].includes(link.answerabilityClass)
     && link.disposition !== "withheld"
   ));
-  if (requiredOmissions.length || protectedOmissions.length || fabricatedInputs.length) {
+  const crossSectionAssignments = scenario.links.filter((link) => (
+    link.disposition !== "withheld"
+    && link.sectionAligned !== true
+    && link.targetReportSectionId !== "report-metadata"
+  ));
+  if (requiredOmissions.length || protectedOmissions.length || fabricatedInputs.length || crossSectionAssignments.length) {
     throw apiError(
       500,
       "Generated capture scenario violated required truth constraints.",
@@ -1961,6 +1971,7 @@ function validateCaptureVariantScenario(scenario, laneCode) {
     requiredFactsIncluded: true,
     protectedFactsPreserved: true,
     unobservableFactsWithheld: true,
+    sourceSectionAlignmentPassed: true,
     constraintViolationCount: 0,
   };
 }
@@ -2133,6 +2144,8 @@ function captureManifestFact(link) {
     sectionKey: link.sectionKey,
     sourcePageNumber: link.sourcePageNumber,
     targetReportSectionId: link.targetReportSectionId,
+    sectionResolutionBasis: link.sectionResolutionBasis,
+    sectionAligned: link.sectionAligned,
     value: link.value,
     unitCode: link.unitCode,
     evidenceClass: link.evidenceClass,

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createPostgresDatabase } from "../storage/postgres.mjs";
 import { API_STANDARD_REPORT_TOC } from "../report-toc.mjs";
-import { buildEntityBoundEvidence, extractStructuredAppTables, removeStructuredTableLines, validateEntityBoundEvidence } from "../evidence-entity-binding.mjs";
+import { buildEntityBoundEvidence, extractStructuredAppFieldsAndLists, extractStructuredAppTables, removeStructuredTableLines, validateEntityBoundEvidence } from "../evidence-entity-binding.mjs";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 const taxonomyVersionId="report_taxonomy_content_v1";
@@ -30,7 +30,8 @@ try{
         if(!sectionChunks.length)continue;
         const targetContent=normalizeGoldContent(sectionChunks.map((item)=>String(item.content??"").trim()).filter(Boolean).join("\n\n"));
         const structuredTables=extractStructuredAppTables({report,sectionKey,content:targetContent});
-        const sentences=materialSentences(removeStructuredTableLines(targetContent));
+        const structured=contractVersion>=10?extractStructuredAppFieldsAndLists({report,sectionKey,content:removeStructuredTableLines(targetContent)}):{labelledFields:[],structuredLists:[],remainingContent:removeStructuredTableLines(targetContent)};
+        const sentences=materialSentences(structured.remainingContent);
         const included=[],hidden=[];
         if(contractVersion>=5){
           const targetCount=Math.max(1,Math.min(sentences.length-1,Math.ceil(sentences.length*0.78)));
@@ -97,7 +98,7 @@ try{
           reportProfile:report.profile_json,task:"Generate the complete report section from structured identity and entity-bound labelled voice notes.",
           structuredFields:{reportReference:report.report_reference,sectionKey,coreFamily:report.core_family,
             inspectionScope:report.profile_json.primaryInspectionScope,lifecycle:report.profile_json.lifecycle},
-          appRecords:{structuredTables},
+          appRecords:{structuredTables,labelledFields:structured.labelledFields,structuredLists:structured.structuredLists},
           ...entityBoundEvidence};
         const entityBinding=validateEntityBoundEvidence(mockInput);
         if(!entityBinding.valid)issues.push(...entityBinding.issues);
@@ -117,7 +118,7 @@ try{
         const inputJson=JSON.stringify(mockInput);
         const validation={aligned:status==="ready",issues,deterministic:true,variationApplied:false,
           taskType:"section_query_answer",evaluationMode:"evidence_conditioned_semantic",
-          goldCharacterCount:targetContent.length,inputSentenceCount:included.length,hiddenSentenceCount:hidden.length,structuredTableCount:structuredTables.length,
+          goldCharacterCount:targetContent.length,inputSentenceCount:included.length,hiddenSentenceCount:hidden.length,structuredTableCount:structuredTables.length,labelledFieldCount:structured.labelledFields.length,structuredListCount:structured.structuredLists.length,
           evidenceCompletenessTarget:contractVersion>=6?"material_concept_context_blocks":contractVersion>=5?"material_concept_balanced_78":contractVersion>=4?"voice_rich_70_85":"partial_35_55",
           answerability,entityBinding,protectedFactSource:"entity_bound_structured_fields_and_voice",sourceReportRetrievalForbidden:true,sourceLineageRetrievalForbidden:true};
         await db.prepare(

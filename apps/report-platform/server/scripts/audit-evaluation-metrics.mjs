@@ -7,6 +7,7 @@ import {
   scoreGeneratedFactMetrics,
   scoreRetrievalRanking,
 } from "../evaluation-metrics.mjs";
+import { classifyInspectorReviewDraft } from "../draft-quality.mjs";
 
 const failures = [];
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -73,6 +74,27 @@ const unsupportedFacts = scoreGeneratedFactMetrics({
 assert(unsupportedFacts.claimPrecision < 1, "An unsupported numeric claim must reduce claim precision.");
 assert(unsupportedFacts.requiredFactRecall === 0, "An omitted required app fact must produce zero fact recall.");
 
+const reviewReady = classifyInspectorReviewDraft({
+  semanticRecovery: 0.82,
+  requiredConceptRecall: 0.84,
+  claimPrecision: 0.94,
+  protectedFactAccuracy: 1,
+  entityRelationshipAccuracy: 1,
+  formatReadiness: 0.95,
+});
+assert(reviewReady.outcomeCode === "ready_for_review", "A safe useful draft must be ready for inspector review without requiring 100% semantic agreement.");
+const needsAttention = classifyInspectorReviewDraft({
+  semanticRecovery: 0.68,
+  requiredConceptRecall: 0.76,
+  claimPrecision: 0.96,
+  protectedFactAccuracy: 1,
+  entityRelationshipAccuracy: 1,
+  formatReadiness: 0.94,
+});
+assert(needsAttention.outcomeCode === "needs_attention", "Low coverage must request inspector attention rather than become a critical failure.");
+const blocked = classifyInspectorReviewDraft({ protectedFactMismatchCount: 1 });
+assert(blocked.outcomeCode === "blocked", "A captured critical-field mismatch must block the draft.");
+
 const evaluationCase = resolveEvaluationCase({
   exportPackage: {
     inspectionId: "inspection-demo-api653-training-20220722",
@@ -116,6 +138,7 @@ console.log("Evaluation metric audit passed.");
 console.log("- Retrieval Precision@3, Recall@3, F1, MRR, and nDCG are deterministic.");
 console.log("- Hidden gold chunks remain excluded from retrieval labels.");
 console.log("- Claim precision and required-fact recall distinguish invention from omission.");
+console.log("- Inspector-review readiness is separated from critical integrity blockers.");
 
 function judgment(chunkId, relevanceGrade) {
   return {

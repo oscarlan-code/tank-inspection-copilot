@@ -44,6 +44,92 @@ export function removeStructuredTableLines(content) {
     .join("\n");
 }
 
+export function extractStructuredAppFieldsAndLists({ report, sectionKey, content }) {
+  const lines = String(content ?? "").replace(/\\n/g, "\n").split(/\r?\n/);
+  const consumed = new Set();
+  const labelledFields = [];
+  const structuredLists = [];
+  const fieldPattern = /^(Client|Customer|Job\s*(?:No\.?|Number|Reference)|Report\s*(?:No\.?|Number|Reference)|Tank\s*(?:No\.?|Number|ID)|Inspection\s*Date|Date\s*(?:Inspected|Completed|Issued))\s*:\s*(.*)$/i;
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].trim().match(fieldPattern);
+    if (!match) continue;
+    let value = match[2].trim();
+    if (!value && lines[index + 1]?.trim() && !lines[index + 1].includes("|")) {
+      value = lines[index + 1].trim();
+      consumed.add(index + 1);
+    }
+    if (!value) continue;
+    consumed.add(index);
+    const label = match[1].replace(/\s+/g, " ");
+    const fieldId = stableId("app-field", report.asset_lineage_key, sectionKey, label, value);
+    labelledFields.push({ fieldId, sectionKey, label, value, source: "android_app_structured_field_mock", stableOrder: labelledFields.length + 1 });
+  }
+  let current = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    if (consumed.has(index) || lines[index].includes("|")) continue;
+    const match = lines[index].trim().match(/^(\(?[a-z0-9]+\)?[.)])\s+(.+)$/i);
+    if (!match) { current = null; continue; }
+    if (!current) {
+      current = { listId: stableId("app-list", report.asset_lineage_key, sectionKey, index), sectionKey, title: null, source: "android_app_structured_list_mock", items: [] };
+      structuredLists.push(current);
+    }
+    consumed.add(index);
+    current.items.push({ itemKey: `${current.listId}:item:${current.items.length + 1}`, marker: match[1], text: match[2].trim(), stableOrder: current.items.length + 1 });
+  }
+  return { labelledFields, structuredLists, remainingContent: lines.filter((_, index) => !consumed.has(index)).join("\n") };
+}
+
+export function compileDeterministicAppRecords(appRecords = {}, { outputFormat = "markdown" } = {}) {
+  if (outputFormat === "html") return compileDeterministicAppRecordsHtml(appRecords);
+  const blocks = [];
+  const fields = appRecords.labelledFields ?? [];
+  if (fields.length) {
+    blocks.push(["### Captured fields", "| Field | Value |", "|---|---|", ...fields.map((field) => `| ${escapeCell(field.label)} | ${escapeCell(field.value)} |`)].join("\n"));
+  }
+  for (const list of appRecords.structuredLists ?? []) {
+    const rows = [];
+    if (list.title) rows.push(`### ${list.title}`);
+    rows.push(...(list.items ?? []).map((item) => `${item.marker} ${item.text}`));
+    if (rows.length) blocks.push(rows.join("\n"));
+  }
+  for (const table of appRecords.structuredTables ?? []) {
+    const matrix = table.exactMatrix ?? [];
+    if (!matrix.length) continue;
+    const width = Math.max(...matrix.map((row) => row.length));
+    const rows = matrix.map((row) => [...row, ...Array(Math.max(0, width - row.length)).fill("")]);
+    blocks.push([`### Captured table`, `| ${rows[0].map(escapeCell).join(" | ")} |`, `| ${rows[0].map(() => "---").join(" | ")} |`, ...rows.slice(1).map((row) => `| ${row.map(escapeCell).join(" | ")} |`)].join("\n"));
+  }
+  return blocks.join("\n\n");
+}
+
+function compileDeterministicAppRecordsHtml(appRecords = {}) {
+  const blocks = [];
+  const fields = appRecords.labelledFields ?? [];
+  if (fields.length) blocks.push(`<table data-laiq-provenance="app_field_data"><thead><tr><th>Captured field</th><th>Recorded value</th></tr></thead><tbody>${fields.map((field) => `<tr><th>${escapeHtmlCell(field.label)}</th><td>${escapeHtmlCell(field.value)}</td></tr>`).join("")}</tbody></table>`);
+  for (const list of appRecords.structuredLists ?? []) {
+    blocks.push(`${list.title ? `<h4>${escapeHtmlCell(list.title)}</h4>` : ""}<ol>${(list.items ?? []).map((item) => `<li>${escapeHtmlCell(item.text)}</li>`).join("")}</ol>`);
+  }
+  for (const table of appRecords.structuredTables ?? []) {
+    const matrix = table.exactMatrix ?? [];
+    if (!matrix.length) continue;
+    const width = Math.max(...matrix.map((row) => row.length));
+    const rows = matrix.map((row) => [...row, ...Array(Math.max(0, width - row.length)).fill("")]);
+    blocks.push(`<table data-laiq-provenance="app_field_data"><thead><tr>${rows[0].map((cell) => `<th>${escapeHtmlCell(cell)}</th>`).join("")}</tr></thead><tbody>${rows.slice(1).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtmlCell(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+  }
+  return blocks.join("\n");
+}
+
+function escapeHtmlCell(value) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;").replace(/\r?\n/g, "<br>");
+}
+
+export function removeUnsupportedPendingQualifiers(content, input) {
+  const explicitPending = (input?.voiceNotes ?? []).some((note) => /pending confirmation/i.test(String(note.transcript ?? "")))
+    || JSON.stringify(input?.appRecords ?? {}).toLowerCase().includes("pending confirmation");
+  if (explicitPending) return String(content ?? "");
+  return String(content ?? "").replace(/\s*(?:[-—:;]\s*)?\(?pending confirmation\)?\.?/ig, "").replace(/[ \t]+$/gm, "");
+}
+
 export function buildAppEntityEvidence(exportPackage) {
   const inspectionReference = String(exportPackage?.inspectionReference ?? exportPackage?.inspectionId ?? "inspection");
   const entities = new Map();
@@ -304,6 +390,11 @@ function generatedSentences(value) {
 function parseTableRow(line) {
   return String(line).trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.replace(/\\\|/g, "|").replace(/\s+/g, " ").trim());
 }
+
+function escapeCell(value) {
+  return String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
 
 function isSeparatorRow(row) {
   return row.every((cell) => /^:?-{2,}:?$/.test(cell.replace(/\s+/g, "")));

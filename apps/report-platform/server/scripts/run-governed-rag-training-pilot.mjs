@@ -1,17 +1,18 @@
 import {createHash} from "node:crypto";
-import {runStructuredCodexJob} from "../codex-cli.mjs";
 import {evaluateGoldSectionRecovery,evaluateSectionFormatContract} from "../eval.mjs";
 import {evaluateEvidenceConditionedGeneration,evaluateSemanticSectionSimilarity} from "../semantic-eval.mjs";
 import {createPostgresDatabase} from "../storage/postgres.mjs";
-import {scoreEntityRelationshipBindings,validateEntityBoundEvidence} from "../evidence-entity-binding.mjs";
+import {compileDeterministicAppRecords,scoreEntityRelationshipBindings,validateEntityBoundEvidence} from "../evidence-entity-binding.mjs";
+import {finalizeGovernedGeneratedContent,formatGovernedSectionHtml,getGovernedSectionRoute,runGovernedNarrativeGeneration} from "../governed-generation-contract.mjs";
+import {classifyInspectorReviewDraft,DRAFT_QUALITY_CONTRACT_VERSION} from "../draft-quality.mjs";
 
-const OUTPUT_SCHEMA={type:"object",additionalProperties:false,required:["sectionContent"],properties:{sectionContent:{type:"string"}}};
 if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is required.");
 const policyVersionId=String(process.env.GOVERNED_POLICY_VERSION_ID??"rl_policy_report_generation_v7_labelled_voice");
 const pairContractVersion=Number(process.env.GOVERNED_PAIR_CONTRACT_VERSION??3);
 const requested=Number(process.env.GOVERNED_TRAINING_PAIR_LIMIT??6);
 const pairLimit=Number.isInteger(requested)&&requested>0?requested:6;
 const targetPairId=String(process.env.GOVERNED_TARGET_PAIR_ID??"").trim();
+const cohortId=String(process.env.GOVERNED_COHORT_ID??"").trim();
 const datasetSplit=String(process.env.GOVERNED_DATASET_SPLIT??"training");
 if(!["training","validation"].includes(datasetSplit))throw new Error(`Unsupported governed dataset split: ${datasetSplit}.`);
 const armSelectionMode=String(process.env.GOVERNED_ARM_SELECTION_MODE??"all");
@@ -22,7 +23,14 @@ try{
   const allArms=await db.prepare(`SELECT arm_id,arm_key,display_name,config_json FROM system_rl_policy_arms WHERE policy_version_id=? AND is_enabled=TRUE ORDER BY stable_order`).all(policyVersionId);
   const arms=requestedArmKeys.size?allArms.filter((arm)=>requestedArmKeys.has(arm.arm_key)):allArms;
   if(!arms.length)throw new Error(`No enabled arms for ${policyVersionId}.`);
-  const selectedPairs=await db.prepare(
+  const selectedPairs=cohortId?await db.prepare(
+    `SELECT p.*,g.target_content,r.asset_lineage_key,r.core_family,r.report_reference,r.profile_json
+     FROM report_governed_validation_cohort_items i
+     JOIN report_governed_baseline_pairs p ON p.corpus_report_id=i.corpus_report_id AND p.section_key=i.section_key
+     JOIN report_governed_gold_sections g ON g.governed_gold_section_id=p.governed_gold_section_id
+     JOIN report_corpus_registry r ON r.corpus_report_id=p.corpus_report_id
+     WHERE i.cohort_id=? AND p.dataset_split=? AND p.status_code='ready' AND p.contract_version=?
+     ORDER BY i.stable_order`).all(cohortId,datasetSplit,pairContractVersion):await db.prepare(
     `WITH candidates AS (
        SELECT p.*,g.target_content,r.asset_lineage_key,r.core_family,r.report_reference,r.profile_json,
          ROW_NUMBER() OVER (PARTITION BY r.core_family,p.section_key ORDER BY encode(digest(p.corpus_report_id||':'||p.section_key||?,'sha256'),'hex')) stratum_rank
@@ -32,6 +40,7 @@ try{
        WHERE p.dataset_split=? AND p.status_code='ready' AND p.contract_version=?
      ) SELECT * FROM candidates ORDER BY stratum_rank,encode(digest(corpus_report_id||':'||section_key||?,'sha256'),'hex') LIMIT ?`,
   ).all(policyVersionId,datasetSplit,pairContractVersion,policyVersionId,pairLimit);
+  if(cohortId){const expected=await db.prepare(`SELECT COUNT(*)::int count FROM report_governed_validation_cohort_items WHERE cohort_id=?`).get(cohortId);if(selectedPairs.length!==expected.count)throw new Error(`Pinned cohort ${cohortId} resolved ${selectedPairs.length}/${expected.count} ready contract-${pairContractVersion} pairs.`);}
   const pairs=targetPairId?selectedPairs.filter((pair)=>pair.governed_pair_id===targetPairId):selectedPairs;
   if(targetPairId&&!pairs.length)throw new Error(`Target governed pair ${targetPairId} was not found in the selected cohort.`);
   const completedKeys=new Set((await db.prepare(`SELECT governed_pair_id,arm_id FROM report_governed_rag_training_runs WHERE policy_version_id=? AND status_code='completed'`).all(policyVersionId)).map((row)=>`${row.governed_pair_id}:${row.arm_id}`));
@@ -51,7 +60,7 @@ try{
      FROM report_governed_rag_training_runs r JOIN system_rl_policy_arms a USING(arm_id)
      WHERE r.policy_version_id=? AND r.status_code='completed' GROUP BY a.arm_key ORDER BY mean_reward DESC`,
   ).all(policyVersionId);
-  console.log(JSON.stringify({policyVersionId,pairs:pairs.length,arms:arms.length,alreadyCompleted:completedKeys.size,attempted:jobs.length,completed,failed,summary},null,2));
+  console.log(JSON.stringify({policyVersionId,cohortId:cohortId||null,pairs:pairs.length,arms:arms.length,alreadyCompleted:completedKeys.size,attempted:jobs.length,completed,failed,summary},null,2));
   if(failed)process.exitCode=1;
 
   async function runEpisode({pair,arm}){
@@ -66,8 +75,11 @@ try{
     ).run(runId,pair.governed_pair_id,policyVersionId,arm.arm_id,contextKey,JSON.stringify(retrieval.audit),now,now);
     try{
       if(!retrieval.audit.firewallPassed)throw new Error("Retrieval firewall rejected the episode.");
-      const response=await runStructuredCodexJob({reasoningEffort:"low",schema:OUTPUT_SCHEMA,prompt:buildPrompt(pair,arm,config,retrieval.items)});
-      const generated=String(response.parsed.sectionContent??"").trim();
+      const entityContract=validateEntityBoundEvidence(pair.mock_input_json);if(!entityContract.valid)throw new Error(`Entity-bound evidence contract failed: ${entityContract.issues.join(", ")}`);
+      const route=getGovernedSectionRoute({sectionId:pair.section_key,hasVoiceEvidence:(pair.mock_input_json?.voiceNotes??[]).length>0});
+      const response=route.llmRole==="none"?{parsed:{sectionContent:""}}:await runGovernedNarrativeGeneration({sectionId:pair.section_key,evidenceInput:generationEvidenceView(pair.mock_input_json),precedents:retrieval.items,policyAction:policyGuidance(arm.arm_key),promptVariant:config.promptVariant??"baseline_v1",precedentCharacterLimit:config.precedentCharacterLimit??2000});
+      const deterministic=compileDeterministicAppRecords(pair.mock_input_json?.appRecords,{outputFormat:"html"});
+      const generated=formatGovernedSectionHtml({sectionId:pair.section_key,sectionTitle:pair.section_key,content:finalizeGovernedGeneratedContent({narrative:String(response.parsed.sectionContent??"").trim(),deterministicContent:deterministic,evidenceInput:pair.mock_input_json})});
       const recovery=evaluateGoldSectionRecovery({goldContent:pair.target_content,generatedContent:generated,evaluationMode:"evidence_conditioned_semantic",minimumContentCoverage:0.55});
       const format=evaluateSectionFormatContract({sectionId:pair.section_key,goldContent:pair.target_content,generatedContent:generated});
       const protectedFacts=scoreProtected(pair.protected_invariants_json,generated);
@@ -79,10 +91,22 @@ try{
         evaluateSemanticSectionSimilarity({sectionId:pair.section_key,goldContent:pair.target_content,generatedContent:generated}),
       ]);
       const semantic={...evidenceSemantic,goldBenchmark};
-      const hardFailure=protectedFacts.mismatchedCount>0||unsupportedClaims.count>0||atomicBindings.violationCount>0||entityBindings.violationCount>0||evidenceSemantic.verdict==="unsafe"||!generated;
+      const classification=classifyInspectorReviewDraft({
+        protectedFactMismatchCount:protectedFacts.mismatchedCount+atomicBindings.violationCount,
+        unsupportedCriticalClaimCount:unsupportedClaims.count,
+        unsafeEvidenceVerdict:evidenceSemantic.verdict==="unsafe",
+        entityRelationshipAccuracy:entityBindings.applicable?Math.max(0,1-entityBindings.violationCount/Math.max(1,(pair.mock_input_json?.observations??[]).length)):null,
+        semanticRecovery:Number(goldBenchmark.semanticSimilarity??0),
+        requiredConceptRecall:Number(evidenceSemantic.evidenceCoverage??0),
+        claimPrecision:unsupportedClaims.count===0?1:Math.max(0,1-unsupportedClaims.count/Math.max(1,extractClaims(generated).length)),
+        protectedFactAccuracy:protectedFacts.accuracy,
+        formatReadiness:Number(format.score??0),
+      });
+      const hardFailure=classification.outcomeCode==="blocked"||!generated;
+      const reviewDisposition=hardFailure?"blocked":classification.outcomeCode;
       const reward=hardFailure?0:bounded(0.30*Number(evidenceSemantic.evidenceCoverage??0)+0.25*Number(evidenceSemantic.evidenceFidelity??0)+0.15*Number(evidenceSemantic.safeAbstention??0)+0.15*Number(evidenceSemantic.professionalUsefulness??0)+0.15*Number(format.score??0));
       const finished=new Date().toISOString();
-      await db.prepare(`UPDATE report_governed_rag_training_runs SET generated_content=?,deterministic_metrics_json=?::jsonb,semantic_metrics_json=?::jsonb,reward_value=?,hard_failure=?,status_code='completed',completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(generated,JSON.stringify({recovery,format,protectedFacts,unsupportedClaims,atomicBindings,entityBindings}),JSON.stringify(semantic),reward,hardFailure,finished,finished,runId);
+      await db.prepare(`UPDATE report_governed_rag_training_runs SET generated_content=?,deterministic_metrics_json=?::jsonb,semantic_metrics_json=?::jsonb,reward_value=?,hard_failure=?,status_code='completed',completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(generated,JSON.stringify({recovery,format,protectedFacts,unsupportedClaims,atomicBindings,entityBindings,reviewDisposition,draftQualityContractVersion:DRAFT_QUALITY_CONTRACT_VERSION,classification,deterministicCompiler:{applied:Boolean(deterministic),version:"app_records_v1"}}),JSON.stringify(semantic),reward,hardFailure,finished,finished,runId);
     }catch(error){const finished=new Date().toISOString();await db.prepare(`UPDATE report_governed_rag_training_runs SET status_code='failed',hard_failure=TRUE,error_message=?,completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(message(error).slice(0,2000),finished,finished,runId);throw error;}
   }
 
@@ -106,28 +130,11 @@ try{
   }
 }finally{await db.close();}
 
-function buildPrompt(pair,arm,config,precedents){const entityContract=validateEntityBoundEvidence(pair.mock_input_json);if(!entityContract.valid)throw new Error(`Entity-bound evidence contract failed: ${entityContract.issues.join(", ")}`);const guidance=arm.arm_key==="grounded"?"Write a concise section containing only claims directly supported by current evidence. Do not expand missing context.":arm.arm_key==="balanced"?"Organize all current evidence into a complete professional section. Use precedent only to choose ordering and reporting style.":"Recover the fullest safe section possible from all current notes. Explicitly mark genuinely missing material as Pending confirmation; never fill it from precedent.";const characterLimit=Math.max(800,Math.min(3000,Number(config.precedentCharacterLimit??2000)));return `You generate one export-ready tank-inspection report section from current field evidence. Historical precedent is style and section-structure guidance only. Never copy precedent-specific client, asset, measurement, finding, conclusion, or recommendation facts. Never invent missing facts. Use Pending confirmation when a required fact is unavailable. Preserve every current-evidence measurement, identifier, unit, and relationship exactly. Preserve qualification strength exactly: may/can/should/shall/must are not interchangeable. Treat adjacent notes as related only when their wording or field labels establish the relationship. Treat each voice note's fieldLabel as authoritative context. Never assign an unlabeled company, person, date, or identifier a role that its fieldLabel does not establish. Entity IDs, observation IDs, and fallback labels ending in "observation N" are internal provenance only: never print them, describe them, or use them as report subjects.
-
-ENTITY-BINDING RULE: Treat every observationId as one indivisible engineering observation. Its entityId binds the physical component, location, structured field data, voice note, measurement, threshold, condition, and action. Never move a field between entityIds or observationIds. Every sentence containing an entity-specific measurement must name that entity using its supplied entityLabel. An absent threshold remains absent. Combining observations is allowed only when every original binding remains explicit and unchanged.
-
-STRUCTURED TABLE RULE: appRecords.structuredTables are authoritative Android field records. Preserve their columns, row order, cell values, units, and row itemKey relationships exactly. Render them as clean report tables; never flatten table rows into prose or voice notes. Do not fill blank cells.
-
-POLICY-SPECIFIC ACTION: ${guidance}
-
-SECTION: ${pair.section_key}
-RAG ARM: ${arm.arm_key}
-PROMPT MODE: ${config.promptVariant??"baseline_v1"}
-
-CURRENT FIELD EVIDENCE (authoritative):
-${JSON.stringify(generationEvidenceView(pair.mock_input_json),null,2)}
-
-HISTORICAL SAME-FAMILY/SAME-SECTION PRECEDENTS (format and phrasing patterns only):
-${precedents.map((item,index)=>`PRECEDENT ${index+1}:\n${String(item.content).slice(0,characterLimit)}`).join("\n\n")||"No compatible precedent was retrieved."}
-
-Return only the complete section content in clean Markdown suitable for final report compilation. Include a numbered or clearly named section heading and professional paragraphs or lists as appropriate.`;}
+function policyGuidance(armKey){return armKey==="grounded"?"Write a concise section containing only claims directly supported by current evidence. Do not expand missing context.":armKey==="balanced"?"Organize all current evidence into a complete professional section. Use precedent only to choose ordering and reporting style.":"Recover the fullest safe section possible from all current notes without filling missing facts from precedent.";}
 function generationEvidenceView(input){
   const physicalEntityIds=new Set((input.entities??[]).filter((entity)=>entity.entityType!=="section_observation").map((entity)=>entity.entityId));
-  return {...input,
+  const {appRecords:_appRecords,...narrativeInput}=input;
+  return {...narrativeInput,
     entities:(input.entities??[]).filter((entity)=>physicalEntityIds.has(entity.entityId)),
     observations:(input.observations??[]).filter((observation)=>physicalEntityIds.has(observation.entityId)),
     voiceNotes:(input.voiceNotes??[]).map((note)=>physicalEntityIds.has(note.entityId)?note:{

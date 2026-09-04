@@ -21,7 +21,7 @@ export function createEvaluationLabService({ db, createError }) {
     ).get(truthCaseId);
     if (!truth) throw createError(409, "An approved Truth Case is required as the golden standard.", "evaluation_truth_case_required");
     const variant = await db.prepare(
-      `SELECT variant_id, training_case_id, profile_version_id, random_seed, status_code
+      `SELECT variant_id, training_case_id, profile_version_id, random_seed, status_code, manifest_json
       FROM report_capture_variants WHERE variant_id = ?`,
     ).get(variantId);
     if (!variant || variant.training_case_id !== truthCaseId || variant.status_code !== "materialized") {
@@ -66,6 +66,8 @@ export function createEvaluationLabService({ db, createError }) {
           truthGraphVersion: Number(truth.truth_graph_version),
           truthGraphSha256: truth.truth_graph_sha256,
           captureVariantId: variantId,
+          captureScenarioVersion: Number(manifest.identity?.variantVersion ?? manifest.schemaVersion ?? 1),
+          metricContract: "capture_section_alignment_v5_compiled",
           sourcePackageSha256: appPackage.package_sha256,
           sourceReportJobId: reportJobId,
         }),
@@ -73,23 +75,7 @@ export function createEvaluationLabService({ db, createError }) {
         nowIso,
         nowIso,
       );
-      const factLocations = await db.prepare(
-        `SELECT DISTINCT f.source_page_number, f.section_key
-        FROM report_capture_variant_fact_links l
-        JOIN report_training_case_facts f ON f.fact_id = l.fact_id
-        JOIN report_training_case_answerability a ON a.fact_id = f.fact_id
-        JOIN report_standardized_mock_gold_pairs pair
-          ON pair.variant_id = l.variant_id AND pair.section_key = f.section_key
-          AND pair.contract_version = 1 AND pair.status_code = 'ready'
-        WHERE l.variant_id = ?
-          AND f.review_status = 'approved'
-          AND a.review_status = 'approved'
-          AND (
-            (l.disposition_code <> 'withheld' AND a.answerability_class IN ('app_observable', 'voice_observable'))
-            OR a.answerability_class = 'deterministic_derived'
-          )
-        ORDER BY f.source_page_number NULLS LAST, f.section_key`,
-      ).all(variantId);
+      const manifest = parseJson(variant.manifest_json);
       const horizontalFamily = /horizontal/.test(String(truth.report_family ?? ""));
       const supportedSections = horizontalFamily
         ? new Set([
@@ -98,8 +84,8 @@ export function createEvaluationLabService({ db, createError }) {
             "tank-inspection-checklist", "shell-plate-thickness-measurements", "photographs",
           ])
         : new Set(API_STANDARD_REPORT_TOC.map((section) => section.id));
-      const sectionIds = new Set(factLocations
-        .map((fact) => String(fact.section_key ?? ""))
+      const sectionIds = new Set((manifest.captures ?? [])
+        .map((fact) => String(fact.targetReportSectionId ?? ""))
         .filter((sectionKey) => supportedSections.has(sectionKey)));
       await db.prepare(
         "DELETE FROM report_evaluation_case_sections WHERE evaluation_case_id = ?",
@@ -215,7 +201,7 @@ export function createEvaluationLabService({ db, createError }) {
           ) AS blocked_episode_count,
           COUNT(DISTINCT rer.section_id) FILTER (
             WHERE (ec.dataset_split = 'hidden_test' OR rlr.learning_eligible = TRUE)
-              AND (rlr.learning_eligible = FALSE OR rlr.hard_failure = TRUE OR rer.score < 0.6 OR rer.outcome_code <> 'pass')
+              AND (rlr.learning_eligible = FALSE OR rlr.hard_failure = TRUE OR rer.outcome_code NOT IN ('pass', 'ready_for_review'))
           ) AS quality_issue_count,
           AVG(rer.score) FILTER (WHERE rlr.learning_eligible = TRUE) AS mean_score,
           AVG(rlr.reward_value) FILTER (WHERE rlr.learning_eligible = TRUE) AS mean_reward,

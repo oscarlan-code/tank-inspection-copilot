@@ -22,6 +22,17 @@ import { classifyReportPackage } from "./report-classification.mjs";
 import { buildStandardRuleChecks } from "./standard-rules.mjs";
 import { buildAppEntityEvidence } from "./evidence-entity-binding.mjs";
 import {
+  GOVERNED_GENERATOR_CONTRACT_VERSION,
+  buildGovernedGenerationRules,
+  compileGovernedCaptureFactsHtml,
+  finalizeGovernedGeneratedContent,
+  formatGovernedSectionHtml,
+  getGovernedSectionRoute,
+  isGovernedGenerationPolicy,
+  runGovernedNarrativeGeneration,
+} from "./governed-generation-contract.mjs";
+import { voiceEvidenceForSection } from "./voice-evidence-clustering.mjs";
+import {
   buildReportBlockManifest,
   findReportBlock,
   replaceReportBlockContent,
@@ -393,7 +404,18 @@ export async function generateSectionDraft({
     && context.template.kind === "structured";
   const shouldUseDeterministicCompiler =
     isMeasurementCompilerSection || isMapCompilerSection || shouldUsePolicyDeterministicRoute;
-  const aiResult = shouldUseDeterministicCompiler ? null : await tryGenerateSectionWithCodexCli(context);
+  const governedGeneration = isGovernedGenerationPolicy({
+    policyVersionId: policyDecision?.policyVersionId,
+    promptVariant: context.policyConfiguration.promptVariant,
+  });
+  const governedRoute = getGovernedSectionRoute({
+    sectionId,
+    sectionKind: context.template.kind,
+    hasVoiceEvidence: context.captureSectionFacts.some((fact) => ["voice", "voice_normalized", "note"].includes(String(fact.captureChannel))),
+  });
+  const governedDeterministicOnly = governedGeneration && governedRoute.llmRole === "none";
+  const governedNativeArtifact = governedGeneration && ["deterministic_map", "deterministic_attachment"].includes(governedRoute.route);
+  const aiResult = shouldUseDeterministicCompiler || governedDeterministicOnly ? null : await tryGenerateSectionWithCodexCli(context);
   const selected = shouldUseDeterministicCompiler
     ? {
         ...fallback,
@@ -409,14 +431,31 @@ export async function generateSectionDraft({
             : "The selected system RL policy routes structured sections through deterministic compilation.",
     }
     : aiResult ?? fallback;
+  const governedContent = governedGeneration
+    ? formatGovernedSectionHtml({
+        sectionId,
+        sectionTitle: context.template.title,
+        sectionKind: context.template.kind,
+        content: finalizeGovernedGeneratedContent({
+        narrative: governedDeterministicOnly && !governedNativeArtifact ? "" : selected.content,
+        deterministicContent: governedNativeArtifact ? "" : compileGovernedCaptureFactsHtml(context.captureSectionFacts, { sectionId, sectionKind: context.template.kind }),
+        evidenceInput: {
+          voiceNotes: context.captureSectionFacts
+            .filter((fact) => ["voice", "voice_normalized", "note"].includes(fact.captureChannel))
+            .map((fact) => ({ voiceNoteId: fact.sourceVoiceNoteId ?? fact.factId, transcript: captureFactDisplayValue(fact.value), sourceContext: fact.transformation?.sourceContext ?? null })),
+          captureFacts: context.captureSectionFacts,
+        },
+      }),
+      })
+    : selected.content;
   const predictedContent = shouldHighlightPredictedContent({
     context,
     isMapCompilerSection,
     isMeasurementCompilerSection,
   })
-    ? markPredictedContent(selected.content, context)
-    : selected.content;
-  const content = prependProtectedCaptureBlock(predictedContent, context);
+    ? markPredictedContent(governedContent, context)
+    : governedContent;
+  const content = governedGeneration ? predictedContent : prependProtectedCaptureBlock(predictedContent, context);
   const qa = validateGeneratedSection(sectionId, content);
   const warnings = dedupe([...context.warnings, ...selected.detectedIssues, ...qa.warnings]);
   const blockers = dedupe([...context.blockers, ...qa.blockers]);
@@ -488,7 +527,7 @@ export async function generateSectionDraft({
       reportClassification: context.reportClassification,
       systemRlPolicy: buildGenerationPolicyAudit(policyDecision, context.policyConfiguration),
       sourceRevision: reportState.reportJob?.sourceRevision ?? null,
-      generatorContractVersion: 1,
+      generatorContractVersion: governedGeneration ? GOVERNED_GENERATOR_CONTRACT_VERSION : 1,
       warnings,
       blockers,
       aiStatus: getAiStatus(),
@@ -920,7 +959,22 @@ function buildSectionContext({ reportState, sectionId, userInstruction, policyDe
   let template = getSectionTemplate(sectionId);
 
   const exportPackage = reportState.exportPackage;
-  const captureSectionFacts = (exportPackage.captureFacts ?? []).filter((fact) => fact.targetReportSectionId === sectionId);
+  const explicitCaptureFacts = (exportPackage.captureFacts ?? []).filter((fact) => fact.targetReportSectionId === sectionId);
+  const explicitVoiceIds = new Set(explicitCaptureFacts.map((fact) => fact.sourceVoiceNoteId).filter(Boolean));
+  const clusteredVoiceFacts = voiceEvidenceForSection(exportPackage.voiceNotes ?? [], sectionId)
+    .filter((cluster) => !explicitVoiceIds.has(cluster.voiceNoteId))
+    .map((cluster) => ({
+      factId: `clustered-voice:${cluster.voiceNoteId}`,
+      factType: "voice_observation",
+      sourceVoiceNoteId: cluster.voiceNoteId,
+      sourceSectionKey: cluster.note.screenKey,
+      targetReportSectionId: sectionId,
+      value: cluster.note.transcriptText,
+      unitCode: null,
+      captureChannel: "voice",
+      transformation: { type: "backend_section_clustering", clusterVersion: cluster.clusterVersion, confidence: cluster.confidence, sourceContext: cluster.sourceContext },
+    }));
+  const captureSectionFacts = [...explicitCaptureFacts, ...clusteredVoiceFacts];
   if (captureSectionFacts.length > 0 && exportPackage.captureScenarioProvenance) {
     template = {
       ...template,
@@ -2071,16 +2125,31 @@ async function tryGenerateSectionWithCodexCli(context) {
   }
 
   try {
-    const response = await runStructuredCodexJob({
-      prompt: buildSectionGenerationPrompt(context),
-      schema: SECTION_GENERATION_SCHEMA,
+    const governedGeneration = isGovernedGenerationPolicy({
+      policyVersionId: context.policyDecision?.policyVersionId,
+      promptVariant: context.policyConfiguration.promptVariant,
     });
+    const response = governedGeneration
+      ? await runGovernedNarrativeGeneration({
+          sectionId: context.sectionId,
+          evidenceInput: buildProductionGovernedEvidence(context),
+          precedents: context.retrievalContext,
+          policyAction: buildPolicyPromptGuidance(context.policyConfiguration),
+          promptVariant: context.policyConfiguration.promptVariant,
+          precedentCharacterLimit: context.policyConfiguration.precedentCharacterLimit,
+        })
+      : await runStructuredCodexJob({
+          prompt: buildSectionGenerationPrompt(context),
+          schema: SECTION_GENERATION_SCHEMA,
+        });
     const parsed = response.parsed;
 
     return {
-      content: String(parsed.content ?? "").trim(),
-      summary: String(parsed.summary ?? "").trim() || "Generated through the LAIQ AI Engine worker.",
-      reviewRequired: Boolean(parsed.reviewRequired),
+      content: String(governedGeneration ? parsed.sectionContent : parsed.content ?? "").trim(),
+      summary: governedGeneration
+        ? `Generated through shared ${GOVERNED_GENERATOR_CONTRACT_VERSION}.`
+        : String(parsed.summary ?? "").trim() || "Generated through the LAIQ AI Engine worker.",
+      reviewRequired: governedGeneration ? true : Boolean(parsed.reviewRequired),
       detectedIssues: Array.isArray(parsed.detectedIssues)
         ? parsed.detectedIssues.map((item) => String(item))
         : [],
@@ -2097,6 +2166,31 @@ async function tryGenerateSectionWithCodexCli(context) {
         "The live LAIQ AI Engine worker failed, so the report-platform fallback engine produced this section draft instead.",
     };
   }
+}
+
+function buildProductionGovernedEvidence(context) {
+  const entityEvidence = buildAppEntityEvidence(context.exportPackage);
+  const capturedFacts = context.captureSectionFacts.map((fact) => ({
+    factId: fact.factId,
+    factType: fact.factType,
+    fieldLabel: fact.value?.sourceHeading ?? fact.sourceSectionKey ?? fact.factType,
+    sectionKey: context.sectionId,
+    value: captureFactDisplayValue(fact.value),
+    unitCode: fact.unitCode ?? null,
+    captureChannel: fact.captureChannel,
+    transformation: fact.transformation ?? null,
+  }));
+  return {
+    packageType: "laiq_section_generation_query",
+    identity: {
+      inspectionReference: context.exportPackage.inspectionReference,
+      sectionKey: context.sectionId,
+      reportFamily: context.reportClassification?.reportFamilyId ?? null,
+    },
+    voiceNotes: capturedFacts.filter((fact) => ["voice", "voice_normalized", "note"].includes(fact.captureChannel)),
+    structuredEvidence: capturedFacts.filter((fact) => !["voice", "voice_normalized", "note"].includes(fact.captureChannel)),
+    entityEvidence,
+  };
 }
 
 function buildSectionGenerationPrompt(context) {
@@ -2143,7 +2237,13 @@ function buildSectionGenerationPrompt(context) {
       transformation: fact.transformation,
     })),
     importedFacts: buildImportedFactsSummary(context.exportPackage),
-    inspectionWideContext: buildInspectionWideContext(context.exportPackage),
+    inspectionWideContext: buildInspectionWideContext(context.exportPackage, {
+      voiceNotes: context.captureSectionFacts.filter((fact) => ["voice", "voice_normalized", "note"].includes(fact.captureChannel)).map((fact) => ({
+        voiceNoteId: fact.sourceVoiceNoteId ?? fact.factId,
+        screenKey: fact.sourceSectionKey,
+        transcriptText: captureFactDisplayValue(fact.value),
+      })),
+    }),
   };
 
   const isHorizontalTank = context.reportClassification?.reportFamilyId === "horizontal-internal-external";
@@ -2166,6 +2266,12 @@ function buildSectionGenerationPrompt(context) {
     '- data-laiq-provenance="precedent_template" only for non-factual structural labels learned from the report template.',
     "Use spans for mixed-source sentences and sections only when an entire block has one origin. Never label model-authored text as captured evidence.",
   ].join("\n");
+  const governedRules = isGovernedGenerationPolicy({
+    policyVersionId: context.policyDecision?.policyVersionId,
+    promptVariant: context.policyConfiguration.promptVariant,
+  })
+    ? buildGovernedGenerationRules({ outputFormat: "html" })
+    : "";
 
   return `You are the LAIQ report writing engine for tank inspection reports.
 
@@ -2175,6 +2281,7 @@ Use factRecommendationContext as structured historical guidance for likely repai
 Use the supplied report classification as the controlling report family, format precedent, and standards/code basis.
 Use the supplied standardRuleChecks as deterministic rule guidance; do not replace them with free-form assumptions.
 Follow the supplied systemRlPolicy instruction. It may change emphasis and context use, but it never overrides factual, leakage, or tenant guardrails.
+${governedRules}
 Never invent measurements, geometry, attachments, names, dates, or recommendations that are not grounded in the provided context.
 Treat inspectionWideContext.entityEvidence as the authoritative relationship graph. Measurements, findings, attachments, and voice notes may be combined only when they share the same entityId. Never infer an entity relationship from capture order or textual adjacency. Never print entityId values in client-facing content.
 ${captureCompletenessInstruction}
@@ -2210,14 +2317,14 @@ function buildCaptureRecoveryGuidance(context) {
 }
 
 function buildPolicyPromptGuidance(configuration) {
-  if (configuration.promptVariant === "grounded_concise_v1") {
+  if (["grounded_concise_v1", "grounded_concise_v2"].includes(configuration.promptVariant)) {
     return [
       "Prefer short, directly evidenced statements.",
       "Omit optional precedent-derived wording when current evidence is weak.",
       "Keep every recommendation explicitly connected to a supplied current finding or deterministic rule check.",
     ].join(" ");
   }
-  if (configuration.promptVariant === "evidence_recovery_v1") {
+  if (["evidence_recovery_v1", "evidence_recovery_v2"].includes(configuration.promptVariant)) {
     return [
       "Use all supplied inspection-wide context to organize a complete section.",
       "Clearly preserve Pending confirmation for any unconfirmed current fact.",
@@ -4701,7 +4808,7 @@ function buildImportedFactsSummary(exportPackage) {
   };
 }
 
-function buildInspectionWideContext(exportPackage) {
+function buildInspectionWideContext(exportPackage, { voiceNotes = exportPackage.voiceNotes ?? [] } = {}) {
   return {
     identity: {
       inspectionReference: exportPackage.inspectionReference,
@@ -4742,7 +4849,7 @@ function buildInspectionWideContext(exportPackage) {
       sectionTitle: note.sectionTitle,
       note: note.note,
     })),
-    voiceNotes: (exportPackage.voiceNotes ?? []).map((note) => ({
+    voiceNotes: voiceNotes.map((note) => ({
       voiceNoteId: note.voiceNoteId,
       screenKey: note.screenKey,
       screenLabel: note.screenLabel,

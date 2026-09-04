@@ -138,6 +138,43 @@ AI must not:
 - bypass validation, approval, or rollback
 - claim an edit was applied without returning a real action
 
+## Training–Serving Parity Rule
+
+- Training, validation, hidden testing, Stage 4 Policy Test, and production report generation must execute the same shared governed-generation contract and deterministic evidence compilers.
+- A policy version is not considered deployed merely because its identifier or arm configuration is selected. Its prompt rules, evidence representation, deterministic compilation, output finalization, and safety checks must all run through the shared production implementation.
+- Pilot or audit scripts must import the shared generator contract; they must not carry private copies of production prompt rules or post-processing logic.
+- Stage 4 must record `generatorContractVersion` with every generation run. A missing or different contract version is a blocking test failure, not a comparable policy result.
+- Never promote a learned policy when the training/validation generator contract differs from the Stage 4/production generator contract.
+
+The shared generation route is mandatory:
+
+- Deterministic code owns section headings, labelled fields, measurements, units, checklist rows, tables, maps, attachments, provenance markup, and final HTML structure.
+- The mobile app does not own report-section assignment. Preserve its native voice metadata (`screenKey`, `cardKey`, `fieldKey`, `targetKey`, `itemKey`, labels, and capture time) and derive report-section clusters on the backend.
+- The LLM may run only for a section that contains voice evidence routed to that section by the versioned backend clustering contract; it authors narrative from that voice evidence and may use leakage-safe precedent for organization and cadence only.
+- If a section has no confidently routed voice evidence, do not invoke the LLM. Compile the captured app records directly and expose unresolved voice routing for review instead of guessing.
+- A deterministic formatter must run after narrative and structured evidence are composed. Training, validation, Stage 4, browser preview, and export must consume that same formatted section representation.
+- Hidden gold is available only after generation for scoring; it must never enter the generator or formatter.
+
+## Draft-Quality And Promotion Rule
+
+The generated report is an inspector-review draft, not an autonomous final report. Do not require or advertise 100% overall agreement with the historical report. Different professional wording is acceptable, and the inspector must be able to edit and approve the result before final export.
+
+Evaluate and report these dimensions separately:
+
+- semantic recovery and required-concept recall measure how useful and complete the draft is; initial pilot targets should normally be 75–85% semantic recovery and at least 80% required-concept recall
+- narrative claim precision should normally be at least 90%, with unsupported or uncertain statements exposed for review
+- format readiness should normally be at least 90%, meaning the section is readable and requires only minor presentation edits
+- critical-field preservation and entity-relationship accuracy should target at least 99% for captured measurements, units, asset/component identities, locations, severity, checklist selections, and photo/finding links
+- inspector acceptance rate, edit distance or edit time, and approval outcome are production quality signals and must be tracked when human-review data is available
+
+Do not fail a draft merely because it differs word-for-word from the original report. Classify outcomes as:
+
+- `ready_for_review`: safe and useful, while normal inspector refinement may still be required
+- `needs_attention`: materially incomplete, weakly supported, or requiring substantial inspector rewriting
+- `blocked`: captured critical data was altered, an entity relationship was transferred incorrectly, hidden gold leaked into generation, or a safety-critical claim was invented
+
+Policy training must optimize semantic coverage, evidence use, format readiness, and reduced inspector editing effort. It must not optimize exact historical wording or improve semantic score by weakening critical-data safeguards. Promotion decisions must use a validation cohort and entirely held-out reports, and must compare the learned policy with the current baseline on every metric above.
+
 ## Source And Provenance Rules
 
 Keep these source classes separate:

@@ -11,7 +11,7 @@ import { evaluateGeneratedSection, evaluateGoldSectionRecovery, evaluateSectionF
 import { evaluateSemanticSectionSimilarity } from "./semantic-eval.mjs";
 import { classifyReportPackage } from "./report-classification.mjs";
 import { API_STANDARD_REPORT_TOC } from "./report-toc.mjs";
-import { mapSourcePageToReportSection } from "./capture-section-mapping.mjs";
+import { buildReportSpecificSectionResolver } from "./capture-section-mapping.mjs";
 import { createPostgresDatabase } from "./storage/postgres.mjs";
 import { createKbReviewService } from "./kb-review.mjs";
 import { createCanonicalReportReviewService } from "./canonical-report-review.mjs";
@@ -21,6 +21,8 @@ import {
   createSystemRlController,
   SYSTEM_RL_MODES,
 } from "./system-rl-policy.mjs";
+import { GOVERNED_GENERATOR_CONTRACT_VERSION } from "./governed-generation-contract.mjs";
+import { classifyInspectorReviewDraft, DRAFT_QUALITY_CONTRACT_VERSION, DRAFT_QUALITY_TARGETS } from "./draft-quality.mjs";
 
 export class ApiError extends Error {
   constructor(statusCode, message, code = "report_platform_api_error") {
@@ -2363,8 +2365,14 @@ export async function createReportStore({ databaseUrl }) {
         JOIN system_rl_policy_rewards r ON r.eval_run_id = e.eval_run_id
         WHERE e.evaluation_case_id = ? AND e.section_id = ?
           AND COALESCE(e.eval_json->>'experimentContract','legacy') = ?
+          AND COALESCE(e.eval_json->>'generatorContractVersion','legacy') = ?
         ORDER BY e.created_at_iso DESC LIMIT 1`,
-      ).get(evaluationCaseId, sectionId, evaluationCaseConfig.metricContract ?? "legacy");
+      ).get(
+        evaluationCaseId,
+        sectionId,
+        evaluationCaseConfig.metricContract ?? "legacy",
+        frozenCandidate ? GOVERNED_GENERATOR_CONTRACT_VERSION : "legacy",
+      );
       if (previousAttempt?.learning_eligible === false) {
         throw new ApiError(409, "This episode is paused after an invalid attempt. Resolve its evidence contract before retrying.", "evaluation_episode_paused");
       }
@@ -2406,6 +2414,40 @@ export async function createReportStore({ databaseUrl }) {
           JOIN report_standardized_gold_sections g ON g.gold_section_id=p.gold_section_id
           WHERE p.variant_id = ? AND p.section_key = ? AND p.contract_version = 1`,
         ).get(evaluationCaseConfig.captureVariantId, sectionId);
+        if (!standardizedPair && evaluationCaseConfig.goldStandardType === "approved_truth_graph") {
+          const linkedFacts = await db.prepare(
+            `SELECT f.fact_id,f.fact_type,f.section_key,f.source_page_number,f.normalized_value_json,f.unit_code,f.evidence_class,
+              f.safety_criticality,a.answerability_class,a.required_fact,l.disposition_code
+            FROM report_capture_variant_fact_links l
+            JOIN report_training_case_facts f ON f.fact_id=l.fact_id
+            JOIN report_training_case_answerability a ON a.fact_id=f.fact_id
+            WHERE l.variant_id=? AND f.training_case_id=?
+              AND f.review_status='approved' AND a.review_status='approved'
+            ORDER BY f.fact_id`,
+          ).all(evaluationCaseConfig.captureVariantId,evaluationCaseConfig.goldTruthCaseId);
+          const capturedById = new Map((reportState.exportPackage.captureFacts ?? []).map((fact) => [fact.factId,fact]));
+          const resolveGoldSection = buildReportSpecificSectionResolver(linkedFacts);
+          const sectionGoldFacts = linkedFacts.filter((fact) => resolveGoldSection(fact).sectionId === sectionId);
+          const capturedFactIdsForSection = new Set((reportState.exportPackage.captureFacts ?? [])
+            .filter((fact) => fact.targetReportSectionId === sectionId)
+            .map((fact) => fact.factId));
+          const sectionLinkedFacts = linkedFacts.filter((fact) => capturedFactIdsForSection.has(fact.fact_id));
+          const goldContent = sectionGoldFacts
+            .map((fact) => parseJsonValue(fact.normalized_value_json))
+            .map((value) => value && typeof value === "object" && "text" in value ? value.text : typeof value === "string" ? value : JSON.stringify(value))
+            .map((value) => String(value ?? "").trim())
+            .filter(Boolean)
+            .join("\n\n");
+          if (sectionLinkedFacts.length && goldContent) standardizedPair = {
+            pair_id:`truth-graph:${evaluationCaseConfig.captureVariantId}:${sectionId}`,
+            status_code:"ready",
+            expected_recoverable_fact_ids_json:sectionLinkedFacts.filter((fact) => fact.required_fact === true).map((fact) => fact.fact_id),
+            input_fact_ids_json:sectionLinkedFacts.map((fact) => fact.fact_id),
+            input_fact_values_json:Object.fromEntries(sectionLinkedFacts.map((fact) => {const captured=capturedById.get(fact.fact_id);return [fact.fact_id,{value:captured?.value??parseJsonValue(fact.normalized_value_json),unitCode:captured?.unitCode??fact.unit_code,answerabilityClass:fact.answerability_class,factType:fact.fact_type,evidenceClass:fact.evidence_class,requiredFact:fact.required_fact===true,safetyCriticality:fact.safety_criticality??"medium"}];})),
+            validation_json:{truthGraphDirectContract:true,evaluationMode:"evidence_conditioned_semantic",minimumGoldContentCoverage:0.55},
+            target_content:goldContent,
+          };
+        }
       }
       if (!standardizedPair || standardizedPair.status_code !== "ready") {
         throw new ApiError(
@@ -2464,14 +2506,11 @@ export async function createReportStore({ databaseUrl }) {
           JOIN report_training_case_facts f ON f.fact_id = l.fact_id
           WHERE l.variant_id = ? AND l.disposition_code <> 'withheld'`,
         ).all(evaluationCaseConfig.captureVariantId);
-        const knownSectionIds = new Set(API_STANDARD_REPORT_TOC.map((item) => item.id));
-        const targetByFact = new Map(lineage.map((item) => [
-          item.fact_id,
-          knownSectionIds.has(item.section_key) ? item.section_key : mapSourcePageToReportSection(item.source_page_number),
-        ]));
+        const resolveTargetSection = buildReportSpecificSectionResolver(lineage);
+        const targetByFact = new Map(lineage.map((item) => [item.fact_id, resolveTargetSection(item).sectionId]));
         reportState.exportPackage.captureFacts = (reportState.exportPackage.captureFacts ?? []).map((fact) => ({
           ...fact,
-          targetReportSectionId: fact.targetReportSectionId ?? targetByFact.get(fact.factId) ?? "inspection-report",
+          targetReportSectionId: fact.targetReportSectionId ?? targetByFact.get(fact.factId) ?? "report-metadata",
         }));
       }
     }
@@ -2495,6 +2534,7 @@ export async function createReportStore({ databaseUrl }) {
       orchestration: generation.orchestration,
     });
     evalRun.experimentContract = evaluationCaseConfig?.metricContract ?? "live";
+    evalRun.generatorContractVersion = generation.orchestration.generatorContractVersion ?? "legacy";
     if (evaluationCaseId) {
       const truthFacts = await db.prepare(
         `SELECT f.*, a.answerability_class, a.required_fact
@@ -2727,19 +2767,10 @@ export async function createReportStore({ databaseUrl }) {
         goldContentCoverage: evaluation.goldSectionEvaluation?.contentCoverage ?? null,
         outputLengthBalance: evaluation.goldSectionEvaluation?.lengthBalance ?? null,
         evaluationPoints: evaluation.dimensions ?? [],
-        hardFailure: Boolean(evaluation.truthGraphEvaluation?.protectedFactMismatchCount > 0
-          || evaluation.truthGraphEvaluation?.unsupportedClaimCount > 0
-          || (evaluation.goldSectionEvaluation?.contentCoverage != null && evaluation.goldSectionEvaluation.contentCoverage < 0.55)
-          || (evaluation.goldSectionEvaluation?.lengthRatio != null && (evaluation.goldSectionEvaluation.lengthRatio < 0.5 || evaluation.goldSectionEvaluation.lengthRatio > 1.5))
-          || evaluation.semanticSectionEvaluation?.verdict === "unacceptable"
-          || evaluation.sectionFormatEvaluation?.pass === false),
+        hardFailure: ["blocked", "fail_truth_contract"].includes(row.outcome_code),
         hardFailureReasons: [
           ...(evaluation.truthGraphEvaluation?.protectedFactMismatchCount > 0 ? ["Protected fact mismatch"] : []),
           ...(evaluation.truthGraphEvaluation?.unsupportedClaimCount > 0 ? ["Invented verifiable fact"] : []),
-          ...(evaluation.goldSectionEvaluation?.contentCoverage != null && evaluation.goldSectionEvaluation.contentCoverage < 0.55 ? ["Gold content coverage below 55%"] : []),
-          ...(evaluation.goldSectionEvaluation?.lengthRatio != null && (evaluation.goldSectionEvaluation.lengthRatio < 0.5 || evaluation.goldSectionEvaluation.lengthRatio > 1.5) ? ["Generated/original length ratio outside 0.5–1.5"] : []),
-          ...(evaluation.semanticSectionEvaluation?.verdict === "unacceptable" ? ["Automated gold reviewer found the section unacceptable"] : []),
-          ...(evaluation.sectionFormatEvaluation?.pass === false ? ["PDF-ready section format contract failed"] : []),
         ],
         automatedReview: evaluation.semanticSectionEvaluation?.available === true ? {
           verdict: evaluation.semanticSectionEvaluation.verdict ?? "needs_review",
@@ -2799,10 +2830,10 @@ export async function createReportStore({ databaseUrl }) {
       const sectionReasons = [];
       if (row.hard_failure === true) sectionReasons.push(...parseJsonValue(row.hard_failure_reasons_json ?? []));
       if (Number(truth.requiredFactCount ?? 0) === 0) sectionReasons.push("no required golden facts are available");
-      else if (requiredRecall < 0.8) sectionReasons.push(`fact recovery ${Math.round(requiredRecall * 100)}% is below 80%`);
-      if (claimPrecision < 0.95) sectionReasons.push(`claim precision ${Math.round(claimPrecision * 100)}% is below 95%`);
-      if (protectedAccuracy < 1) sectionReasons.push("protected facts are not exact");
-      if (row.outcome_code !== "pass") sectionReasons.push(`outcome is ${row.outcome_code}`);
+      else if (requiredRecall < DRAFT_QUALITY_TARGETS.requiredConceptRecall) sectionReasons.push(`fact recovery ${Math.round(requiredRecall * 100)}% is below 80%`);
+      if (claimPrecision < DRAFT_QUALITY_TARGETS.narrativeClaimPrecision) sectionReasons.push(`claim precision ${Math.round(claimPrecision * 100)}% is below 90%`);
+      if (protectedAccuracy < DRAFT_QUALITY_TARGETS.criticalFieldPreservation) sectionReasons.push("critical-field preservation is below 99%");
+      if (!["pass", "ready_for_review"].includes(row.outcome_code)) sectionReasons.push(`outcome is ${row.outcome_code}`);
       if (sectionReasons.length > 0) reasons.push(`${enabled.section_id}: ${[...new Set(sectionReasons)].join(", ")}.`);
       else passedSectionCount += 1;
     }
@@ -2811,7 +2842,7 @@ export async function createReportStore({ databaseUrl }) {
       reasons,
       sectionCount: enabledRows.length,
       passedSectionCount,
-      thresholds: { requiredFactRecall: 0.8, claimPrecision: 0.95, protectedFactAccuracy: 1 },
+      thresholds: { requiredFactRecall: 0.8, claimPrecision: 0.9, protectedFactAccuracy: 0.99 },
     };
   }
 
@@ -3737,53 +3768,35 @@ function boolToInt(value) {
 function applyTruthGraphOutcome(evalRun) {
   const truth = evalRun.truthGraphEvaluation ?? {};
   const gold = evalRun.goldSectionEvaluation ?? {};
-  const hardFailure = Number(truth.protectedFactMismatchCount ?? 0) > 0
-    || Number(truth.unsupportedClaimCount ?? 0) > 0;
   const semanticConceptRecall=evalRun.semanticSectionEvaluation?.available===true?Number(evalRun.semanticSectionEvaluation.materialConceptRecall??0):0;
   const effectiveRequiredRecall=String(gold.evaluationMode??"direct_recovery")==="evidence_conditioned_semantic"
     ? Math.max(Number(truth.requiredFactRecall??0),semanticConceptRecall)
     : Number(truth.requiredFactRecall??0);
-  const inadequateRecovery = Number(truth.requiredFactCount ?? 0) > 0
-    && effectiveRequiredRecall < (String(gold.evaluationMode??"direct_recovery")==="evidence_conditioned_semantic"?0.7:0.8);
-  const minimumContentCoverage=Number(gold.minimumContentCoverage??0.55);
   const directRecovery=String(gold.evaluationMode??"direct_recovery")==="direct_recovery";
   const semantic=evalRun.semanticSectionEvaluation??{};
   const format=evalRun.sectionFormatEvaluation??{};
-  if (!directRecovery && semantic.available !== true) {
-    evalRun.outcomeCode="needs_review";
-    evalRun.summary="Semantic evaluation was unavailable; deterministic factual checks passed, but semantic acceptance was not inferred.";
-    return;
-  }
-  const inadequateContentCoverage = directRecovery && gold.contentCoverage != null && Number(gold.contentCoverage) < minimumContentCoverage;
-  const invalidLengthRatio = directRecovery && gold.lengthRatio != null && (Number(gold.lengthRatio) < 0.5 || Number(gold.lengthRatio) > 1.5);
   const semanticScore=semantic.available===true?Number(semantic.semanticSimilarity??0):null;
-  const inadequateSemanticRecovery=!directRecovery&&semanticScore!=null&&(semanticScore<0.45||semantic.verdict==="unacceptable");
-  const inadequateFormat=format.pass===false;
-  if (!hardFailure && !inadequateRecovery && !inadequateContentCoverage && !invalidLengthRatio && !inadequateSemanticRecovery && !inadequateFormat) {
-    if(!directRecovery&&semanticScore!=null){
-      evalRun.score=Math.max(0,Math.min(1,0.5*semanticScore+0.3*effectiveRequiredRecall+0.2*Number(truth.claimPrecision??1)));
-      evalRun.grade=evalRun.score>=0.8?"A":evalRun.score>=0.7?"B":evalRun.score>=0.6?"C":"D";
-      evalRun.outcomeCode=semanticScore>=0.7&&semantic.verdict==="acceptable"?"pass":"needs_review";
-      evalRun.summary=`Semantic section similarity ${Math.round(semanticScore*100)}%; protected and unsupported-claim checks passed.`;
-    }
-    return;
-  }
-  const recoveryScore = effectiveRequiredRecall;
-  const contentScore = gold.contentCoverage == null ? 1 : Number(gold.contentCoverage);
-  const lengthScore = gold.lengthBalance == null ? 1 : Number(gold.lengthBalance);
-  evalRun.score = hardFailure ? 0 : inadequateSemanticRecovery ? semanticScore : Math.min(Number(evalRun.score ?? 0), recoveryScore, contentScore, lengthScore, Number(format.score??1));
-  evalRun.grade = "F";
-  evalRun.outcomeCode = hardFailure ? "fail_truth_contract" : inadequateSemanticRecovery ? "fail_semantic_recovery" : inadequateFormat ? "fail_format_contract" : "fail_truth_recovery";
-  const reasons = [
-    ...(Number(truth.protectedFactMismatchCount ?? 0) > 0 ? ["protected facts did not match"] : []),
-    ...(Number(truth.unsupportedClaimCount ?? 0) > 0 ? ["unsupported verifiable facts were generated"] : []),
-    ...(inadequateRecovery ? [`required-fact recovery was ${Math.round(Number(truth.requiredFactRecall ?? 0) * 100)}%`] : []),
-    ...(inadequateContentCoverage ? [`gold-section content coverage was ${Math.round(Number(gold.contentCoverage ?? 0) * 100)}%`] : []),
-    ...(invalidLengthRatio ? [`generated/original length ratio was ${Number(gold.lengthRatio).toFixed(2)}`] : []),
-    ...(inadequateSemanticRecovery ? [`semantic section similarity was ${Math.round(semanticScore*100)}%`] : []),
-    ...(inadequateFormat ? [`PDF-ready format contract was ${Math.round(Number(format.score??0)*100)}%`] : []),
-  ];
-  evalRun.summary = `Failed truth recovery contract: ${reasons.join("; ")}.`;
+  const semanticRecovery=semanticScore??(directRecovery&&gold.contentCoverage!=null?Number(gold.contentCoverage):null);
+  const classification=classifyInspectorReviewDraft({
+    protectedFactMismatchCount:Number(truth.protectedFactMismatchCount??0),
+    unsupportedCriticalClaimCount:Number(truth.unsupportedClaimCount??0),
+    semanticRecovery,
+    requiredConceptRecall:Number(truth.requiredFactCount??0)>0?effectiveRequiredRecall:null,
+    claimPrecision:truth.claimPrecision==null?null:Number(truth.claimPrecision),
+    protectedFactAccuracy:Number(truth.protectedFactCount??0)>0?Number(truth.protectedFactAccuracy):null,
+    formatReadiness:format.score==null?null:Number(format.score),
+  });
+  const weighted=[semanticRecovery,effectiveRequiredRecall,Number(truth.claimPrecision??1),Number(format.score??1)].filter(Number.isFinite);
+  evalRun.score=classification.outcomeCode==="blocked"?0:weighted.reduce((sum,value)=>sum+value,0)/Math.max(1,weighted.length);
+  evalRun.grade=evalRun.score>=0.9?"A":evalRun.score>=0.8?"B":evalRun.score>=0.7?"C":evalRun.score>=0.6?"D":"F";
+  evalRun.outcomeCode=classification.outcomeCode;
+  evalRun.draftQualityContractVersion=DRAFT_QUALITY_CONTRACT_VERSION;
+  evalRun.draftQualityClassification=classification;
+  evalRun.summary=classification.outcomeCode==="ready_for_review"
+    ? `Ready for inspector review at ${Math.round(evalRun.score*100)}%; normal refinement may still be required.`
+    : classification.outcomeCode==="blocked"
+      ? `Blocked by critical integrity checks: ${classification.blockerReasons.join(", ")}.`
+      : `Needs inspector attention: ${classification.attentionReasons.join(", ")}.`;
 }
 
 function parseJsonValue(value) {

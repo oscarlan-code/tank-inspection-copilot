@@ -434,7 +434,7 @@ function LivePolicy({ busy, error, heldOutReview, labState, onPrepareHeldOut, on
           <div className="eval-live-policy-actions">
             <button className="toolbar-button toolbar-button-primary" disabled={busy || !candidate || !promotionReady} onClick={() => candidate && onPromote(candidate.policyVersionId)} type="button">Promote candidate</button>
             {status.policies.filter((item) => item.statusCode === "archived").map((item) => <button className="toolbar-button" disabled={busy} key={item.policyVersionId} onClick={() => onRollback(item.policyVersionId)} type="button">Restore version {item.versionNumber}</button>)}
-            <span>{promotionReady ? "The new-report truth-recovery and automatic promotion gates pass." : automaticGatesPass ? heldOutReview?.promotionGate?.reasons.join(" ") || "A complete passing new-report hidden test is required." : "Candidate remains offline until automatic and new-report held-out gates pass."}</span>
+            <span>{promotionReady ? "The new-report inspector-review readiness and automatic promotion gates pass." : automaticGatesPass ? heldOutReview?.promotionGate?.reasons.join(" ") || "A complete review-ready new-report hidden test is required." : "Candidate remains offline until automatic and new-report held-out gates pass."}</span>
           </div>
         </>
       )}
@@ -444,11 +444,11 @@ function LivePolicy({ busy, error, heldOutReview, labState, onPrepareHeldOut, on
 
 function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenSection: (evaluationCaseId: string, sectionId: string) => void; review: SystemRlHeldOutReview }) {
   const metrics = review.metrics;
-  const resultLabel = metrics?.hardFailure ? "Fail · truth contract" : metrics ? humanize(metrics.outcomeCode) : "Evaluated";
+  const resultLabel = metrics?.hardFailure ? "Blocked · critical integrity" : metrics ? sectionOutcomeLabel(metrics.outcomeCode, false) : "Evaluated";
   const currentValue = reviewSectionValue(review.evaluationCaseId ?? "", review.sectionId ?? "");
   return <section className="eval-heldout-review">
     <div className="eval-heldout-review-heading"><div><p className="eyebrow">Human review · {humanize(review.sectionId ?? "section")}</p><h3>{review.reportName}</h3><small>{review.sections?.length ?? 0} evaluated sections in the latest {humanize(review.datasetSplit ?? "training")} cohort</small></div><div className="eval-review-navigation"><select aria-label="Review section" disabled={busy} onChange={(event) => { const [evaluationCaseId, sectionId] = parseReviewSectionValue(event.target.value); if (evaluationCaseId && sectionId) onOpenSection(evaluationCaseId, sectionId); }} value={currentValue}>{review.sections?.map((section) => <option key={`${section.evaluationCaseId}:${section.sectionId}`} value={reviewSectionValue(section.evaluationCaseId, section.sectionId)}>{sectionOutcomeLabel(section.outcomeCode, section.hardFailure)} · {section.reportName} · {humanize(section.sectionId)}</option>)}</select><button className="toolbar-button" disabled={busy || !review.previousSectionId || !review.previousEvaluationCaseId} onClick={() => review.previousEvaluationCaseId && review.previousSectionId && onOpenSection(review.previousEvaluationCaseId, review.previousSectionId)} type="button">Previous</button><button className="toolbar-button toolbar-button-primary" disabled={busy || !review.nextSectionId || !review.nextEvaluationCaseId} onClick={() => review.nextEvaluationCaseId && review.nextSectionId && onOpenSection(review.nextEvaluationCaseId, review.nextSectionId)} type="button">Next section</button>{review.goldDocumentId ? <button className="toolbar-button" onClick={() => window.open(`/api/v1/admin/kb-review/documents/${encodeURIComponent(review.goldDocumentId ?? "")}/source#page=${review.sourcePageNumber ?? 1}`, "_blank", "noopener,noreferrer")} type="button">Preview original PDF</button> : null}<span>{metrics ? `${Math.round(metrics.score * 100)}% · ${resultLabel}` : resultLabel}</span></div></div>
-    {metrics?.hardFailure ? <div className="eval-live-feedback error"><strong>This section cannot pass.</strong> {metrics.hardFailureReasons.join(" ")}</div> : null}
+    {metrics?.hardFailure ? <div className="eval-live-feedback error"><strong>This draft is blocked.</strong> Correct the critical-data or evidence-isolation problem before inspector review. {metrics.hardFailureReasons.join(" ")}</div> : null}
     <div className="eval-heldout-review-grid">
       <article><strong>Original section · Gold benchmark</strong><SectionPagePreview><ReviewDocument empty="No original content is mapped to this section." text={cleanOriginalSection(review.originalSectionContent ?? "")} /></SectionPagePreview></article>
       <article><strong>Generated section · PDF-ready candidate</strong><ProvenanceLegend html={review.generatedContent ?? ""} /><SectionPagePreview><GeneratedExportPreview html={review.generatedContent ?? ""} /></SectionPagePreview></article>
@@ -468,10 +468,10 @@ function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenS
 }
 
 function sectionOutcomeLabel(outcomeCode: string | null, hardFailure: boolean) {
-  if (hardFailure || outcomeCode === "fail_truth_contract") return "Contract failure";
-  if (outcomeCode === "fail_truth_recovery") return "Low recovery";
-  if (outcomeCode === "pass") return "Pass";
-  return "Review";
+  if (hardFailure || outcomeCode === "blocked" || outcomeCode === "fail_truth_contract") return "Blocked";
+  if (outcomeCode === "ready_for_review" || outcomeCode === "pass") return "Ready for review";
+  if (outcomeCode === "needs_attention" || outcomeCode === "fail_truth_recovery" || outcomeCode === "fail_semantic_recovery" || outcomeCode === "fail_format_contract") return "Needs attention";
+  return "Not evaluated";
 }
 
 function reviewSectionValue(evaluationCaseId: string, sectionId: string) {

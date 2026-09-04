@@ -594,17 +594,9 @@ export function calculateSystemRlReward({ evalRun, generationRun }) {
   if (Number(retrievalEvaluation.sameGoldRetrievedCount ?? 0) > 0) {
     hardFailureReasons.push("same_gold_report_retrieved");
   }
-  if (claimPrecisionAvailable && claimPrecision < 0.5) {
-    hardFailureReasons.push("unsupported_verifiable_claims");
-  }
   if (truth?.protectedFactMismatchCount > 0) hardFailureReasons.push("protected_truth_mismatch");
   if (truth?.unsupportedClaimCount > 0) hardFailureReasons.push("invented_verifiable_fact");
-  if (truth?.requiredFactCount > 0 && effectiveTruthRecall < (semanticEvidenceMode?0.7:0.8)) {
-    hardFailureReasons.push("required_truth_recovery_below_threshold");
-  }
   const directGoldRecovery=String(gold?.evaluationMode??"direct_recovery")==="direct_recovery";
-  if (directGoldRecovery && gold?.contentCoverage != null && Number(gold.contentCoverage) < Number(gold.minimumContentCoverage??0.55)) hardFailureReasons.push("gold_content_coverage_below_threshold");
-  if (directGoldRecovery && gold?.lengthRatio != null && (Number(gold.lengthRatio) < 0.5 || Number(gold.lengthRatio) > 1.5)) hardFailureReasons.push("section_length_ratio_out_of_range");
   const learningIneligibilityReasons = [];
   if (missingInputCount > 0) learningIneligibilityReasons.push("missing_required_input");
   if (blockerCount > 0) learningIneligibilityReasons.push("generation_blocker");

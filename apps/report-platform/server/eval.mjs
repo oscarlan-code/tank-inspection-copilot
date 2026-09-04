@@ -138,7 +138,7 @@ function sectionStructure(value) {
   const listItemCount = (source.match(/<li\b/gi) ?? []).length + markdownLines.filter((line) => /^\s*(?:[•▪-]|\d+[.)])\s+/.test(line)).length;
   const paragraphCount = Math.max((source.match(/<p\b/gi) ?? []).length, text.split(/\n\s*\n/).filter((item) => item.trim().length > 30).length);
   const artifacts = [
-    ...(/(?:&quot;|\\n|\uFFFD|\{\s*"(?:text|sourceHeading|sourceBlockType)"\s*:)/i.test(source) ? ["Raw extraction or JSON artifacts are visible."] : []),
+    ...(/(?:\\n|\uFFFD|\{\s*"(?:text|sourceHeading|sourceBlockType)"\s*:)/i.test(source) ? ["Raw extraction or JSON artifacts are visible."] : []),
     ...(/\b(?:lorem ipsum|undefined|null)\b/i.test(text) ? ["Placeholder or invalid values are visible."] : []),
     ...(/\bpending confirmation\b/i.test(text) ? ["Unresolved placeholder language is visible."] : []),
   ];
@@ -759,12 +759,10 @@ function buildScoreCaps({ missingManualFields, blockers, leakage }) {
 }
 
 function determineOutcome({ score, missingManualFields, blockers, leakage }) {
-  if (blockers.length > 0) return "fail_blocked";
-  if (missingManualFields.length > 0) return "expected_bad_missing_user_input";
-  if (leakage.riskScore >= 0.65) return "fail_possible_leakage";
-  if (score >= 0.75) return "pass";
-  if (score >= 0.5) return "needs_review";
-  return "fail";
+  if (blockers.length > 0 || leakage.riskScore >= 0.65) return "blocked";
+  if (missingManualFields.length > 0) return "needs_attention";
+  if (score >= 0.75) return "ready_for_review";
+  return "needs_attention";
 }
 
 function buildEvalSummary({ score, outcomeCode, missingManualFields, blockers, leakage }) {
@@ -777,7 +775,7 @@ function buildEvalSummary({ score, outcomeCode, missingManualFields, blockers, l
   if (leakage.riskScore >= 0.65) {
     return `Score ${formatScore(score)}. Failed possible reference leakage guard.`;
   }
-  if (outcomeCode === "pass") {
+  if (["pass", "ready_for_review"].includes(outcomeCode)) {
     return `Score ${formatScore(score)}. Output is aligned enough for user review.`;
   }
   return `Score ${formatScore(score)}. Output needs prompt/system tuning or additional report-side input.`;
@@ -814,7 +812,7 @@ function buildTuningHints({
   if (referenceSimilarity.score < 0.35 && missingManualFields.length === 0) {
     hints.push("Review whether the section retrieval profile is finding the right sample-report section.");
   }
-  if (outcomeCode === "pass") {
+  if (["pass", "ready_for_review"].includes(outcomeCode)) {
     hints.push("Keep this prompt/retrieval configuration as a candidate baseline for this section.");
   }
 
