@@ -11,8 +11,13 @@ description: Use when changing the report-platform UI/API workflow for loading a
 LAIQ inspection app V3 export
 -> import/bootstrap API
 -> normalized report job
--> section evidence packs
+-> historical ReportBlueprintPack + applicable StandardObligationPack
+-> Report Structure Agent and reviewed ReportPlan / table of contents
+-> canonical evidence + section use classification
+-> frozen SectionPlans
+-> explicit section/profile agent release
 -> deterministic tools / constrained AI workers
+-> Report Integrator and semantic ReportDocument
 -> generated drafts
 -> human review and approval
 -> selected approved sections
@@ -40,6 +45,14 @@ LAIQ inspection app V3 export
 - Approval is human-gated.
 - Final DOCX export includes selected approved sections only.
 - Missing required manual fields should block approval, not trigger invented content.
+- Missing agents, standard basis, inputs, tools, or renderers block the new pipeline;
+  they never fall back to the previous shared generator.
+- Every generated section records an explicit immutable agent version/hash.
+- Evaluation and product execute the same release; only post-generation handling
+  differs. Product eligibility comes from server-owned routing, never app flags.
+- A later agent's code, prompt, or KB must not change a frozen earlier release.
+- Historical report patterns and API/technical standard obligations are separate,
+  pinned inputs. Both are required; neither can invent current inspection evidence.
 
 ## Common Failure Modes
 

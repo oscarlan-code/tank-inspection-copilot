@@ -20,17 +20,23 @@ const expected = new Map([
   ["cover", REPORT_METADATA_SECTION_ID],
   ["scope", "scope-of-inspection"],
   ["regime", "inspection-maintenance-regime"],
-  ["history", "general-tank-information"],
+  ["history", REPORT_METADATA_SECTION_ID],
   ["general", "general-tank-information"],
   ["inspection", "inspection-report"],
-  ["calculation", "inspection-report"],
+  ["calculation", REPORT_METADATA_SECTION_ID],
   ["recommendation", "repair-recommendations"],
   ["guidelines", "guidelines-interpretation-tru-flux-data-sheets"],
-  ["limitations", "guidelines-interpretation-tru-flux-data-sheets"],
+  ["limitations", REPORT_METADATA_SECTION_ID],
   ["corrosion", "floor-plate-corrosion-plan"],
   ["checklist", "tank-inspection-checklist"],
-  ["legend", "tank-inspection-checklist"],
+  ["legend", REPORT_METADATA_SECTION_ID],
 ]);
 const failures = facts.filter((fact) => resolve(fact).sectionId !== expected.get(fact.fact_id));
 if (failures.length) throw new Error(`Capture section alignment failed: ${JSON.stringify(failures.map((fact) => ({ factId: fact.fact_id, actual: resolve(fact), expected: expected.get(fact.fact_id) })))}`);
-console.log("Capture section alignment audit passed: facts follow the tested report's own section anchors.");
+const unknown = { fact_id: "far-away", source_page_number: 80, section_key: "unknown-calculation" };
+if (resolve(unknown).aligned || resolve(unknown).sectionId !== REPORT_METADATA_SECTION_ID) throw new Error("An unbounded preceding heading must not certify section alignment.");
+const reviewed = { ...unknown, sourceSectionBoundary: { sectionId: "inspection-report", startPage: 79, endPage: 81, reviewStatus: "approved", sourceRevisionId: "reviewed-source-v2" } };
+if (!resolve(reviewed).aligned || resolve(reviewed).sectionId !== "inspection-report") throw new Error("Reviewed bounded parent section was not retained.");
+if (resolve({ ...reviewed, source_page_number: 82 }).aligned) throw new Error("A reviewed parent boundary must not apply outside its page range.");
+if (resolve({ ...reviewed, sourceSectionBoundary: { ...reviewed.sourceSectionBoundary, reviewStatus: "machine_proposed" } }).aligned) throw new Error("An unreviewed boundary must not certify alignment.");
+console.log("Capture section alignment audit passed: explicit sections and reviewed boundaries only; proximity remains unresolved.");

@@ -1,3 +1,8 @@
+// LEGACY COMPATIBILITY PROFILE.
+// This outline was derived from one historical API 653 report family. API 653 does
+// not mandate this exact table of contents. The rebuilt pipeline must obtain its
+// reviewed structure from the Report Structure Agent and an immutable ReportPlan;
+// do not extend this constant as the new structure authority.
 export const API_STANDARD_PRIMARY_REPORT = {
   reference: "API653-VERTICAL-AST-TEMPLATE",
   sourceReportName: "API 653 Vertical AST Internal / External Report Template",

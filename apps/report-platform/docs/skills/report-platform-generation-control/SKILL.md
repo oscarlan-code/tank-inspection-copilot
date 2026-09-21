@@ -11,7 +11,7 @@ If LAIQ AI Engine says it changed generated output, it must return a controlled 
 
 ## Important Files
 
-- `server/generation.mjs`
+- `server/generation.mjs` (legacy comparison/read compatibility; do not extend)
 - `server/codex-cli.mjs`
 - `server/report-blocks.mjs`
 - `server/store.mjs`
@@ -19,8 +19,10 @@ If LAIQ AI Engine says it changed generated output, it must return a controlled 
 - `src/app/App.tsx`
 - `src/components/RichTextSectionEditor.tsx`
 - `src/domain/types.ts`
-- `GENERATED_CONTENT_CONTROL_SYSTEM.md`
-- `AGENTIC_SYSTEM_DESIGN.md`
+- `docs/contracts/reporting/GENERATED_CONTENT_CONTROL_SYSTEM.md`
+- `REPORT_COMPILER_WORKFLOW.md`
+- `SECTION_AGENT_RELEASES.md`
+- `server/section-agents/AGENTS.md`
 
 ## Allowed AI Work
 
@@ -56,6 +58,17 @@ Supported action families include:
 
 ## Required Guardrails
 
+- Build new work through the Report Structure Agent -> ReportPlan -> SectionPlan ->
+  exact section agent -> Report Integrator path. Never add a legacy-generator
+  fallback.
+- Validate both the historical SectionPatternPack and applicable pinned
+  StandardObligationPack independently of current-evidence grounding.
+- Resolve an explicit section/profile agent release; never use `latest` or a mutable
+  global prompt/KB.
+- Keep R&D and product on the same release bytes, planner, compilers, validators,
+  formatter, and dependency hashes.
+- New section behavior creates a new immutable version. Promotion changes a
+  server-owned routing record and cannot be requested by app data or the model.
 - Snapshot drafts before mutation.
 - Bind targeted proposals to the section version plus document and selection hashes.
 - Verify that content outside an accepted targeted range remains unchanged.

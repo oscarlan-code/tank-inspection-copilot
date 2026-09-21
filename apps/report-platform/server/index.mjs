@@ -26,6 +26,7 @@ import { createDurableFloorCorrosionArtifactService } from "./durable-floor-corr
 import { createFloorCorrosionWorkerService } from "./floor-corrosion-worker-service.mjs";
 import { getEffectiveLayoutMap } from "./layout-map-figure.mjs";
 import { API_STANDARD_REPORT_TOC } from "./report-toc.mjs";
+import { GenericOutlineReviewError, matchesGenericOutlineReviewCase, loadGenericOutlineHeldOutReview, resolveGenericOutlineSource } from "./experiments/generic-outline-review-backend.mjs";
 import { createAuthService } from "./auth/auth-service.mjs";
 import { hashPassword, validateUsername } from "./auth/password-auth.mjs";
 import {
@@ -252,10 +253,33 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && pathname === "/api/v1/admin/system-rl/held-out-review") {
       authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
-      writeJson(response, 200, await reportStore.getSystemRlHeldOutReview({
+      const reviewRequest = {
         evaluationCaseId: requestUrl.searchParams.get("evaluationCaseId"),
         sectionId: requestUrl.searchParams.get("sectionId"),
-      }));
+        evalRunId: requestUrl.searchParams.get("evalRunId"),
+      };
+      writeJson(response, 200, await (matchesGenericOutlineReviewCase(reviewRequest.evaluationCaseId)
+        ? loadGenericOutlineHeldOutReview(reviewRequest)
+        : reportStore.getSystemRlHeldOutReview(reviewRequest)));
+      return;
+    }
+
+    const genericOutlineSource = pathname.match(/^\/api\/v1\/admin\/generic-outline-reviews\/([^/]+)\/source$/);
+    if (request.method === "GET" && genericOutlineSource) {
+      authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
+      const source = await resolveGenericOutlineSource(decodeURIComponent(genericOutlineSource[1]));
+      const file = await open(source.absolutePath, "r");
+      try {
+        const stat = await file.stat();
+        response.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Length": stat.size,
+          "Content-Disposition": inlineDisposition(source.fileName),
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        });
+        await pipeline(file.createReadStream(), response);
+      } finally { await file.close(); }
       return;
     }
 
@@ -263,6 +287,12 @@ const server = createServer(async (request, response) => {
       authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
       const body = await readJsonBody(request);
       const sectionId = String(body.sectionId ?? "").trim();
+      if (matchesGenericOutlineReviewCase(body.evaluationCaseId)) {
+        // Navigation reads the completed candidate run; it never invokes the
+        // legacy generator, imports a report or records policy rewards.
+        writeJson(response, 200, await loadGenericOutlineHeldOutReview({ evaluationCaseId: body.evaluationCaseId, sectionId }));
+        return;
+      }
       const existing = await reportStore.getSystemRlHeldOutReview({ evaluationCaseId: body.evaluationCaseId, sectionId });
       if (existing.available) {
         writeJson(response, 200, existing);
@@ -476,10 +506,6 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && truthCaseApprovalPath) {
       authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
       const trainingCaseId = decodeURIComponent(truthCaseApprovalPath[1]);
-      await reportStore.acceptAutomatedTruthDraft({
-        actorUserId: principal.userId,
-        trainingCaseId,
-      });
       const manifest = await reportStore.buildTruthGraphManifest(trainingCaseId);
       const bytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8");
       const objectKey = [
@@ -1030,6 +1056,37 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const sectionPlanningPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/(section-plans|classification-runs|classification-decisions)$/);
+    if (sectionPlanningPath) {
+      const reportJobId = decodeURIComponent(sectionPlanningPath[1]);
+      const operation = sectionPlanningPath[2];
+      if(request.method === "GET" && operation === "section-plans") {
+        await loadAuthorizedReportState(principal,reportJobId,REPORT_PERMISSIONS.READ);
+        const state=await reportStore.loadEvaluationPlanningState(reportJobId);
+        writeJson(response,200,state.sectionPlanning);
+        return;
+      }
+      if(request.method === "POST" && operation !== "section-plans") {
+        await authorizeReportJob(principal,reportJobId,REPORT_PERMISSIONS.EDIT);
+        const body=await readJsonBody(request);
+        const snapshot=operation === "classification-runs"
+          ? await reportStore.classifyReportSections(reportJobId)
+          : await reportStore.reviewSectionClassification(reportJobId,{expectedSnapshotId:body.expectedSnapshotId,decision:body.decision,actorUserId:principal.userId});
+        writeJson(response,200,snapshot);
+        return;
+      }
+    }
+
+    const outlineEvaluationPath = pathname.match(/^\/api\/v1\/report-jobs\/([^/]+)\/outline-evaluations$/);
+    if (request.method === 'POST' && outlineEvaluationPath) {
+      authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
+      const reportJobId=decodeURIComponent(outlineEvaluationPath[1]);
+      await authorizeReportJob(principal,reportJobId,REPORT_PERMISSIONS.READ);
+      const body=await readJsonBody(request);
+      writeJson(response,200,await reportStore.runOutlineEvaluation({reportJobId,sectionId:body.sectionId,expectedSnapshotId:body.expectedSnapshotId,actorUserId:principal.userId}));
+      return;
+    }
+
     const reportEvidencePath = pathname.match(
       /^\/api\/v1\/report-jobs\/([^/]+)\/attachments\/([^/]+)\/read-url$/,
     );
@@ -1404,7 +1461,7 @@ const server = createServer(async (request, response) => {
       });
       return;
     }
-    if (error instanceof ApiError) {
+    if (error instanceof ApiError || error instanceof GenericOutlineReviewError) {
       writeJson(response, error.statusCode, {
         error: error.message,
         code: error.code,

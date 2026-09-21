@@ -1,171 +1,135 @@
-import {createHash} from "node:crypto";
-import {evaluateGoldSectionRecovery,evaluateSectionFormatContract} from "../eval.mjs";
-import {evaluateEvidenceConditionedGeneration,evaluateSemanticSectionSimilarity} from "../semantic-eval.mjs";
-import {createPostgresDatabase} from "../storage/postgres.mjs";
-import {compileDeterministicAppRecords,scoreEntityRelationshipBindings,validateEntityBoundEvidence} from "../evidence-entity-binding.mjs";
-import {finalizeGovernedGeneratedContent,formatGovernedSectionHtml,getGovernedSectionRoute,runGovernedNarrativeGeneration} from "../governed-generation-contract.mjs";
-import {classifyInspectorReviewDraft,DRAFT_QUALITY_CONTRACT_VERSION} from "../draft-quality.mjs";
+import pg from "pg";
+import { pathToFileURL } from "node:url";
+import { generateSectionDraft } from "../generation.mjs";
+import { PLANNED_GENERATOR_CONTRACT } from "../planned-generation.mjs";
+import { buildSectionPlanningSnapshot } from "../section-planner.mjs";
+import { evaluateSectionPlanOutput } from "../section-plan-evaluation.mjs";
+import { evaluateGoldSectionRecovery, evaluateSectionFormatContract } from "../eval.mjs";
+import { validateAndroidV3ProductExport } from "../store.mjs";
+import { reconstructionBenchmarkMetadata } from "../standardized-pair-builder.mjs";
 
-if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is required.");
-const policyVersionId=String(process.env.GOVERNED_POLICY_VERSION_ID??"rl_policy_report_generation_v7_labelled_voice");
-const pairContractVersion=Number(process.env.GOVERNED_PAIR_CONTRACT_VERSION??3);
-const requested=Number(process.env.GOVERNED_TRAINING_PAIR_LIMIT??6);
-const pairLimit=Number.isInteger(requested)&&requested>0?requested:6;
-const targetPairId=String(process.env.GOVERNED_TARGET_PAIR_ID??"").trim();
-const cohortId=String(process.env.GOVERNED_COHORT_ID??"").trim();
-const datasetSplit=String(process.env.GOVERNED_DATASET_SPLIT??"training");
-if(!["training","validation"].includes(datasetSplit))throw new Error(`Unsupported governed dataset split: ${datasetSplit}.`);
-const armSelectionMode=String(process.env.GOVERNED_ARM_SELECTION_MODE??"all");
-const concurrency=Math.max(1,Math.min(4,Number(process.env.GOVERNED_TRAINING_CONCURRENCY??2)));
-const db=await createPostgresDatabase({databaseUrl:process.env.DATABASE_URL});
-try{
-  const requestedArmKeys=new Set(String(process.env.GOVERNED_ARM_KEYS??"").split(",").map((value)=>value.trim()).filter(Boolean));
-  const allArms=await db.prepare(`SELECT arm_id,arm_key,display_name,config_json FROM system_rl_policy_arms WHERE policy_version_id=? AND is_enabled=TRUE ORDER BY stable_order`).all(policyVersionId);
-  const arms=requestedArmKeys.size?allArms.filter((arm)=>requestedArmKeys.has(arm.arm_key)):allArms;
-  if(!arms.length)throw new Error(`No enabled arms for ${policyVersionId}.`);
-  const selectedPairs=cohortId?await db.prepare(
-    `SELECT p.*,g.target_content,r.asset_lineage_key,r.core_family,r.report_reference,r.profile_json
-     FROM report_governed_validation_cohort_items i
-     JOIN report_governed_baseline_pairs p ON p.corpus_report_id=i.corpus_report_id AND p.section_key=i.section_key
-     JOIN report_governed_gold_sections g ON g.governed_gold_section_id=p.governed_gold_section_id
-     JOIN report_corpus_registry r ON r.corpus_report_id=p.corpus_report_id
-     WHERE i.cohort_id=? AND p.dataset_split=? AND p.status_code='ready' AND p.contract_version=?
-     ORDER BY i.stable_order`).all(cohortId,datasetSplit,pairContractVersion):await db.prepare(
-    `WITH candidates AS (
-       SELECT p.*,g.target_content,r.asset_lineage_key,r.core_family,r.report_reference,r.profile_json,
-         ROW_NUMBER() OVER (PARTITION BY r.core_family,p.section_key ORDER BY encode(digest(p.corpus_report_id||':'||p.section_key||?,'sha256'),'hex')) stratum_rank
-       FROM report_governed_baseline_pairs p
-       JOIN report_governed_gold_sections g ON g.governed_gold_section_id=p.governed_gold_section_id
-       JOIN report_corpus_registry r ON r.corpus_report_id=p.corpus_report_id
-       WHERE p.dataset_split=? AND p.status_code='ready' AND p.contract_version=?
-     ) SELECT * FROM candidates ORDER BY stratum_rank,encode(digest(corpus_report_id||':'||section_key||?,'sha256'),'hex') LIMIT ?`,
-  ).all(policyVersionId,datasetSplit,pairContractVersion,policyVersionId,pairLimit);
-  if(cohortId){const expected=await db.prepare(`SELECT COUNT(*)::int count FROM report_governed_validation_cohort_items WHERE cohort_id=?`).get(cohortId);if(selectedPairs.length!==expected.count)throw new Error(`Pinned cohort ${cohortId} resolved ${selectedPairs.length}/${expected.count} ready contract-${pairContractVersion} pairs.`);}
-  const pairs=targetPairId?selectedPairs.filter((pair)=>pair.governed_pair_id===targetPairId):selectedPairs;
-  if(targetPairId&&!pairs.length)throw new Error(`Target governed pair ${targetPairId} was not found in the selected cohort.`);
-  const completedKeys=new Set((await db.prepare(`SELECT governed_pair_id,arm_id FROM report_governed_rag_training_runs WHERE policy_version_id=? AND status_code='completed'`).all(policyVersionId)).map((row)=>`${row.governed_pair_id}:${row.arm_id}`));
-  const jobs=(armSelectionMode==="contextual_frozen"
-    ? pairs.map((pair)=>({pair,arm:selectFrozenArm(pair,arms)}))
-    : pairs.flatMap((pair)=>arms.map((arm)=>({pair,arm}))))
-    .filter(({pair,arm})=>!completedKeys.has(`${pair.governed_pair_id}:${arm.arm_id}`));
-  let cursor=0,completed=0,failed=0;
-  async function worker(){while(cursor<jobs.length){const job=jobs[cursor++];try{await runEpisode(job);completed++;}catch(error){failed++;process.stderr.write(`${job.pair.governed_pair_id}/${job.arm.arm_key}: ${message(error)}\n`);}process.stdout.write(`${JSON.stringify({progress:{completed,failed,total:jobs.length}})}\n`);}}
-  await Promise.all(Array.from({length:concurrency},()=>worker()));
-  const summary=await db.prepare(
-    `SELECT a.arm_key,COUNT(*)::int episodes,AVG(r.reward_value)::float8 mean_reward,
-       AVG((r.semantic_metrics_json->>'evidenceCoverage')::float8)::float8 evidence_coverage,
-       AVG((r.semantic_metrics_json->'goldBenchmark'->>'semanticSimilarity')::float8)::float8 gold_similarity_diagnostic,
-       AVG((r.deterministic_metrics_json->'recovery'->>'contentCoverage')::float8)::float8 content_coverage,
-       SUM(CASE WHEN r.hard_failure THEN 1 ELSE 0 END)::int hard_failures
-     FROM report_governed_rag_training_runs r JOIN system_rl_policy_arms a USING(arm_id)
-     WHERE r.policy_version_id=? AND r.status_code='completed' GROUP BY a.arm_key ORDER BY mean_reward DESC`,
-  ).all(policyVersionId);
-  console.log(JSON.stringify({policyVersionId,cohortId:cohortId||null,pairs:pairs.length,arms:arms.length,alreadyCompleted:completedKeys.size,attempted:jobs.length,completed,failed,summary},null,2));
-  if(failed)process.exitCode=1;
+export const GOVERNED_DIAGNOSTIC_CONTRACT = "native_section_plan_diagnostic_v1";
+const json = (value, fallback = {}) => typeof value === "string" ? JSON.parse(value) : value ?? fallback;
+const clone = (value) => structuredClone(value);
+const shaPattern = /^[a-f0-9]{64}$/i;
 
-  async function runEpisode({pair,arm}){
-    const config=json(arm.config_json,{});
-    const runId=`grtr_${sha(`${pair.governed_pair_id}:${policyVersionId}:${arm.arm_id}`).slice(0,28)}`;
-    const now=new Date().toISOString();
-    const retrieval=await retrieve(pair,config);
-    const contextKey=`${pair.core_family}:${pair.section_key}`;
-    await db.prepare(
-      `INSERT INTO report_governed_rag_training_runs (governed_run_id,governed_pair_id,policy_version_id,arm_id,context_key,retrieval_audit_json,status_code,started_at_iso,updated_at_iso)
-       VALUES (?,?,?,?,?,?::jsonb,'running',?,?) ON CONFLICT (governed_pair_id,policy_version_id,arm_id) DO UPDATE SET retrieval_audit_json=excluded.retrieval_audit_json,status_code='running',error_message=NULL,started_at_iso=excluded.started_at_iso,completed_at_iso=NULL,updated_at_iso=excluded.updated_at_iso`,
-    ).run(runId,pair.governed_pair_id,policyVersionId,arm.arm_id,contextKey,JSON.stringify(retrieval.audit),now,now);
-    try{
-      if(!retrieval.audit.firewallPassed)throw new Error("Retrieval firewall rejected the episode.");
-      const entityContract=validateEntityBoundEvidence(pair.mock_input_json);if(!entityContract.valid)throw new Error(`Entity-bound evidence contract failed: ${entityContract.issues.join(", ")}`);
-      const route=getGovernedSectionRoute({sectionId:pair.section_key,hasVoiceEvidence:(pair.mock_input_json?.voiceNotes??[]).length>0});
-      const response=route.llmRole==="none"?{parsed:{sectionContent:""}}:await runGovernedNarrativeGeneration({sectionId:pair.section_key,evidenceInput:generationEvidenceView(pair.mock_input_json),precedents:retrieval.items,policyAction:policyGuidance(arm.arm_key),promptVariant:config.promptVariant??"baseline_v1",precedentCharacterLimit:config.precedentCharacterLimit??2000});
-      const deterministic=compileDeterministicAppRecords(pair.mock_input_json?.appRecords,{outputFormat:"html"});
-      const generated=formatGovernedSectionHtml({sectionId:pair.section_key,sectionTitle:pair.section_key,content:finalizeGovernedGeneratedContent({narrative:String(response.parsed.sectionContent??"").trim(),deterministicContent:deterministic,evidenceInput:pair.mock_input_json})});
-      const recovery=evaluateGoldSectionRecovery({goldContent:pair.target_content,generatedContent:generated,evaluationMode:"evidence_conditioned_semantic",minimumContentCoverage:0.55});
-      const format=evaluateSectionFormatContract({sectionId:pair.section_key,goldContent:pair.target_content,generatedContent:generated});
-      const protectedFacts=scoreProtected(pair.protected_invariants_json,generated);
-      const unsupportedClaims=scoreUnsupportedClaims(pair.mock_input_json,generated);
-      const atomicBindings=scoreAtomicBindings(pair.mock_input_json,generated);
-      const entityBindings=scoreEntityRelationshipBindings(pair.mock_input_json,generated);
-      const [evidenceSemantic,goldBenchmark]=await Promise.all([
-        evaluateEvidenceConditionedGeneration({sectionId:pair.section_key,allowedEvidence:pair.mock_input_json,generatedContent:generated}),
-        evaluateSemanticSectionSimilarity({sectionId:pair.section_key,goldContent:pair.target_content,generatedContent:generated}),
-      ]);
-      const semantic={...evidenceSemantic,goldBenchmark};
-      const classification=classifyInspectorReviewDraft({
-        protectedFactMismatchCount:protectedFacts.mismatchedCount+atomicBindings.violationCount,
-        unsupportedCriticalClaimCount:unsupportedClaims.count,
-        unsafeEvidenceVerdict:evidenceSemantic.verdict==="unsafe",
-        entityRelationshipAccuracy:entityBindings.applicable?Math.max(0,1-entityBindings.violationCount/Math.max(1,(pair.mock_input_json?.observations??[]).length)):null,
-        semanticRecovery:Number(goldBenchmark.semanticSimilarity??0),
-        requiredConceptRecall:Number(evidenceSemantic.evidenceCoverage??0),
-        claimPrecision:unsupportedClaims.count===0?1:Math.max(0,1-unsupportedClaims.count/Math.max(1,extractClaims(generated).length)),
-        protectedFactAccuracy:protectedFacts.accuracy,
-        formatReadiness:Number(format.score??0),
-      });
-      const hardFailure=classification.outcomeCode==="blocked"||!generated;
-      const reviewDisposition=hardFailure?"blocked":classification.outcomeCode;
-      const reward=hardFailure?0:bounded(0.30*Number(evidenceSemantic.evidenceCoverage??0)+0.25*Number(evidenceSemantic.evidenceFidelity??0)+0.15*Number(evidenceSemantic.safeAbstention??0)+0.15*Number(evidenceSemantic.professionalUsefulness??0)+0.15*Number(format.score??0));
-      const finished=new Date().toISOString();
-      await db.prepare(`UPDATE report_governed_rag_training_runs SET generated_content=?,deterministic_metrics_json=?::jsonb,semantic_metrics_json=?::jsonb,reward_value=?,hard_failure=?,status_code='completed',completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(generated,JSON.stringify({recovery,format,protectedFacts,unsupportedClaims,atomicBindings,entityBindings,reviewDisposition,draftQualityContractVersion:DRAFT_QUALITY_CONTRACT_VERSION,classification,deterministicCompiler:{applied:Boolean(deterministic),version:"app_records_v1"}}),JSON.stringify(semantic),reward,hardFailure,finished,finished,runId);
-    }catch(error){const finished=new Date().toISOString();await db.prepare(`UPDATE report_governed_rag_training_runs SET status_code='failed',hard_failure=TRUE,error_message=?,completed_at_iso=?,updated_at_iso=? WHERE governed_run_id=?`).run(message(error).slice(0,2000),finished,finished,runId);throw error;}
+/** Preflight all inputs before a model call; never reinterpret generic appRecords. */
+export function prepareGovernedDiagnosticPair(pair) {
+  const input = json(pair.mock_input_json);
+  const exportPackage = input.nativeExportPackage;
+  if (!exportPackage) throw new Error(`${pair.governed_pair_id}: nativeExportPackage is required; legacy appRecords cannot run through this diagnostic.`);
+  const issues = validateAndroidV3ProductExport(exportPackage);
+  if (issues.length) throw new Error(`Native app contract failed: ${issues.join(" ")}`);
+  const provenance = input.nativeExportProvenance;
+  if (!provenance?.objectKey || !shaPattern.test(provenance.sha256 ?? "") || !shaPattern.test(provenance.inputPackageHash ?? "")) {
+    throw new Error("Native input requires its immutable source object, SHA-256 and normalized inputPackageHash from import.");
   }
-
-  async function retrieve(pair,config){
-    const limit=Math.max(1,Math.min(6,Number(config.precedentLimit??3)));
-    const candidates=await db.prepare(
-      `SELECT d.corpus_report_id,d.asset_lineage_key,d.core_family,d.scope_code,d.lifecycle_code,d.method_codes_json,s.section_id,string_agg(c.content,E'\n\n' ORDER BY c.stable_order) content
-       FROM report_governed_kb_documents d JOIN report_governed_kb_sections s USING(kb_index_id,corpus_report_id)
-       JOIN kb_sections ks ON ks.section_id=s.section_id JOIN kb_chunks c ON c.document_id=ks.document_id AND c.section_type=s.section_key
-       WHERE d.kb_index_id='governed_kb_content_v1' AND s.section_key=? AND d.core_family=?
-         AND d.corpus_report_id<>? AND d.asset_lineage_key<>?
-       GROUP BY d.corpus_report_id,d.asset_lineage_key,d.core_family,d.scope_code,d.lifecycle_code,d.method_codes_json,s.section_id`,
-    ).all(pair.section_key,pair.core_family,pair.corpus_report_id,pair.asset_lineage_key);
-    const query=JSON.stringify(pair.mock_input_json);
-    const profile=json(pair.profile_json,{});const scope=String(profile.primaryInspectionScope??"unspecified");const lifecycle=String(profile.lifecycle??"unspecified");const methods=new Set(profile.methods??[]);
-    const scopeMode=String(config.retrievalScope??"family_section");
-    const eligible=candidates.filter((item)=>scopeMode!=="exact_profile"||(item.scope_code===scope&&item.lifecycle_code===lifecycle));
-    const ranked=eligible.map((item)=>{const candidateMethods=json(item.method_codes_json,[]);const methodOverlap=candidateMethods.filter((method)=>methods.has(method)).length/Math.max(1,new Set([...methods,...candidateMethods]).size);return {...item,score:tokenOverlap(query,item.content)+(scopeMode==="method_compatible"?0.25*methodOverlap:0)};}).sort((a,b)=>b.score-a.score||String(a.corpus_report_id).localeCompare(String(b.corpus_report_id))).slice(0,limit);
-    const leak=ranked.filter((item)=>item.corpus_report_id===pair.corpus_report_id||item.asset_lineage_key===pair.asset_lineage_key);
-    return {items:ranked,audit:{kbIndexId:"governed_kb_content_v1",retrievalScope:scopeMode,sourceCorpusReportId:pair.corpus_report_id,sourceAssetLineageKey:pair.asset_lineage_key,candidateCount:candidates.length,eligibleCandidateCount:eligible.length,retrievedCount:ranked.length,retrievedSectionIds:ranked.map((x)=>x.section_id),retrievedCorpusReportIds:ranked.map((x)=>x.corpus_report_id),excludedCurrentReport:true,excludedCurrentLineage:true,firewallPassed:leak.length===0}};
+  for (const collection of ["utMeasurements", "findings", "inspectionChecklistItems", "inspectionChecklistSectionNotes", "attachments", "elements", "layoutConfigs", "layoutFigures", "layoutTargets"]) {
+    if (!Array.isArray(exportPackage[collection])) throw new Error(`Native ${collection}[] is required; generic fixture records cannot substitute for it.`);
   }
-}finally{await db.close();}
-
-function policyGuidance(armKey){return armKey==="grounded"?"Write a concise section containing only claims directly supported by current evidence. Do not expand missing context.":armKey==="balanced"?"Organize all current evidence into a complete professional section. Use precedent only to choose ordering and reporting style.":"Recover the fullest safe section possible from all current notes without filling missing facts from precedent.";}
-function generationEvidenceView(input){
-  const physicalEntityIds=new Set((input.entities??[]).filter((entity)=>entity.entityType!=="section_observation").map((entity)=>entity.entityId));
-  const {appRecords:_appRecords,...narrativeInput}=input;
-  return {...narrativeInput,
-    entities:(input.entities??[]).filter((entity)=>physicalEntityIds.has(entity.entityId)),
-    observations:(input.observations??[]).filter((observation)=>physicalEntityIds.has(observation.entityId)),
-    voiceNotes:(input.voiceNotes??[]).map((note)=>physicalEntityIds.has(note.entityId)?note:{
-      voiceNoteId:note.voiceNoteId,sectionKey:note.sectionKey,fieldLabel:note.fieldLabel,
-      transcript:note.transcript,captureOrder:note.captureOrder,source:note.source,
-    }),
+  if ((exportPackage.captureFacts ?? []).length || (exportPackage.structuredTables ?? []).length) throw new Error("Generic captureFacts/structuredTables require native materialization and review before this diagnostic.");
+  if (exportPackage.utMeasurements.some((row) => !row.itemKey || !row.targetKey || !["value1", "value2", "value3", "value4", "value5", "reinforcementPadReading"].some((key) => Object.hasOwn(row, key)))) throw new Error("Native UT rows require item identity and typed measurement cells; readingText is insufficient.");
+  if (exportPackage.findings.some((row) => row.description && !Object.hasOwn(row, "note"))) throw new Error("Native findings require note; generic description records cannot substitute for app evidence.");
+  const scope = { tenantId: exportPackage.tenantId, workspaceId: exportPackage.workspaceId, inspectionId: exportPackage.inspectionId };
+  const manualInputs = clone(input.manualInputs ?? {});
+  const sectionPlanning = buildSectionPlanningSnapshot({ exportPackage, manualInputs, decisions: clone(input.sectionDecisions ?? []), scope });
+  if (sectionPlanning.inputPackageHash !== provenance.inputPackageHash) throw new Error("Native input package does not match its frozen imported hash.");
+  if (sectionPlanning.evidenceRecords.some((record) => record.quality.issues.some((issue) => ["unsupported_record", "hidden_source"].includes(issue.reason)))) throw new Error("Native input contains unsupported or answer-exposed records; resolve preparation before generation.");
+  const sectionPlan = sectionPlanning.sectionPlans.find((plan) => plan.sectionId === pair.section_key);
+  if (!sectionPlan) throw new Error(`Section ${pair.section_key} has no shared compiler contract.`);
+  const validation = json(pair.validation_json);
+  const reviewed = validation.expectedObligationReviewStatus === "approved" && Array.isArray(validation.expectedOutputObligations);
+  return {
+    pairId: pair.governed_pair_id,
+    sectionId: pair.section_key,
+    // Gold and benchmark expectations are deliberately absent from reportState.
+    reportState: { exportPackage: clone(exportPackage), manualSupplement: manualInputs, sectionPlanning, reportJob: { reportJobId: `diagnostic:${pair.governed_pair_id}`, inspectionId: exportPackage.inspectionId, sourceRevision: provenance.sha256, tenantId: exportPackage.tenantId, workspaceId: exportPackage.workspaceId } },
+    sectionPlan,
+    expectedObligations: reviewed ? clone(validation.expectedOutputObligations) : undefined,
+    expectationBasis: reviewed ? "reviewed_frozen_benchmark" : "production_requirements_only",
+    inputProvenance: clone(provenance),
+    // This corpus is historical-report-derived even after native serialization.
+    benchmark: reconstructionBenchmarkMetadata(),
   };
 }
-function scoreProtected(values,generated){const items=json(values,[]);const missing=items.filter((item)=>!normalized(generated).includes(normalized(item.value)));return {count:items.length,matchedCount:items.length-missing.length,mismatchedCount:missing.length,accuracy:items.length?(items.length-missing.length)/items.length:1,missing:missing.map((x)=>x.value).slice(0,20)};}
-function scoreUnsupportedClaims(input,generated){const allowed=new Set(extractClaims(JSON.stringify(input)));const claims=extractClaims(generated);const unsupported=claims.filter((claim)=>!allowed.has(claim));return {count:unsupported.length,claims:unsupported.slice(0,20)};}
-function scoreAtomicBindings(input,generated){
-  const evidenceCounts=claimCounts(JSON.stringify(input));
-  const generatedCounts=claimCounts(generated);
-  const repeated=[];
-  for(const [claim,count] of generatedCounts)if(count>(evidenceCounts.get(claim)??0)&&/\d/.test(claim))repeated.push({claim,evidenceCount:evidenceCounts.get(claim)??0,generatedCount:count});
-  return {violationCount:repeated.length,repeatedMeasurements:repeated.slice(0,20),rule:"voice_note_atomic_binding_v1"};
+
+/** Explicit evaluation candidate, then evaluator-only references. No persistence. */
+export async function runGovernedDiagnosticEpisode({ pair, prepared = prepareGovernedDiagnosticPair(pair), policyDecision, generate = generateSectionDraft }) {
+  const result = await generate({ reportState: prepared.reportState, sectionId: prepared.sectionId, policyDecision, executionMode: 'evaluation', userInstruction: "Generate an inspector-review draft from the frozen native section plan." });
+  if (result.orchestration?.generatorContractVersion !== PLANNED_GENERATOR_CONTRACT) throw new Error("The diagnostic did not execute the shared section-planned generation contract.");
+  const generatedContent = result.draft.content;
+  const evaluation = evaluateSectionPlanOutput({ sectionPlan: prepared.sectionPlan, evidenceRecords: prepared.reportState.sectionPlanning.evidenceRecords, generatedContent, expectedObligations: prepared.expectedObligations, verifiedArtifacts:result.draft.reportDocument?.artifacts??[] });
+  const historicalReference = String(pair.target_content ?? "");
+  return {
+    contractVersion: GOVERNED_DIAGNOSTIC_CONTRACT,
+    pairId: prepared.pairId,
+    sectionId: prepared.sectionId,
+    policyVersionId: policyDecision?.policyVersionId ?? null,
+    policyArmKey: policyDecision?.armKey ?? null,
+    policyApplication: "frozen_trace_only_shared_compiler",
+    benchmark: prepared.benchmark,
+    diagnosticOnly: true,
+    learningUpdated: false,
+    promotionUpdated: false,
+    reward: null,
+    inputProvenance: prepared.inputProvenance,
+    inputPackageHash: prepared.reportState.sectionPlanning.inputPackageHash,
+    sectionPlanSnapshotId: prepared.reportState.sectionPlanning.snapshotId,
+    generatorContractVersion: result.orchestration.generatorContractVersion,
+    generationRun: result.generationRun,
+    generatedContent,
+    expectationBasis: prepared.expectationBasis,
+    evaluation,
+    existingGenerationBlockers: result.generationRun.blockers ?? [],
+    historicalDiagnostic: {
+      recovery: evaluateGoldSectionRecovery({ goldContent: historicalReference, generatedContent, evaluationMode: "evidence_conditioned_semantic", minimumContentCoverage: 0.55 }),
+      format: evaluateSectionFormatContract({ sectionId: prepared.sectionId, goldContent: historicalReference, generatedContent }),
+    },
+  };
 }
-function claimCounts(value){const counts=new Map();for(const claim of extractClaimOccurrences(value))counts.set(claim,(counts.get(claim)??0)+1);return counts;}
-function extractClaimOccurrences(value){const text=String(value??"").replace(/\b([A-Z]{1,4})\s*-\s*(\d)/g,"$1-$2");const matches=text.match(/\b[-+]?\d+(?:\.\d+)?\s*(?:mm|cm|m\b|in\.?|%|mpa|psi|years?)\b|\b[A-Z]{1,4}-\d+[A-Z0-9-]*\b/g)??[];return matches.map(canonicalClaim);}
-function extractClaims(value){const text=String(value??"").replace(/\b([A-Z]{1,4})\s*-\s*(\d)/g,"$1-$2");const matches=text.match(/\b[-+]?\d+(?:\.\d+)?\s*(?:mm|cm|m\b|in\.?|%|mpa|psi|years?)\b|\b[A-Z]{1,4}-\d+[A-Z0-9-]*\b/g)??[];return [...new Set(matches.map(canonicalClaim))];}
-function canonicalClaim(value){return normalized(value).replace(/\s+(?=(?:mm|cm|m\b|in\.?|%|mpa|psi|years?)\b)/g,"").replace(/[.,;:]+$/g,"");}
-function selectFrozenArm(pair,arms){
-  const selectedKey=pair.section_key==="inspection-maintenance-regime"?"evidence_recovery":"grounded";
-  const arm=arms.find((item)=>item.arm_key===selectedKey);
-  if(!arm)throw new Error(`Frozen contextual policy requires arm ${selectedKey} for ${pair.section_key}.`);
-  return arm;
+
+async function main() {
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
+  const policyVersionId = String(process.env.GOVERNED_POLICY_VERSION_ID ?? "").trim();
+  if (!policyVersionId) throw new Error("Pin GOVERNED_POLICY_VERSION_ID for a frozen diagnostic.");
+  const pairContractVersion = Number(process.env.GOVERNED_PAIR_CONTRACT_VERSION ?? 0);
+  if (!Number.isInteger(pairContractVersion) || pairContractVersion < 1) throw new Error("Pin GOVERNED_PAIR_CONTRACT_VERSION explicitly.");
+  const datasetSplit = String(process.env.GOVERNED_DATASET_SPLIT ?? "training");
+  if (!["training", "validation", "hidden_test"].includes(datasetSplit)) throw new Error("Invalid diagnostic dataset split.");
+  const pairLimit = Math.max(1, Math.min(100, Number(process.env.GOVERNED_TRAINING_PAIR_LIMIT ?? 6)));
+  const targetPairId = String(process.env.GOVERNED_TARGET_PAIR_ID ?? "").trim();
+  const cohortId = String(process.env.GOVERNED_COHORT_ID ?? "").trim();
+  const requestedArms = String(process.env.GOVERNED_ARM_KEYS ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+  if (requestedArms.length > 1) throw new Error("A frozen diagnostic accepts one policy arm; it does not train or optimize arms.");
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  let pairs, arm;
+  try {
+    await client.connect();
+    // Do not use the application DB initializer: it automatically runs migrations.
+    await client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    const arms = (await client.query("SELECT arm_id,arm_key,config_json FROM system_rl_policy_arms WHERE policy_version_id=$1 AND is_enabled=TRUE ORDER BY stable_order", [policyVersionId])).rows;
+    arm = requestedArms.length ? arms.find((item) => item.arm_key === requestedArms[0]) : arms.find((item) => item.arm_key === "grounded") ?? arms[0];
+    if (!arm) throw new Error("The pinned policy has no matching enabled arm.");
+    const selection = cohortId
+      ? await client.query("SELECT p.*,g.target_content FROM report_governed_validation_cohort_items i JOIN report_governed_baseline_pairs p ON p.corpus_report_id=i.corpus_report_id AND p.section_key=i.section_key JOIN report_governed_gold_sections g ON g.governed_gold_section_id=p.governed_gold_section_id WHERE i.cohort_id=$1 AND p.dataset_split=$2 AND p.status_code='ready' AND p.contract_version=$3 ORDER BY i.stable_order", [cohortId, datasetSplit, pairContractVersion])
+      : await client.query("SELECT p.*,g.target_content FROM report_governed_baseline_pairs p JOIN report_governed_gold_sections g ON g.governed_gold_section_id=p.governed_gold_section_id WHERE p.dataset_split=$1 AND p.status_code='ready' AND p.contract_version=$2 AND ($3='' OR p.governed_pair_id=$3) ORDER BY p.governed_pair_id LIMIT $4", [datasetSplit, pairContractVersion, targetPairId, pairLimit]);
+    pairs = selection.rows;
+    if (cohortId) {
+      const expected = Number((await client.query("SELECT COUNT(*) AS count FROM report_governed_validation_cohort_items WHERE cohort_id=$1", [cohortId])).rows[0].count);
+      if (pairs.length !== expected) throw new Error(`Pinned cohort resolved ${pairs.length}/${expected} ready native pairs.`);
+      if (targetPairId) pairs = pairs.filter((pair) => pair.governed_pair_id === targetPairId);
+    }
+    if (!pairs.length) throw new Error("No matching diagnostic pairs.");
+    await client.query("ROLLBACK");
+  } finally { await client.end(); }
+  // Preflight the complete selection before any generation or external model use.
+  const prepared = pairs.map(prepareGovernedDiagnosticPair);
+  const policyDecision = { policyVersionId, armKey: arm.arm_key, armId: arm.arm_id, mode: "frozen_diagnostic", learningEligible: false, configuration: json(arm.config_json) };
+  const results = [];
+  for (let index = 0; index < pairs.length; index += 1) results.push(await runGovernedDiagnosticEpisode({ pair: pairs[index], prepared: prepared[index], policyDecision }));
+  process.stdout.write(`${JSON.stringify({ contractVersion: GOVERNED_DIAGNOSTIC_CONTRACT, diagnosticOnly: true, databaseWrites: false, policyVersionId, datasetSplit, cohortId: cohortId || null, results }, null, 2)}\n`);
 }
-function tokenOverlap(a,b){const x=new Set(tokens(a)),y=new Set(tokens(b));if(!x.size||!y.size)return 0;let n=0;for(const token of x)if(y.has(token))n++;return n/Math.sqrt(x.size*y.size);}
-function tokens(value){return normalized(value).split(/[^a-z0-9]+/).filter((x)=>x.length>2);}
-function normalized(value){return String(value??"").toLowerCase().replace(/\s+/g," ").trim();}
-function sha(value){return createHash("sha256").update(String(value)).digest("hex");}
-function json(value,fallback){if(value==null)return fallback;if(typeof value!=="string")return value;try{return JSON.parse(value);}catch{return fallback;}}
-function bounded(value){return Math.max(0,Math.min(1,Number(value)||0));}
-function message(error){return error instanceof Error?error.message:String(error);}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; });
+}

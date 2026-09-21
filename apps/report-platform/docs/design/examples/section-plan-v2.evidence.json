@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "evidence_snapshot_v2_design_example",
+  "snapshotId": "example-evidence-1",
+  "inputPackageHash": "dad9c309f624528ec7ab022c308830eaafa5e0d9f9f337c09057e95155b401fd",
+  "entities": [
+    {
+      "entityId": "entity-nozzle-demo-n2",
+      "sourceItemKey": "demo-nozzle-n2",
+      "targetKey": "shell",
+      "label": "Nozzle DEMO-N2",
+      "location": {
+        "label": "east side",
+        "sourceRef": "/findings/0/note",
+        "basis": "explicit_observation"
+      }
+    }
+  ],
+  "records": [
+    {
+      "evidenceId": "evidence-nozzle-condition",
+      "kind": "observation",
+      "sourceClass": "app_field",
+      "sourceRef": {
+        "importRevisionId": "example-import-1",
+        "sourceRecordId": "demo-finding-1",
+        "pointer": "/findings/0/note",
+        "inputPackageHash": "dad9c309f624528ec7ab022c308830eaafa5e0d9f9f337c09057e95155b401fd"
+      },
+      "entityId": "entity-nozzle-demo-n2",
+      "payload": {
+        "claim": "Nozzle DEMO-N2 on the east side showed minor external corrosion.",
+        "condition": "minor external corrosion",
+        "negated": false
+      },
+      "quality": "captured"
+    },
+    {
+      "evidenceId": "evidence-nozzle-ut-row",
+      "kind": "measurement_row",
+      "sourceClass": "app_field",
+      "sourceRef": {
+        "importRevisionId": "example-import-1",
+        "sourceRecordId": "demo-nozzle-n2",
+        "pointer": "/utMeasurements/0",
+        "inputPackageHash": "dad9c309f624528ec7ab022c308830eaafa5e0d9f9f337c09057e95155b401fd"
+      },
+      "entityId": "entity-nozzle-demo-n2",
+      "payload": {
+        "unitCode": "mm",
+        "unitBasisRef": "example-ut-mm-v1",
+        "orderedCells": [
+          {
+            "fieldKey": "value1",
+            "value": "6.2"
+          },
+          {
+            "fieldKey": "value2",
+            "value": "6.1"
+          },
+          {
+            "fieldKey": "value3",
+            "value": "6.3"
+          },
+          {
+            "fieldKey": "value4",
+            "value": "6.2"
+          },
+          {
+            "fieldKey": "value5",
+            "value": null
+          }
+        ],
+        "reinforcementPadReading": null
+      },
+      "quality": "captured"
+    }
+  ]
+}

@@ -1,79 +1,65 @@
-# Report Platform Documentation Index
+# Documentation control
 
-## Purpose
+## Active root contracts
 
-Keep one consistent documentation hierarchy for the complete report platform.
+Read these files in order. They are the only root-level report-platform authorities.
 
-## Conflict Order
+| Order | Document | Authority |
+| --- | --- | --- |
+| 1 | `SYSTEM_ARCHITECTURE.md` | Product boundary, source-of-truth rules, and invariants |
+| 2 | `PRODUCT_TERMINOLOGY.md` | Product and workflow language |
+| 3 | `REPORT_COMPILER_WORKFLOW.md` | Complete rebuilt generation pipeline |
+| 4 | `SECTION_AGENT_RELEASES.md` | Immutable per-section release lifecycle |
+| 5 | `EVAL_SYSTEM.md` | Evaluation, leakage, and promotion gates |
+| 6 | `AGENTS.md` | Development rules and required validation |
+| 7 | `README.md` | Current status and operating entry points |
 
-When documents disagree, use this order:
+If documents disagree, the earlier applicable authority wins.
 
-1. `SYSTEM_ARCHITECTURE.md` for whole-system boundaries and invariants
-2. `PRODUCT_TERMINOLOGY.md` for product, UI, and workflow names
-3. the authoritative subsystem contract listed below
-4. `README.md` for current status, commands, and developer orientation
-5. historical design references only for background
+## Supporting contracts
 
-## Whole Product
+Supporting files live under `docs/contracts/` so the project root stays lean.
 
-| Document | Role |
+| Area | Documents |
 | --- | --- |
-| `SYSTEM_ARCHITECTURE.md` | Authoritative whole-system architecture |
-| `PRODUCT_TERMINOLOGY.md` | Authoritative product and workflow vocabulary |
-| `README.md` | Current V1 Beta capabilities, commands, and product orientation |
-| `AGENTS.md` | Codex development rules and validation requirements |
-| `PRODUCT_CLOUD_ARCHITECTURE.md` | Deployment target and current cloud-readiness gap |
-| `MAC_MINI_STAGING.md` | Current internal staging operations |
+| Platform | `platform/ANDROID_V3_OBJECT_UPLOAD_HANDOFF.md`, `platform/AUTHENTICATION_AND_TENANCY.md`, `platform/BACKEND_STORAGE_ARCHITECTURE.md`, `platform/PRODUCT_STORAGE_MIGRATION_PLAN.md` |
+| Deployment | `platform/PRODUCT_CLOUD_ARCHITECTURE.md`, `platform/MAC_MINI_STAGING.md` |
+| Reporting | `reporting/GENERATED_CONTENT_CONTROL_SYSTEM.md`, `reporting/REPORT_SECTION_FORMAT_CONTRACT.md`, `reporting/LAYOUT_AND_EXPORT.md`, `reporting/FLOOR_CORROSION_MAP_PIPELINE.md` |
+| Knowledge | `knowledge/KNOWLEDGE_PACKS.md`, `knowledge/KB_CORPUS_INGESTION_ARCHITECTURE.md` |
+| Evaluation support | `evaluation/TRAINING_HARNESS_ARCHITECTURE.md`, `evaluation/RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md` |
 
-## Authoritative Subsystem Contracts
+Supporting contracts govern only their subsystem. They cannot change ReportPlan,
+section-agent, knowledge-authority, or promotion rules in the root contracts.
 
-| Subsystem | Governing documents |
-| --- | --- |
-| App handoff and immutable ingestion | `ANDROID_V3_OBJECT_UPLOAD_HANDOFF.md` |
-| Authentication and tenancy | `AUTHENTICATION_AND_TENANCY.md` |
-| PostgreSQL/object/vector storage | `BACKEND_STORAGE_ARCHITECTURE.md`, `PRODUCT_STORAGE_MIGRATION_PLAN.md` |
-| Report compiler and AI orchestration | `AGENTIC_SYSTEM_DESIGN.md`, `REPORT_COMPILER_WORKFLOW.md` |
-| Generated-content editing | `GENERATED_CONTENT_CONTROL_SYSTEM.md` |
-| Layout and MFL processing | `REPORT_GENERATION_AND_LAYOUTMAP_ORCHESTRATION.md`, `FLOOR_CORROSION_MAP_PIPELINE.md` |
-| DOCX/report formatting | `SAMPLE_REPORT_FORMATTING_REVIEW.md` |
-| KB source ingestion and review | `KB_CORPUS_INGESTION_ARCHITECTURE.md` |
-| Precedent and standards retrieval | `PRECEDENT_KB_ARCHITECTURE.md` |
-| Recommendation knowledge | `FACT_RECOMMENDATION_KB.md` |
-| Evaluation | `EVAL_SYSTEM.md` |
-| Offline historical training harness | `TRAINING_HARNESS_ARCHITECTURE.md`, `PRODUCT_TERMINOLOGY.md` |
-| System-level RL policy optimization | `RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md` |
+## Design and evidence
 
-## Status Notes
+- `docs/design/`: current schemas and candidate design inputs. The 25-template
+  outline is historical-KB input; the 32-section contract is a legacy compatibility
+  profile. `vertical-tank-inspection-v1.md` defines the source-reviewed seven-section
+  common spine, scope-dependent technical modules, and TK5452 integrated evaluation
+  sequence for the rebuilt V1 ReportPlan. Roof configuration controls applicability
+  and does not split the vertical-tank report family. Only General Tank Information
+  v1 is implemented, frozen and evaluation-only. Uniform per-section agent, KB and
+  harness specifications for sections 1–7 live under
+  `server/section-agents/specs/vertical-tank-v1/`.
+- `docs/reviews/`: dated audit and qualification evidence. Results record what was
+  tested and do not define architecture.
+- `docs/agents/`: focused development reviewer prompts.
+- `docs/skills/`: task-specific operating checklists that route back to the active
+  contracts.
 
-| Document | Role |
-| --- | --- |
-| `NEXT_SESSION_RL_EVAL_MARKER.md` | Temporary continuation note; not architecture |
-| `TRAINING_HARNESS_ARCHITECTURE.md` | Phase 1 foundation is implemented; later case-builder, simulator, batch, and learning phases remain the approved roadmap |
+## Archive
 
-## Historical Design References
+`docs/archive/` contains superseded architecture, consolidated detailed designs,
+source-specific research, and session markers. It is retained for provenance only.
+Archived files are not implementation authority and should not receive new work.
 
-These files preserve earlier product reasoning but are superseded for current
-implementation decisions:
+The legacy symbol `API_STANDARD_REPORT_TOC` names one historical 32-section profile;
+API 653 does not mandate that exact table of contents.
 
-- `FULL_SYSTEM_DIAGRAM.md`
-- `REPORT_GENERATION_TOPOLOGY.md`
-- `AI_ENGINE_SYSTEM_DIAGRAM.md`
-- `AI_QUALITY_AND_LAYOUTMAP.md`
-- `CODEX_ROLES_AND_TOOLING.md`
-- `IMPLEMENTATION_PLAN.md`
-- `PRODUCT_DEVELOPMENT_PLAN.md`
+## Documentation rule
 
-They may contain V2 terminology, prototype sequencing, reviewer-heavy flows,
-or PDF-first assumptions. Do not copy those details into current code without
-checking the authoritative architecture and subsystem contract.
-
-## Documentation Rule
-
-New system behavior should update:
-
-1. the implementation and tests
-2. the governing subsystem document
-3. `SYSTEM_ARCHITECTURE.md` only when a product boundary or invariant changes
-4. `README.md` only when current capability, operation, or command changes
-
-Do not create another full-system topology document.
+New report-generation behavior should update implementation/tests and one existing
+active contract. Create another Markdown file only when it defines a distinct stable
+subsystem contract or records a dated review. Archive superseded documents instead
+of keeping competing “final” versions at the root.

@@ -1,0 +1,11 @@
+{
+  "contractVersion": "section_kb_snapshot_v1",
+  "snapshotId": "general_tank_information_v1_no_retrieval",
+  "sectionId": "general-tank-information",
+  "retrieval": "disabled",
+  "sourceIds": [],
+  "entries": [],
+  "currentFactsFromPrecedent": false,
+  "confirmedSameAssetHistoryOnly": true,
+  "reason": "Structured current-asset facts are supplied by app fields and confirmed report-side inputs. Historical examples never fill missing facts."
+}

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -102,14 +103,110 @@ try {
   const isolatedInspector = auditAccounts.isolatedInspector;
   activeCookie = await loginAs(inspector);
 
+  const genericCaseId = "eval-generic-syn025-v3-tk5452";
+  const genericReviewPath = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${genericCaseId}&sectionId=identity`;
+  const genericSourcePath = `/api/v1/admin/generic-outline-reviews/${genericCaseId}/source`;
+  assertStatus(await requestJson(genericReviewPath, { cookie: null }), 401, "generic saved review requires authentication");
+  assertStatus(await requestJson(genericReviewPath), 403, "inspector cannot access admin-only generic review");
+  assertStatus(await requestJson(genericSourcePath, { cookie: null }), 401, "generic original PDF requires authentication");
+  assertStatus(await requestJson(genericSourcePath), 403, "inspector cannot read generic original PDF");
+  const kbComparisonCases = ['eval-tk5452-kb-ablation-v1-without-kb', 'eval-tk5452-kb-ablation-v1-with-kb'];
+  const observationComparisonCases = ['eval-tk5452-kb-observations-v1-without-kb', 'eval-tk5452-kb-observations-v1-with-kb'];
+  const generalInformationCases = ['eval-general-info-v1-gti-01', 'eval-general-info-v1-gti-11'];
+  for (const id of generalInformationCases) {
+    const path = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=general-tank-information`;
+    assertStatus(await requestJson(path, { cookie: null }), 401, 'Section-agent review requires authentication');
+    assertStatus(await requestJson(path), 403, 'Section-agent review requires super-admin role');
+    assertStatus(await requestJson(`/api/v1/admin/generic-outline-reviews/${id}/source`), 403, 'Section-agent source requires super-admin role');
+  }
+  for (const id of observationComparisonCases) {
+    const path = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=02-floor-projection`;
+    assertStatus(await requestJson(path, { cookie: null }), 401, 'Observation comparison requires authentication');
+    assertStatus(await requestJson(path), 403, 'Observation comparison requires super-admin role');
+  }
+  for (const id of kbComparisonCases) {
+    const path = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=01-scope`;
+    assertStatus(await requestJson(path, { cookie: null }), 401, 'KB comparison requires authentication');
+    assertStatus(await requestJson(path), 403, 'Inspector cannot access admin KB comparison');
+  }
+
   const bootstrap = await requestJson("/api/v1/report-jobs/bootstrap/v10-api-standard");
   assertStatus(bootstrap, 200, "bootstrap report job");
 
-  const reportJobId = bootstrap.body.reportJob.reportJobId;
+  let reportJobId = bootstrap.body.reportJob.reportJobId;
   const actorUserId = bootstrap.body.authorizationContext.actorUserId;
   if (actorUserId !== inspector.userId) {
     throw new Error(`Expected authenticated actor ${inspector.userId}, received ${actorUserId}.`);
   }
+
+  const planningPath = `/api/v1/report-jobs/${reportJobId}/section-plans`;
+  const decisionsPath = `/api/v1/report-jobs/${reportJobId}/classification-decisions`;
+  assertStatus(await requestJson(planningPath, { cookie: null }), 401, "section plans require authentication");
+  assert.ok(!bootstrap.body.sectionPlanning, "Ordinary report loading does not activate candidate outline planning");
+  for (const [path, method] of [[planningPath, "GET"], [decisionsPath, "POST"], [`/api/v1/report-jobs/${reportJobId}/classification-runs`, "POST"]]) {
+    const unlinked = await requestJson(path, { method, ...(method === "POST" ? { body: { evaluationMode: true, sourceReportJobId: reportJobId } } : {}) });
+    assertStatus(unlinked, 409, "candidate outline review requires a trusted evaluation case");
+    assert.equal(unlinked.body.code, "outline_evaluation_only", "Request flags cannot opt an ordinary report into candidate planning");
+  }
+  await linkIsolatedOutlineEvaluation(testSchema.url, reportJobId, inspector.userId);
+  const initialPlanning = await requestJson(planningPath);
+  assertStatus(initialPlanning, 200, "inspector can read canonical section plans");
+  if (!initialPlanning.body.snapshotId || !Array.isArray(initialPlanning.body.evidenceRecords) || !Array.isArray(initialPlanning.body.sectionPlans)) {
+    throw new Error("Section-planning response omitted its immutable snapshot, canonical evidence, or section plans.");
+  }
+  assert.equal(initialPlanning.body.sectionPlans.length, 32, "Section review exposes the complete 32-section report outline");
+  for (const plan of initialPlanning.body.sectionPlans) {
+    assert.ok(plan.catalog.templateKey && plan.catalog.templateSource, `${plan.sectionId}: outline identifies its report template`);
+    assert.ok(plan.catalog.slots.length > 0, `${plan.sectionId}: outline contains reviewable content blocks`);
+    for (const slot of plan.catalog.slots) {
+      assert.ok(slot.title && slot.purpose && slot.presentation && Array.isArray(slot.evidenceRules), `${plan.sectionId}/${slot.slotKey}: outline exposes content, presentation and evidence-matching rules`);
+    }
+  }
+  const sourcePackageHash = sha256(JSON.stringify(bootstrap.body.exportPackage));
+  const identityRecord = initialPlanning.body.evidenceRecords.find((record) => record.kind === "identity" && record.payload.fieldKey === "client");
+  if (!identityRecord) throw new Error("Section-planning audit requires the native client identity record.");
+  const identityUse = initialPlanning.body.sectionPlans.find((plan) => plan.sectionId === "general-tank-information")?.evidenceUses.find((use) => use.evidenceIds.includes(identityRecord.evidenceId) && use.slotKey === "identity" && use.role === "required_structured");
+  assert.ok(identityUse, "Client identity must have an existing assignment to confirm independently");
+  const classificationDecision = {
+    operation: "update", useId: identityUse.useId,
+    evidenceId: identityRecord.evidenceId,
+    sectionId: "general-tank-information", slotKey: "identity", role: "required_structured",
+    reason: "Verify native client identity placement in the isolated API audit.",
+    actorId: "forged-reviewer",
+  };
+  const decisionBody = { expectedSnapshotId: initialPlanning.body.snapshotId, decision: classificationDecision };
+  assertStatus(await requestJson(decisionsPath, { method: "POST", cookie: null, body: decisionBody }), 401, "classification decisions require authentication");
+  const planningViewerCookie = await loginAs(clientViewer);
+  assertStatus(await requestJson(decisionsPath, { method: "POST", cookie: planningViewerCookie, body: decisionBody }), 403, "client viewer cannot change classification");
+  const planningIsolatedCookie = await loginAs(isolatedInspector);
+  assertStatus(await requestJson(planningPath, { cookie: planningIsolatedCookie }), 403, "section plans enforce tenant scope");
+  assertStatus(await requestJson(decisionsPath, { method: "POST", cookie: planningIsolatedCookie, body: decisionBody }), 403, "classification decisions enforce tenant scope");
+  assertStatus(await requestJson(decisionsPath, { method: "POST", body: { ...decisionBody, decision: { ...classificationDecision, value: "Forbidden source rewrite" } } }), 400, "classification cannot mutate source values");
+  assertStatus(await requestJson(decisionsPath, { method: "POST", body: { ...decisionBody, decision: { ...classificationDecision, evidenceId: "foreign-evidence-id" } } }), 400, "classification rejects evidence outside the snapshot");
+  const { operation: _operation, useId: _useId, ...legacyDecision } = classificationDecision;
+  const missingOperation = await requestJson(decisionsPath, { method: "POST", body: { ...decisionBody, decision: legacyDecision } });
+  assertStatus(missingOperation, 400, "new classification requests cannot enter legacy replay behavior");
+  assert.equal(missingOperation.body.code, "section_decision_invalid", "New use edits require an explicit operation");
+  const acceptedClassification = await requestJson(decisionsPath, { method: "POST", body: decisionBody });
+  assertStatus(acceptedClassification, 200, "inspector can confirm a valid section classification");
+  if (acceptedClassification.body.snapshotId === initialPlanning.body.snapshotId) throw new Error("Classification confirmation did not create a new immutable snapshot.");
+  const reviewedIdentity = acceptedClassification.body.evidenceRecords.find((record) => record.evidenceId === identityRecord.evidenceId);
+  if (reviewedIdentity?.reviewDecision?.actorId !== inspector.userId) throw new Error("Classification actor was not derived from the authenticated inspector.");
+  assertStatus(await requestJson(decisionsPath, { method: "POST", body: decisionBody }), 409, "classification rejects a stale snapshot");
+  const afterClassification = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  assertStatus(afterClassification, 200, "reload report after classification");
+  if (sha256(JSON.stringify(afterClassification.body.exportPackage)) !== sourcePackageHash) throw new Error("Classification changed immutable imported app evidence.");
+  assert.ok(!afterClassification.body.sectionPlanning, "Candidate classification does not change ordinary report loading");
+  const savedClassification = await requestJson(planningPath);
+  assertStatus(savedClassification, 200, "reload persisted evaluation classification");
+  assert.equal(savedClassification.body.snapshotId, acceptedClassification.body.snapshotId, "Saved evaluation classification survives reload");
+  await auditEvidenceUseEditing({
+    reportJobId, planning: acceptedClassification.body, evidenceId: identityRecord.evidenceId,
+    sourcePackageHash, actorUserId: inspector.userId,
+    viewerCookie: planningViewerCookie, isolatedCookie: planningIsolatedCookie,
+  });
+  await auditOutlineEvaluationIsolation(reportJobId, await loginAs(superAdmin));
+  await unlinkIsolatedOutlineEvaluation(testSchema.url, reportJobId);
 
   const inspectorAdminDenied = await requestJson("/api/v1/admin/accounts");
   assertStatus(inspectorAdminDenied, 403, "inspector cannot manage accounts");
@@ -125,6 +222,68 @@ try {
   assertStatus(kbReviewQueue, 200, "super admin can access KB ingestion review");
   const initialSystemRlStatus = await requestJson("/api/v1/admin/system-rl/status");
   assertStatus(initialSystemRlStatus, 200, "super admin can inspect system RL policies");
+  const genericReview = await requestJson(genericReviewPath);
+  assertStatus(genericReview, 200, "existing comparison endpoint serves generic backend results");
+  assert.equal(genericReview.body.evaluationOnly, true);
+  assert.equal(genericReview.body.sections.length, 12);
+  assert.equal(genericReview.body.sectionId, "identity");
+  assert.equal(genericReview.body.promotionGate.eligible, false);
+  assert.equal(genericReview.body.metrics, undefined, "unmatched historical reference cannot produce recovery scores");
+  assert.ok(genericReview.body.generatedContent.includes("SYN-025"));
+  const genericNext = await requestJson("/api/v1/admin/system-rl/held-out-section", {
+    method: "POST", body: { evaluationCaseId: genericCaseId, sectionId: "regime" },
+  });
+  assertStatus(genericNext, 200, "existing navigation returns the evaluated no-AI regime");
+  assert.equal(genericNext.body.sectionId, "regime");
+  assert.ok(genericNext.body.diagnosticNotes.some(note => /template/i.test(note)));
+  assertStatus(await requestJson(`${genericReviewPath}&evalRunId=unrelated-run`), 404, "generic review cannot silently substitute another run");
+  assertStatus(await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${genericCaseId}&sectionId=unknown`), 404, "unknown generic section is rejected");
+  const genericSource = await requestRaw(genericSourcePath);
+  assertStatus(genericSource, 200, "super admin can preview the mapped original PDF");
+  assert.ok(genericSource.body.startsWith("%PDF-"));
+  for (const id of generalInformationCases) {
+    const path = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=general-tank-information`;
+    const saved = await requestJson(path);
+    assertStatus(saved, 200, 'Section agent uses existing saved comparison endpoint');
+    assert.equal(saved.body.sections.length, 11);
+    assert.equal(saved.body.appEvidence.length, 31);
+    assert.equal(saved.body.promotionGate.eligible, false);
+    assert.equal(saved.body.metrics.protectedFactAccuracy, 1);
+    assert.equal(saved.body.datasetSplit, id.endsWith('11') ? 'hidden_test' : 'development');
+    assertStatus(await requestJson(`${path}&evalRunId=wrong-run`), 404, 'Section agent rejects mismatched saved run');
+    assertStatus(await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=inspection-report`), 404, 'Section agent rejects an unrelated section');
+    const next = await requestJson('/api/v1/admin/system-rl/held-out-section', { method: 'POST', body: { evaluationCaseId: id, sectionId: 'general-tank-information' } });
+    assertStatus(next, 200, 'Section agent navigation only reads saved results');
+    assert.equal(next.body.evalRunId, saved.body.evalRunId);
+    assertStatus(await requestRaw(`/api/v1/admin/generic-outline-reviews/${id}/source`), 200, 'Admin can preview section-agent original PDF');
+  }
+  for (const id of kbComparisonCases) {
+    const saved = await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=01-scope`);
+    assertStatus(saved, 200, 'Admin can load saved KB comparison');
+    assert.equal(saved.body.sections.length, 2);
+    assert.equal(saved.body.promotionGate.eligible, false);
+    assert.ok(saved.body.aiCandidateContent);
+    const next = await requestJson('/api/v1/admin/system-rl/held-out-section', { method: 'POST', body: { evaluationCaseId: id, sectionId: '05-recommendations' } });
+    assertStatus(next, 200, 'KB comparison section navigation reads saved results');
+    assert.equal(next.body.comparisonExperiment.arm, id.endsWith('without-kb') ? 'without_kb' : 'with_kb');
+    assertStatus(await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=unknown`), 404, 'Unknown comparison section rejected');
+  }
+  const genericPolicyAfter = await requestJson("/api/v1/admin/system-rl/status");
+  for (const id of observationComparisonCases) {
+    const saved = await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=02-floor-projection`);
+    assertStatus(saved, 200, 'Admin can load saved observation comparison');
+    assert.equal(saved.body.sections.length, 12);
+    assert.equal(saved.body.promotionGate.eligible, false);
+    assert.equal(saved.body.rawAiResponse.accepted, false);
+    assert.ok(saved.body.aiCandidateContent.includes('Floor projection'));
+    const next = await requestJson('/api/v1/admin/system-rl/held-out-section', { method: 'POST', body: { evaluationCaseId: id, sectionId: '10-tell-tales' } });
+    assertStatus(next, 200, 'Observation navigation loads saved proposals');
+    assert.equal(next.body.comparisonExperiment.reviewOnlyProposals, true);
+    assertStatus(await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=unknown`), 404, 'Unknown observation rejected');
+    assertStatus(await requestJson(`/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=02-floor-projection&evalRunId=wrong`), 404, 'Wrong observation run rejected');
+  }
+  assert.deepEqual((await requestJson('/api/v1/admin/system-rl/status')).body.policies, genericPolicyAfter.body.policies, 'Observation navigation does not mutate policies');
+  assert.deepEqual(genericPolicyAfter.body.policies, initialSystemRlStatus.body.policies, "generic comparison navigation does not update policy state");
   const captureVariantBuilder = await requestJson("/api/v1/admin/capture-variants");
   assertStatus(captureVariantBuilder, 200, "super admin can inspect Capture Variant state");
   if (!Array.isArray(captureVariantBuilder.body.profiles) || captureVariantBuilder.body.profiles.length !== 8) {
@@ -154,7 +313,10 @@ try {
   if (
     systemRlEpisode.body.persistedAsReportDraft !== false
     || systemRlEpisode.body.policyDecision?.mode !== "offline_evaluation"
-    || systemRlEpisode.body.reward?.learningEligible !== true
+    || systemRlEpisode.body.reward?.learningEligible !== false
+    || systemRlEpisode.body.reward?.value !== null
+    || systemRlEpisode.body.reward?.metrics?.runPurpose !== "frozen_diagnostic"
+    || systemRlEpisode.body.reward?.metrics?.promotionEvidenceEligible !== false
     || systemRlEpisode.body.reward?.metrics?.retrievalLabelsAvailable !== true
     || !Number.isFinite(systemRlEpisode.body.reward?.metrics?.retrievalPrecisionAtK)
     || !Number.isFinite(systemRlEpisode.body.reward?.metrics?.retrievalRecallAtK)
@@ -172,6 +334,12 @@ try {
         retrievalEvaluation: systemRlEpisode.body.evalRun?.retrievalEvaluation,
       })}`,
     );
+  }
+  const afterDiagnosticPolicyStatus = await requestJson("/api/v1/admin/system-rl/status");
+  assertStatus(afterDiagnosticPolicyStatus, 200, "inspect policies after frozen diagnostic");
+  const diagnosticTrainingPolicy = afterDiagnosticPolicyStatus.body.policies.find((policy) => policy.policyVersionId === trainingPolicy.policyVersionId);
+  if (diagnosticTrainingPolicy?.aggregate?.eligibleEpisodeCount !== trainingPolicy.aggregate?.eligibleEpisodeCount) {
+    throw new Error("Frozen diagnostic updated learning episode aggregates.");
   }
   const prematurePromotion = await requestJson(
     `/api/v1/admin/system-rl/policies/${encodeURIComponent(trainingPolicy.policyVersionId)}/promote`,
@@ -303,6 +471,9 @@ try {
     throw new Error("Path traversal did not return attachment_path_invalid.");
   }
   mobilePackage.attachments = [];
+  mobilePackage.evaluationMode = true;
+  mobilePackage.evaluationCaseId = `outline-audit-${reportJobId}`;
+  mobilePackage.sectionPlanning = { contractVersion: "section_planning_v1", mode: "evaluation" };
   rewriteVolatileExportTimestamps(mobilePackage, new Date().toISOString());
   const mobileImport = await requestJson("/api/v1/app/imports/v3-product", {
     method: "POST",
@@ -373,6 +544,12 @@ try {
     cookie: null,
   });
   assertStatus(mobileReport, 200, "mobile account can open its imported report");
+  assert.ok(!mobileReport.body.sectionPlanning, "App payload cannot activate candidate outline generation");
+  const mobilePlanning = await requestJson(`/api/v1/report-jobs/${mobileReportId}/section-plans`, {
+    authorization: `Bearer ${mobileLogin.body.sessionToken}`, cookie: null,
+  });
+  assertStatus(mobilePlanning, 409, "ordinary imported report cannot access evaluation-only outline planning");
+  assert.equal(mobilePlanning.body.code, "outline_evaluation_only");
   if (
     mobileReport.body.reportJob.tenantId !== managedTenant.tenantId ||
     mobileReport.body.reportJob.workspaceId !== managedWorkspace.workspaceId ||
@@ -975,13 +1152,24 @@ try {
   );
   assertStatus(missingApprovedExport, 400, "missing approved section export returns 400");
 
+  const declaredUnitPackage = structuredClone(fixtureExport.body);
+  // This is an explicit controlled test input, not a repair of production data.
+  declaredUnitPackage.unitProfile = { thicknessUnit: "mm" };
+  const declaredUnitImport = await requestJson("/api/v1/imports/android-v3-product", { method: "POST", body: declaredUnitPackage });
+  assertStatus(declaredUnitImport, 201, "import controlled source with explicit thickness units");
+  reportJobId = declaredUnitImport.body.reportJob.reportJobId;
+  if (declaredUnitImport.body.exportPackage.unitProfile?.thicknessUnit !== "mm") {
+    throw new Error("Import did not preserve the explicit thickness unit profile in the controlled test package.");
+  }
+  assert.ok(!declaredUnitImport.body.sectionPlanning, "Normal imports retain the baseline generation workflow");
+
   const generated = await requestJson(
     `/api/v1/report-jobs/${reportJobId}/sections/shell-plate-thickness-measurements/generate`,
     {
       method: "POST",
       body: {
         actorUserId: "forged-user",
-        expectedVersion: getSectionVersion(secondImport.body, "shell-plate-thickness-measurements"),
+        expectedVersion: getSectionVersion(declaredUnitImport.body, "shell-plate-thickness-measurements"),
       },
     },
   );
@@ -1016,7 +1204,7 @@ try {
   );
   assertStatus(approved, 200, "approve generated section");
 
-  const timestampOnlyReExport = structuredClone(fixtureExport.body);
+  const timestampOnlyReExport = structuredClone(declaredUnitPackage);
   rewriteVolatileExportTimestamps(timestampOnlyReExport, "2026-07-20T12:00:00.000Z");
   const timestampOnlyReImport = await requestJson("/api/v1/imports/android-v3-product", {
     method: "POST",
@@ -1042,13 +1230,15 @@ try {
     throw new Error(`Expected DOCX response to be non-trivial, received ${docx.bytes} bytes.`);
   }
 
+  const floorReportSource = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  assertStatus(floorReportSource, 200, "load baseline floor layout report");
   const generatedFloorLayout = await requestJson(
     `/api/v1/report-jobs/${reportJobId}/sections/floor-plate-layout-platemaps-numbering-system/generate`,
     {
       method: "POST",
       body: {
         expectedVersion: getSectionVersion(
-          timestampOnlyReImport.body,
+          floorReportSource.body,
           "floor-plate-layout-platemaps-numbering-system",
         ),
       },
@@ -1070,13 +1260,18 @@ try {
   );
   assertStatus(floorLayoutSource, 200, "save app-owned floor layout source confirmation");
 
+  const regeneratedFloorLayout = await requestJson(`/api/v1/report-jobs/${reportJobId}/sections/floor-plate-layout-platemaps-numbering-system/generate`, {
+    method: "POST", body: { expectedVersion: getSectionVersion(floorLayoutSource.body, "floor-plate-layout-platemaps-numbering-system") },
+  });
+  assertStatus(regeneratedFloorLayout, 200, "regenerate floor layout against confirmed current inputs");
+
   const approvedFloorLayout = await requestJson(
     `/api/v1/report-jobs/${reportJobId}/sections/floor-plate-layout-platemaps-numbering-system/approve`,
     {
       method: "POST",
       body: {
         expectedVersion: getSectionVersion(
-          generatedFloorLayout.body,
+          regeneratedFloorLayout.body,
           "floor-plate-layout-platemaps-numbering-system",
         ),
       },
@@ -1176,6 +1371,10 @@ try {
   );
 
   console.log("API hardening audit passed: negative routes return controlled errors and valid generation/export still works.");
+} catch (error) {
+  const diagnostics = serverOutput.replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, "[redacted database URL]").slice(-16000);
+  console.error(`Isolated API audit server output:\n${diagnostics}`);
+  throw error;
 } finally {
   await stopAuditServer();
   await dropAuditSchema(testSchema);
@@ -1187,6 +1386,8 @@ function startAuditServer() {
     cwd: appRoot,
     env: {
       ...process.env,
+      // This integration audit must not invoke the developer's live model CLI.
+      PATH: "/usr/bin:/bin:/usr/sbin:/sbin",
       REPORT_PLATFORM_API_HOST: "127.0.0.1",
       REPORT_PLATFORM_API_PORT: String(port),
       DATABASE_URL: testSchema.url,
@@ -1386,6 +1587,177 @@ function getSectionVersion(state, sectionId) {
     throw new Error(`Section ${sectionId} did not expose a valid concurrency version.`);
   }
   return version;
+}
+
+async function auditEvidenceUseEditing({ reportJobId, planning, evidenceId, sourcePackageHash, actorUserId, viewerCookie, isolatedCookie }) {
+  const planningPath = `/api/v1/report-jobs/${reportJobId}/section-plans`;
+  const decisionsPath = `/api/v1/report-jobs/${reportJobId}/classification-decisions`;
+  const sourceReport = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  assertStatus(sourceReport, 200, "capture ordinary report drafts before candidate review");
+  const allUses = (snapshot) => snapshot.sectionPlans.flatMap((plan) => plan.evidenceUses);
+  const uses = (snapshot = planning) => allUses(snapshot).filter((use) => use.evidenceIds.includes(evidenceId));
+  const sourceRecord = planning.evidenceRecords.find((record) => record.evidenceId === evidenceId).sourceRecord;
+  const originalUses = structuredClone(uses());
+  const otherEvidenceUses = structuredClone(allUses(planning).filter((use) => !use.evidenceIds.includes(evidenceId)));
+  const originalRequired = originalUses.find((use) => use.sectionId === "general-tank-information" && use.slotKey === "identity" && use.role === "required_structured");
+  assert.ok(originalRequired, "Native identity must begin with its required outline assignment");
+  const addDecision = {
+    operation: "add", evidenceId, sectionId: "general-tank-information", slotKey: "configuration", role: "required_structured",
+    reason: "Audit independently reusing one source record in another outline block.", actorId: "forged-use-editor",
+  };
+  const initialBody = { expectedSnapshotId: planning.snapshotId, decision: addDecision };
+  for (const [cookie, status, label] of [[null, 401, "authentication"], [viewerCookie, 403, "viewer role"], [isolatedCookie, 403, "tenant scope"]]) {
+    assertStatus(await requestJson(decisionsPath, { method: "POST", cookie, body: initialBody }), status, `evidence-use addition enforces ${label}`);
+  }
+  async function decide(decision, label, expectedStatus = 200) {
+    const previousSnapshotId = planning.snapshotId;
+    const response = await requestJson(decisionsPath, {
+      method: "POST", body: { expectedSnapshotId: previousSnapshotId, decision },
+    });
+    assertStatus(response, expectedStatus, label);
+    if (expectedStatus === 200) {
+      planning = response.body;
+      assert.notEqual(planning.snapshotId, previousSnapshotId, `${label}: immutable snapshot must advance`);
+      const record = planning.evidenceRecords.find((entry) => entry.evidenceId === evidenceId);
+      assert.deepEqual(record.sourceRecord, sourceRecord, `${label}: original source remains unchanged`);
+      assert.equal(record.reviewDecision.actorId, actorUserId, `${label}: reviewer identity comes from authentication`);
+      assert.deepEqual(allUses(planning).filter((use) => !use.evidenceIds.includes(evidenceId)), otherEvidenceUses, `${label}: other evidence assignments remain unchanged`);
+    }
+    return response;
+  }
+
+  await decide(addDecision, "add a second required block in the same section");
+  assert.equal(uses().length, originalUses.length + 1, "Adding a use retains existing destinations");
+  for (const original of originalUses) assert.deepEqual(uses().find((use) => use.useId === original.useId), original, "Adding a block must preserve each original assignment");
+  const addedUse = uses().find((use) => use.sectionId === "general-tank-information" && use.slotKey === "configuration");
+  assert.ok(addedUse?.useId, "New outline assignment exposes an independently addressable use ID");
+  const originalPlan = planning.sectionPlans.find((plan) => plan.sectionId === "general-tank-information");
+  for (const slotKey of ["identity", "configuration"]) assert.ok(originalPlan.outputObligations.some((entry) => entry.evidenceIds.includes(evidenceId) && entry.targetBlockId === `general-tank-information:${slotKey}`), `Required output obligation survives for ${slotKey}`);
+  assertStatus(await requestJson(decisionsPath, { method: "POST", body: initialBody }), 409, "evidence-use addition rejects stale snapshots");
+  await decide(addDecision, "duplicate outline assignment is rejected", 400);
+
+  const moveDecision = {
+    operation: "update", evidenceId, useId: addedUse.useId,
+    sectionId: "scope-of-inspection", slotKey: "identity", role: "required_structured",
+    reason: "Audit moving only the added assignment to another section.",
+  };
+  const foreignUse = allUses(planning).find((use) => !use.evidenceIds.includes(evidenceId));
+  assert.ok(foreignUse, "Fixture contains an assignment owned by another evidence record");
+  for (const useId of [undefined, 17, [], "unknown-use-id", foreignUse.useId]) {
+    await decide({ ...moveDecision, useId }, "use update rejects missing, malformed or foreign assignment IDs", 400);
+    await decide({ operation: "remove", evidenceId, useId, reason: "Invalid removal audit." }, "use removal rejects missing, malformed or foreign assignment IDs", 400);
+  }
+  await decide(moveDecision, "move one evidence use to another section");
+  const movedUse = uses().find((use) => use.useId === addedUse.useId);
+  assert.equal(movedUse?.sectionId, "scope-of-inspection", "Moving an assignment preserves its ID and changes its destination");
+  assert.equal(movedUse?.slotKey, "identity");
+  assert.equal(uses().length, originalUses.length + 1, "Moving an assignment does not duplicate it");
+  assert.ok(!uses().some((use) => use.sectionId === "general-tank-information" && use.slotKey === "configuration"), "Moving a use removes its previous destination");
+  assert.ok(!planning.sectionPlans.find((plan) => plan.sectionId === "general-tank-information").outputObligations.some((entry) => entry.evidenceIds.includes(evidenceId) && entry.targetBlockId.endsWith(":configuration")), "Moving a use removes its previous output obligation");
+  for (const original of originalUses) assert.deepEqual(uses().find((use) => use.useId === original.useId), original, "Moving a use preserves its siblings");
+  const movedPlanning = await requestJson(planningPath);
+  assertStatus(movedPlanning, 200, "reload individually moved evidence use");
+  assert.equal(movedPlanning.body.snapshotId, planning.snapshotId, "Saved decisions replay to the same snapshot");
+  assert.deepEqual(uses(movedPlanning.body), uses(), "Reload preserves all destinations and the moved use ID");
+
+  const removal = { operation: "remove", evidenceId, useId: addedUse.useId, reason: "Audit removing only one destination link." };
+  await decide(removal, "remove one evidence use while preserving siblings");
+  assert.deepEqual(uses(), originalUses, "Removing the added use leaves all original uses");
+  await decide(removal, "removed use cannot be removed again", 400);
+  for (const original of originalUses) {
+    await decide({ ...removal, useId: original.useId }, "remove one remaining destination without deleting the source");
+  }
+  assert.equal(uses().length, 0, "Every destination link can be removed independently");
+  assert.ok(planning.unresolvedEvidence.some((entry) => entry.evidenceId === evidenceId && entry.reason === "unassigned"), "An evidence record without destinations is retained for assignment review");
+  const unassignedPlanning = await requestJson(planningPath);
+  assertStatus(unassignedPlanning, 200, "reload evidence after its final assignment is removed");
+  assert.equal(uses(unassignedPlanning.body).length, 0, "Reload does not restore removed rule-based assignments");
+  assert.ok(unassignedPlanning.body.evidenceRecords.some((record) => record.evidenceId === evidenceId), "Reload retains the unassigned source evidence");
+
+  // Restore this isolated fixture's original destinations for the generation checks below.
+  for (const original of originalUses) {
+    await decide({ operation: "add", evidenceId, sectionId: original.sectionId, slotKey: original.slotKey, role: original.role, reason: "Restore the original audit fixture destination after removal checks." }, "assign retained evidence to its original outline block");
+  }
+  assert.ok(!planning.unresolvedEvidence.some((entry) => entry.evidenceId === evidenceId && entry.reason === "unassigned"), "Reassignment clears the unassigned review issue");
+  const restored = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  assertStatus(restored, 200, "reload report after evidence-use review");
+  assert.equal(sha256(JSON.stringify(restored.body.exportPackage)), sourcePackageHash, "Reviewing destination links never mutates the imported package");
+  assert.deepEqual(restored.body.sectionDrafts, sourceReport.body.sectionDrafts, "Candidate review never changes ordinary report drafts or approval state");
+  assert.ok(!restored.body.sectionPlanning, "Evaluation review does not activate candidate planning in ordinary report state");
+  const persisted = await requestJson(planningPath);
+  assertStatus(persisted, 200, "reload the separate evaluation planning state");
+  assert.equal(persisted.body.snapshotId, planning.snapshotId, "Evaluation replay retains the final classification snapshot");
+  assert.deepEqual(uses(persisted.body), uses(), "Evaluation replay retains final per-use assignments");
+}
+
+async function linkIsolatedOutlineEvaluation(databaseUrl, reportJobId, actorUserId) {
+  const client = new Client({ connectionString: databaseUrl, ssl: false });
+  await client.connect();
+  try {
+    // This trusted diagnostic registration exists only in the disposable audit schema.
+    // Imported app metadata must never create this association in the application.
+    const result = await client.query(
+      `INSERT INTO report_evaluation_cases (
+        evaluation_case_id, tenant_id, workspace_id, display_name, report_family,
+        input_inspection_id, gold_document_id, gold_source_report_name, dataset_split,
+        label_status, config_json, created_by_user_id, created_at_iso, updated_at_iso
+      ) SELECT $1, rj.tenant_id, rj.workspace_id, 'Isolated outline diagnostic',
+        'api_653_internal_external', rj.inspection_id, NULL, 'Isolated native outline diagnostic',
+        'validation', 'machine_proposed',
+        jsonb_build_object('sourceReportJobId', rj.report_job_id, 'evaluationTrack', 'native_diagnostic',
+          'learningEligible', FALSE, 'promotionEligible', FALSE),
+        $3, NOW(), NOW()
+      FROM report_jobs rj WHERE rj.report_job_id = $2`,
+      [`outline-audit-${reportJobId}`, reportJobId, actorUserId],
+    );
+    assert.equal(result.rowCount, 1, "Isolated evaluation case is linked to the authorized fixture report");
+  } finally {
+    await client.end();
+  }
+}
+
+async function unlinkIsolatedOutlineEvaluation(databaseUrl, reportJobId) {
+  const client = new Client({ connectionString: databaseUrl, ssl: false });
+  await client.connect();
+  try {
+    const result = await client.query(
+      "DELETE FROM report_evaluation_cases WHERE evaluation_case_id = $1 AND config_json->>'sourceReportJobId' = $2",
+      [`outline-audit-${reportJobId}`, reportJobId],
+    );
+    assert.equal(result.rowCount, 1, "Isolated diagnostic case is removed before baseline evaluation checks");
+  } finally {
+    await client.end();
+  }
+}
+
+async function auditOutlineEvaluationIsolation(reportJobId, adminCookie) {
+  const path = `/api/v1/report-jobs/${reportJobId}/outline-evaluations`;
+  const before = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  const planning = await requestJson(`/api/v1/report-jobs/${reportJobId}/section-plans`);
+  assertStatus(before, 200, "capture baseline report before candidate evaluation");
+  assertStatus(planning, 200, "load candidate snapshot for an explicit evaluation");
+  const body = { sectionId: "general-tank-information", expectedSnapshotId: planning.body.snapshotId };
+  assertStatus(await requestJson(path, { method: "POST", cookie: null, body }), 401, "outline evaluation requires authentication");
+  assertStatus(await requestJson(path, { method: "POST", body }), 403, "ordinary inspector cannot execute candidate evaluation");
+  assertStatus(await requestJson(path, { method: "POST", cookie: adminCookie, body: { ...body, expectedSnapshotId: "stale-candidate-snapshot" } }), 409, "outline evaluation rejects a stale evidence snapshot");
+  const policiesBefore = await requestJson("/api/v1/admin/system-rl/status", { cookie: adminCookie });
+  assertStatus(policiesBefore, 200, "capture policies before standalone candidate evaluation");
+  const result = await requestJson(path, { method: "POST", cookie: adminCookie, body });
+  assertStatus(result, 200, "administrator evaluates the candidate outline in isolation");
+  assert.ok(result.body.generatedContent, "Candidate evaluation returns reviewable generated content");
+  assert.equal(result.body.sectionPlanningSnapshotId, planning.body.snapshotId, "Candidate output is bound to the reviewed snapshot");
+  const evalRun = result.body.evalRun;
+  assert.equal(evalRun.experimentContract, "outline_evidence_v2");
+  assert.equal(evalRun.runPurpose, "frozen_diagnostic");
+  for (const flag of ["independentQualityEligible", "learningEligible", "promotionEligible"]) assert.equal(evalRun[flag], false, `Candidate diagnostic cannot set ${flag}`);
+  const after = await requestJson(`/api/v1/report-jobs/${reportJobId}`);
+  assertStatus(after, 200, "reload baseline report after standalone candidate evaluation");
+  assert.ok(!after.body.sectionPlanning, "Candidate evaluation does not switch ordinary report state to the candidate pipeline");
+  assert.deepEqual(after.body.sectionDrafts, before.body.sectionDrafts, "Candidate evaluation cannot save or approve production drafts");
+  assert.deepEqual(after.body.exportPackage, before.body.exportPackage, "Candidate evaluation cannot mutate imported evidence");
+  const policiesAfter = await requestJson("/api/v1/admin/system-rl/status", { cookie: adminCookie });
+  assertStatus(policiesAfter, 200, "reload policies after standalone candidate evaluation");
+  assert.deepEqual(policiesAfter.body.policies, policiesBefore.body.policies, "Candidate evaluation neither trains nor promotes a policy");
 }
 
 function getLayoutVersion(state, sectionId) {

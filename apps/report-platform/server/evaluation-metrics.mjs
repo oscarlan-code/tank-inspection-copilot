@@ -1,6 +1,7 @@
+import { extractMeasurementClaims, evidenceTextWithUnits } from "./measurement-claims.mjs";
 const DEFAULT_RETRIEVAL_K = 3;
 
-export const EVALUATION_METRIC_SCHEMA_VERSION = 2;
+export const EVALUATION_METRIC_SCHEMA_VERSION = 3;
 
 export function deriveWeakGoldRelevanceJudgments({
   chunks,
@@ -143,7 +144,7 @@ export function scoreGeneratedFactMetrics({
   const generatedText = normalizeText(stripHtml(generatedContent));
   const generatedRows = extractTableRows(generatedContent);
   const allowedText = normalizeText(
-    typeof allowedEvidence === "string" ? allowedEvidence : JSON.stringify(allowedEvidence ?? {}),
+    evidenceTextWithUnits(allowedEvidence),
   );
   const requiredFactResults = requiredFacts.map((fact) => ({
     factKey: fact.factKey,
@@ -330,17 +331,14 @@ function escapeRegExp(value) {
 }
 
 function extractVerifiableClaims(value) {
-  const matches = String(value ?? "").match(
-    /\b(?:API\s*\d{3}|EEMUA\s*\d{3}|LAIQ-[A-Z0-9-]+|[A-Z]{1,4}-\d+[A-Z0-9/-]*|(?:Area|Strake|Plate|Course)\s+\d+[A-Za-z]?|\d+(?:\.\d+)?\s?(?:mm|cm|m|in|inch|inches|%|years?|months?|days?))\b/gi,
-  ) ?? [];
-  return [...new Set(matches.map((match) => normalizeComparable(match)).filter(Boolean))];
+  const identifiers = String(value ?? "").match(/\b(?:API\s*\d{3}|EEMUA\s*\d{3}|LAIQ-[A-Z0-9-]+|[A-Z]{1,4}-\d+[A-Z0-9/-]*|(?:Area|Strake|Plate|Course)\s+\d+[A-Za-z]?)\b/gi) ?? [];
+  return [...new Set([...identifiers.map(normalizeComparable), ...extractMeasurementClaims(value).map((claim) => claim.expected)])];
 }
 
 function isClaimSupported(claim, allowedText) {
-  const normalizedAllowed = allowedText.toLowerCase();
-  if (normalizedAllowed.includes(claim)) return true;
-  const numeric = claim.match(/\d+(?:\.\d+)?/g) ?? [];
-  return numeric.length > 0 && numeric.every((value) => normalizedAllowed.includes(value));
+  const measurement = extractMeasurementClaims(claim)[0];
+  if (measurement) return extractMeasurementClaims(allowedText).some((candidate) => candidate.numeric === measurement.numeric && candidate.unit === measurement.unit);
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(claim)}(?![a-z0-9])`, "i").test(allowedText);
 }
 
 function scoreReciprocalRank(retrieved, relevanceByChunkId) {

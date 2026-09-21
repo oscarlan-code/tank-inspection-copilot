@@ -33,10 +33,10 @@ for (const requiredText of [
 const productFacingFiles = [
   "SYSTEM_ARCHITECTURE.md",
   "README.md",
-  "AGENTIC_SYSTEM_DESIGN.md",
+  "REPORT_COMPILER_WORKFLOW.md",
   "EVAL_SYSTEM.md",
-  "TRAINING_HARNESS_ARCHITECTURE.md",
-  "RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md",
+  "docs/contracts/evaluation/TRAINING_HARNESS_ARCHITECTURE.md",
+  "docs/contracts/evaluation/RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md",
   "docs/skills/report-platform-kb-eval/SKILL.md",
   "src/components/EvaluationLab.tsx",
 ];
@@ -65,7 +65,7 @@ for (const requiredText of ["Truth & Mock Data", "Evaluation Runs", "Policy Regi
   }
 }
 
-const harnessArchitecture = read("TRAINING_HARNESS_ARCHITECTURE.md");
+const harnessArchitecture = read("docs/contracts/evaluation/TRAINING_HARNESS_ARCHITECTURE.md");
 for (const requiredText of ["Truth Case Builder", "Capture Variant Builder", "Historical Source Bundle"]) {
   if (!harnessArchitecture.includes(requiredText)) {
     failures.push(`Training Harness architecture is missing canonical term: ${requiredText}`);

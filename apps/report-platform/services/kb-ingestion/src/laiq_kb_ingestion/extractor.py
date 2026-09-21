@@ -185,7 +185,7 @@ class DoclingExtractor:
             )
 
         status = getattr(result, "status", None)
-        return ParsedDocument(
+        parsed = ParsedDocument(
             identity=identity,
             title=getattr(document, "name", None) or source.stem,
             parser_name=self.parser_name,
@@ -198,6 +198,10 @@ class DoclingExtractor:
                 "table_structure_enabled": self.enable_tables,
             },
         )
+
+        from .source_fidelity import native_pdf_pages, repair_source_fidelity
+
+        return repair_source_fidelity(parsed, native_pdf_pages(source))
 
 
 def _label_value(label: Any) -> str:

@@ -1,0 +1,43 @@
+{
+  "contractVersion": "section_kb_policy_candidate_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "test-information",
+  "packId": "test_information_pattern_pack_v1",
+  "status": "definition_only_not_frozen",
+  "mode": "section_pattern_and_terminology_candidate",
+  "governedSource": {
+    "indexId": "governed_kb_content_v1",
+    "exactSectionKey": "test-information",
+    "exactSectionKeyOnly": true,
+    "requiredDatasetSplit": "training",
+    "requiredEligibilityRole": "training_reference",
+    "requiredApproval": true,
+    "requiredProfile": "vertical_tank_inspection_v1"
+  },
+  "allowedUses": [
+    "test_record_order",
+    "approved_method_aliases",
+    "format_patterns",
+    "limitation_wording_patterns"
+  ],
+  "forbiddenUses": [
+    "current_tank_fact",
+    "current_measurement",
+    "current_finding",
+    "current_scope_decision",
+    "current_test_result",
+    "automatic_approval"
+  ],
+  "runtimeExclusions": [
+    "target_report",
+    "same_asset_or_scenario_lineage",
+    "alternate_rendition",
+    "near_duplicate",
+    "validation_gold",
+    "hidden_test_gold",
+    "post_cutoff_source"
+  ],
+  "currentFactsFromHistoricalSources": false,
+  "runtimeSnapshot": null,
+  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/06-test-information/pack-candidate.json"
+}

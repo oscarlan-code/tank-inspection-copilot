@@ -1,3 +1,4 @@
+import { evaluateTruthGraphRecovery } from "../eval.mjs";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -73,6 +74,28 @@ const unsupportedFacts = scoreGeneratedFactMetrics({
 });
 assert(unsupportedFacts.claimPrecision < 1, "An unsupported numeric claim must reduce claim precision.");
 assert(unsupportedFacts.requiredFactRecall === 0, "An omitted required app fact must produce zero fact recall.");
+
+for (const [evidence, generated, expected] of [
+  ["3 ft", "3 inches", 0], ["13 inches", "3 inches", 0],
+  ["3 mm", "3 cm", 0], ["3”, scanner clearance", "3 inches", 1],
+  ["3′", "3 feet", 1], ["3'", "3 foot", 1], ["3 in", "3.00 inches", 1],
+  ["13 mm", "3 mm", 0], ["API 1653", "API 653", 0],
+]) {
+  const scored = scoreGeneratedFactMetrics({ allowedEvidence: { clearance: evidence }, generatedContent: generated });
+  assert(scored.claimPrecision === expected, `${evidence} must score ${expected} for ${generated}.`);
+}
+assert(scoreGeneratedFactMetrics({ allowedEvidence: { value: 3, unitCode: "ft" }, generatedContent: "3 feet" }).claimPrecision === 1, "Explicit structured unit metadata must support its value/unit pair.");
+assert(scoreGeneratedFactMetrics({ allowedEvidence: { value: 3, unitCode: "ft" }, generatedContent: "3 inches" }).claimPrecision === 0, "Structured unit metadata must not authorize a different unit.");
+const narrativeFact = { fact_id: "clearance", answerability_class: "voice_observable", evidence_class: "finding", required_fact: true, normalized_value_json: JSON.stringify({ text: "Scanner clearance is 3”" }) };
+const alteredNarrative = evaluateTruthGraphRecovery({ facts: [narrativeFact], generatedContent: "Scanner clearance is 3 feet." });
+assert(alteredNarrative.protectedFactAccuracy === 0 && alteredNarrative.protectedFactMismatchCount === 1, "Measurements in finding prose must be protected from unit changes.");
+assert(alteredNarrative.claimPrecision === 0 && alteredNarrative.requiredFactRecall === 0, "Wrong units cannot pass narrative precision or required recall.");
+const equivalentNarrative = evaluateTruthGraphRecovery({ facts: [narrativeFact], generatedContent: "Scanner clearance is 3 inches." });
+assert(equivalentNarrative.protectedFactAccuracy === 1 && equivalentNarrative.claimPrecision === 1, "Curly inch quotes and spelled-out inches must agree.");
+const noProtected = evaluateTruthGraphRecovery({ facts: [], generatedContent: "Inspection completed." });
+assert(noProtected.protectedFactAccuracy === null && noProtected.protectedFactAccuracyAvailable === false, "Zero protected checks must report unavailable, never perfect accuracy.");
+const differentUnitDifference = evaluateTruthGraphRecovery({ facts: [{ ...narrativeFact, normalized_value_json: JSON.stringify({ text: "Depth 5 ft and depth 2 ft" }) }], generatedContent: "The difference is 3 inches." });
+assert(differentUnitDifference.claimPrecision === 0, "Derived differences must not borrow numbers from incompatible units.");
 
 const reviewReady = classifyInspectorReviewDraft({
   semanticRecovery: 0.82,

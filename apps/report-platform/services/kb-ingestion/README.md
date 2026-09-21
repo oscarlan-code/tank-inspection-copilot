@@ -39,3 +39,25 @@ uv run kb-ingest ingest report.pdf \
 The provider receives one JSON request on standard input and must return one
 JSON `DerivedAnnotation`. AI output is stored separately from parsed source
 blocks and is never retrieval-eligible without a later review/publish step.
+
+### Numbered sections and measurement symbols
+
+Extraction revision `numbered-sections-native-units-v1` retains an explicit numbered
+section as the parent of unnumbered subheadings until the next numbered section.
+Canonical section classification uses that parent, so an internal calculation
+heading cannot truncate its inspection section.
+
+Install Poppler (`pdftotext`) on ingestion workers to corroborate measurement quote
+symbols against the PDF text layer. Only a unique local token match authorizes a
+symbol correction; missing or ambiguous matches leave extracted text unchanged.
+Diagnostics record whether native verification was available, and each corrected
+block stores original/replacement symbols and offsets. A PDF text layer is not a
+substitute for visual review when the source itself is ambiguous.
+
+Do not overwrite historical gold or evaluation runs when adopting this revision.
+For isolated reevaluation, `server/source-section-reference.mjs` reconstructs a
+numbered section from the source PDF for scoring **after generation**, returning
+its source/content hashes, page numbers, boundaries, and extraction version.
+Persist that snapshot on the new evaluation run; never include it in generation
+input. Existing gold builders upsert by contract version and are not an immutable
+repair mechanism for old cohorts.

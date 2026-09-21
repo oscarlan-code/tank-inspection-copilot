@@ -2,6 +2,7 @@ import { API_STANDARD_PRIMARY_REPORT, API_STANDARD_REPORT_TOC, getApiStandardToc
 
 const CANONICAL_SECTION_IDS = new Set(API_STANDARD_REPORT_TOC.map((section) => section.id));
 export const REPORT_METADATA_SECTION_ID = "report-metadata";
+export const CAPTURE_SECTION_MAPPING_CONTRACT_VERSION = "source_section_boundaries_v2";
 
 function canonicalSectionId(value) {
   const sectionKey = String(value ?? "").trim().replace(/^\d+-/, "");
@@ -40,15 +41,24 @@ export function buildReportSpecificSectionResolver(facts = []) {
     if (!Number.isFinite(page)) {
       return { sectionId: REPORT_METADATA_SECTION_ID, basis: "report_metadata_without_page", aligned: false };
     }
-    const samePage = anchorsByPage.get(page) ?? [];
-    if (samePage.length === 1) {
-      return { sectionId: samePage[0], basis: "same_report_same_page_anchor", aligned: true };
+    const boundary = fact.sourceSectionBoundary ?? fact.source_section_boundary;
+    const parentSection = canonicalSectionId(boundary?.sectionId);
+    if (boundary?.reviewStatus === "approved" && boundary?.sourceRevisionId && parentSection
+      && Number.isFinite(Number(boundary.startPage)) && Number.isFinite(Number(boundary.endPage))
+      && Number(boundary.startPage) <= page && page <= Number(boundary.endPage)) {
+      return { sectionId: parentSection, basis: "reviewed_source_section_boundary", aligned: true };
     }
+    // Page proximity is a review hint, not proof that an extracted subheading
+    // belongs to a preceding section. Unknown intervening headings may be real
+    // top-level boundaries, even on the same page.
+    const samePage = anchorsByPage.get(page) ?? [];
     const priorPage = [...anchorPages].reverse().find((candidate) => candidate <= page);
     const priorSections = priorPage == null ? [] : anchorsByPage.get(priorPage) ?? [];
-    if (priorSections.length === 1) {
-      return { sectionId: priorSections[0], basis: "same_report_preceding_section_anchor", aligned: true };
-    }
-    return { sectionId: REPORT_METADATA_SECTION_ID, basis: "report_metadata_unresolved", aligned: false };
+    return {
+      sectionId: REPORT_METADATA_SECTION_ID,
+      basis: "source_section_boundary_review_required",
+      aligned: false,
+      candidateSectionIds: samePage.length ? samePage : priorSections,
+    };
   };
 }

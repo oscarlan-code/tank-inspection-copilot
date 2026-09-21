@@ -1,0 +1,76 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 5,
+    "sectionId": "repair-recommendations",
+    "title": "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT"
+  },
+  "plannedReleaseId": "repair_recommendations_v1",
+  "status": "planned",
+  "productEnabled": false,
+  "generationMode": "hybrid_reviewed_actions_with_bounded_ai_wording",
+  "promptPolicy": "approved_action_wording_only",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "recommendations-by-component",
+      "content": "Confirmed action, affected component/location, and finding link for each approved recommendation.",
+      "format": "numbered_or_arrow_action_list",
+      "requiredWhen": "when_approved_action_exists"
+    },
+    {
+      "blockId": "priority-timing-and-responsibility",
+      "content": "Confirmed priority, timing, responsibility and verification requirement.",
+      "format": "labelled_action_qualifiers",
+      "requiredWhen": "when_supplied"
+    },
+    {
+      "blockId": "basis-and-limitations",
+      "content": "Current observation, reviewed technical basis, important differences and missing information.",
+      "format": "short_qualified_paragraph",
+      "requiredWhen": "when_required"
+    },
+    {
+      "blockId": "references",
+      "content": "Readable links to relevant findings, photographs, layouts, calculations or specialist results.",
+      "format": "controlled_cross_references",
+      "requiredWhen": "when_available"
+    },
+    {
+      "blockId": "confirmed-no-action",
+      "content": "Explicit reviewed no-action conclusion with its basis.",
+      "format": "qualified_statement",
+      "requiredWhen": "when_explicitly_approved"
+    }
+  ],
+  "authorizedInputs": [
+    "verified_current_observations",
+    "inspector_approved_actions",
+    "reviewed_calculation_or_assessment",
+    "confirmed_priority_and_timing",
+    "verified_cross_references"
+  ],
+  "approvalBlockers": [
+    "unapproved_action",
+    "action_without_current_observation",
+    "unresolved_applicability",
+    "missing_required_professional_decision",
+    "conflicting_action_or_priority"
+  ],
+  "prohibitedBehavior": [
+    "historical_recommendation_as_current_instruction",
+    "model_approved_action",
+    "invented_code_clause",
+    "invented_urgency",
+    "no_action_from_empty_evidence"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": null
+}

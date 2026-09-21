@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import { STANDARDIZED_PAIR_CONTRACT_VERSION, reconstructionBenchmarkMetadata, preparationRevisionHash, assertExistingRevision } from "./standardized-pair-builder.mjs";
 
-export const BASELINE_VARIATION_SCHEMA_VERSION = 11;
+export const BASELINE_VARIATION_SCHEMA_VERSION = 12;
 
 export function createBaselineVariationPilot({ db, objectStorage }) {
   return { buildPilot, buildValidationPilot, buildHiddenTestPilot, getStatus };
@@ -33,9 +34,9 @@ export function createBaselineVariationPilot({ db, objectStorage }) {
       JOIN report_training_cases c ON c.training_case_id=p.training_case_id
       JOIN report_baseline_pilot_cohort_members m ON m.baseline_pair_id=p.baseline_pair_id AND m.dataset_split=?
       JOIN report_baseline_pilot_cohorts cohort ON cohort.cohort_id=m.cohort_id AND cohort.status_code='active'
-      WHERE p.dataset_split=? AND p.status_code='ready'
+      WHERE p.dataset_split=? AND p.status_code='ready' AND p.contract_version=?
       ORDER BY m.match_group_number`,
-    ).all(split,split);
+    ).all(split,split,STANDARDIZED_PAIR_CONTRACT_VERSION);
   }
 
   async function loadProfiles() {
@@ -56,11 +57,18 @@ export function createBaselineVariationPilot({ db, objectStorage }) {
       const selectedProfiles=allProfiles?profiles:[profiles[(Number(baseline.match_group_number)-1)%profiles.length]];
       for (const profile of selectedProfiles) {
         const result = buildVariation({ baseline, profile, seed });
+        const existing = await readVariationRevision(result);
+        if (assertExistingRevision(existing, result.validation.preparationRevisionHash, result.variationId)) {
+          scenarioCount += 1;
+          if (result.status === "scenario_ready") ready += 1;
+          else quarantined += 1;
+          continue;
+        }
         scenarioCount+=1;
         let objectKey = null;
         let scenarioSha256 = null;
         if (result.status === "scenario_ready") {
-          objectKey = `training-harness/baseline-variations/matched-pilot-v2/${baseline.cohort_id}/${baseline.dataset_split}/${result.variationId}/capture-scenario.json`;
+          objectKey = `training-harness/baseline-variations/preparation-v${BASELINE_VARIATION_SCHEMA_VERSION}/${baseline.cohort_id}/${baseline.dataset_split}/${result.variationId}/capture-scenario.json`;
           const stored = await objectStorage.putBuffer({
             bytes: Buffer.from(JSON.stringify(result.manifest)),
             mediaType: "application/json",
@@ -96,19 +104,23 @@ export function createBaselineVariationPilot({ db, objectStorage }) {
         status_code,manifest_json,validation_json,included_fact_count,withheld_fact_count,
         scenario_object_key,scenario_sha256,created_at_iso,updated_at_iso
       ) VALUES (?,?,?,?,?,?,?, ?,?::jsonb,?::jsonb,?,?,?,?,?,?)
-      ON CONFLICT (baseline_pair_id,profile_version_id,deterministic_seed) DO UPDATE SET
-        dataset_split=excluded.dataset_split,cohort_id=excluded.cohort_id,match_group_number=excluded.match_group_number,
-        status_code=excluded.status_code,manifest_json=excluded.manifest_json,
-        validation_json=excluded.validation_json,included_fact_count=excluded.included_fact_count,
-        withheld_fact_count=excluded.withheld_fact_count,scenario_object_key=excluded.scenario_object_key,
-        scenario_sha256=excluded.scenario_sha256,updated_at_iso=excluded.updated_at_iso`,
+      ON CONFLICT (baseline_pair_id,profile_version_id,deterministic_seed) DO NOTHING`,
     ).run(result.variationId,result.baselinePairId,result.profileVersionId,result.seed,result.datasetSplit,result.cohortId,result.matchGroupNumber,result.status,
       JSON.stringify(result.manifest),JSON.stringify(result.validation),result.includedCount,
       result.withheldCount,result.objectKey,result.scenarioSha256,now,now);
+    assertExistingRevision(await readVariationRevision(result), result.validation.preparationRevisionHash, result.variationId);
+  }
+
+  async function readVariationRevision(result) {
+    return db.prepare("SELECT validation_json->>'preparationRevisionHash' AS revision_hash FROM report_baseline_capture_variations WHERE baseline_pair_id=? AND profile_version_id=? AND deterministic_seed=?")
+      .get(result.baselinePairId,result.profileVersionId,result.seed);
   }
 }
 
-function buildVariation({ baseline, profile, seed }) {
+export function buildVariation({ baseline, profile, seed }) {
+  if (Number(baseline.contract_version) !== STANDARDIZED_PAIR_CONTRACT_VERSION) {
+    throw new Error("Historical baseline preparation must use the current immutable contract; create a new baseline revision first.");
+  }
   const input = parseJson(baseline.deterministic_input_json, {});
   const baselineValidation = parseJson(baseline.validation_json, {});
   const expectedRecoverableFactIds = parseJson(baseline.expected_recoverable_fact_ids_json, []);
@@ -116,7 +128,7 @@ function buildVariation({ baseline, profile, seed }) {
   const goldById = new Map(goldFacts.map((fact) => [fact.factId, fact]));
   const protectedIds = new Set(parseJson(baseline.protected_invariants_json, []).map((fact) => fact.factId));
   const profileConfig = parseJson(profile.config_json, {});
-  const variationId = `baseline-var-${hash(`${baseline.baseline_pair_id}:${profile.profile_version_id}:${seed}`).slice(0,32)}`;
+  const variationId = `baseline-var-${hash(`${baseline.baseline_pair_id}:${baseline.input_sha256}:${profile.profile_version_id}:${seed}:${BASELINE_VARIATION_SCHEMA_VERSION}`).slice(0,32)}`;
   const included = [];
   const withheld = [...parseJson(baseline.hidden_fact_ledger_json, [])];
   for (const capture of input.captures ?? []) {
@@ -157,15 +169,17 @@ function buildVariation({ baseline, profile, seed }) {
       captureProfile: profile.profile_code,
       captureProfileVersion: Number(profile.version_number),
       deterministicSeed: seed,
+      preparationContractVersion: BASELINE_VARIATION_SCHEMA_VERSION,
+      ...reconstructionBenchmarkMetadata(),
     },
     appContractTarget: { packageType: "v3_product_export", schemaVersion: 3, owner: "LAIQ inspection app", status: "awaiting_app_round_trip" },
-    baselineContract: { schemaVersion: Number(baseline.contract_version), inputSha256: baseline.input_sha256, goldTargetSha256: baseline.target_sha256, evaluationMode:baselineValidation.evaluationMode??"direct_recovery", minimumGoldContentCoverage:Number(baselineValidation.minimumGoldContentCoverage??0.55) },
+    baselineContract: { schemaVersion: Number(baseline.contract_version), inputSha256: baseline.input_sha256, goldTargetSha256: baseline.target_sha256, evaluationMode:baselineValidation.evaluationMode??"direct_recovery", minimumGoldContentCoverage:Number(baselineValidation.minimumGoldContentCoverage??0.55), ...reconstructionBenchmarkMetadata() },
     learningTask: {
-      taskType:"section_query_answer",
-      query:"Partial LAIQ app field evidence in captures",
-      answer:"Complete approved report section identified only by goldTargetSha256",
-      answerVisibleDuringGeneration:false,
-      scoring:"Recoverable facts are strict; complete-section similarity is graded.",
+      taskType:"historical_reconstruction",
+      query:"Explicitly historical-report-derived capture records",
+      answer:"Historical reconstruction reference, not an unseen field-evidence answer",
+      inputSourceDerivedFromAnswer:true,
+      scoring:"Reconstruction diagnostics only; excluded from independent quality, learning and promotion.",
     },
     behavior: profileConfig,
     captures: orderCaptures(included, profileConfig, variationId),
@@ -173,6 +187,8 @@ function buildVariation({ baseline, profile, seed }) {
     withheldFacts: withheld,
     protectedInvariants: parseJson(baseline.protected_invariants_json, []),
   };
+  const validation = { valid: issues.length===0,issues,baselineOnlySource:true,syntheticEvidenceDerivedFromGold:Boolean(input.syntheticEvidenceDerivedFromGold),sourceDerivedFromHistoricalReport:true,protectedFactsPreserved:!issues.includes("protected_fact_withheld")&&!issues.includes("protected_value_changed"),requiredFactsPreserved:!issues.includes("required_fact_withheld"),...reconstructionBenchmarkMetadata(),expectedOutputObligations:[],proposedOutputObligations:(baselineValidation.proposedOutputObligations??[]).filter((obligation)=>(obligation.evidenceIds??[]).every((id)=>includedIds.has(id))) };
+  validation.preparationRevisionHash = preparationRevisionHash({ manifest, validation });
   return {
     variationId,
     baselinePairId: baseline.baseline_pair_id,
@@ -183,7 +199,7 @@ function buildVariation({ baseline, profile, seed }) {
     seed,
     status: issues.length ? "quarantined" : "scenario_ready",
     manifest,
-    validation: { valid: issues.length===0,issues,baselineOnlySource:true,syntheticEvidenceDerivedFromGold:Boolean(input.syntheticEvidenceDerivedFromGold),protectedFactsPreserved:!issues.includes("protected_fact_withheld")&&!issues.includes("protected_value_changed"),requiredFactsPreserved:!issues.includes("required_fact_withheld"),goldTargetVisibleToScenario:false },
+    validation,
     includedCount: included.length,
     withheldCount: withheld.length,
   };

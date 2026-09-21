@@ -1,0 +1,60 @@
+{
+  "contractVersion": "section_agent_harness_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "general-tank-information",
+  "status": "qualified_frozen_evidence_exists",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "datasetRules": {
+    "groupBy": "asset_scenario_lineage",
+    "development": "approved_training_lineages",
+    "validation": "unseen_validation_lineages",
+    "heldOut": "sealed_hidden_lineages",
+    "goldAvailableDuringGeneration": false,
+    "sameLineageRetrievalAllowed": false
+  },
+  "requiredTests": [
+    "all_31_fields_preserved",
+    "missing_and_conflict_blockers",
+    "unit_integrity",
+    "html_escaping",
+    "wrong_asset_history_rejection",
+    "hidden_reference_invariance",
+    "release_hash_integrity",
+    "cross_agent_isolation",
+    "unapproved_output",
+    "docx_approval_gate",
+    "wrong_section_or_version_rejection",
+    "production_mode_rejection",
+    "unapproved_draft",
+    "kb_snapshot_hash_integrity",
+    "dependency_tamper_rejection",
+    "cross_agent_isolation"
+  ],
+  "metrics": [
+    "critical_integrity_blockers",
+    "protected_fact_accuracy",
+    "supported_claim_precision",
+    "required_output_recall",
+    "format_export_readiness",
+    "inspector_review_outcome",
+    "leakage_findings"
+  ],
+  "freezeGates": {
+    "criticalIntegrityBlockers": 0,
+    "protectedFactAccuracy": 1.0,
+    "unsupportedCurrentClaims": 0,
+    "leakageFindings": 0,
+    "renderReviewRequired": true,
+    "inspectorReviewRequired": true,
+    "manifestAndDependencyHashesPinned": true,
+    "standardObligationPackPinned": true
+  },
+  "promotionPerformedByHarness": false,
+  "existingHarnessReferences": [
+    "../../../../scripts/audit-general-information-agent.mjs",
+    "../../../../scripts/audit-section-agent-release.mjs",
+    "../../../../scripts/run-general-information-evaluation.mjs",
+    "../../../../../docs/reviews/data/general-tank-information-v1/"
+  ]
+}

@@ -1,3 +1,4 @@
+import { extractMeasurementClaims, normalizeMeasurementText } from "./measurement-claims.mjs";
 import { randomUUID } from "node:crypto";
 import { getSectionTemplate, MANUAL_FIELD_LABELS } from "./generation.mjs";
 import {
@@ -21,7 +22,7 @@ export function evaluateTruthGraphRecovery({ facts = [], generatedContent }) {
   const observable = facts.filter((fact) => ["app_observable", "voice_observable", "deterministic_derived"].includes(fact.answerability_class));
   const required = observable.filter((fact) => Boolean(fact.required_fact));
   const protectedFacts = observable.filter((fact) => ["measurement", "layout_geometry"].includes(fact.evidence_class)
-    || fact.safety_criticality === "critical");
+    || fact.safety_criticality === "critical" || extractMeasurementClaims(factValueTokens(fact).join(" ")).length > 0);
   const protectedDefaultUnit = /all readings (?:are |in )*mm\b/.test(observable.flatMap(factValueTokens).join(" ")) ? "mm" : "";
   const requiredChecks = required.flatMap((fact) => ["measurement", "layout_geometry"].includes(fact.evidence_class)
     ? buildProtectedChecks(fact, protectedDefaultUnit)
@@ -34,18 +35,22 @@ export function evaluateTruthGraphRecovery({ facts = [], generatedContent }) {
   const unsupportedClaims = verifiableClaims.filter((claim) => !goldContainsEquivalentClaim(claim, goldText)
     && !matchesDeterministicDifference(claim, text, goldText));
   const claimPrecision = verifiableClaims.length === 0 ? 1 : (verifiableClaims.length - unsupportedClaims.length) / verifiableClaims.length;
-  const protectedFactAccuracy = protectedChecks.length === 0 ? 1 : protectedMatchedChecks.length / protectedChecks.length;
+  const protectedFactAccuracy = protectedChecks.length === 0 ? null : protectedMatchedChecks.length / protectedChecks.length;
   return {
     goldStandardType: "approved_truth_graph",
     observableFactCount: observable.length,
     requiredFactCount: requiredChecks.length,
     requiredSourceFactCount: required.length,
     matchedRequiredFactCount: requiredMatchedChecks.length,
+    missingRequiredFactIds: [...new Set(requiredChecks.filter((check) => !check.matches(text)).map((check) => check.factId))],
     requiredFactRecall: requiredChecks.length === 0 ? 1 : requiredMatchedChecks.length / requiredChecks.length,
     claimPrecision,
     protectedFactCount: protectedChecks.length,
     protectedSourceFactCount: protectedFacts.length,
     protectedFactAccuracy,
+    protectedFactAccuracyAvailable: protectedChecks.length > 0,
+    claimPrecisionAvailable: verifiableClaims.length > 0,
+    requiredFactRecallAvailable: requiredChecks.length > 0,
     protectedFactMismatchCount: protectedChecks.length - protectedMatchedChecks.length,
     protectedFactMismatches: protectedChecks.filter((check) => !check.matches(text)).slice(0,20).map((check) => ({ factId:check.factId,kind:check.kind,expected:check.expected })),
     unsupportedClaimCount: unsupportedClaims.length,
@@ -54,20 +59,15 @@ export function evaluateTruthGraphRecovery({ facts = [], generatedContent }) {
   };
 }
 
-function extractNarrativeVerifiableClaims(text) {
-  const claims=[];
-  const pattern=/(?<![a-z0-9.])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|m|%|psi|mpa|bar))?\b/g;
-  for(const match of text.matchAll(pattern)){
-    const value=String(match[1]??"");
-    const unit=String(match[2]??"").toLowerCase();
-    const start=match.index??0;
-    const context=text.slice(Math.max(0,start-45),Math.min(text.length,start+value.length+45));
-    const signed=/^[+\-]/.test(value);
-    const measurementContext=/\b(?:thickness|reading|measurement|diameter|depth|loss|corrosion rate|remaining|minimum|maximum|limit|tolerance)\b/.test(context);
-    const codeReference=/\b(?:api|clause|section|item|figure|table|appendix)\s*[a-z.-]*\s*$/i.test(text.slice(Math.max(0,start-24),start));
-    if(unit||signed||(measurementContext&&!codeReference))claims.push(`${value}${unit?` ${unit}`:""}`.trim());
-  }
-  return claims;
+function extractNarrativeVerifiableClaims(value) {
+  const text = normalizeMeasurementText(value);
+  const claims = extractMeasurementClaims(text, { includeBare: true }).filter((claim) => {
+    if (claim.unit) return true;
+    const context = text.slice(Math.max(0, claim.index - 45), claim.index + 60);
+    const codeReference = /\b(?:api|clause|section|item|figure|table|appendix)\s*[a-z.-]*\s*$/i.test(text.slice(Math.max(0, claim.index - 24), claim.index));
+    return !codeReference && /\b(?:thickness|reading|measurement|diameter|depth|loss|corrosion rate|remaining|minimum|maximum|limit|tolerance)\b/.test(context);
+  });
+  return [...new Set(claims.map((claim) => claim.expected))];
 }
 
 export function evaluateGoldSectionRecovery({ goldContent = "", generatedContent = "", evaluationMode = "direct_recovery", minimumContentCoverage = 0.55 }) {
@@ -182,15 +182,8 @@ function countTableRows(value) {
 }
 
 function goldContainsEquivalentClaim(claim, goldText) {
-  if (goldText.includes(claim)) return true;
-  const parsed = String(claim).match(/^([+\-]?\d+(?:\.\d+)?)\s*(mm|cm|m|%|psi|mpa|bar)?$/);
-  if (!parsed) return false;
-  const targetNumber = canonicalNumber(parsed[1]);
-  const targetUnit = String(parsed[2] ?? "").toLowerCase();
-  return [...goldText.matchAll(/(?<![a-z0-9.])([+\-]?\d+(?:\.\d+)?)\s*(mm|cm|m|%|psi|mpa|bar)?\b/g)].some((match) => {
-    const sourceUnit = String(match[2] ?? "").toLowerCase();
-    return canonicalNumber(match[1]) === targetNumber && (!targetUnit || !sourceUnit || sourceUnit === targetUnit);
-  });
+  const target = extractMeasurementClaims(claim, { includeBare: true })[0];
+  return Boolean(target && extractMeasurementClaims(goldText, { includeBare: true }).some((source) => source.numeric === target.numeric && source.unit === target.unit));
 }
 
 function matchesDeterministicDifference(claim, generatedText, goldText) {
@@ -200,7 +193,8 @@ function matchesDeterministicDifference(claim, generatedText, goldText) {
   if (claimIndex < 0) return false;
   const nearby = generatedText.slice(Math.max(0, claimIndex - 100), claimIndex + String(claim).length + 100);
   if (!/\b(?:difference|differential|exceed(?:ed|ing|s)?|above|below|margin|reduction|increase)\b/.test(nearby)) return false;
-  const sourceNumbers = [...goldText.matchAll(/[+\-]?\d+(?:\.\d+)?/g)].map((match) => Number(match[0])).filter(Number.isFinite);
+  const targetUnit = extractMeasurementClaims(claim, { includeBare: true })[0]?.unit ?? "";
+  const sourceNumbers = extractMeasurementClaims(goldText, { includeBare: true }).filter((item) => item.unit === targetUnit).map((item) => Number(item.numeric));
   for (let left = 0; left < sourceNumbers.length; left += 1) {
     for (let right = left + 1; right < sourceNumbers.length; right += 1) {
       if (Math.abs(Math.abs(sourceNumbers[left] - sourceNumbers[right]) - Math.abs(target)) < 0.000001) return true;
@@ -211,6 +205,8 @@ function matchesDeterministicDifference(claim, generatedText, goldText) {
 
 function buildProtectedChecks(fact, defaultUnit = "") {
   if (!["measurement", "layout_geometry"].includes(fact.evidence_class)) {
+    const embedded = extractMeasurementClaims(factValueTokens(fact).join(" "));
+    if (embedded.length) return embedded.map((claim) => ({ factId: fact.fact_id, kind: "measurement", ...claim, matches: (text) => claimMatches(text, claim) }));
     return [{ factId: fact.fact_id, kind: "fact", expected: factValueTokens(fact)[0] ?? fact.fact_id, matches: (text) => matchesTruthFact(text, fact) }];
   }
   const source = factValueTokens(fact).join(" ");
@@ -225,13 +221,10 @@ function extractAtomicProtectedClaims(value, defaultUnit = "") {
   for (const match of text.matchAll(/\b(?:station|course|plate|tank(?:\s+(?:no|number))?)\s*[:#.-]?\s*[a-z]?-?\d+(?:\.\d+)?\b/gi)) {
     claims.push({ kind: "identity", expected: normalizeText(match[0]).toLowerCase() });
   }
-  for (const match of text.matchAll(/(?:^|[^a-z0-9])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|mpa|psi|bar|ft|in|m|%))?/gi)) {
-    const explicitUnit = String(match[2] ?? "").toLowerCase();
-    const numeric = canonicalNumber(match[1]);
-    if (numeric == null || (!explicitUnit && Number(numeric) >= 1900 && Number(numeric) <= 2100)) continue;
-    const numericOffset=(match.index??0)+match[0].indexOf(match[1]);
-    const unit = explicitUnit || (defaultUnit && isBareTableNumericCell(text,numericOffset) ? defaultUnit : "");
-    claims.push({ kind: unit ? "measurement" : "numeric_identity", expected: unit ? `${numeric} ${unit}` : numeric, numeric, unit });
+  for (const claim of extractMeasurementClaims(text, { includeBare: true })) {
+    if (!claim.unit && Number(claim.numeric) >= 1900 && Number(claim.numeric) <= 2100) continue;
+    const unit = claim.unit || (defaultUnit && isBareTableNumericCell(text, claim.index) ? defaultUnit : "");
+    claims.push({ kind: unit ? "measurement" : "numeric_identity", expected: unit ? `${claim.numeric} ${unit}` : claim.numeric, numeric: claim.numeric, unit });
   }
   const seen = new Set();
   return claims.filter((claim) => {
@@ -251,21 +244,7 @@ function claimMatches(generatedText, claim) {
 }
 
 function extractGeneratedClaims(text) {
-  const claims = [];
-  for (const match of text.matchAll(/(?:^|[^a-z0-9])([+\-]?\d+(?:\.\d+)?)(?:\s*(mm\/year|mm\/yr|mm|cm|mpa|psi|bar|ft|in|m|%))?/gi)) {
-    const numeric = canonicalNumber(match[1]);
-    if (numeric != null) claims.push({ numeric, unit: String(match[2] ?? "").toLowerCase() });
-  }
-  return claims;
-}
-
-function canonicalNumber(value) {
-  const number = Number(String(value).replace(/^\+/, ""));
-  return Number.isFinite(number) ? String(number) : null;
-}
-
-function normalizeMeasurementText(value) {
-  return normalizeText(String(value ?? "").replace(/[−–—]/g, "-")).toLowerCase();
+  return extractMeasurementClaims(text, { includeBare: true });
 }
 
 function factValueTokens(fact) {
@@ -274,13 +253,15 @@ function factValueTokens(fact) {
     : fact.normalized_value_json;
   const values = collectPrimitiveFactValues(parsed);
   const tokens = values.flatMap((value) => [value, fact.unit_code ? `${value} ${fact.unit_code}` : ""])
-    .map((item) => normalizeText(item).replace(/^[{"']+|[}"']+$/g, "").toLowerCase())
+    .map((item) => normalizeText(item).toLowerCase())
     .filter((item) => item.length >= 2);
   return [...new Set(tokens)];
 }
 
 function matchesTruthFact(generatedText, fact) {
   const values = factValueTokens(fact);
+  const measurements = extractMeasurementClaims(values.join(" "));
+  if (!measurements.every((claim) => claimMatches(generatedText, claim))) return false;
   if (values.some((value) => generatedText.includes(value))) return true;
   const sourceWords = [...new Set(values.join(" ").match(/\b[a-z0-9][a-z0-9.-]{2,}\b/g) ?? [])];
   if (sourceWords.length === 0) return false;

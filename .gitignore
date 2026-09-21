@@ -19,6 +19,13 @@ apps/field-ios-demo/FieldIOSDemo.xcodeproj/xcuserdata/
 apps/report-platform/node_modules/
 apps/report-platform/dist/
 apps/report-platform/.data/
+apps/report-platform/.local/
+apps/report-platform/.env
+apps/report-platform/.runtime/
+apps/report-platform/services/kb-ingestion/.data/
+apps/report-platform/services/kb-ingestion/.venv/
+apps/report-platform/services/kb-ingestion/.pytest_cache/
+apps/report-platform/services/kb-ingestion/**/__pycache__/
 
 # Local recovery and QA artifacts
 .git.icloud-placeholder
@@ -35,3 +42,6 @@ commercial-output/build_product_demo_deck.py
 commercial-output/build_product_demo_gifs.py
 commercial-output/build_product_demo_gifs_real.py
 commercial-output/build_stakeholder_update_deck.py
+
+# Private report-derived evaluation records; publish aggregate receipts only.
+apps/report-platform/docs/reviews/data/

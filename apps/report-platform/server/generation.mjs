@@ -1,3 +1,5 @@
+import { generatePlannedSectionDraft } from './planned-generation.mjs';
+import { runSectionAgent } from './section-agents/index.mjs';
 import { createHash, randomUUID } from "node:crypto";
 import {
   getAiStatus,
@@ -394,7 +396,17 @@ export async function generateSectionDraft({
   sectionId,
   userInstruction = "",
   policyDecision = null,
+  executionMode = 'production',
+  sectionAgentVersion = null,
 }) {
+  if (sectionAgentVersion) return runSectionAgent({ sectionAgentVersion, executionMode, sectionId, reportState });
+  if (executionMode === 'evaluation' && reportState.sectionPlanning) {
+    const pack = reportState.sectionPlanning.sectionPlans.find(plan => plan.sectionId === sectionId);
+    const hasGeometry = pack?.evidenceUses.some(use => use.role === 'required_structured' && use.evidenceIds.some(id => reportState.sectionPlanning.evidenceRecords.some(record => record.evidenceId === id && record.kind === 'geometry' && !record.quality.issues.length)));
+    const nativeArtifact = MAP_SECTION_IDS.has(sectionId) && hasGeometry
+      ? buildDeterministicSectionDraft(buildSectionContext({reportState,sectionId,userInstruction,policyDecision})) : null;
+    return generatePlannedSectionDraft({reportState,sectionId,userInstruction,policyDecision,nativeArtifact});
+  }
   const context = buildSectionContext({ reportState, sectionId, userInstruction, policyDecision });
   const fallback = buildDeterministicSectionDraft(context);
   const isMeasurementCompilerSection = Boolean(getMeasurementTableScope(sectionId));
@@ -437,6 +449,8 @@ export async function generateSectionDraft({
         sectionTitle: context.template.title,
         sectionKind: context.template.kind,
         content: finalizeGovernedGeneratedContent({
+        sectionId,
+        sectionKind: context.template.kind,
         narrative: governedDeterministicOnly && !governedNativeArtifact ? "" : selected.content,
         deterministicContent: governedNativeArtifact ? "" : compileGovernedCaptureFactsHtml(context.captureSectionFacts, { sectionId, sectionKind: context.template.kind }),
         evidenceInput: {
@@ -496,6 +510,9 @@ export async function generateSectionDraft({
   };
 
   return {
+    // The evaluator must see the same allowed identities and labels as the
+    // generator, not a reduced truth-fact projection that loses their context.
+    evaluationEvidence: buildProductionGovernedEvidence(context),
     draft: {
       content,
       generated: true,

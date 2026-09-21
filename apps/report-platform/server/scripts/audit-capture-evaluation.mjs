@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { applyCaptureAwareOutcome, summarizeCaptureAvailability } from "../capture-evaluation.mjs";
+
+const captured = { factId:"captured",value:{text:"Supplied observation"},sectionKey:"inspection-report" };
+const withheld = { factId:"withheld",value:{text:"Hidden measurement"},sectionKey:"inspection-report" };
+const availability = summarizeCaptureAvailability({ captures:[captured],withheldFacts:[withheld],targetSectionId:"inspection-report",omittedFactIds:["captured"] });
+assert.equal(availability.capturedFactCount,1);
+assert.equal(availability.withheldFactCount,1);
+assert.deepEqual(availability.omittedCapturedFacts.map((fact)=>fact.factId),["captured"]);
+const run = () => ({truthGraphEvaluation:{requiredFactCount:1,requiredFactRecall:1,claimPrecision:1,protectedFactCount:0,protectedFactAccuracy:null},goldSectionEvaluation:{evaluationMode:"evidence_conditioned_semantic",contentCoverage:0.1},semanticSectionEvaluation:{available:true,semanticSimilarity:0.1,materialConceptRecall:0.1},evidenceSectionEvaluation:{available:true,evidenceCoverage:1,verdict:"acceptable"},sectionFormatEvaluation:{score:1}});
+const complete=run();applyCaptureAwareOutcome(complete);assert.equal(complete.outcomeCode,"ready_for_review");
+const missing=run();missing.truthGraphEvaluation.requiredFactRecall=0.2;missing.semanticSectionEvaluation.materialConceptRecall=1;applyCaptureAwareOutcome(missing);assert.equal(missing.outcomeCode,"needs_attention");
+const unsafe=run();unsafe.evidenceSectionEvaluation.verdict="unsafe";applyCaptureAwareOutcome(unsafe);assert.equal(unsafe.outcomeCode,"blocked");
+const unavailable=run();unavailable.evidenceSectionEvaluation={available:false};applyCaptureAwareOutcome(unavailable);assert.equal(unavailable.outcomeCode,"needs_attention");
+const leaked=run();leaked.leakage={riskScore:1};applyCaptureAwareOutcome(leaked);assert.equal(leaked.outcomeCode,"blocked");
+const workflow=run();workflow.outcomeCode="blocked";workflow.generationBlockers=["invalid_import_record"];applyCaptureAwareOutcome(workflow);assert.equal(workflow.outcomeCode,"blocked");assert(workflow.draftQualityClassification.blockerReasons.includes("invalid_import_record"));
+const manual=run();manual.missingUserInputs={missingManualFields:["inspectionDate"]};applyCaptureAwareOutcome(manual);assert.equal(manual.outcomeCode,"blocked");assert(manual.draftQualityClassification.blockerReasons.includes("missing_required_manual_inputs"));
+const unresolved=run();unresolved.sectionPlanEvaluation={attentionReasons:["output_equivalence_requires_review"]};applyCaptureAwareOutcome(unresolved);assert.equal(unresolved.outcomeCode,"needs_attention");
+const changed=run();changed.sectionPlanEvaluation={blockerReasons:["incorrect_entity_binding"]};applyCaptureAwareOutcome(changed);assert.equal(changed.outcomeCode,"blocked");
+const prior=run();prior.draftQualityClassification={blockerReasons:["unresolved_critical_unit"],attentionReasons:[]};applyCaptureAwareOutcome(prior);assert.equal(prior.outcomeCode,"blocked");assert(prior.draftQualityClassification.blockerReasons.includes("unresolved_critical_unit"));
+console.log("Capture-aware evaluation audit passed: withheld facts, real omissions, unavailable review, leakage and unsafe evidence remain distinct.");

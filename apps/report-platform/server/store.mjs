@@ -1,3 +1,6 @@
+import { createSectionPlanningStore } from "./section-planning-store.mjs";
+import { parseSectionDocument, validateSectionDocument } from "./report-document.mjs";
+import { evaluateSectionPlanOutput } from "./section-plan-evaluation.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import {
   generateSectionAssistantReply,
@@ -8,7 +11,8 @@ import {
   MANUAL_FIELD_LABELS,
 } from "./generation.mjs";
 import { evaluateGeneratedSection, evaluateGoldSectionRecovery, evaluateSectionFormatContract, evaluateTruthGraphRecovery } from "./eval.mjs";
-import { evaluateSemanticSectionSimilarity } from "./semantic-eval.mjs";
+import { evaluateSemanticSectionSimilarity, evaluateEvidenceConditionedGeneration } from "./semantic-eval.mjs";
+import { applyCaptureAwareOutcome, summarizeCaptureAvailability, CAPTURE_EVALUATION_CONTRACT } from "./capture-evaluation.mjs";
 import { classifyReportPackage } from "./report-classification.mjs";
 import { API_STANDARD_REPORT_TOC } from "./report-toc.mjs";
 import { buildReportSpecificSectionResolver } from "./capture-section-mapping.mjs";
@@ -22,7 +26,7 @@ import {
   SYSTEM_RL_MODES,
 } from "./system-rl-policy.mjs";
 import { GOVERNED_GENERATOR_CONTRACT_VERSION } from "./governed-generation-contract.mjs";
-import { classifyInspectorReviewDraft, DRAFT_QUALITY_CONTRACT_VERSION, DRAFT_QUALITY_TARGETS } from "./draft-quality.mjs";
+import { DRAFT_QUALITY_TARGETS } from "./draft-quality.mjs";
 
 export class ApiError extends Error {
   constructor(statusCode, message, code = "report_platform_api_error") {
@@ -36,6 +40,7 @@ export class ApiError extends Error {
 export async function createReportStore({ databaseUrl }) {
   const db = await createPostgresDatabase({ databaseUrl });
   const systemRl = createSystemRlController({ db });
+  const planningStore = createSectionPlanningStore({ db, createError: (status, message, code) => new ApiError(status, message, code) });
   const kbReview = createKbReviewService({
     db,
     createError: (statusCode, message, code) => new ApiError(statusCode, message, code),
@@ -55,6 +60,10 @@ export async function createReportStore({ databaseUrl }) {
 
   return {
     approveSection,
+    classifyReportSections,
+    reviewSectionClassification,
+    loadEvaluationPlanningState,
+    runOutlineEvaluation,
     approveCaptureVariant: trainingHarness.approveCaptureVariant,
     completeCaptureVariantRoundTrip: trainingHarness.completeCaptureVariantRoundTrip,
     acceptAutomatedTruthDraft: trainingHarness.acceptAutomatedTruthDraft,
@@ -646,7 +655,9 @@ export async function createReportStore({ databaseUrl }) {
       await upsertInternalManualInput(reportJobId, "__sourceEvidenceFingerprintV2", packageFingerprint, nowIso);
     });
 
-    return loadReportJobState(reportJobId);
+    const importedState = await loadReportJobState(reportJobId);
+    await planningStore.classify(importedState);
+    return importedState;
   }
 
   async function refreshSeedReport(reportJobId, exportPackage, manualSupplementOverrides) {
@@ -1678,7 +1689,7 @@ export async function createReportStore({ databaseUrl }) {
       .all(reportJobId);
     const sectionDraftRows = await db
       .prepare(
-        `SELECT section_id, content, generated, edited, approved, review_required, version, updated_at_iso
+        `SELECT section_id, content, generated, edited, approved, review_required, version, updated_at_iso, section_plan_snapshot_id, report_document_json
         FROM report_section_drafts
         WHERE report_job_id = ?
         ORDER BY section_id`,
@@ -1724,6 +1735,7 @@ export async function createReportStore({ databaseUrl }) {
           created_at_iso
         FROM report_generation_runs
         WHERE report_job_id = ?
+          AND COALESCE(orchestration_json->>'executionMode','production') <> 'outline_evaluation'
         ORDER BY created_at_iso DESC
         LIMIT 1`,
       )
@@ -1733,6 +1745,7 @@ export async function createReportStore({ databaseUrl }) {
         `SELECT eval_json
         FROM report_eval_runs
         WHERE report_job_id = ?
+          AND COALESCE(eval_json->>'experimentContract','') <> 'outline_evidence_v2'
         ORDER BY created_at_iso DESC
         LIMIT 1`,
       )
@@ -1743,7 +1756,7 @@ export async function createReportStore({ databaseUrl }) {
       ? parseJsonValue(latestGenerationRun.orchestration_json)
       : null;
 
-    return {
+    const state = {
       reportJob: {
         reportJobId: row.report_job_id,
         isDemo: Boolean(row.bootstrap_key),
@@ -1787,6 +1800,9 @@ export async function createReportStore({ databaseUrl }) {
       ),
       sectionDrafts: sectionDraftRows.map((sectionDraft) => ({
         sectionId: sectionDraft.section_id,
+        planSnapshotId: sectionDraft.section_plan_snapshot_id,
+        sectionPlanSnapshotId: sectionDraft.section_plan_snapshot_id,
+        reportDocument: sectionDraft.report_document_json ? parseJsonValue(sectionDraft.report_document_json) : null,
         content: sectionDraft.content,
         generated: Boolean(sectionDraft.generated),
         edited: Boolean(sectionDraft.edited),
@@ -1825,6 +1841,74 @@ export async function createReportStore({ databaseUrl }) {
       evalRun: latestEvalRun?.eval_json ? parseJsonValue(latestEvalRun.eval_json) : undefined,
       aiStatus: getAiStatus(),
     };
+    return state;
+  }
+
+  async function loadEvaluationPlanningState(reportJobId) {
+    const state = await loadReportJobState(reportJobId);
+    if (!state) throw new ApiError(404, 'Report not found.', 'report_job_not_found');
+    const evaluationCase = await db.prepare(`SELECT evaluation_case_id FROM report_evaluation_cases
+      WHERE config_json->>'sourceReportJobId'=? AND tenant_id=? AND workspace_id=?
+      ORDER BY created_at_iso,evaluation_case_id LIMIT 1`).get(reportJobId,state.reportJob.tenantId,state.reportJob.workspaceId);
+    if (!evaluationCase) throw new ApiError(409, 'The outline framework is available only for linked Evaluation Lab cases.', 'outline_evaluation_only');
+    state.evaluationContext = {mode:'outline_evaluation',evaluationCaseId:evaluationCase.evaluation_case_id,experimentContract:'outline_evidence_v2',promotionEligible:false};
+    state.sectionPlanning = await planningStore.planningForState(state);
+    return state;
+  }
+
+  async function classifyReportSections(reportJobId) {
+    const state = await loadEvaluationPlanningState(reportJobId);
+    if (!state) throw new ApiError(404, "Report not found.", "report_job_not_found");
+    return planningStore.classify(state);
+  }
+
+  async function reviewSectionClassification(reportJobId, values) {
+    return inTransaction(async () => {
+      await db.prepare("SELECT report_job_id FROM report_jobs WHERE report_job_id=? FOR UPDATE").get(reportJobId);
+      const state = await loadEvaluationPlanningState(reportJobId);
+      if (!state) throw new ApiError(404, "Report not found.", "report_job_not_found");
+      await ensureUserWorkspaceMembership(values.actorUserId, state.reportJob.tenantId, state.reportJob.workspaceId);
+      const snapshot = await planningStore.decide(state, values);
+      // Candidate mappings affect evaluation snapshots only, never report drafts.
+      return snapshot;
+    });
+  }
+
+  async function runOutlineEvaluation({reportJobId,sectionId,actorUserId,expectedSnapshotId}) {
+    ensureKnownSection(sectionId);
+    const actor = await ensureActorUserExists(actorUserId);
+    const state = await loadEvaluationPlanningState(reportJobId);
+    if (expectedSnapshotId !== state.sectionPlanning.snapshotId) throw new ApiError(409,'Evidence or classification changed. Reload before evaluating.','section_plan_conflict');
+    const generation = await generateSectionDraft({reportState:state,sectionId,executionMode:'evaluation'});
+    generation.orchestration.executionMode = 'outline_evaluation';
+    const evalRun = evaluateGeneratedSection({reportState:state,sectionId,generationRun:generation.generationRun,generatedContent:generation.draft.content,orchestration:generation.orchestration});
+    attachSectionPlanEvaluation(evalRun,generation,state,sectionId);
+    Object.assign(evalRun,{experimentContract:'outline_evidence_v2',evaluationCaseId:state.evaluationContext.evaluationCaseId,runPurpose:'frozen_diagnostic',evaluationTrack:'native_input_diagnostic',independentQualityEligible:false,learningEligible:false,promotionEligible:false});
+    await inTransaction(async () => {
+      await db.prepare('SELECT report_job_id FROM report_jobs WHERE report_job_id=? FOR UPDATE').get(reportJobId);
+      const latest = await loadEvaluationPlanningState(reportJobId);
+      if (latest.sectionPlanning.snapshotId !== expectedSnapshotId) throw new ApiError(409,'Evidence or classification changed during evaluation. Reload and retry.','section_plan_conflict');
+      await planningStore.persist(state,state.sectionPlanning);
+      await persistStandaloneGenerationRun({actorUserId:actor,generation,reportJobId,sectionId});
+      await persistEvalRun({evalRun,reportJobId,sectionId,evaluationCaseId:state.evaluationContext.evaluationCaseId});
+    });
+    return {generatedContent:generation.draft.content,evalRun,generationRun:generation.generationRun,sectionPlanningSnapshotId:state.sectionPlanning.snapshotId};
+  }
+
+  function attachSectionPlanEvaluation(evalRun, generation, state, sectionId) {
+    const plan = state.sectionPlanning?.sectionPlans.find(item => item.sectionId === sectionId);
+    if (!plan) return;
+    const assessment = evaluateSectionPlanOutput({sectionPlan:plan,evidenceRecords:state.sectionPlanning.evidenceRecords,generatedContent:generation.draft.content,verifiedArtifacts:generation.draft.reportDocument?.artifacts??[]});
+    evalRun.sectionPlanEvaluation = assessment;
+    evalRun.truthGraphEvaluation = assessment.truthGraphEvaluation;
+    evalRun.generatorContractVersion = generation.orchestration.generatorContractVersion;
+    evalRun.sectionPlanningSnapshotId = state.sectionPlanning.snapshotId;
+    evalRun.benchmarkStatus = "diagnostic_unreviewed_obligations";
+    evalRun.missingUserInputs = {...(evalRun.missingUserInputs??{}),sectionRequirements:plan.missingRequirements??[]};
+    const issues=[...(generation.generationRun.blockers??[]),...(assessment.blockerReasons??[]),...((evalRun.missingUserInputs?.missingManualFields??[]).length ? ["Missing required report-side inputs."] : [])];
+    evalRun.outcomeCode=issues.length ? "blocked" : (plan.status!=="ready"||assessment.attentionReasons?.length||assessment.missingRequiredObligationIds?.length) ? "needs_attention" : "ready_for_review";
+    evalRun.summary=issues.length ? `Blocked: ${issues.join(" ")}` : "Evaluated against the section plan. Independent benchmark obligations must be reviewed before quality comparison.";
+    evalRun.score=evalRun.outcomeCode==="blocked"?0:(assessment.truthGraphEvaluation.requiredFactRecall??0);
   }
 
   async function saveManualInputs(reportJobId, values, { expectedRevision } = {}) {
@@ -1915,9 +1999,10 @@ export async function createReportStore({ databaseUrl }) {
     const nextContent = String(draft.content ?? "");
     const reasonCode = draft.reasonCode === "targeted_ai_edit" ? "targeted_ai_edit" : "draft_save";
     await inTransaction(async () => {
+      await db.prepare("SELECT report_job_id FROM report_jobs WHERE report_job_id=? FOR UPDATE").get(reportJobId);
       const existingSectionDraft = await db
         .prepare(
-          `SELECT content, approved, review_required, version
+          `SELECT content, approved, review_required, version, section_plan_snapshot_id, report_document_json
           FROM report_section_drafts
           WHERE report_job_id = ? AND section_id = ?
           FOR UPDATE`,
@@ -1975,6 +2060,12 @@ export async function createReportStore({ databaseUrl }) {
         nowIso,
       );
 
+      if(existingSectionDraft?.section_plan_snapshot_id) {
+        const document=parseSectionDocument({sectionId,html:nextContent,planId:existingSectionDraft.section_plan_snapshot_id});
+        document.artifacts=parseJsonValue(existingSectionDraft.report_document_json??{}).artifacts??[];
+        await db.prepare("UPDATE report_section_drafts SET report_document_json=?::jsonb WHERE report_job_id=? AND section_id=?").run(JSON.stringify(document),reportJobId,sectionId);
+        await db.prepare("INSERT INTO report_section_document_snapshots(document_id,report_job_id,section_id,draft_version,plan_snapshot_id,document_json) VALUES(?,?,?,?,?,?::jsonb)").run(randomUUID(),reportJobId,sectionId,currentVersion+1,existingSectionDraft.section_plan_snapshot_id,JSON.stringify(document));
+      }
       await db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
         nextApproved ? "reviewed" : "draft",
         nowIso,
@@ -1994,6 +2085,7 @@ export async function createReportStore({ databaseUrl }) {
     const nowIso = new Date().toISOString();
 
     await inTransaction(async () => {
+      await db.prepare("SELECT report_job_id FROM report_jobs WHERE report_job_id=? FOR UPDATE").get(reportJobId);
       const currentDraft = await db
         .prepare(
           `SELECT version
@@ -2189,6 +2281,7 @@ export async function createReportStore({ databaseUrl }) {
       generatedContent: generation.draft.content,
       orchestration: generation.orchestration,
     });
+    attachSectionPlanEvaluation(evalRun, generation, reportState, sectionId);
     const nowIso = generation.generationRun.generatedAtIso;
 
     await inTransaction(async () => {
@@ -2241,6 +2334,8 @@ export async function createReportStore({ databaseUrl }) {
         boolToInt(generation.draft.reviewRequired),
         nowIso,
       );
+
+      await db.prepare('UPDATE report_section_drafts SET section_plan_snapshot_id=NULL,report_document_json=NULL WHERE report_job_id=? AND section_id=?').run(reportJobId,sectionId);
 
       await db.prepare(
         `INSERT INTO report_generation_runs (
@@ -2316,6 +2411,7 @@ export async function createReportStore({ databaseUrl }) {
         decision: policyDecision,
         evalRun,
         generationRun: generation.generationRun,
+        updateLearning: false,
       });
 
       await db.prepare("UPDATE report_jobs SET status_code = ?, updated_at_iso = ? WHERE report_job_id = ?").run(
@@ -2342,7 +2438,12 @@ export async function createReportStore({ databaseUrl }) {
     evaluationCaseId = null,
     frozenCandidate = false,
     updateLearning = true,
+    experimentContract = null,
+    loadEvaluationReference = null,
   }) {
+    if (loadEvaluationReference && (!evaluationCaseId || updateLearning)) {
+      throw new ApiError(400, "Reference repair requires an evaluation case with learning disabled.", "reference_repair_evaluation_only");
+    }
     await ensureReportJobExists(reportJobId);
     ensureKnownSection(sectionId);
     const actor = await ensureActorUserExists(actorUserId);
@@ -2352,6 +2453,7 @@ export async function createReportStore({ databaseUrl }) {
     }
     let evaluationCaseConfig = null;
     let standardizedPair = null;
+    let captureManifest = null;
     if (evaluationCaseId) {
       const evaluationCase = await db.prepare(
         `SELECT config_json FROM report_evaluation_cases
@@ -2370,7 +2472,7 @@ export async function createReportStore({ databaseUrl }) {
       ).get(
         evaluationCaseId,
         sectionId,
-        evaluationCaseConfig.metricContract ?? "legacy",
+        experimentContract ?? `${evaluationCaseConfig.metricContract ?? "live"}:${CAPTURE_EVALUATION_CONTRACT}`,
         frozenCandidate ? GOVERNED_GENERATOR_CONTRACT_VERSION : "legacy",
       );
       if (previousAttempt?.learning_eligible === false) {
@@ -2385,6 +2487,7 @@ export async function createReportStore({ databaseUrl }) {
           WHERE v.variation_id=? AND v.app_report_job_id=? AND p.section_key=?`,
         ).get(evaluationCaseConfig.baselineVariationId,reportJobId,sectionId);
         const manifest=parseJsonValue(baselineVariation?.manifest_json ?? {});
+        captureManifest = manifest;
         standardizedPair=baselineVariation ? {
           pair_id:baselineVariation.baseline_pair_id,
           status_code:baselineVariation.status_code === "materialized" ? "ready" : baselineVariation.status_code,
@@ -2402,18 +2505,18 @@ export async function createReportStore({ databaseUrl }) {
         const targetByFact = new Map((manifest.captures ?? []).map((fact) => [
           fact.factId,knownSectionIds.has(fact.sectionKey) ? fact.sectionKey : sectionId,
         ]));
-        reportState.exportPackage.captureFacts = (reportState.exportPackage.captureFacts ?? []).map((fact) => ({
+        if (!reportState.sectionPlanning) reportState.exportPackage.captureFacts = (reportState.exportPackage.captureFacts ?? []).map((fact) => ({
           ...fact,
           sourceSectionKey:fact.sourceSectionKey ?? targetByFact.get(fact.factId) ?? null,
-          targetReportSectionId:sectionId,
+          targetReportSectionId:fact.targetReportSectionId ?? null,
         }));
       } else {
         standardizedPair = await db.prepare(
           `SELECT p.pair_id, p.status_code, p.expected_recoverable_fact_ids_json, p.validation_json, g.target_content
           FROM report_standardized_mock_gold_pairs p
           JOIN report_standardized_gold_sections g ON g.gold_section_id=p.gold_section_id
-          WHERE p.variant_id = ? AND p.section_key = ? AND p.contract_version = 1`,
-        ).get(evaluationCaseConfig.captureVariantId, sectionId);
+          WHERE p.variant_id = ? AND p.section_key = ? AND p.contract_version = ?`,
+        ).get(evaluationCaseConfig.captureVariantId, sectionId, Number(evaluationCaseConfig.standardizedPairContractVersion ?? 1));
         if (!standardizedPair && evaluationCaseConfig.goldStandardType === "approved_truth_graph") {
           const linkedFacts = await db.prepare(
             `SELECT f.fact_id,f.fact_type,f.section_key,f.source_page_number,f.normalized_value_json,f.unit_code,f.evidence_class,
@@ -2508,7 +2611,7 @@ export async function createReportStore({ databaseUrl }) {
         ).all(evaluationCaseConfig.captureVariantId);
         const resolveTargetSection = buildReportSpecificSectionResolver(lineage);
         const targetByFact = new Map(lineage.map((item) => [item.fact_id, resolveTargetSection(item).sectionId]));
-        reportState.exportPackage.captureFacts = (reportState.exportPackage.captureFacts ?? []).map((fact) => ({
+        if (!reportState.sectionPlanning) reportState.exportPackage.captureFacts = (reportState.exportPackage.captureFacts ?? []).map((fact) => ({
           ...fact,
           targetReportSectionId: fact.targetReportSectionId ?? targetByFact.get(fact.factId) ?? "report-metadata",
         }));
@@ -2533,7 +2636,7 @@ export async function createReportStore({ databaseUrl }) {
       generatedContent: generation.draft.content,
       orchestration: generation.orchestration,
     });
-    evalRun.experimentContract = evaluationCaseConfig?.metricContract ?? "live";
+    evalRun.experimentContract = experimentContract ?? `${evaluationCaseConfig?.metricContract ?? "live"}:${CAPTURE_EVALUATION_CONTRACT}`;
     evalRun.generatorContractVersion = generation.orchestration.generatorContractVersion ?? "legacy";
     if (evaluationCaseId) {
       const truthFacts = await db.prepare(
@@ -2564,15 +2667,45 @@ export async function createReportStore({ databaseUrl }) {
           safety_criticality: recoverable ? (input.safetyCriticality ?? fact.safety_criticality ?? "medium") : "low",
         };
       });
+      // Fetch corrected hidden source only after generation has returned. Snapshot it
+      // on this run so previous results keep their original reference and scores.
+      const referenceRevision = loadEvaluationReference ? await loadEvaluationReference() : null;
+      if (referenceRevision) {
+        if (referenceRevision.sectionId !== sectionId || !referenceRevision.content || !referenceRevision.sourceSha256) {
+          throw new ApiError(400, "Reference revision is incomplete or belongs to another section.", "invalid_evaluation_reference");
+        }
+        standardizedPair.target_content = referenceRevision.content;
+        evalRun.referenceRevision = referenceRevision;
+      }
       evalRun.evaluationCaseId = evaluationCaseId;
       evalRun.standardizedPairId = standardizedPair.pair_id;
       evalRun.truthGraphEvaluation = evaluateTruthGraphRecovery({ facts: sectionTruthFacts, generatedContent: generation.draft.content });
       const pairValidation=parseJsonValue(standardizedPair.validation_json??{});
       evalRun.goldSectionEvaluation = evaluateGoldSectionRecovery({ goldContent: standardizedPair.target_content, generatedContent: generation.draft.content, evaluationMode:pairValidation.evaluationMode, minimumContentCoverage:pairValidation.minimumGoldContentCoverage });
       evalRun.sectionFormatEvaluation = evaluateSectionFormatContract({ sectionId, goldContent: standardizedPair.target_content, generatedContent: generation.draft.content });
-      evalRun.semanticSectionEvaluation = await evaluateSemanticSectionSimilarity({sectionId,goldContent:standardizedPair.target_content,generatedContent:generation.draft.content});
+      [evalRun.semanticSectionEvaluation, evalRun.evidenceSectionEvaluation] = await Promise.all([
+        evaluateSemanticSectionSimilarity({sectionId,goldContent:standardizedPair.target_content,generatedContent:generation.draft.content}),
+        evaluateEvidenceConditionedGeneration({sectionId,allowedEvidence:generation.evaluationEvidence ?? sectionTruthFacts.map((fact) => ({ factId:fact.fact_id, value:fact.normalized_value_json, unit:fact.unit_code, required:fact.required_fact })),generatedContent:generation.draft.content}),
+      ]);
+      if (captureManifest) {
+        evalRun.captureAvailability = summarizeCaptureAvailability({
+          captures: captureManifest.captures ?? [],
+          withheldFacts: (captureManifest.withheldFacts ?? []).map((fact) => ({
+            ...fact, value: fact.value ?? truthById.get(fact.factId)?.normalized_value_json,
+            sectionKey: fact.sectionKey ?? truthById.get(fact.factId)?.section_key,
+          })),
+          targetSectionId: sectionId,
+          omittedFactIds: evalRun.truthGraphEvaluation.missingRequiredFactIds ?? [],
+        });
+      }
       applyTruthGraphOutcome(evalRun);
     }
+    attachSectionPlanEvaluation(evalRun, generation, reportState, sectionId);
+    evalRun.runPurpose = "frozen_diagnostic";
+    evalRun.evaluationTrack = captureManifest?.identity?.evaluationTrack ?? captureManifest?.baselineContract?.evaluationTrack ?? (evaluationCaseId ? "historical_reconstruction_fixture" : "native_input_diagnostic");
+    evalRun.independentQualityEligible = false;
+    evalRun.learningEligible = false;
+    evalRun.promotionEligible = false;
     let reward;
     await inTransaction(async () => {
       await persistStandaloneGenerationRun({
@@ -2586,7 +2719,7 @@ export async function createReportStore({ databaseUrl }) {
         decision: attachSystemRlDecisionScope(policyDecision, reportState),
         evalRun,
         generationRun: generation.generationRun,
-        updateLearning,
+        updateLearning: reportState.sectionPlanning ? false : updateLearning,
       });
     });
 
@@ -2627,7 +2760,7 @@ export async function createReportStore({ databaseUrl }) {
     return result;
   }
 
-  async function getSystemRlHeldOutReview({ evaluationCaseId = null, sectionId = null } = {}) {
+  async function getSystemRlHeldOutReview({ evaluationCaseId = null, sectionId = null, evalRunId = null } = {}) {
     const reviewCase = evaluationCaseId ? await db.prepare(
       `SELECT evaluation_case_id,dataset_split FROM report_evaluation_cases WHERE evaluation_case_id=?`,
     ).get(evaluationCaseId) : await db.prepare(
@@ -2642,6 +2775,7 @@ export async function createReportStore({ databaseUrl }) {
     const reviewSplit=reviewCase?.dataset_split;
     if (!latestCase) return { available: false, reason: "No completed hidden-test evaluation is available." };
     const sectionClause = sectionId ? "AND e.section_id = ?" : "";
+    const runClause = evalRunId ? "AND e.eval_run_id = ?" : "";
     const row = await db.prepare(
       `SELECT e.eval_run_id, e.evaluation_case_id, e.section_id, e.score,
         e.outcome_code, e.eval_json, e.created_at_iso, g.generated_content,
@@ -2650,10 +2784,10 @@ export async function createReportStore({ databaseUrl }) {
       JOIN report_generation_runs g ON g.run_id = e.run_id
       JOIN report_evaluation_cases c ON c.evaluation_case_id = e.evaluation_case_id
       WHERE c.dataset_split = ? AND e.evaluation_case_id = ?
-        ${sectionClause}
+        ${sectionClause} ${runClause}
       ORDER BY e.created_at_iso DESC
       LIMIT 1`,
-    ).get(...(sectionId ? [reviewSplit,latestCase, sectionId] : [reviewSplit,latestCase]));
+    ).get(reviewSplit, latestCase, ...(sectionId ? [sectionId] : []), ...(evalRunId ? [evalRunId] : []));
     if (!row) return { available: false, reason: "No completed hidden-test evaluation is available." };
     const config = parseJsonValue(row.config_json ?? {});
     const enabledRows = await db.prepare(
@@ -2670,7 +2804,7 @@ export async function createReportStore({ databaseUrl }) {
     const enabled = new Set(enabledRows.map((item) => item.section_id));
     const completed = new Map(completedRows.map((item) => [item.section_id, item]));
     const sectionOrder = API_STANDARD_REPORT_TOC.map((item) => item.id).filter((id) => enabled.has(id));
-    const cohortRows = config.metricContract ? await db.prepare(
+    const cohortRows = !evaluationCaseId && config.metricContract ? await db.prepare(
       `SELECT DISTINCT ON (e.evaluation_case_id, e.section_id)
         e.evaluation_case_id, e.section_id, e.outcome_code, r.hard_failure, c.display_name
       FROM report_eval_runs e
@@ -2729,7 +2863,14 @@ export async function createReportStore({ databaseUrl }) {
       datasetSplit:reviewSplit,
       goldDocumentId: row.gold_document_id,
       sectionId: row.section_id,
-      sourcePageNumber: chunkPages.length > 0 ? Math.min(...chunkPages) : sourcePages.length > 0 ? Math.min(...sourcePages) : 1,
+      sourcePageNumber: evaluation.referenceRevision?.pageNumbers?.[0] ?? (chunkPages.length > 0 ? Math.min(...chunkPages) : sourcePages.length > 0 ? Math.min(...sourcePages) : 1),
+      referenceRevision: evaluation.referenceRevision ? { contractVersion:evaluation.referenceRevision.extractionVersion, pages:evaluation.referenceRevision.pageNumbers, sourceSha256:evaluation.referenceRevision.sourceSha256 } : null,
+      captureAvailability: evaluation.captureAvailability ?? null,
+      evidenceReview: evaluation.evidenceSectionEvaluation ?? null,
+      experimentContract: evaluation.experimentContract ?? "legacy",
+      generatorContractVersion: evaluation.generatorContractVersion ?? "legacy",
+      sectionPlanEvaluation: evaluation.sectionPlanEvaluation ?? null,
+      benchmarkStatus: evaluation.benchmarkStatus ?? null,
       sections: reviewItems.map((item) => ({
         evaluationCaseId: item.evaluation_case_id,
         reportName: item.display_name,
@@ -2744,7 +2885,7 @@ export async function createReportStore({ databaseUrl }) {
       nextEvaluationCaseId: currentIndex >= 0 && currentIndex < reviewItems.length - 1 ? reviewItems[currentIndex + 1].evaluation_case_id : null,
       nextSectionId: currentIndex >= 0 && currentIndex < reviewItems.length - 1 ? reviewItems[currentIndex + 1].section_id : null,
       generatedContent: row.generated_content,
-      originalSectionContent: String(alignedChecklistContent || standardizedGold?.target_content || sourceChunks.map((chunk) => String(chunk.content ?? "").trim()).filter(Boolean).join("\n\n")),
+      originalSectionContent: String(evaluation.referenceRevision?.content || alignedChecklistContent || standardizedGold?.target_content || sourceChunks.map((chunk) => String(chunk.content ?? "").trim()).filter(Boolean).join("\n\n")),
       originalFacts: sectionFacts.map((fact) => ({
         factId: fact.fact_id,
         factType: fact.fact_type,
@@ -2828,6 +2969,8 @@ export async function createReportStore({ databaseUrl }) {
       const claimPrecision = Number(truth.claimPrecision ?? 0);
       const protectedAccuracy = Number(truth.protectedFactAccuracy ?? 0);
       const sectionReasons = [];
+      if(evaluation.independentQualityEligible !== true || evaluation.runPurpose === "frozen_diagnostic") sectionReasons.push("diagnostic or unreviewed benchmark cannot support promotion");
+      if(evaluation.generatorContractVersion !== "section_planned_generation_v1" || evaluation.sectionPlanEvaluation?.contractVersion !== "section_plan_evaluation_v1") sectionReasons.push("generation and evaluation contracts do not match the current pipeline");
       if (row.hard_failure === true) sectionReasons.push(...parseJsonValue(row.hard_failure_reasons_json ?? []));
       if (Number(truth.requiredFactCount ?? 0) === 0) sectionReasons.push("no required golden facts are available");
       else if (requiredRecall < DRAFT_QUALITY_TARGETS.requiredConceptRecall) sectionReasons.push(`fact recovery ${Math.round(requiredRecall * 100)}% is below 80%`);
@@ -3050,6 +3193,8 @@ export async function createReportStore({ databaseUrl }) {
     await ensureSectionReadyForApproval(reportJobId, sectionId, existingSectionDraft);
 
     await inTransaction(async () => {
+      await db.prepare("SELECT report_job_id FROM report_jobs WHERE report_job_id=? FOR UPDATE").get(reportJobId);
+      await ensureSectionReadyForApproval(reportJobId,sectionId,existingSectionDraft);
       const approvalUpdate = await db.prepare(
         `UPDATE report_section_drafts
         SET approved = 1,
@@ -3101,6 +3246,18 @@ export async function createReportStore({ databaseUrl }) {
         "This section is empty. Generate or enter report content before approving it.",
         "section_content_empty",
       );
+    }
+
+    const bound = await db.prepare("SELECT section_plan_snapshot_id FROM report_section_drafts WHERE report_job_id=? AND section_id=?").get(reportJobId,sectionId);
+    if (bound?.section_plan_snapshot_id) {
+      const state = await loadReportJobState(reportJobId);
+      if (!state.sectionPlanning) throw new ApiError(409,'This draft belongs to an evaluation experiment. Generate a report draft before approval.','outline_evaluation_only');
+      const plan = state.sectionPlanning.sectionPlans.find(item=>item.sectionId===sectionId);
+      if (state.sectionPlanning.snapshotId !== bound.section_plan_snapshot_id) throw new ApiError(409,"Source evidence or section classification changed. Regenerate this section before approval.","section_plan_stale");
+      const documentCheck=validateSectionDocument(parseSectionDocument({sectionId,html:sectionDraft.content}));
+      const assessment=evaluateSectionPlanOutput({sectionPlan:plan,evidenceRecords:state.sectionPlanning.evidenceRecords,generatedContent:sectionDraft.content,verifiedArtifacts:parseJsonValue(state.sectionDrafts.find(draft=>draft.sectionId===sectionId)?.reportDocument??{}).artifacts??[]});
+      const issues=[...documentCheck.issues,...(assessment.blockerReasons??[])];
+      if(plan.status!=="ready" || (plan.missingRequirements??[]).length || assessment.missingRequiredObligationIds?.length || issues.length) throw new ApiError(409,`Resolve section evidence, missing findings or integrity issues before approval. ${issues.join(" ")}`,"section_plan_review_required");
     }
 
     const template = getSectionTemplate(sectionId);
@@ -3766,37 +3923,7 @@ function boolToInt(value) {
 }
 
 function applyTruthGraphOutcome(evalRun) {
-  const truth = evalRun.truthGraphEvaluation ?? {};
-  const gold = evalRun.goldSectionEvaluation ?? {};
-  const semanticConceptRecall=evalRun.semanticSectionEvaluation?.available===true?Number(evalRun.semanticSectionEvaluation.materialConceptRecall??0):0;
-  const effectiveRequiredRecall=String(gold.evaluationMode??"direct_recovery")==="evidence_conditioned_semantic"
-    ? Math.max(Number(truth.requiredFactRecall??0),semanticConceptRecall)
-    : Number(truth.requiredFactRecall??0);
-  const directRecovery=String(gold.evaluationMode??"direct_recovery")==="direct_recovery";
-  const semantic=evalRun.semanticSectionEvaluation??{};
-  const format=evalRun.sectionFormatEvaluation??{};
-  const semanticScore=semantic.available===true?Number(semantic.semanticSimilarity??0):null;
-  const semanticRecovery=semanticScore??(directRecovery&&gold.contentCoverage!=null?Number(gold.contentCoverage):null);
-  const classification=classifyInspectorReviewDraft({
-    protectedFactMismatchCount:Number(truth.protectedFactMismatchCount??0),
-    unsupportedCriticalClaimCount:Number(truth.unsupportedClaimCount??0),
-    semanticRecovery,
-    requiredConceptRecall:Number(truth.requiredFactCount??0)>0?effectiveRequiredRecall:null,
-    claimPrecision:truth.claimPrecision==null?null:Number(truth.claimPrecision),
-    protectedFactAccuracy:Number(truth.protectedFactCount??0)>0?Number(truth.protectedFactAccuracy):null,
-    formatReadiness:format.score==null?null:Number(format.score),
-  });
-  const weighted=[semanticRecovery,effectiveRequiredRecall,Number(truth.claimPrecision??1),Number(format.score??1)].filter(Number.isFinite);
-  evalRun.score=classification.outcomeCode==="blocked"?0:weighted.reduce((sum,value)=>sum+value,0)/Math.max(1,weighted.length);
-  evalRun.grade=evalRun.score>=0.9?"A":evalRun.score>=0.8?"B":evalRun.score>=0.7?"C":evalRun.score>=0.6?"D":"F";
-  evalRun.outcomeCode=classification.outcomeCode;
-  evalRun.draftQualityContractVersion=DRAFT_QUALITY_CONTRACT_VERSION;
-  evalRun.draftQualityClassification=classification;
-  evalRun.summary=classification.outcomeCode==="ready_for_review"
-    ? `Ready for inspector review at ${Math.round(evalRun.score*100)}%; normal refinement may still be required.`
-    : classification.outcomeCode==="blocked"
-      ? `Blocked by critical integrity checks: ${classification.blockerReasons.join(", ")}.`
-      : `Needs inspector attention: ${classification.attentionReasons.join(", ")}.`;
+  applyCaptureAwareOutcome(evalRun);
 }
 
 function parseJsonValue(value) {

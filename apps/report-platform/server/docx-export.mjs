@@ -5,6 +5,7 @@ import {
   Document,
   HeadingLevel,
   ImageRun,
+  LevelFormat,
   LineRuleType,
   Packer,
   PageBreak,
@@ -13,9 +14,11 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  UnderlineType,
   WidthType,
 } from "docx";
 import { buildLayoutFigureSvg } from "./layout-map-figure.mjs";
+import { parseSectionDocument, reportNodeText, validateSectionDocument } from "./report-document.mjs";
 import {
   API_STANDARD_PRIMARY_REPORT,
   API_STANDARD_REPORT_TOC,
@@ -60,6 +63,10 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
   const draftBySectionId = new Map(
     (reportState.sectionDrafts ?? []).map((draft) => [draft.sectionId, draft]),
   );
+  for (const section of selectedTocSections) {
+    validateDraftPlanningSnapshot(reportState, draftBySectionId.get(section.id), section.id);
+  }
+  const documentContext = { numbering: [], nextListId: 0 };
   const approvalSummary = {
     approvedCount: approvedSectionIds.size,
     totalCount: API_STANDARD_REPORT_TOC.length,
@@ -80,6 +87,7 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
       tocSection,
       draft: draftBySectionId.get(tocSection.id),
       approved: true,
+      documentContext,
     }));
   }
 
@@ -87,6 +95,7 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
     creator: "LAIQ Report Platform",
     description: "API 653 report-platform DOCX export compiled from LAIQ inspection app V3 field data.",
     title: `${reportState.reportJob.reportReference} ${reportState.reportJob.title}`,
+    numbering: { config: documentContext.numbering },
     styles: {
       default: {
         document: {
@@ -190,6 +199,11 @@ export async function buildFinalReportDocx(reportState, { sectionIds = [] } = {}
             },
           },
         },
+        ...[4, 5, 6].map((level) => ({
+          id: `Heading${level}`, name: `Heading ${level}`, basedOn: "Normal", next: "Normal", quickFormat: true,
+          run: { font: "Arial", bold: true, color: BRAND_BLUE_DARK, size: 21 },
+          paragraph: { keepNext: true, outlineLevel: level - 1, spacing: { before: 80, after: 80, line: NARRATIVE_LINE_SPACING, lineRule: LineRuleType.AUTO } },
+        })),
       ],
     },
     sections: [
@@ -303,7 +317,7 @@ function buildTableOfContents(selectedTocSections) {
   ];
 }
 
-function buildReportSection({ reportState, tocSection, draft, approved }) {
+function buildReportSection({ reportState, tocSection, draft, approved, documentContext }) {
   const content = stripDuplicateSectionHeading(String(draft?.content ?? "").trim(), tocSection);
   const children = [
     paragraph(`${tocSection.number}  ${tocSection.title.toUpperCase()}`, {
@@ -316,7 +330,7 @@ function buildReportSection({ reportState, tocSection, draft, approved }) {
   ];
 
   if (content) {
-    children.push(...contentToDocxBlocks(content));
+    children.push(...contentToDocxBlocks(content, { tocSection, documentContext, planId: draft?.sectionPlanSnapshotId ?? draft?.planSnapshotId ?? null }));
   } else {
     children.push(
       paragraph(
@@ -552,89 +566,164 @@ function renderLayoutFigurePng(svg) {
   }
 }
 
-function contentToDocxBlocks(content) {
-  const blocks = [];
-  const tableRegex = /<table[\s\S]*?<\/table>/gi;
-  let lastIndex = 0;
-  let match;
-
-  while ((match = tableRegex.exec(content)) != null) {
-    blocks.push(...textToParagraphs(content.slice(lastIndex, match.index)));
-    const table = htmlTableToDocx(match[0]);
-    if (table) blocks.push(table);
-    lastIndex = match.index + match[0].length;
+function validateDraftPlanningSnapshot(reportState, draft, sectionId) {
+  const draftSnapshotId = draft?.sectionPlanSnapshotId ?? draft?.planSnapshotId;
+  if (!draftSnapshotId) return; // Preserve historical unbound approved drafts.
+  const planning = reportState.sectionPlanning;
+  if (!planning?.snapshotId || planning.snapshotId !== draftSnapshotId) {
+    throw new Error(`Section ${sectionId} was approved against a stale section plan. Review and approve the current plan before exporting.`);
   }
-
-  blocks.push(...textToParagraphs(content.slice(lastIndex)));
-
-  return blocks.length > 0
-    ? blocks
-    : [paragraph("Pending content.", { italics: true, color: "52677E" })];
+  const plan = (planning.sectionPlans ?? []).find((item) => item.sectionId === sectionId);
+  if (!plan || plan.status !== "ready") {
+    throw new Error(`Section ${sectionId} has unresolved section-plan requirements and cannot be exported.`);
+  }
+  const document = parseSectionDocument({ sectionId, html: draft.content, planId: plan.planId });
+  const validation = validateSectionDocument(document);
+  if (!validation.valid) throw new Error(`Section ${sectionId} is not export-ready: ${validation.issues.join(" ")}`);
 }
 
-function htmlTableToDocx(html) {
-  const rowMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
-  const rows = rowMatches
-    .map((rowHtml, rowIndex) => {
-      const cells = [];
-      const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-      let cellMatch;
+function contentToDocxBlocks(content, { tocSection, documentContext, planId }) {
+  const document = parseSectionDocument({ sectionId: tocSection.id, html: content, planId });
+  removeDuplicateDocumentHeading(document.blocks, tocSection);
+  return renderDocumentNodes(document.blocks, { documentContext });
+}
 
-      while ((cellMatch = cellRegex.exec(rowHtml)) != null) {
-        cells.push(htmlToText(cellMatch[1]));
+function removeDuplicateDocumentHeading(nodes, tocSection) {
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if ("text" in node) { if (!node.text.trim()) continue; return; }
+    if (["section", "div"].includes(node.tag)) { removeDuplicateDocumentHeading(node.children, tocSection); return; }
+    if (!/^h[1-6]$/.test(node.tag)) return;
+    const actual = normalizeSectionHeading(reportNodeText(node));
+    const alternatives = [tocSection.title, `${tocSection.number} ${tocSection.title}`].map(normalizeSectionHeading);
+    if (alternatives.includes(actual)) nodes.splice(index, 1);
+    return;
+  }
+}
+
+const INLINE_TAGS = new Set(["strong", "b", "em", "i", "u", "span", "br"]);
+function renderDocumentNodes(nodes, context = {}) {
+  const result = [];
+  let inline = [];
+  const flush = () => {
+    if (inline.some((node) => reportNodeText(node).trim() || node.tag === "br")) result.push(richParagraph(inline, context));
+    inline = [];
+  };
+  for (const node of nodes) {
+    if ("text" in node && node.text.trim() && /\n/.test(node.text)) {
+      // Historical drafts sometimes contain plain-text report lines. The shared
+      // tree retains those lines; preserve their paragraph boundaries in Word.
+      for (const line of node.text.split(/\n+/).filter((part) => part.trim())) {
+        flush();
+        const bullet = parseReportBullet(line);
+        result.push(bullet ? reportBulletParagraph(bullet.text) : paragraph(line.trim(), {
+          heading: isHeadingLine(line.trim()) ? HeadingLevel.HEADING_3 : undefined,
+          lineSpacing: context.inTable ? TABLE_LINE_SPACING : NARRATIVE_LINE_SPACING,
+        }));
       }
+      continue;
+    }
+    if ("text" in node || INLINE_TAGS.has(node.tag)) { inline.push(node); continue; }
+    flush();
+    if (/^h[1-6]$/.test(node.tag)) {
+      result.push(richParagraph(node.children, { ...context, heading: HeadingLevel[`HEADING_${node.tag.slice(1)}`] }));
+    } else if (["ul", "ol"].includes(node.tag)) {
+      result.push(...renderDocumentList(node, context));
+    } else if (node.tag === "table") {
+      const table = renderDocumentTable(node, context);
+      if (table) result.push(table);
+    } else if (["p", "blockquote", "li"].includes(node.tag)) {
+      result.push(richParagraph(node.children, { ...context, indentLeft: node.tag === "blockquote" ? 420 : context.indentLeft }));
+    } else if (node.tag === "hr") {
+      result.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: LINE } } }));
+    } else {
+      result.push(...renderDocumentNodes(node.children ?? [], context));
+    }
+  }
+  flush();
+  return result;
+}
 
-      if (cells.length === 0) return null;
-      return tableRow(cells, { header: rowIndex === 0 || /<th/i.test(rowHtml) });
-    })
-    .filter(Boolean);
-
-  if (rows.length === 0) return null;
-
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows,
-    borders: tableBorders(),
+function richParagraph(nodes, context = {}) {
+  return new Paragraph({
+    heading: context.heading,
+    numbering: context.numbering,
+    keepNext: Boolean(context.heading),
+    indent: context.indentLeft ? { left: context.indentLeft } : undefined,
+    spacing: { before: context.heading ? 100 : 0, after: context.inTable ? 20 : 100, line: context.inTable ? TABLE_LINE_SPACING : NARRATIVE_LINE_SPACING, lineRule: LineRuleType.AUTO },
+    children: inlineRuns(nodes, { bold: context.bold || Boolean(context.heading), color: context.heading ? BRAND_BLUE_DARK : "163250" }),
   });
 }
 
-function textToParagraphs(value) {
-  const text = htmlToText(value);
-  return text
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const isHeading = isHeadingLine(line);
-      const bullet = parseReportBullet(line);
-      if (bullet) {
-        return reportBulletParagraph(bullet.text, {
-          symbol: bullet.symbol,
-          spacingAfter: 95,
-        });
-      }
-
-      return paragraph(line, {
-        heading: isHeading ? HeadingLevel.HEADING_3 : undefined,
-        bold: isHeading,
-        color: isHeading ? BRAND_BLUE_DARK : "163250",
-        spacingAfter: isHeading ? 90 : 100,
-      });
-    });
+function inlineRuns(nodes, style = {}) {
+  return nodes.flatMap((node) => {
+    if ("text" in node) return [new TextRun({ ...style, text: node.text })];
+    if (node.tag === "br") return [new TextRun({ ...style, break: 1 })];
+    const nextStyle = { ...style };
+    if (["strong", "b"].includes(node.tag)) nextStyle.bold = true;
+    if (["em", "i"].includes(node.tag)) nextStyle.italics = true;
+    if (node.tag === "u") nextStyle.underline = { type: UnderlineType.SINGLE };
+    return inlineRuns(node.children ?? [], nextStyle);
+  });
 }
 
-function htmlToText(value) {
-  return decodeHtmlEntities(
-    String(value ?? "")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/(section|p|div|h[1-6]|li|tr)>/gi, "\n")
-      .replace(/<li[^>]*>/gi, "➢ ")
-      .replace(/<[^>]+>/g, "")
-      .replace(/\u00a0/g, " ")
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim(),
-  );
+function renderDocumentList(list, context) {
+  const level = Math.min(context.listLevel ?? 0, 8);
+  const reference = `report-list-${++context.documentContext.nextListId}`;
+  context.documentContext.numbering.push({ reference, levels: Array.from({ length: 9 }, (_, index) => ({
+    level: index,
+    format: list.tag === "ol" ? LevelFormat.DECIMAL : LevelFormat.BULLET,
+    text: list.tag === "ol" ? `%${index + 1}.` : "➢",
+    alignment: AlignmentType.LEFT,
+    style: { paragraph: { indent: { left: 520 + index * 360, hanging: 280 } } },
+  })) });
+  const result = [];
+  for (const item of list.children.filter((node) => node.tag === "li")) {
+    let first = true;
+    let inline = [];
+    const flush = () => {
+      if (inline.some((node) => reportNodeText(node).trim() || node.tag === "br")) {
+        result.push(richParagraph(inline, { ...context, numbering: first ? { reference, level } : undefined, indentLeft: first ? undefined : 520 + level * 360 }));
+        first = false;
+      }
+      inline = [];
+    };
+    for (const child of item.children) {
+      if (["ul", "ol"].includes(child.tag)) {
+        flush();
+        result.push(...renderDocumentList(child, { ...context, listLevel: level + 1 }));
+      } else if (child.tag === "p") {
+        flush(); inline.push(...child.children); flush();
+      } else if (child.tag === "table") {
+        flush(); const table = renderDocumentTable(child, context); if (table) result.push(table);
+      } else inline.push(child);
+    }
+    flush();
+  }
+  return result;
+}
+
+function renderDocumentTable(table, context) {
+  const collectRows = (nodes, header = false) => nodes.flatMap((node) => {
+    if (node.tag === "tr") return [{ node, header }];
+    if (["thead", "tbody", "tfoot"].includes(node.tag)) return collectRows(node.children, node.tag === "thead");
+    return [];
+  });
+  const rows = collectRows(table.children).map(({ node, header }) => {
+    const cells = node.children.filter((child) => ["td", "th"].includes(child.tag));
+    if (!cells.length) return null;
+    return new TableRow({ tableHeader: header || cells.every((child) => child.tag === "th"), children: cells.map((child) => {
+      const blocks = renderDocumentNodes(child.children, { ...context, inTable: true, bold: child.tag === "th" });
+      return new TableCell({
+        columnSpan: child.attrs?.colspan ? Number(child.attrs.colspan) : undefined,
+        rowSpan: child.attrs?.rowspan ? Number(child.attrs.rowspan) : undefined,
+        shading: child.tag === "th" ? { fill: SOFT_BLUE } : undefined,
+        margins: { top: 80, right: 80, bottom: 80, left: 80 },
+        children: blocks.length ? blocks : [richParagraph([{ text: "" }], { inTable: true })],
+      });
+    }) });
+  }).filter(Boolean);
+  return rows.length ? new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows, borders: tableBorders() }) : null;
 }
 
 function paragraph(text, options = {}) {

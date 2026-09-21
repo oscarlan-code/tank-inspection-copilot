@@ -1,7 +1,21 @@
 import { createHash } from "node:crypto";
+import { buildReportSpecificSectionResolver, CAPTURE_SECTION_MAPPING_CONTRACT_VERSION } from "./capture-section-mapping.mjs";
 
-export const STANDARDIZED_PAIR_CONTRACT_VERSION = 11;
+export const STANDARDIZED_PAIR_CONTRACT_VERSION = 12;
 export const STANDARDIZED_PAIR_TRUTH_GRAPH_VERSION = 3;
+export const HISTORICAL_RECONSTRUCTION_TRACK = "historical_reconstruction_fixture";
+
+export function reconstructionBenchmarkMetadata() {
+  return {
+    evaluationTrack: HISTORICAL_RECONSTRUCTION_TRACK,
+    inputOrigin: "issued_historical_report",
+    independentObservationEvidence: false,
+    learningEligible: false,
+    promotionEligible: false,
+    independentQualityEligible: false,
+    expectedObligationReviewStatus: "review_required",
+  };
+}
 
 export function createStandardizedPairBuilder({ db }) {
   return { buildAll, buildBaselines, getStatus };
@@ -18,9 +32,11 @@ export function createStandardizedPairBuilder({ db }) {
     for (const truthCase of cases) {
       const facts = await loadFacts(truthCase.training_case_id);
       const chunks = await loadChunks(truthCase.gold_document_id);
-      for (const sectionKey of new Set(facts.map((fact) => fact.section_key))) {
-        const sectionFacts = facts.filter((fact) => fact.section_key === sectionKey);
-        const sectionChunks = chunks.filter((chunk) => chunk.section_type === sectionKey);
+      const resolveSection = buildReportSpecificSectionResolver(facts);
+      for (const sectionKey of new Set(facts.map((fact) => resolveSection(fact).sectionId))) {
+        if (sectionKey === "report-metadata") continue;
+        const sectionFacts = facts.filter((fact) => resolveSection(fact).sectionId === sectionKey);
+        const sectionChunks = chunks.filter((chunk) => resolveSection({ section_key: chunk.section_type }).sectionId === sectionKey);
         const targetContent = sectionChunks.map((chunk) => chunk.content).filter(Boolean).join("\n\n").trim();
         const goldSectionId = stableId("gold", truthCase.training_case_id, sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION);
         const provenance = {
@@ -57,10 +73,12 @@ export function createStandardizedPairBuilder({ db }) {
           profile_version_id FROM report_capture_variants
         WHERE training_case_id = ? AND status_code IN ('approved', 'round_trip_ready', 'materialized')`,
       ).all(truthCase.training_case_id);
-      const sections = new Set(facts.map((fact) => fact.section_key));
+      const resolveSection = buildReportSpecificSectionResolver(facts);
+      const sections = new Set(facts.map((fact) => resolveSection(fact).sectionId));
       for (const sectionKey of sections) {
-        const sectionFacts = facts.filter((fact) => fact.section_key === sectionKey);
-        const sectionChunks = chunks.filter((chunk) => chunk.section_type === sectionKey);
+        if (sectionKey === "report-metadata") continue;
+        const sectionFacts = facts.filter((fact) => resolveSection(fact).sectionId === sectionKey);
+        const sectionChunks = chunks.filter((chunk) => resolveSection({ section_key: chunk.section_type }).sectionId === sectionKey);
         const targetContent = sectionChunks.map((chunk) => chunk.content).filter(Boolean).join("\n\n").trim();
         const goldSectionId = stableId("gold", truthCase.training_case_id, sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION);
         const provenance = {
@@ -72,7 +90,8 @@ export function createStandardizedPairBuilder({ db }) {
         await upsertGoldSection({ goldSectionId, truthCase, sectionKey, targetContent, sectionFacts, provenance });
         goldSections += 1;
         for (const variant of variants) {
-          const links = await loadLinks(variant.variant_id, sectionKey);
+          const sectionFactIds = new Set(sectionFacts.map((fact) => fact.fact_id));
+          const links = (await loadLinks(variant.variant_id)).filter((link) => sectionFactIds.has(link.fact_id));
           const result = buildPair({ truthCase, variant, goldSectionId, sectionKey, sectionFacts, links, targetContent });
           await upsertPair(result);
           if (result.status === "ready") readyPairs += 1;
@@ -109,35 +128,44 @@ export function createStandardizedPairBuilder({ db }) {
     ).all(documentId);
   }
 
-  async function loadLinks(variantId, sectionKey) {
+  async function loadLinks(variantId) {
     return db.prepare(
       `SELECT l.*, f.normalized_value_json, f.unit_code, f.evidence_class,
         f.safety_criticality, a.answerability_class, a.required_fact
       FROM report_capture_variant_fact_links l
       JOIN report_training_case_facts f ON f.fact_id=l.fact_id AND f.training_case_id=l.training_case_id
       JOIN report_training_case_answerability a ON a.fact_id=f.fact_id AND a.training_case_id=f.training_case_id
-      WHERE l.variant_id=? AND f.section_key=? ORDER BY l.stable_order`,
-    ).all(variantId, sectionKey);
+      WHERE l.variant_id=? ORDER BY l.stable_order`,
+    ).all(variantId);
   }
 
   async function upsertGoldSection({ goldSectionId, truthCase, sectionKey, targetContent, sectionFacts, provenance }) {
     const now = new Date().toISOString();
     const normalizedFacts = sectionFacts.map(normalizedGoldFact);
+    const revisionHash = preparationRevisionHash({ truthGraphSha256: truthCase.truth_graph_sha256, targetContent, normalizedFacts, provenance });
+    const immutableProvenance = { ...provenance, truthGraphSha256: truthCase.truth_graph_sha256, preparationRevisionHash: revisionHash, ...reconstructionBenchmarkMetadata() };
+    const readIdentity = () => db.prepare("SELECT provenance_json->>'preparationRevisionHash' AS revision_hash FROM report_standardized_gold_sections WHERE training_case_id=? AND section_key=? AND contract_version=?")
+      .get(truthCase.training_case_id, sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION);
+    if (assertExistingRevision(await readIdentity(), revisionHash, goldSectionId)) return;
     await db.prepare(
       `INSERT INTO report_standardized_gold_sections (
         gold_section_id, training_case_id, source_document_id, section_key, contract_version,
         dataset_split, target_content, normalized_facts_json, provenance_json, target_sha256, created_at_iso
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?)
-      ON CONFLICT (training_case_id, section_key, contract_version) DO UPDATE SET
-        target_content=excluded.target_content, normalized_facts_json=excluded.normalized_facts_json,
-        provenance_json=excluded.provenance_json, target_sha256=excluded.target_sha256`,
+      ON CONFLICT (training_case_id, section_key, contract_version) DO NOTHING`,
     ).run(goldSectionId, truthCase.training_case_id, truthCase.gold_document_id, sectionKey,
       STANDARDIZED_PAIR_CONTRACT_VERSION, truthCase.dataset_split, targetContent,
-      JSON.stringify(normalizedFacts), JSON.stringify(provenance), sha256(targetContent), now);
+      JSON.stringify(normalizedFacts), JSON.stringify(immutableProvenance), sha256(targetContent), now);
+    assertExistingRevision(await readIdentity(), revisionHash, goldSectionId);
   }
 
   async function upsertPair(result) {
     const now = new Date().toISOString();
+    const revisionHash = preparationRevisionHash(result);
+    const validation = { ...result.validation, preparationRevisionHash: revisionHash };
+    const readIdentity = () => db.prepare("SELECT validation_json->>'preparationRevisionHash' AS revision_hash FROM report_standardized_mock_gold_pairs WHERE variant_id=? AND section_key=? AND contract_version=?")
+      .get(result.variantId, result.sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION);
+    if (assertExistingRevision(await readIdentity(), revisionHash, result.pairId)) return;
     await db.prepare(
       `INSERT INTO report_standardized_mock_gold_pairs (
         pair_id, gold_section_id, variant_id, training_case_id, section_key, contract_version,
@@ -145,22 +173,23 @@ export function createStandardizedPairBuilder({ db }) {
         protected_invariants_json, expected_recoverable_fact_ids_json, validation_json,
         created_at_iso, updated_at_iso
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?)
-      ON CONFLICT (variant_id, section_key, contract_version) DO UPDATE SET
-        status_code=excluded.status_code, mock_input_json=excluded.mock_input_json,
-        hidden_fact_ledger_json=excluded.hidden_fact_ledger_json,
-        protected_invariants_json=excluded.protected_invariants_json,
-        expected_recoverable_fact_ids_json=excluded.expected_recoverable_fact_ids_json,
-        validation_json=excluded.validation_json, updated_at_iso=excluded.updated_at_iso`,
+      ON CONFLICT (variant_id, section_key, contract_version) DO NOTHING`,
     ).run(result.pairId, result.goldSectionId, result.variantId, result.trainingCaseId,
       result.sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION, result.datasetSplit, result.status,
       JSON.stringify(result.mockInput), JSON.stringify(result.hiddenLedger),
       JSON.stringify(result.protectedInvariants), JSON.stringify(result.expectedRecoverableFactIds),
-      JSON.stringify(result.validation), now, now);
+      JSON.stringify(validation), now, now);
+    assertExistingRevision(await readIdentity(), revisionHash, result.pairId);
   }
 
   async function upsertBaseline(result) {
     const now = new Date().toISOString();
     const inputJson = JSON.stringify(result.deterministicInput);
+    const revisionHash = preparationRevisionHash(result);
+    const validation = { ...result.validation, preparationRevisionHash: revisionHash };
+    const readIdentity = () => db.prepare("SELECT validation_json->>'preparationRevisionHash' AS revision_hash FROM report_baseline_gold_pairs WHERE training_case_id=? AND section_key=? AND contract_version=?")
+      .get(result.trainingCaseId, result.sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION);
+    if (assertExistingRevision(await readIdentity(), revisionHash, result.baselinePairId)) return;
     await db.prepare(
       `INSERT INTO report_baseline_gold_pairs (
         baseline_pair_id, gold_section_id, training_case_id, section_key, contract_version,
@@ -168,27 +197,19 @@ export function createStandardizedPairBuilder({ db }) {
         protected_invariants_json, expected_recoverable_fact_ids_json, validation_json,
         input_sha256, created_at_iso, updated_at_iso
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?)
-      ON CONFLICT (training_case_id, section_key, contract_version) DO UPDATE SET
-        gold_section_id=excluded.gold_section_id, dataset_split=excluded.dataset_split,
-        status_code=excluded.status_code, deterministic_input_json=excluded.deterministic_input_json,
-        hidden_fact_ledger_json=excluded.hidden_fact_ledger_json,
-        protected_invariants_json=excluded.protected_invariants_json,
-        expected_recoverable_fact_ids_json=excluded.expected_recoverable_fact_ids_json,
-        validation_json=excluded.validation_json, input_sha256=excluded.input_sha256,
-        updated_at_iso=excluded.updated_at_iso`,
+      ON CONFLICT (training_case_id, section_key, contract_version) DO NOTHING`,
     ).run(result.baselinePairId, result.goldSectionId, result.trainingCaseId, result.sectionKey,
       STANDARDIZED_PAIR_CONTRACT_VERSION, result.datasetSplit, result.status, inputJson,
       JSON.stringify(result.hiddenLedger), JSON.stringify(result.protectedInvariants),
-      JSON.stringify(result.expectedRecoverableFactIds), JSON.stringify(result.validation),
+      JSON.stringify(result.expectedRecoverableFactIds), JSON.stringify(validation),
       sha256(inputJson), now, now);
+    assertExistingRevision(await readIdentity(), revisionHash, result.baselinePairId);
   }
 }
 
-function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, allFacts, targetContent }) {
+export function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, allFacts, targetContent }) {
   const observable = new Set(["app_observable", "voice_observable", "deterministic_derived"]);
-  const sourceInputs = selectContextFactsForSection(sectionKey, allFacts, targetContent).filter((fact) => observable.has(fact.answerability_class));
-  const voiceComplements = buildMaterialVoiceComplements(sectionKey, sectionFacts, targetContent);
-  const included = uniqueFacts([...sourceInputs, ...voiceComplements]);
+  const included = selectContextFactsForSection(sectionKey, allFacts).filter((fact) => observable.has(fact.answerability_class));
   const includedIds = new Set(included.map((fact) => fact.fact_id));
   const hidden = sectionFacts.filter((fact) => !includedIds.has(fact.fact_id));
   const protectedFacts = included.filter(isProtected);
@@ -208,10 +229,16 @@ function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, all
     return {
       factId: fact.fact_id,
       sectionKey:fact.section_key,
+      sourceSectionKey: fact.section_key,
+      targetReportSectionId: sectionKey,
+      sourcePageNumber: fact.source_page_number ?? null,
+      sourceLineage: sourceLineage(fact, truthCase),
+      entityBindings: entityBindings(fact),
       factType: fact.fact_type,
       value: parseJson(fact.normalized_value_json),
       unitCode: fact.unit_code,
       evidenceClass: fact.evidence_class,
+      safetyCriticality: fact.safety_criticality ?? "medium",
       captureDestination: fact.capture_destination,
       answerabilityClass: fact.answerability_class,
       requiredFact: Boolean(fact.required_fact),
@@ -222,10 +249,13 @@ function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, all
       stableOrder,
     };
   });
-  const expectedOutputFacts = included.filter((fact) => (sectionKey !== "inspection-report" || ["finding_observation", "voice_finding_input"].includes(fact.fact_type))
-      && (sectionKey !== "repair-recommendations" || fact.fact_type === "voice_recommendation_input")
-      && (sectionKey === "inspection-report" || fact.section_key === sectionKey)
-      && !["measurement", "photo_or_attachment", "layout_geometry"].includes(fact.evidence_class));
+  // These are proposals for review, not an independently reviewed answer key.
+  // Keep them outside generator input, fixed before generation, and do not use
+  // historical target text to manufacture additional captured observations.
+  const expectedOutputFacts = included.filter((fact) => fact.required_fact === true
+    && (!["inspection-report", "repair-recommendations"].includes(sectionKey)
+      || fact.fact_type === "finding_observation"));
+  const proposedOutputObligations = expectedOutputFacts.map((fact) => proposedObligation(fact, sectionKey, truthCase));
   const evaluationMode = ["inspection-report", "repair-recommendations"].includes(sectionKey)
     ? "evidence_conditioned_semantic"
     : "direct_recovery";
@@ -239,10 +269,12 @@ function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, all
     deterministicInput: {
       packageType: "laiq_section_generation_query",
       schemaVersion: STANDARDIZED_PAIR_CONTRACT_VERSION,
-      identity: { truthCaseId: truthCase.training_case_id, sectionKey, datasetSplit: truthCase.dataset_split },
-      task: "Generate the complete approved report section from the available partial inspection evidence.",
+      identity: { truthCaseId: truthCase.training_case_id, truthGraphSha256: truthCase.truth_graph_sha256, sectionKey, datasetSplit: truthCase.dataset_split, ...reconstructionBenchmarkMetadata() },
+      contractVersions: { preparation: STANDARDIZED_PAIR_CONTRACT_VERSION, sectionMapping: CAPTURE_SECTION_MAPPING_CONTRACT_VERSION },
+      task: "Prepare a reconstruction draft from the supplied source-derived records. Missing observations remain unresolved.",
       variation: null,
-      syntheticEvidenceDerivedFromGold: voiceComplements.length > 0,
+      sourceDerivedFromHistoricalReport: true,
+      syntheticEvidenceDerivedFromGold: included.some((fact) => parseJson(fact.normalized_value_json)?.sourceRole === "gold_derived_synthetic_capture"),
       captures,
     },
     hiddenLedger: hidden.map((fact) => ({ factId: fact.fact_id, reason: `answerability_${fact.answerability_class}`, requiredFact: Boolean(fact.required_fact), answerabilityClass: fact.answerability_class })),
@@ -255,132 +287,18 @@ function buildBaseline({ truthCase, goldSectionId, sectionKey, sectionFacts, all
       atomicClaims: ["measurement", "layout_geometry"].includes(fact.evidence_class) ? extractAtomicClaims(parseJson(fact.normalized_value_json),protectedDefaultUnit) : [],
     })),
     expectedRecoverableFactIds: expectedOutputFacts.map((fact) => fact.fact_id),
-    validation: { aligned: issues.length === 0, issues, deterministic: true, variationApplied: false, taskType:"section_query_answer", answerType:"complete_approved_section", evaluationMode, minimumGoldContentCoverage:minimumRecoverableCoverage, goldFactCount: sectionFacts.length, inputFactCount:included.length, recoverableFactCount: expectedOutputFacts.length, hiddenFactCount: hidden.length, protectedFactCount: protectedObservable.length, recoverableTargetCoverage, goldTargetAvailableOnlyAfterGeneration: true },
+    validation: { aligned: issues.length === 0, issues, ...reconstructionBenchmarkMetadata(), expectedOutputObligations: [], proposedOutputObligations, deterministic: true, variationApplied: false, taskType:"historical_reconstruction", answerType:"source_derived_reconstruction", evaluationMode, minimumGoldContentCoverage:minimumRecoverableCoverage, goldFactCount: sectionFacts.length, inputFactCount:included.length, recoverableFactCount: expectedOutputFacts.length, hiddenFactCount: hidden.length, protectedFactCount: protectedObservable.length, recoverableTargetCoverage, goldTargetAvailableOnlyAfterGeneration: true },
   };
 }
 
-function buildMaterialVoiceComplements(sectionKey, sectionFacts, targetContent) {
-  if (!["inspection-report", "repair-recommendations"].includes(sectionKey)) return [];
-  const sourceFacts=sectionFacts.filter((fact) => ["engineering_assessment", "finding_observation"].includes(fact.fact_type));
-  const prototype=sourceFacts[0]??sectionFacts[0];
-  if(!prototype)return [];
-  const statements=sectionKey === "repair-recommendations"
-    ? recommendationVoiceStatements(targetContent)
-    : splitMaterialVoiceStatements(targetContent);
-  return statements.map((statement, index) => ({
-      ...prototype,
-      fact_id:`${prototype.fact_id}:voice:${index}:${sha256(statement).slice(0, 12)}`,
-      fact_type:sectionKey === "repair-recommendations" ? "voice_recommendation_input" : "voice_finding_input",
-      evidence_class:"finding",
-      answerability_class:"voice_observable",
-      required_fact:true,
-      safety_criticality:["high", "critical"].includes(prototype.safety_criticality) ? prototype.safety_criticality : "medium",
-      capture_destination:"findings.voiceTranscript",
-      normalized_value_json:JSON.stringify({
-        text:`Inspector ${sectionKey === "repair-recommendations" ? "recommendation" : "observation"}: ${statement}`,
-        simulatedChannel:"voice",
-        sourceRole:"gold_derived_synthetic_capture",
-        derivedFromFactId:prototype.fact_id,
-      }),
-    }));
-}
-
-function recommendationVoiceStatements(targetContent) {
-  const lines=String(targetContent??"").replace(/\\n/g,"\n").split(/\n+/)
-    .map((line)=>line.replace(/\s+/g," ").trim()).filter(Boolean);
-  const statements=[];
-  let operatingStatus=null;
-  for(let index=0;index<lines.length;index+=1){
-    const line=lines[index];
-    if(/^(?:off|on)-?line$/i.test(line)){operatingStatus=line.toUpperCase().replace(/^(OFF|ON)LINE$/, "$1-LINE");continue;}
-    if(isReportFurniture(line)||/^(?:diked area|shell external|corrosion)\s*:?$/i.test(line))continue;
-    if(/\b(?:should|shall|must|cannot|recommend|repair|replace|renew|clean|seal|remove|install|apply|monitor|inspect|assess|recoat|rectif|reinforce|grind|weld|test|survey|verify|maintain|return to service)\b/i.test(line)&&/:$/.test(line)){
-      const action=line.replace(/:$/,".");
-      let consumed=0;
-      for(let cursor=index+1;cursor<lines.length&&/^o\s+/i.test(lines[cursor]);cursor+=1){
-        const location=lines[cursor].replace(/^o\s+/i,"").replace(/[;,]+$/,"");
-        statements.push(`${operatingStatus?`${operatingStatus}: `:""}${location} ${action}`);
-        consumed+=1;
-      }
-      index+=consumed;
-      continue;
-    }
-    if(isSubstantiveRecommendationLine(line))statements.push(`${operatingStatus?`${operatingStatus}: `:""}${line}`);
-  }
-  const seen=new Set();
-  return statements.filter((item)=>{const key=item.toLowerCase();if(seen.has(key))return false;seen.add(key);return true;});
-}
-
-function isSubstantiveRecommendationLine(line){
-  const value=String(line??"").trim();
-  if(value.length<12||isReportFurniture(value))return false;
-  if(/^(?:diked area|shell external|shell internal|roof external|roof internal|floor|annular plates?|corrosion|recommendations?)\s*:?$/i.test(value))return false;
-  return !/^(?:client|owner|tank no\.?|job no\.?|date completed|page)\s*:/i.test(value);
-}
-
-function isReportFurniture(line){
-  return /^(?:[\d\s.]+\s+)?(?:repair recommendations?(?:\s*\/\s*api\s*653 assessment)?|floor plate layout with repair recommendations?)$/i.test(line)
-    || /^(?:client|tank no\.?|job no\.?|date completed|page)\s*:/i.test(line);
-}
-
-function splitMaterialVoiceStatements(text) {
-  const normalized=String(text??"")
-    .replace(/\\n/g,"\n")
-    .replace(/<[^>]+>/g," ")
-    .replace(/&nbsp;|&#160;/gi," ")
-    .replace(/\r/g,"\n");
-  const pieces=normalized
-    .split(/\n+|(?<=[.!?;:])\s+(?=[A-Z0-9(])/)
-    .map((item)=>item.replace(/^[\s•*\-–—\d.)]+/,"").replace(/\s+/g," ").trim())
-    .filter((item)=>item.length>=12&&item.length<=1200&&isMaterialVoiceAssessment(item));
-  const seen=new Set();
-  return pieces.filter((item)=>{const key=item.toLowerCase();if(seen.has(key))return false;seen.add(key);return true;});
-}
-
-function isMaterialVoiceAssessment(text) {
-  const value=String(text??"").trim();
-  if(value.length<12||value.length>1200)return false;
-  if(/^(?:off-?line|on-?line|repair recommendations?|api\s*653 assessment|diked area|shell|roof|floor)\s*:?[\s-]*$/i.test(value))return false;
-  return /\b(?:should|shall|must|cannot|recommend|repair|patch|replace|renew|clean|seal|remove|install|apply|monitor|inspect|assess|recoat|rectif|reinforce|grind|weld|test|survey|verify|maintain|return to service)\b/i.test(value);
-}
-
-function selectContextFactsForSection(sectionKey, facts, targetContent = "") {
-  const observable = facts.filter((fact) => ["app_observable", "voice_observable", "deterministic_derived"].includes(fact.answerability_class)
-    && isCaptureReadyFact(fact));
-  if (sectionKey === "repair-recommendations") {
-    const identity = observable.filter((fact) => fact.evidence_class === "structured_field"
-      && factText(fact).length <= 240
-      && /\b(?:client|owner|tank|location|product|date|inspection)\s*[:#]/i.test(factText(fact)))
-      .sort((left,right)=>left.fact_id.localeCompare(right.fact_id))
-      .slice(0,12);
-    return identity;
-  }
-  if (sectionKey === "inspection-report") {
-    return observable.filter((fact) => !["photo_or_attachment", "layout_geometry"].includes(fact.evidence_class));
-  }
-  const local = observable.filter((fact) => fact.section_key === sectionKey);
-  const identity = observable.filter((fact) => fact.evidence_class === "structured_field" && factText(fact).length <= 700);
-  return uniqueFacts([...local, ...identity]);
-}
-
-function recommendationTriggerScore(fact, targetContent) {
-  const text = factText(fact);
-  const targetTokens = new Set(contentTokens(targetContent));
-  const sharedTokens = contentTokens(text).filter((token) => targetTokens.has(token)).length;
-  const sourceBoost = fact.section_key === "inspection-report" ? 8 : 0;
-  const conditionBoost = /\b(?:not|no\b|corrosion|pitting|crack|leak|clogged|blocked|weather(?:ed|ing)|contact|missing|damaged|loose|broken|perforat(?:ed|ion)|unsatisfactory|significant)\b/i.test(text) ? 4 : 0;
-  return sharedTokens + sourceBoost + conditionBoost;
-}
-
-function contentTokens(value) {
-  return String(value ?? "").toLowerCase().match(/[a-z0-9]+/g)?.filter((token) => token.length > 2) ?? [];
-}
-
-function isMeaningfulRecommendationTrigger(fact) {
-  const text = factText(fact).trim();
-  if (text.length < 12 || text.length > 700) return false;
-  if (/^(?:page\s*:|job no\.?\s*:|tank no\.?\s*:|\d+(?:\.\d+)?\s*(?:mm|years?)?|mm|日)$/i.test(text)) return false;
-  return /\b(?:not|no\b|corrosion|pitting|crack|leak|deform|buckle|coating|clogged|blocked|weather(?:ed|ing)|contact|missing|damaged|loose|broken|perforat(?:ed|ion)|unsatisfactory|significant|repair|required|replace)\b/i.test(text);
+function selectContextFactsForSection(sectionKey, facts) {
+  const resolveSection = buildReportSpecificSectionResolver(facts);
+  return facts.filter((fact) => {
+    const resolution = resolveSection(fact);
+    return resolution.aligned && resolution.sectionId === sectionKey
+      && ["app_observable", "voice_observable", "deterministic_derived"].includes(fact.answerability_class)
+      && isCaptureReadyFact(fact);
+  });
 }
 
 function isCaptureReadyFact(fact) {
@@ -397,11 +315,6 @@ function isCaptureReadyFact(fact) {
     return tableLike || compactFieldLike;
   }
   return false;
-}
-
-function uniqueFacts(facts) {
-  const seen = new Set();
-  return facts.filter((fact) => !seen.has(fact.fact_id) && seen.add(fact.fact_id));
 }
 
 function factText(fact) {
@@ -500,17 +413,78 @@ function buildPair({ truthCase, variant, goldSectionId, sectionKey, sectionFacts
       packageType: "laiq_standardized_section_capture",
       schemaVersion: STANDARDIZED_PAIR_CONTRACT_VERSION,
       identity: { truthCaseId: truthCase.training_case_id, variantId: variant.variant_id, sectionKey, datasetSplit: truthCase.dataset_split },
-      captures: included.map((link) => ({ factId: link.fact_id, value: parseJson(link.normalized_value_json), unitCode: link.unit_code, channel: link.capture_channel, disposition: link.disposition_code, transformation: parseJson(link.transformation_json, {}) })),
+      benchmark: reconstructionBenchmarkMetadata(),
+      captures: included.map((link) => ({ factId: link.fact_id, value: parseJson(link.normalized_value_json), unitCode: link.unit_code, channel: link.capture_channel, disposition: link.disposition_code, transformation: parseJson(link.transformation_json, {}), sourceLineage: sourceLineage(sectionFacts.find((fact) => fact.fact_id === link.fact_id), truthCase), entityBindings: entityBindings(sectionFacts.find((fact) => fact.fact_id === link.fact_id)) })),
     },
     hiddenLedger: hidden.map((link) => ({ factId: link.fact_id, reason: "capture_variant_withheld", requiredFact: Boolean(link.required_fact), answerabilityClass: link.answerability_class })),
     protectedInvariants: protectedFacts.map((fact) => ({ factId: fact.fact_id, value: parseJson(fact.normalized_value_json), unitCode: fact.unit_code, evidenceClass: fact.evidence_class })),
     expectedRecoverableFactIds,
-    validation: { aligned: issues.length === 0, issues, goldFactCount: sectionFacts.length, mockFactCount: included.length, hiddenFactCount: hidden.length, protectedFactCount: protectedFacts.length, goldTargetAvailableOnlyAfterGeneration: true },
+    validation: { aligned: issues.length === 0, issues, ...reconstructionBenchmarkMetadata(), expectedOutputObligations: [], proposedOutputObligations: included.filter((link) => link.required_fact).map((link) => proposedObligation(sectionFacts.find((fact) => fact.fact_id === link.fact_id), sectionKey, truthCase)), goldFactCount: sectionFacts.length, mockFactCount: included.length, hiddenFactCount: hidden.length, protectedFactCount: protectedFacts.length, goldTargetAvailableOnlyAfterGeneration: true },
   };
 }
 
 function normalizedGoldFact(fact) {
   return { factId: fact.fact_id, factType: fact.fact_type, value: parseJson(fact.normalized_value_json), unitCode: fact.unit_code, evidenceClass: fact.evidence_class, answerabilityClass: fact.answerability_class, requiredFact: Boolean(fact.required_fact), protected: isProtected(fact), provenance: { documentId: fact.source_document_id, pageNumber: fact.source_page_number, blockIds: parseJson(fact.source_block_ids_json, []), bbox: parseJson(fact.source_bbox_json, null), confidence: Number(fact.source_confidence) } };
+}
+
+function sourceLineage(fact = {}, truthCase = {}) {
+  const value = parseJson(fact.normalized_value_json, {});
+  return {
+    sourceClass: "issued_historical_report",
+    truthCaseId: truthCase.training_case_id ?? null,
+    truthGraphSha256: truthCase.truth_graph_sha256 ?? null,
+    assertionId: fact.fact_id ?? null,
+    sourceDocumentId: fact.source_document_id ?? null,
+    sourceSectionKey: fact.section_key ?? null,
+    sourcePageNumber: fact.source_page_number ?? null,
+    sourceBlockIds: parseJson(fact.source_block_ids_json, []),
+    sourceBbox: parseJson(fact.source_bbox_json, null),
+    sourceSectionBoundary: fact.sourceSectionBoundary ?? fact.source_section_boundary ?? null,
+    originalText: value.originalText ?? value.rawText ?? value.text ?? null,
+    transformationHistory: value.transformationHistory ?? [],
+  };
+}
+
+function entityBindings(fact = {}) {
+  const value = parseJson(fact.normalized_value_json, {});
+  return value.entityBindings ?? {
+    entityId: value.entityId ?? null,
+    componentId: value.componentId ?? null,
+    locationId: value.locationId ?? null,
+    observationId: value.observationId ?? null,
+    resolutionStatus: "unresolved",
+  };
+}
+
+function proposedObligation(fact, sectionKey, truthCase) {
+  const bindings = entityBindings(fact);
+  return {
+    obligationId: stableId("obligation", truthCase.training_case_id, fact.fact_id, sectionKey, STANDARDIZED_PAIR_CONTRACT_VERSION),
+    requirementId: "reconstruction_capture_recovery_proposal",
+    evidenceIds: [fact.fact_id],
+    entityIds: [bindings.entityId, bindings.componentId].filter(Boolean),
+    targetSectionId: sectionKey,
+    targetBlockId: null,
+    realization: fact.evidence_class === "finding" ? "narrative_finding" : "structured_record",
+    criticality: ["high", "critical"].includes(fact.safety_criticality) ? "critical" : "ordinary",
+    expected: { text: factText(fact) },
+    reviewStatus: "review_required",
+    sourceLineage: sourceLineage(fact, truthCase),
+  };
+}
+
+export function preparationRevisionHash(value) {
+  const canonical = (item) => Array.isArray(item) ? item.map(canonical)
+    : item && typeof item === "object" ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, canonical(item[key])])) : item;
+  return sha256(JSON.stringify(canonical(value)));
+}
+
+export function assertExistingRevision(existing, revisionHash, artifactId) {
+  if (!existing) return false;
+  if (existing.revision_hash !== revisionHash) {
+    throw new Error(`Immutable preparation artifact ${artifactId} differs. Create a new Truth Case or preparation contract revision.`);
+  }
+  return true;
 }
 
 function isProtected(fact) { return ["measurement", "layout_geometry", "photo_or_attachment"].includes(fact.evidence_class) || fact.safety_criticality === "critical"; }

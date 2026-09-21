@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "section_plan_v2",
+  "planId": "example-plan-inspection-1",
+  "revision": 1,
+  "supersedesPlanId": null,
+  "scope": {
+    "tenantId": "example-tenant",
+    "workspaceId": "example-workspace",
+    "reportJobId": "example-report",
+    "importRevisionId": "example-import-1"
+  },
+  "reportPlanId": "example-report-plan-1",
+  "reportPlanSha256": "0e11e5da22d51272f5313864c0adf5cc77d3c658cfd7d186cc89db53f571ab22",
+  "reportProfileId": "example-reviewed-vertical-ast-profile-v1",
+  "sectionId": "inspection-report",
+  "sectionInstanceId": "inspection-report-1",
+  "agentBinding": {
+    "agentId": "example-inspection-report-agent",
+    "releaseVersion": "example_inspection_report_v1",
+    "manifestSha256": "f4b84b1a91840a7f47f842c3b8497bd1f8a06d6c30b19e26588fb1e4ff8e9214",
+    "executionContractVersion": "section_agent_execution_v1",
+    "promptSnapshotId": "example-inspection-report-prompt-v1",
+    "historicalPatternPackId": "example-inspection-report-pattern-pack-v1",
+    "historicalPatternPackSha256": "1ca349c057282bef233342886bef164a0c3919dd7a373274286d1f6dc13cc5db",
+    "standardObligationPackId": "example-api653-obligations-reviewed-edition-v1",
+    "standardObligationPackSha256": "18690e4420c8671810573134d02a94072ec40474b0ca7e392d43587577695b11"
+  },
+  "inputPackageHash": "dad9c309f624528ec7ab022c308830eaafa5e0d9f9f337c09057e95155b401fd",
+  "evidenceSnapshotId": "example-evidence-1",
+  "evidenceSnapshotHash": "5efa55ce7080f54d13636a623d2780bf6b5992211160e110e46906ba080c03ad",
+  "manualInputRevisionId": "example-manual-1",
+  "contractVersions": {
+    "normalizer": "native_export_v3_to_evidence_v2",
+    "sectionCatalog": "report_sections_v1",
+    "routing": "section_routing_v2",
+    "requirements": "section_requirements_v1",
+    "composer": "section_composer_v2",
+    "renderer": "report_document_v2"
+  },
+  "applicability": {
+    "state": "applicable",
+    "basisRef": "example-confirmed-scope-1"
+  },
+  "status": "ready",
+  "evidenceUses": [
+    {
+      "useId": "use-nozzle-observation",
+      "evidenceIds": [
+        "evidence-nozzle-condition"
+      ],
+      "entityIds": [
+        "entity-nozzle-demo-n2"
+      ],
+      "role": "required_narrative",
+      "projection": "observation",
+      "blockId": "block-shell-findings",
+      "relatedSectionId": null,
+      "decision": {
+        "basis": "verified_rule",
+        "ruleOrReviewId": "finding.shell_nozzle.observation.v1"
+      },
+      "preserve": [
+        "entity",
+        "location",
+        "condition",
+        "negation",
+        "uncertainty"
+      ]
+    },
+    {
+      "useId": "use-nozzle-readings",
+      "evidenceIds": [
+        "evidence-nozzle-ut-row"
+      ],
+      "entityIds": [
+        "entity-nozzle-demo-n2"
+      ],
+      "role": "supporting",
+      "projection": "measurement_rows",
+      "blockId": null,
+      "relatedSectionId": "shell-nozzle-reinforcement-pad-thickness-measurements",
+      "decision": {
+        "basis": "verified_rule",
+        "ruleOrReviewId": "ut.shell_nozzle.details.v1"
+      },
+      "preserve": [
+        "value",
+        "unit",
+        "entity",
+        "location",
+        "row_order"
+      ]
+    }
+  ],
+  "outputObligations": [
+    {
+      "obligationId": "obligation-nozzle-condition",
+      "requirementId": "inspection.shell_appurtenances.material_observation",
+      "evidenceIds": [
+        "evidence-nozzle-condition"
+      ],
+      "entityIds": [
+        "entity-nozzle-demo-n2"
+      ],
+      "targetBlockId": "block-shell-findings",
+      "realization": "narrative_finding",
+      "criticality": "ordinary",
+      "expected": "evidence-nozzle-condition/claim"
+    }
+  ],
+  "blocks": [
+    {
+      "blockId": "block-title",
+      "slotKey": "section_heading",
+      "type": "heading",
+      "composition": "deterministic",
+      "useIds": [],
+      "obligationIds": [],
+      "dependsOnBlockIds": []
+    },
+    {
+      "blockId": "block-shell-findings",
+      "slotKey": "shell-appurtenances",
+      "type": "observation_list",
+      "composition": "deterministic",
+      "useIds": [
+        "use-nozzle-observation"
+      ],
+      "obligationIds": [
+        "obligation-nozzle-condition"
+      ],
+      "dependsOnBlockIds": []
+    }
+  ],
+  "unresolvedEvidence": [],
+  "missingRequirements": []
+}

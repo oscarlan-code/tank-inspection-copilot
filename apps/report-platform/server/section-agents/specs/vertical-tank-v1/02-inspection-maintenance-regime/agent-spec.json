@@ -1,0 +1,68 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 2,
+    "sectionId": "inspection-maintenance-regime",
+    "title": "INSPECTION AND MAINTENANCE REGIME"
+  },
+  "plannedReleaseId": "inspection_maintenance_regime_v1",
+  "status": "planned",
+  "productEnabled": false,
+  "generationMode": "deterministic_approved_template",
+  "promptPolicy": "disabled",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "approved-template-body",
+      "content": "The selected approved regime template with its original controlled structure.",
+      "format": "controlled_template",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "declared-substitutions",
+      "content": "Only confirmed substitutions declared by the selected template.",
+      "format": "template_fields",
+      "requiredWhen": "when_declared"
+    },
+    {
+      "blockId": "known-history",
+      "content": "Confirmed same-asset inspection or maintenance history when the template requires it.",
+      "format": "controlled_history_fields",
+      "requiredWhen": "when_confirmed"
+    },
+    {
+      "blockId": "qualified-requirements",
+      "content": "Reviewed future requirements, conditions and responsibility when explicitly approved.",
+      "format": "controlled_requirement_block",
+      "requiredWhen": "when_approved"
+    }
+  ],
+  "authorizedInputs": [
+    "approved_regime_template",
+    "template_revision_and_hash",
+    "declared_substitutions",
+    "confirmed_same_asset_history",
+    "approved_schedule_or_requirement"
+  ],
+  "approvalBlockers": [
+    "no_approved_template_selected",
+    "template_hash_mismatch",
+    "unconfirmed_substitution",
+    "unsupported_interval_or_due_date"
+  ],
+  "prohibitedBehavior": [
+    "ai_rewrite",
+    "historical_template_as_current_fact",
+    "inferred_inspection_interval",
+    "inferred_next_due_date"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": null
+}

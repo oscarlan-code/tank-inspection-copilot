@@ -1533,6 +1533,11 @@ function truthProposalSignature(proposal) {
   return createHash("sha256")
     .update(JSON.stringify({
       factType: proposal.fact.factType,
+      sourceDocumentId: proposal.fact.sourceDocumentId,
+      sourcePageNumber: proposal.fact.sourcePageNumber,
+      sourceBlockIds: proposal.fact.sourceBlockIds,
+      sectionKey: proposal.fact.sectionKey,
+      entityId: value.entityId ?? proposal.fact.entityId ?? null,
       text: String(value.text ?? "").toLowerCase().replace(/\s+/g, " ").trim(),
       unitCode: proposal.fact.unitCode,
       answerabilityClass: proposal.answerability.answerabilityClass,

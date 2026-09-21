@@ -158,6 +158,22 @@ const truthGraphReward = calculateSystemRlReward({
 assert(truthGraphReward.learningEligible, "Approved Truth Graph scoring must make a capture episode eligible without legacy retrieval labels.");
 assert(truthGraphReward.value > 0.9, "Strong Truth Graph recovery must produce a strong reward.");
 
+const evidenceConditionedBase = {
+  ...evalRun({ formatMatch: 0.9, leakageRisk: 0, leakageSafety: 1, missingInputDiscipline: 1, referenceAlignment: 0, sourceGrounding: 0.9 }),
+  truthGraphEvaluation: { requiredFactCount: 1, requiredFactRecall: 1, claimPrecision: 1, claimPrecisionAvailable: true, protectedFactCount: 0, protectedFactAccuracy: null, protectedFactAccuracyAvailable: false },
+  goldSectionEvaluation: { evaluationMode: "evidence_conditioned_semantic", contentCoverage: 0.1 },
+  semanticSectionEvaluation: { available: true, semanticSimilarity: 0.1, materialConceptRecall: 0.1 },
+  evidenceSectionEvaluation: { available: true, evidenceCoverage: 0.95, verdict: "acceptable" },
+};
+const evidenceReward = calculateSystemRlReward({ evalRun: evidenceConditionedBase, generationRun: { blockers: [] } });
+const changedGoldReward = calculateSystemRlReward({ evalRun: { ...evidenceConditionedBase, semanticSectionEvaluation: { available: true, semanticSimilarity: 1, materialConceptRecall: 1 } }, generationRun: { blockers: [] } });
+assert(evidenceReward.value === changedGoldReward.value && evidenceReward.value > 0.9, "Withheld full-gold content must not lower or boost evidence-conditioned reward.");
+assert(evidenceReward.metrics.protectedFactAccuracy === null && !evidenceReward.metrics.protectedFactAccuracyAvailable, "Reward metrics must preserve unavailable protected checks.");
+const missingEvidenceReward = calculateSystemRlReward({ evalRun: { ...evidenceConditionedBase, evidenceSectionEvaluation: null }, generationRun: { blockers: [] } });
+assert(missingEvidenceReward.value === null && missingEvidenceReward.learningIneligibilityReasons.includes("evidence_evaluation_unavailable"), "Unavailable evidence scoring must not fall back to full-gold similarity.");
+const unsafeEvidenceReward = calculateSystemRlReward({ evalRun: { ...evidenceConditionedBase, evidenceSectionEvaluation: { available: true, evidenceCoverage: 1, verdict: "unsafe" } }, generationRun: { blockers: [] } });
+assert(unsafeEvidenceReward.hardFailure && unsafeEvidenceReward.value === 0, "Unsafe evidence-conditioned generation must retain a hard safety gate.");
+
 const context = buildSystemRlContext({
   reportState: {
     exportPackage: {

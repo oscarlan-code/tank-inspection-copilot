@@ -1,3 +1,4 @@
+import { STANDARDIZED_PAIR_CONTRACT_VERSION } from './standardized-pair-builder.mjs';
 import { randomUUID } from "node:crypto";
 import { API_STANDARD_REPORT_TOC } from "./report-toc.mjs";
 
@@ -67,7 +68,12 @@ export function createEvaluationLabService({ db, createError }) {
           truthGraphSha256: truth.truth_graph_sha256,
           captureVariantId: variantId,
           captureScenarioVersion: Number(manifest.identity?.variantVersion ?? manifest.schemaVersion ?? 1),
-          metricContract: "capture_section_alignment_v5_compiled",
+          metricContract: "section_plan_evaluation_v1",
+          standardizedPairContractVersion: STANDARDIZED_PAIR_CONTRACT_VERSION,
+          evaluationTrack: "historical_reconstruction_fixture",
+          independentQualityEligible: false,
+          learningEligible: false,
+          promotionEligible: false,
           sourcePackageSha256: appPackage.package_sha256,
           sourceReportJobId: reportJobId,
         }),
@@ -97,7 +103,7 @@ export function createEvaluationLabService({ db, createError }) {
           ) VALUES (?, ?, ?, TRUE, ?)
           ON CONFLICT (evaluation_case_id, section_id) DO UPDATE SET
             evaluation_enabled = TRUE, config_json = excluded.config_json`,
-        ).run(evaluationCaseId, sectionId, sectionId, JSON.stringify({ goldStandardType: "standardized_mock_gold_pair", contractVersion: 1 }));
+        ).run(evaluationCaseId, sectionId, sectionId, JSON.stringify({ goldStandardType: "standardized_mock_gold_pair", contractVersion: STANDARDIZED_PAIR_CONTRACT_VERSION }));
       }
     });
     return evaluationCaseId;

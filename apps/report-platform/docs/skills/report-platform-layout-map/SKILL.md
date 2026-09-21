@@ -21,8 +21,8 @@ For MFL plate scans and floor-corrosion composition, also use `../report-platfor
 - `server/floor-corrosion.mjs`
 - `server/floor-corrosion-artifacts.mjs`
 - `server/generation.mjs`
-- `REPORT_GENERATION_AND_LAYOUTMAP_ORCHESTRATION.md`
-- `AI_QUALITY_AND_LAYOUTMAP.md`
+- `docs/contracts/reporting/LAYOUT_AND_EXPORT.md`
+- `docs/contracts/reporting/FLOOR_CORROSION_MAP_PIPELINE.md`
 
 ## Map Surfaces
 

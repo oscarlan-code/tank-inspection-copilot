@@ -1,0 +1,69 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 3,
+    "sectionId": "general-tank-information",
+    "title": "GENERAL TANK INFORMATION"
+  },
+  "plannedReleaseId": "general_tank_information_v1",
+  "status": "frozen_evaluation_candidate",
+  "productEnabled": false,
+  "generationMode": "deterministic_labelled_fields",
+  "promptPolicy": "disabled",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "identity-and-site",
+      "content": "Client, representative, tank number, location and field/lease values.",
+      "format": "paired_label_value_rows",
+      "requiredWhen": "profile_selected"
+    },
+    {
+      "blockId": "configuration-and-dimensions",
+      "content": "Construction, dimensions, materials, service and roof configuration with units.",
+      "format": "paired_label_value_rows",
+      "requiredWhen": "profile_selected"
+    },
+    {
+      "blockId": "inspection-details",
+      "content": "Report/job, inspector and date fields when supplied.",
+      "format": "paired_label_value_rows",
+      "requiredWhen": "profile_selected"
+    },
+    {
+      "blockId": "previous-history",
+      "content": "Confirmed same-asset history only.",
+      "format": "paired_label_value_rows",
+      "requiredWhen": "when_confirmed"
+    }
+  ],
+  "authorizedInputs": [
+    "native_inspection_record_identity",
+    "native_task_identity",
+    "confirmed_report_side_general_information",
+    "confirmed_same_asset_history"
+  ],
+  "approvalBlockers": [
+    "missing_required_identity",
+    "identity_conflict",
+    "dimension_or_unit_conflict",
+    "unconfirmed_supplement",
+    "wrong_asset_history",
+    "unresolved_general_information_voice"
+  ],
+  "prohibitedBehavior": [
+    "ai_generation",
+    "runtime_retrieval",
+    "cross_asset_history",
+    "inferred_missing_value"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": "../../../releases/general-tank-information/v1/manifest.json"
+}

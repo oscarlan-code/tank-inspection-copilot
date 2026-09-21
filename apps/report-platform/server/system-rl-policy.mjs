@@ -1,4 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
+import { GOVERNED_GENERATOR_CONTRACT_VERSION } from "./governed-generation-contract.mjs";
+import { SECTION_PLAN_EVALUATION_CONTRACT } from "./section-plan-evaluation.mjs";
+
+export const SYSTEM_RL_REWARD_SCHEMA_VERSION = 4;
 
 const GLOBAL_CONTEXT_KEY = "__global__";
 const POLICY_KEY = "report_generation";
@@ -91,7 +95,9 @@ export function createSystemRlController({ db, now = () => new Date().toISOStrin
   }
 
   async function recordEpisode({ decision, evalRun, generationRun, updateLearning = true }) {
-    const reward = calculateSystemRlReward({ evalRun, generationRun });
+    const runPurpose = !updateLearning || decision.frozenCandidate ? "frozen_diagnostic"
+      : evalRun.runPurpose ?? (decision.mode === SYSTEM_RL_MODES.OFFLINE ? "training" : "live_generation");
+    const reward = calculateSystemRlReward({ evalRun, generationRun, updateLearning, runPurpose });
     const createdAtIso = now();
     await db.prepare(
       `INSERT INTO system_rl_policy_decisions (
@@ -343,28 +349,30 @@ export function createSystemRlController({ db, now = () => new Date().toISOStrin
 
   async function getPromotionEligibility(policy) {
     const rows = await db.prepare(
-      `SELECT arm_id, eligible_episode_count, reward_sum, hard_failure_count
-      FROM system_rl_context_arm_stats
-      WHERE policy_version_id = ? AND context_key = ?`,
-    ).all(policy.policy_version_id, GLOBAL_CONTEXT_KEY);
-    const episodeCount = rows.reduce((sum, row) => sum + Number(row.eligible_episode_count ?? 0), 0);
-    const rewardSum = rows.reduce((sum, row) => sum + Number(row.reward_sum ?? 0), 0);
-    const hardFailureCount = rows.reduce((sum, row) => sum + Number(row.hard_failure_count ?? 0), 0);
+      `SELECT d.arm_id, r.reward_value, r.hard_failure, r.metrics_json
+      FROM system_rl_policy_rewards r
+      JOIN system_rl_policy_decisions d ON d.decision_id = r.decision_id
+      WHERE d.policy_version_id = ? AND r.learning_eligible = TRUE
+        AND r.metrics_json->>'runPurpose' = 'training'
+        AND r.metrics_json->>'promotionEvidenceEligible' = 'true'
+        AND r.metrics_json->>'rewardSchemaVersion' = ?
+        AND r.metrics_json->>'generatorContractVersion' = ?
+        AND r.metrics_json->>'sectionPlanEvaluationContract' = ?`,
+    ).all(policy.policy_version_id, String(SYSTEM_RL_REWARD_SCHEMA_VERSION), GOVERNED_GENERATOR_CONTRACT_VERSION, SECTION_PLAN_EVALUATION_CONTRACT);
+    // Count the same contract-filtered observations used by metric gates. Old
+    // aggregate statistics must not silently count incompatible or frozen runs.
+    const episodeCount = rows.length;
+    const rewardSum = rows.reduce((sum, row) => sum + Number(row.reward_value ?? 0), 0);
+    const hardFailureCount = rows.filter((row) => row.hard_failure === true).length;
     const meanReward = episodeCount > 0 ? rewardSum / episodeCount : 0;
-    const testedArmCount = rows.filter((row) => Number(row.eligible_episode_count ?? 0) > 0).length;
+    const testedArmCount = new Set(rows.map((row) => row.arm_id)).size;
     const enabledArmCountRow = await db.prepare(
       `SELECT COUNT(*) AS count
       FROM system_rl_policy_arms
       WHERE policy_version_id = ? AND is_enabled = TRUE`,
     ).get(policy.policy_version_id);
     const enabledArmCount = Number(enabledArmCountRow?.count ?? 0);
-    const metricRows = await db.prepare(
-      `SELECT r.metrics_json
-      FROM system_rl_policy_rewards r
-      INNER JOIN system_rl_policy_decisions d ON d.decision_id = r.decision_id
-      WHERE d.policy_version_id = ? AND r.learning_eligible = TRUE`,
-    ).all(policy.policy_version_id);
-    const metricSummary = aggregateRewardMetrics(metricRows);
+    const metricSummary = aggregateRewardMetrics(rows);
     const policyConfig = parseJson(policy.config_json);
     const metricGates = policyConfig.metricPromotionGates ?? {};
     const minimumHumanReviewedEpisodes = Number(
@@ -557,13 +565,14 @@ export function selectPolicyArm({
   };
 }
 
-export function calculateSystemRlReward({ evalRun, generationRun }) {
+export function calculateSystemRlReward({ evalRun, generationRun, updateLearning = true, runPurpose = evalRun?.runPurpose ?? "training" }) {
   const dimensions = new Map((evalRun?.dimensions ?? []).map((dimension) => [dimension.key, Number(dimension.score ?? 0)]));
   const missingInputCount = Number(evalRun?.missingUserInputs?.missingManualFields?.length ?? 0);
   const blockerCount = Number(generationRun?.blockers?.length ?? 0);
   const leakageRisk = Number(evalRun?.leakage?.riskScore ?? 0);
   const retrievalEvaluation = evalRun?.retrievalEvaluation ?? {};
   const generatedContentEvaluation = evalRun?.generatedContentEvaluation ?? {};
+  const truth = evalRun?.truthGraphEvaluation ?? null;
   const retrievalLabelsAvailable = retrievalEvaluation.available === true;
   const retrievalLabelConfidence = Number(retrievalEvaluation.labelConfidence ?? 0);
   const retrievalLabelReviewStatus = String(
@@ -572,19 +581,22 @@ export function calculateSystemRlReward({ evalRun, generationRun }) {
   const retrievalPrecisionAtK = Number(retrievalEvaluation.precisionAtK ?? 0);
   const retrievalRecallAtK = Number(retrievalEvaluation.recallAtK ?? 0);
   const retrievalNdcgAtK = Number(retrievalEvaluation.ndcgAtK ?? 0);
-  const claimPrecisionAvailable = generatedContentEvaluation.claimPrecisionAvailable === true;
-  const claimPrecision = Number(generatedContentEvaluation.claimPrecision ?? 0);
-  const requiredFactRecallAvailable = generatedContentEvaluation.requiredFactRecallAvailable === true;
-  const requiredFactRecall = Number(generatedContentEvaluation.requiredFactRecall ?? 0);
+  const claimPrecisionAvailable = truth ? truth.claimPrecisionAvailable !== false && truth.claimPrecision != null : generatedContentEvaluation.claimPrecisionAvailable === true;
+  const claimPrecision = Number((truth ? truth.claimPrecision : generatedContentEvaluation.claimPrecision) ?? 0);
+  const requiredFactRecallAvailable = truth ? truth.requiredFactRecallAvailable !== false && Number(truth.requiredFactCount ?? 0) > 0 : generatedContentEvaluation.requiredFactRecallAvailable === true;
+  const requiredFactRecall = Number((truth ? truth.requiredFactRecall : generatedContentEvaluation.requiredFactRecall) ?? 0);
   const sourceGrounding = dimensions.get("source_grounding") ?? 0;
   const hardFailureReasons = [];
-  const truth = evalRun?.truthGraphEvaluation ?? null;
   const gold = evalRun?.goldSectionEvaluation ?? null;
   const semantic = evalRun?.semanticSectionEvaluation ?? null;
   const semanticEvidenceMode=String(gold?.evaluationMode??"direct_recovery")==="evidence_conditioned_semantic";
-  const effectiveTruthRecall=semanticEvidenceMode&&semantic?.available===true
-    ? Math.max(Number(truth?.requiredFactRecall??0),Number(semantic.materialConceptRecall??0))
-    : Number(truth?.requiredFactRecall??0);
+  const evidence = evalRun?.evidenceSectionEvaluation ?? null;
+  const planEvaluation = evalRun?.sectionPlanEvaluation ?? null;
+  const effectiveTruthRecall = Number(truth?.requiredFactRecall ?? 0);
+  const semanticReward = semanticEvidenceMode ? evidence : semantic;
+  const semanticRewardAvailable = semanticEvidenceMode
+    ? evidence?.available === true
+    : semantic?.available === true || gold?.contentCoverage != null;
   if (leakageRisk >= 0.35 || evalRun?.outcomeCode === "fail_possible_leakage") {
     hardFailureReasons.push("reference_leakage_guard");
   }
@@ -596,8 +608,13 @@ export function calculateSystemRlReward({ evalRun, generationRun }) {
   }
   if (truth?.protectedFactMismatchCount > 0) hardFailureReasons.push("protected_truth_mismatch");
   if (truth?.unsupportedClaimCount > 0) hardFailureReasons.push("invented_verifiable_fact");
-  const directGoldRecovery=String(gold?.evaluationMode??"direct_recovery")==="direct_recovery";
+  if (truth?.contradictionCount > 0) hardFailureReasons.push("contradicted_captured_finding");
+  if (planEvaluation?.blockerReasons?.length) hardFailureReasons.push(...planEvaluation.blockerReasons);
+  if (semanticEvidenceMode && evidence?.verdict === "unsafe") hardFailureReasons.push("unsafe_evidence_generation");
   const learningIneligibilityReasons = [];
+  if (!updateLearning || runPurpose !== "training") learningIneligibilityReasons.push(`excluded_run_purpose:${!updateLearning ? "frozen_diagnostic" : runPurpose}`);
+  if (Number(planEvaluation?.unresolvedEvaluationCount ?? 0) > 0) learningIneligibilityReasons.push("output_equivalence_requires_review");
+  if (semanticEvidenceMode && evidence?.available !== true) learningIneligibilityReasons.push("evidence_evaluation_unavailable");
   if (missingInputCount > 0) learningIneligibilityReasons.push("missing_required_input");
   if (blockerCount > 0) learningIneligibilityReasons.push("generation_blocker");
   if (!truth && !retrievalLabelsAvailable) learningIneligibilityReasons.push("retrieval_labels_unavailable");
@@ -608,9 +625,9 @@ export function calculateSystemRlReward({ evalRun, generationRun }) {
   const hardFailure = hardFailureReasons.length > 0;
   const weightedScore = truth ? weightedMetricScore([
     rewardMetric(effectiveTruthRecall, 0.2, Number(truth.requiredFactCount??0)>0),
-    rewardMetric(Number(semantic?.semanticSimilarity ?? gold?.contentCoverage ?? 0), 0.55, semantic?.available===true||gold?.contentCoverage != null),
-    rewardMetric(Number(truth.claimPrecision ?? 0), 0.15),
-    rewardMetric(Number(truth.protectedFactAccuracy ?? 0), 0.05, Number(truth.protectedFactCount ?? 0) > 0),
+    rewardMetric(Number((semanticEvidenceMode ? evidence?.evidenceCoverage : semanticReward?.semanticSimilarity ?? gold?.contentCoverage) ?? 0), 0.55, semanticRewardAvailable),
+    rewardMetric(Number(truth.claimPrecision ?? 0), 0.15, truth.claimPrecisionAvailable !== false),
+    rewardMetric(Number(truth.protectedFactAccuracy ?? 0), 0.05, Number(truth.protectedFactCount ?? 0) > 0 && truth.protectedFactAccuracyAvailable !== false),
     rewardMetric(dimensions.get("format_match") ?? 0, 0.05),
   ]) : weightedMetricScore([
     rewardMetric(retrievalPrecisionAtK, 0.2, retrievalLabelsAvailable),
@@ -657,11 +674,22 @@ export function calculateSystemRlReward({ evalRun, generationRun }) {
       unsupportedVerifiableClaimCount: Number(generatedContentEvaluation.unsupportedClaims?.length ?? 0),
       outcomeCode: String(evalRun?.outcomeCode ?? "unknown"),
       containsGoldContent: false,
-      rewardSchemaVersion: 2,
+      rewardSchemaVersion: SYSTEM_RL_REWARD_SCHEMA_VERSION,
+      runPurpose: !updateLearning ? "frozen_diagnostic" : runPurpose,
+      learningUpdatesAllowed: updateLearning && runPurpose === "training",
+      promotionEvidenceEligible: learningEligible && runPurpose === "training"
+        && evalRun?.generatorContractVersion === GOVERNED_GENERATOR_CONTRACT_VERSION
+        && planEvaluation?.contractVersion === SECTION_PLAN_EVALUATION_CONTRACT,
+      generatorContractVersion: evalRun?.generatorContractVersion ?? null,
+      sectionPlanEvaluationContract: planEvaluation?.contractVersion ?? null,
+      diagnosticRewardValue: weightedScore,
+      evidenceCoverage: evidence?.evidenceCoverage ?? null,
+      evidenceEvaluationAvailable: evidence?.available === true,
       goldStandardType: truth ? "approved_truth_graph" : "legacy_reference",
       truthRequiredFactRecall: truth?.requiredFactRecall ?? null,
       truthClaimPrecision: truth?.claimPrecision ?? null,
-      protectedFactAccuracy: truth?.protectedFactAccuracy ?? null,
+      protectedFactAccuracy: truth?.protectedFactCount === 0 ? null : truth?.protectedFactAccuracy ?? null,
+      protectedFactAccuracyAvailable: Number(truth?.protectedFactCount ?? 0) > 0 && truth?.protectedFactAccuracyAvailable !== false,
       goldContentCoverage: gold?.contentCoverage ?? null,
       outputLengthRatio: gold?.lengthRatio ?? null,
       outputLengthBalance: gold?.lengthBalance ?? null,

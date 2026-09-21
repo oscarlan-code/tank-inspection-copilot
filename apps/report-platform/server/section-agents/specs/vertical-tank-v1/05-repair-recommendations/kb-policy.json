@@ -1,0 +1,43 @@
+{
+  "contractVersion": "section_kb_policy_candidate_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "repair-recommendations",
+  "packId": "repair_recommendations_pattern_pack_v1",
+  "status": "definition_only_not_frozen",
+  "mode": "section_pattern_and_fact_recommendation_candidate",
+  "governedSource": {
+    "indexId": "governed_kb_content_v1",
+    "exactSectionKey": "repair-recommendations",
+    "exactSectionKeyOnly": true,
+    "requiredDatasetSplit": "training",
+    "requiredEligibilityRole": "training_reference",
+    "requiredApproval": true,
+    "requiredProfile": "vertical_tank_inspection_v1"
+  },
+  "allowedUses": [
+    "action_presentation_patterns",
+    "terminology",
+    "reviewed_observation_action_precedents",
+    "applicability_questions"
+  ],
+  "forbiddenUses": [
+    "current_tank_fact",
+    "current_measurement",
+    "current_finding",
+    "current_scope_decision",
+    "current_test_result",
+    "automatic_approval"
+  ],
+  "runtimeExclusions": [
+    "target_report",
+    "same_asset_or_scenario_lineage",
+    "alternate_rendition",
+    "near_duplicate",
+    "validation_gold",
+    "hidden_test_gold",
+    "post_cutoff_source"
+  ],
+  "currentFactsFromHistoricalSources": false,
+  "runtimeSnapshot": null,
+  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/05-repair-recommendations/pack-candidate.json"
+}

@@ -1,0 +1,577 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAIQ SectionPlan v2 — design contract, not deployed",
+  "description": "A derived immutable backend plan selected by a reviewed ReportPlan. Referential, role, unit, DAG, dual-knowledge-pack and content checks described in REPORT_COMPILER_WORKFLOW.md are mandatory in addition to shape validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "section_plan_v2"
+    },
+    "planId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supersedesPlanId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenantId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reportJobId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "importRevisionId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "tenantId",
+        "workspaceId",
+        "reportJobId",
+        "importRevisionId"
+      ]
+    },
+    "reportPlanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reportPlanSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reportProfileId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sectionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sectionInstanceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agentBinding": {
+      "type": "object",
+      "description": "Server-resolved immutable Section Generation Agent binding. App data and the model cannot select it.",
+      "additionalProperties": false,
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "releaseVersion": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          }
+        },
+        "manifestSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "executionContractVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promptSnapshotId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "historicalPatternPackId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "historicalPatternPackSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "standardObligationPackId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standardObligationPackSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "agentId",
+        "releaseVersion",
+        "manifestSha256",
+        "executionContractVersion",
+        "promptSnapshotId",
+        "historicalPatternPackId",
+        "historicalPatternPackSha256",
+        "standardObligationPackId",
+        "standardObligationPackSha256"
+      ]
+    },
+    "inputPackageHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evidenceSnapshotId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceSnapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "manualInputRevisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contractVersions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "normalizer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sectionCatalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "routing": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirements": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderer": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "normalizer",
+        "sectionCatalog",
+        "routing",
+        "requirements",
+        "composer",
+        "renderer"
+      ]
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "unconfirmed"
+          ]
+        },
+        "basisRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "state",
+        "basisRef"
+      ]
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "needs_review",
+        "blocked",
+        "not_applicable"
+      ]
+    },
+    "evidenceUses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "useId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "role": {
+            "enum": [
+              "required_narrative",
+              "required_structured",
+              "supporting",
+              "cross_reference"
+            ]
+          },
+          "projection": {
+            "enum": [
+              "observation",
+              "confirmed_action",
+              "measurement_rows",
+              "measurement_summary",
+              "calculation_result",
+              "identity_fields",
+              "checklist_rows",
+              "method_record",
+              "figure",
+              "photo",
+              "source_reference"
+            ]
+          },
+          "blockId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "relatedSectionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "decision": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "basis": {
+                "enum": [
+                  "verified_rule",
+                  "reviewer_confirmed"
+                ]
+              },
+              "ruleOrReviewId": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "basis",
+              "ruleOrReviewId"
+            ]
+          },
+          "preserve": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "value",
+                "unit",
+                "entity",
+                "location",
+                "condition",
+                "negation",
+                "uncertainty",
+                "threshold",
+                "attachment_link",
+                "row_order",
+                "source_reference"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "useId",
+          "evidenceIds",
+          "entityIds",
+          "role",
+          "projection",
+          "blockId",
+          "relatedSectionId",
+          "decision",
+          "preserve"
+        ]
+      }
+    },
+    "outputObligations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "obligationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requirementId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "targetBlockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "realization": {
+            "enum": [
+              "narrative_finding",
+              "structured_record",
+              "derived_result",
+              "cross_reference"
+            ]
+          },
+          "criticality": {
+            "enum": [
+              "ordinary",
+              "critical"
+            ]
+          },
+          "expected": {
+            "description": "Independent expected claim/record reference; content resolved from the authorized evidence snapshot, never from hidden gold.",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "obligationId",
+          "requirementId",
+          "evidenceIds",
+          "entityIds",
+          "targetBlockId",
+          "realization",
+          "criticality",
+          "expected"
+        ]
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "slotKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "enum": [
+              "heading",
+              "narrative",
+              "observation_list",
+              "field_grid",
+              "measurement_table",
+              "checklist_table",
+              "calculation_table",
+              "figure",
+              "photo_group",
+              "cross_reference"
+            ]
+          },
+          "composition": {
+            "enum": [
+              "deterministic",
+              "voice_narrative",
+              "reviewed_template"
+            ]
+          },
+          "useIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "obligationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "dependsOnBlockIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "blockId",
+          "slotKey",
+          "type",
+          "composition",
+          "useIds",
+          "obligationIds",
+          "dependsOnBlockIds"
+        ]
+      }
+    },
+    "unresolvedEvidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidateSections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "reason": {
+            "enum": [
+              "missing_entity",
+              "ambiguous_scope",
+              "unknown_unit",
+              "conflicting_value",
+              "unverified_transcript",
+              "unsupported_record",
+              "unresolved_section",
+              "missing_attachment"
+            ]
+          },
+          "impact": {
+            "enum": [
+              "blocks_affected_approval",
+              "review_notice"
+            ]
+          }
+        },
+        "required": [
+          "evidenceId",
+          "candidateSections",
+          "reason",
+          "impact"
+        ]
+      }
+    },
+    "missingRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requirementId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resolution": {
+            "enum": [
+              "capture",
+              "manual_confirmation",
+              "mapping_review",
+              "calculation",
+              "attachment"
+            ]
+          },
+          "blocksApproval": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requirementId",
+          "reason",
+          "resolution",
+          "blocksApproval"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "planId",
+    "revision",
+    "supersedesPlanId",
+    "scope",
+    "reportPlanId",
+    "reportPlanSha256",
+    "reportProfileId",
+    "sectionId",
+    "sectionInstanceId",
+    "agentBinding",
+    "inputPackageHash",
+    "evidenceSnapshotId",
+    "evidenceSnapshotHash",
+    "manualInputRevisionId",
+    "contractVersions",
+    "applicability",
+    "status",
+    "evidenceUses",
+    "outputObligations",
+    "blocks",
+    "unresolvedEvidence",
+    "missingRequirements"
+  ]
+}

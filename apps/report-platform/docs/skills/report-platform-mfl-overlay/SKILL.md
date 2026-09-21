@@ -14,7 +14,7 @@ Read:
 - `AGENTS.md`
 - `docs/skills/report-platform-boundaries/SKILL.md`
 - `docs/skills/report-platform-layout-map/SKILL.md`
-- `FLOOR_CORROSION_MAP_PIPELINE.md`
+- `docs/contracts/reporting/FLOOR_CORROSION_MAP_PIPELINE.md`
 - `references/layout-contract.md` when adapting a new layout family
 
 ## Workflow

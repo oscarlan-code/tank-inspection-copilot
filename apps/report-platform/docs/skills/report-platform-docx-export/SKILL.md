@@ -16,7 +16,8 @@ Final export includes selected approved sections only. Browser preview and DOCX 
 - `server/report-toc.mjs`
 - `src/lib/reportApi.ts`
 - `src/app/App.tsx`
-- `SAMPLE_REPORT_FORMATTING_REVIEW.md`
+- `docs/contracts/reporting/REPORT_SECTION_FORMAT_CONTRACT.md`
+- `docs/archive/research/SAMPLE_REPORT_FORMATTING_REVIEW.md` (historical reference only)
 
 ## Formatting Rules
 

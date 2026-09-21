@@ -24,18 +24,28 @@ compatibility name only.
 - `server/scripts/audit-sample-leaks.mjs`
 - `server/scripts/audit-report-generation-performance.mjs`
 - `services/kb-ingestion/`
-- `PRECEDENT_KB_ARCHITECTURE.md`
-- `KB_CORPUS_INGESTION_ARCHITECTURE.md`
-- `FACT_RECOMMENDATION_KB.md`
+- `docs/contracts/knowledge/KNOWLEDGE_PACKS.md`
+- `docs/contracts/knowledge/KB_CORPUS_INGESTION_ARCHITECTURE.md`
 - `EVAL_SYSTEM.md`
-- `TRAINING_HARNESS_ARCHITECTURE.md`
-- `RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md`
+- `docs/contracts/evaluation/TRAINING_HARNESS_ARCHITECTURE.md`
+- `docs/contracts/evaluation/RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md`
 
 ## KB Layers
 
+- Report blueprint: historical report family, table of contents, conditional/repeated
+  section, cross-reference, and whole-document formatting patterns.
 - Precedent KB: section shape, report style, wording pattern, layout convention.
 - Standards KB: controlled technical guidance from code/reference material.
 - Fact-to-recommendation KB: historical condition-to-recommendation pairs.
+
+Each Section Generation Agent pins the KB/glossary subset and policy it may use, or
+an explicit no-retrieval snapshot. Do not let a frozen release read a mutable global
+`latest` index. Changing sources, filters, applicability rules, or glossary content
+creates a new agent release and evaluation.
+
+The Report Structure Agent consumes a pinned historical ReportBlueprintPack plus a
+separate applicable StandardObligationPack. A standard obligation overrides
+conflicting historical practice. Neither pack supplies current tank facts.
 
 ## Leakage Rules
 
@@ -47,6 +57,8 @@ compatibility name only.
   cutoff cannot enter evaluation retrieval.
 - All Capture Variants from one Truth Case stay in one dataset split and
   are macro-aggregated at case level.
+- Evaluation and product must execute the identical section-agent release. Gold,
+  expected obligations, and evaluator post-processing stay outside that release.
 
 ## Eval Rules
 

@@ -1,0 +1,42 @@
+{
+  "contractVersion": "section_kb_policy_candidate_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "tank-inspection-checklist",
+  "packId": "tank_inspection_checklist_definition_pack_v1",
+  "status": "definition_only_not_frozen",
+  "mode": "checklist_definition_pack_no_runtime_rag",
+  "governedSource": {
+    "indexId": "governed_kb_content_v1",
+    "exactSectionKey": "tank-inspection-checklist",
+    "exactSectionKeyOnly": true,
+    "requiredDatasetSplit": "training",
+    "requiredEligibilityRole": "training_reference",
+    "requiredApproval": true,
+    "requiredProfile": "vertical_tank_inspection_v1"
+  },
+  "allowedUses": [
+    "approved_checklist_definition",
+    "response_legend",
+    "offline_presentation_comparison"
+  ],
+  "forbiddenUses": [
+    "current_tank_fact",
+    "current_measurement",
+    "current_finding",
+    "current_scope_decision",
+    "current_test_result",
+    "automatic_approval"
+  ],
+  "runtimeExclusions": [
+    "target_report",
+    "same_asset_or_scenario_lineage",
+    "alternate_rendition",
+    "near_duplicate",
+    "validation_gold",
+    "hidden_test_gold",
+    "post_cutoff_source"
+  ],
+  "currentFactsFromHistoricalSources": false,
+  "runtimeSnapshot": null,
+  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/07-tank-inspection-checklist/pack-candidate.json"
+}

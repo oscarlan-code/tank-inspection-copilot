@@ -200,6 +200,17 @@ export type ApiSectionChatReply = {
 };
 
 export type ApiReportJobState = {
+  sectionPlanning?: {
+    snapshotId: string;
+    evidenceRecords: Array<{ evidenceId: string; displayText: string; sourceClass?: string }>;
+    sectionPlans: Array<{
+      sectionId: string;
+      title: string;
+      status: string;
+      evidenceUses: Array<{ evidenceIds: string[]; role: string }>;
+      missingRequirements: Array<{ requirementId: string; reason: string }>;
+    }>;
+  };
   reportJob?: {
     reportJobId: string;
     reportReference?: string;
@@ -420,7 +431,17 @@ export function hydrateWorkspaceFromApiState(
   if (!remotePackage) {
     throw new Error("API state did not include an export package.");
   }
-  assertValidAndroidExport(remotePackage);
+  try {
+    assertValidAndroidExport(remotePackage);
+  } catch (error) {
+    // Authenticated API reports with backend plans must remain reviewable even
+    // when their captured package does not satisfy the old V10 preview fixture.
+    // This path supplies no replacement source facts or default layout geometry.
+    if (payload.sectionPlanning && payload.reportJob?.reportJobId) {
+      return hydrateIncompletePlannedWorkspace(payload, remotePackage, apiBaseUrl, error instanceof Error ? error.message : 'Imported package needs review.');
+    }
+    throw error;
+  }
 
   const manualSupplement = {
     ...fixtureManualSupplement,
@@ -447,6 +468,75 @@ export function hydrateWorkspaceFromApiState(
     baselineReport: { ...baselineReport, manualInputsRevision },
     report: { ...report, manualInputsRevision },
   };
+}
+
+function hydrateIncompletePlannedWorkspace(
+  payload: ApiReportJobState,
+  exportPackage: V2ProductExportPackage,
+  apiBaseUrl: string,
+  validationMessage: string,
+): Pick<WorkspaceBootstrap, "baselineReport" | "report"> {
+  const planning = payload.sectionPlanning!;
+  const evidence = new Map(planning.evidenceRecords.map((record) => [record.evidenceId, record]));
+  const plans = new Map(planning.sectionPlans.map((plan) => [plan.sectionId, plan]));
+  const manual = payload.manualSupplement ?? {};
+  const reference = payload.reportJob?.reportReference ?? manual.reportReference ?? exportPackage.inspectionReference ?? "Reference not recorded";
+  const inspectedDate = payload.reportJob?.inspectedDate ?? manual.inspectedDate ?? "Inspection date not recorded";
+  const sections: ReportSection[] = API_STANDARD_REPORT_TOC.map((tocSection) => {
+    const plan = plans.get(tocSection.id);
+    const uses = plan?.evidenceUses ?? [];
+    const lines = uses.flatMap((use) => use.evidenceIds.map((id) => {
+      const record = evidence.get(id);
+      return record?.displayText ? `${use.role === 'supporting' ? 'Supporting' : 'Required'}: ${record.displayText}` : null;
+    })).filter((line): line is string => Boolean(line));
+    return {
+      id: tocSection.id, number: tocSection.number, title: tocSection.title,
+      shortLabel: tocSection.shortLabel, kind: tocSection.kind,
+      generated: false, edited: false, approved: false, reviewRequired: true,
+      description: "Imported report awaiting source and section review.", content: "",
+      aiHint: "Use the reviewed backend section plan. Missing captured information must remain unresolved.",
+      templateExpectation: "Review the applicable blocks in Section evidence before generation and approval.",
+      sourceSummary: `${validationMessage} Open Section evidence to review the imported records.${tocSection.kind === 'map' ? ' No replacement layout has been created.' : ''}`,
+      rawAppData: [
+        ...lines,
+        ...(plan?.missingRequirements ?? []).map((requirement) => `Needs review: ${requirement.reason}`),
+      ].join("\n") || "No section evidence is assigned yet. Open Section evidence to review the original import.",
+      missingFields: [],
+    };
+  });
+  const manualContext = Object.entries(manual).filter(([, value]) => String(value ?? '').trim()).map(([key, value]) => `${humanizeKey(key)}: ${value}`).join('\n');
+  const cover: ReportSection = {
+    id: 'cover', number: '0', title: 'Cover', shortLabel: 'Cover', kind: 'structured',
+    generated: false, edited: false, approved: false, reviewRequired: true,
+    description: 'Report identity and issue details.', content: '',
+    aiHint: 'Use confirmed report identity and manual inputs only.',
+    templateExpectation: 'Review report issue details before export.',
+    sourceSummary: validationMessage, rawAppData: manualContext || 'No report-side issue fields are recorded.', missingFields: [],
+  };
+  const baselineReport: WorkspaceReport = {
+    id: payload.reportJob!.reportJobId,
+    title: "Inspection report workspace", reference,
+    client: exportPackage.inspectionRecord?.client ?? exportPackage.task?.client ?? 'Client not recorded',
+    tank: presentTankLabel(exportPackage.inspectionRecord?.tankNumber ?? exportPackage.task?.tankNumber),
+    inspectedDate, manualInputsRevision: payload.reportJob?.manualInputsRevision ?? 0,
+    importSummary: {
+      dataSourceMode: 'api', packageType: exportPackage.packageType, schemaVersion: exportPackage.schemaVersion,
+      inspectionId: exportPackage.inspectionId, inspectionReference: exportPackage.inspectionReference,
+      exportedByUserId: exportPackage.exportedByUserId, exportedAtIso: exportPackage.exportedAtIso,
+      tenantId: exportPackage.tenantId, tenantName: exportPackage.profile?.tenantName ?? exportPackage.tenantId,
+      workspaceId: exportPackage.workspaceId, workspaceName: exportPackage.profile?.workspaceName ?? exportPackage.workspaceId,
+      roleLabel: exportPackage.profile?.roleLabel ?? '', workflowScreen: humanizeKey(exportPackage.workflowScreen ?? ''),
+      validationResults: [...(exportPackage.validationResults ?? []), { ruleCode: 'import_requires_section_review', ruleLabel: 'Imported package needs review', passed: false, blocksExport: true, message: validationMessage }],
+      findingCount: exportPackage.findings?.length ?? 0, attachmentCount: exportPackage.attachments?.length ?? 0,
+      measurementCount: exportPackage.utMeasurements?.length ?? 0,
+    },
+    apiLinks: buildApiLinks(apiBaseUrl), sections: [cover, ...sections],
+  };
+  return { baselineReport, report: applyPersistedState(cloneReport(baselineReport), payload.sectionDrafts, payload.layoutOverrides) };
+}
+
+function presentTankLabel(tankNumber: string | undefined) {
+  return tankNumber?.trim() ? `Tank ${tankNumber}` : 'Tank not recorded';
 }
 
 function buildApiLinks(apiBaseUrl: string): WorkspaceApiLinks {

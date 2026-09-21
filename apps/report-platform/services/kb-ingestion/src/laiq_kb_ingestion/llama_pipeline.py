@@ -36,7 +36,10 @@ class CanonicalSectionTransform(TransformComponent):
     def __call__(self, nodes: Sequence[BaseNode], **_: Any) -> list[BaseNode]:
         for node in nodes:
             heading_path = json.loads(str(node.metadata.get("heading_path_json", "[]")))
-            heading = " ".join(str(value) for value in heading_path).lower()
+            anchor = node.metadata.get("numbered_section_anchor")
+            heading = str(anchor).lower() if anchor else " ".join(
+                str(value) for value in heading_path
+            ).lower()
             node.metadata["section_key"] = _canonical_section(heading, self.section_aliases)
         return list(nodes)
 
@@ -105,6 +108,7 @@ def build_chunks(
                 "dataset_split": document.identity.dataset_split.value,
                 "block_type": block.block_type.value,
                 "heading_path_json": json.dumps(block.heading_path),
+                "numbered_section_anchor": block.metadata.get("numbered_section_anchor", ""),
                 "page_numbers_json": json.dumps(
                     sorted(
                         {

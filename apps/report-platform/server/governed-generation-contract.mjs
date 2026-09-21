@@ -1,7 +1,7 @@
 import { removeUnsupportedPendingQualifiers } from "./evidence-entity-binding.mjs";
 import { runStructuredCodexJob } from "./codex-cli.mjs";
 
-export const GOVERNED_GENERATOR_CONTRACT_VERSION = "governed_hybrid_renderer_v3";
+export const GOVERNED_GENERATOR_CONTRACT_VERSION = "governed_narrative_without_evidence_appendix_v4";
 
 const TABLE_SECTION_PATTERN = /information|checklist|measurement|calculation|test-information/;
 const LIST_SECTION_PATTERN = /inspection-report|recommendation|finding|scope/;
@@ -40,8 +40,8 @@ export function isGovernedGenerationPolicy({ policyVersionId = "", promptVariant
 
 export function buildGovernedGenerationRules({ outputFormat = "markdown" } = {}) {
   const formatRule = outputFormat === "html"
-    ? "Return client-facing export-ready HTML only. Keep structured app records out of the narrative because deterministic tooling inserts them separately."
-    : "Return client-facing export-ready Markdown only. Keep structured app records out of the narrative because deterministic tooling inserts them separately.";
+    ? "Return client-facing export-ready HTML only. Keep structured app records out of the narrative They remain supporting evidence; dedicated structured report sections render their own records."
+    : "Return client-facing export-ready Markdown only. Keep structured app records out of the narrative They remain supporting evidence; dedicated structured report sections render their own records.";
 
   return `${formatRule}
 
@@ -51,18 +51,22 @@ ATOMIC NARRATIVE RULE: Every voice note backed only by a section_observation ent
 
 FRAGMENT RULE: Do not author Pending confirmation; that status may only come from explicit app evidence and is inserted by deterministic tooling. Never assign a factual status to an incomplete fragment. Two consecutive notes may be joined only when the first ends with an unfinished conjunction or relative word and the next begins with its direct lowercase grammatical continuation. A standalone person name, role, company, date, photo reference, or identifier with no explicit field relationship must remain an independent unassigned note.
 
-STRUCTURED APP-RECORD RULE: Labelled fields, lists, measurements, checklist rows, and tables are excluded from narrative authorship and inserted by deterministic compilers. Do not recreate, summarize, transform, or guess them. Generate narrative only from supplied voice evidence and preserve its field label and entity binding.
+STRUCTURED APP-RECORD RULE: Labelled fields, lists, measurements, checklist rows, and tables are excluded from narrative authorship and rendered only in dedicated structured report sections, never appended as an evidence dump to narrative sections. Do not recreate, summarize, transform, or guess them. Generate narrative only from supplied voice evidence and preserve its field label and entity binding.
 
 PRECEDENT RULE: Historical precedent controls section organization, terminology, and cadence only. It never supplies facts for the current inspection.`;
 }
 
 export function finalizeGovernedGeneratedContent({
+  sectionId = "",
+  sectionKind = "narrative",
   narrative = "",
   deterministicContent = "",
   evidenceInput = {},
 } = {}) {
   const safeNarrative = removeUnsupportedPendingQualifiers(String(narrative).trim(), evidenceInput).trim();
-  return [safeNarrative, String(deterministicContent).trim()].filter(Boolean).join("\n\n").trim();
+  const route = getGovernedSectionRoute({ sectionId, sectionKind });
+  const reportRecords = route.route === "deterministic_structured" ? String(deterministicContent).trim() : "";
+  return [safeNarrative, reportRecords].filter(Boolean).join("\n\n").trim();
 }
 
 export function compileGovernedCaptureFactsHtml(captureFacts = [], { sectionId = "", sectionKind = "narrative" } = {}) {
