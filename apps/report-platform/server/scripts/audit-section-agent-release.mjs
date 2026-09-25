@@ -52,9 +52,11 @@ for (const [name, expectedVersion] of Object.entries(manifest.exportDependencyVe
 const baseline = await runSectionAgent({ ...request, reportState: fixture });
 assert.equal(baseline.generationRun.sectionAgentRelease.manifestSha256, release.manifestSha256);
 assert.equal(baseline.draft.approved, false);
-for (const sectionAgentVersion of ['latest', 'general_tank_information_v2', '__proto__']) {
+for (const sectionAgentVersion of ['latest', 'general_tank_information_unknown', '__proto__']) {
   await assert.rejects(runSectionAgent({ ...request, reportState: fixture, sectionAgentVersion }), /Unsupported/);
 }
+await assert.rejects(runSectionAgent({ ...request, reportState: fixture,
+  sectionAgentVersion: 'general_tank_information_v2' }), /requires a frozen ReportPlan/);
 await assert.rejects(runSectionAgent({ ...request, reportState: fixture, executionMode: 'production' }), /awaits review/);
 await assert.rejects(runSectionAgent({ ...request, reportState: fixture, sectionId: 'scope-of-inspection' }), /Unsupported/);
 const injected = structuredClone(fixture);

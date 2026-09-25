@@ -38,8 +38,9 @@ section-agent, knowledge-authority, or promotion rules in the root contracts.
   profile. `vertical-tank-inspection-v1.md` defines the source-reviewed seven-section
   common spine, scope-dependent technical modules, and TK5452 integrated evaluation
   sequence for the rebuilt V1 ReportPlan. Roof configuration controls applicability
-  and does not split the vertical-tank report family. Only General Tank Information
-  v1 is implemented, frozen and evaluation-only. Uniform per-section agent, KB and
+  and does not split the vertical-tank report family. General Tank Information v1
+  is frozen evidence; v2 is the first ReportPlan-bound evaluation candidate. Both
+  remain product-disabled. Uniform per-section agent, KB and
   harness specifications for sections 1–7 live under
   `server/section-agents/specs/vertical-tank-v1/`.
 - `docs/reviews/`: dated audit and qualification evidence. Results record what was

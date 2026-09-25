@@ -61,7 +61,8 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   if (definition.sectionId === 'general-tank-information') {
     assert.equal(agent.status, 'frozen_evaluation_candidate');
     assert.equal(kb.mode, 'frozen_no_retrieval');
-    assert.equal(kb.runtimeSnapshot, 'general_tank_information_v1_no_retrieval');
+    assert.equal(agent.plannedReleaseId, 'general_tank_information_v2');
+    assert.equal(kb.runtimeSnapshot, 'general_tank_information_v2_no_runtime_retrieval');
     assert(agent.frozenReleaseReference);
     await readFile(resolve(folder, agent.frozenReleaseReference));
     assert(harness.existingHarnessReferences.length >= 4);

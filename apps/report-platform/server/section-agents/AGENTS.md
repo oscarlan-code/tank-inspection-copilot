@@ -50,10 +50,10 @@ Promotion is a separate server-owned routing decision referring to the already
 evaluated release hash. Do not modify a release manifest to promote it. Rollback
 changes the product routing pointer and preserves prior drafts and audit history.
 
-The current `general_tank_information_v1` manifest predates the environment-neutral
-promotion registry and is deliberately evaluation-only. Keep it immutable. If it is
-selected for product rollout, first implement the promotion registry contract and
-qualify a new serving-capable release; do not rewrite v1.
+The `general_tank_information_v1` manifest predates the ReportPlan execution route
+and remains immutable qualification evidence. `general_tank_information_v2` is its
+ReportPlan-bound evaluation successor. It is still product-disabled; product use
+requires the separate promotion registry and canary controls.
 
 ## Adding or refining an agent
 
@@ -83,8 +83,8 @@ by an already-pinned content-addressed dependency with the same verified hash.
 
 ## Required checks
 
-Each agent needs portable synthetic contract tests plus authorized private replay
-where applicable. Tests must cover wrong section/version, production eligibility,
+Each agent needs a minimal public contract test plus authorized historical replay
+where applicable. Contract tests must cover wrong section/version, production eligibility,
 missing and conflicting evidence, protected fact preservation, KB isolation,
 dependency tampering, hidden-gold exclusion, unapproved output, and cross-agent
 regression. Narrative agents also need varied inspector-language and unsupported-

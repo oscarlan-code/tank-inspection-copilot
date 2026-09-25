@@ -1,0 +1,8 @@
+{
+  "contractVersion": "standard_obligation_pack_v1",
+  "packId": "general_tank_information_v1_not_applicable",
+  "sectionId": "general-tank-information",
+  "status": "reviewed_not_applicable",
+  "obligations": [],
+  "reason": "This section reproduces asset identity and configuration. It does not generate technical acceptance criteria, calculations or compliance conclusions."
+}

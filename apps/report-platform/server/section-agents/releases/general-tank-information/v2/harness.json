@@ -1,0 +1,46 @@
+{
+  "contractVersion": "section_agent_harness_spec_v2",
+  "agentId": "general_tank_information",
+  "releaseVersion": "general_tank_information_v2",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "contractChecks": {
+    "purpose": "routing, immutability, blockers, rendering safety and v1 regression",
+    "fixtureCount": 1,
+    "qualificationEvidence": false
+  },
+  "historicalQualification": {
+    "groupBy": "asset_scenario_lineage",
+    "developmentReports": 10,
+    "heldOutReports": 1,
+    "goldAvailableDuringGeneration": false,
+    "sameLineageRetrievalAllowed": false,
+    "actualDeviceExport": false,
+    "independentInspectorReview": false,
+    "privateArtifactRoot": "docs/reviews/data/general-tank-information-v2-historical"
+  },
+  "requiredTests": [
+    "report_plan_hash_integrity", "section_plan_hash_integrity", "exact_registry_binding",
+    "wrong_profile_section_version_and_hash_rejection", "production_mode_rejection", "immutable_input",
+    "all_31_fields_in_fixed_order", "protected_fact_accuracy", "source_value_preservation", "unit_integrity",
+    "missing_and_conflict_blockers", "html_escaping", "wrong_asset_history_rejection", "unresolved_voice_rejection",
+    "no_model_or_runtime_retrieval", "gold_exclusion", "unapproved_output", "release_hash_integrity",
+    "dependency_isolation", "v1_regression", "historical_development_then_held_out_freeze"
+  ],
+  "metrics": [
+    "historical_reports_by_split", "historical_fields_preserved", "historical_field_accuracy",
+    "format_alignment_rate", "critical_integrity_blockers", "leakage_findings"
+  ],
+  "freezeGates": {
+    "developmentReportsPassed": 10,
+    "heldOutReportsPassed": 1,
+    "historicalFieldsPreserved": 341,
+    "historicalFieldAccuracy": 1.0,
+    "formatAlignmentRate": 1.0,
+    "criticalIntegrityBlockers": 0,
+    "leakageFindings": 0,
+    "manifestAndDependencyHashesPinned": true,
+    "inspectorReviewRequired": true
+  },
+  "promotionPerformedByHarness": false
+}

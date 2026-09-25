@@ -6,7 +6,7 @@
     "sectionId": "general-tank-information",
     "title": "GENERAL TANK INFORMATION"
   },
-  "plannedReleaseId": "general_tank_information_v1",
+  "plannedReleaseId": "general_tank_information_v2",
   "status": "frozen_evaluation_candidate",
   "productEnabled": false,
   "generationMode": "deterministic_labelled_fields",
@@ -65,5 +65,5 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": "../../../releases/general-tank-information/v1/manifest.json"
+  "frozenReleaseReference": "../../../releases/general-tank-information/v2/manifest.json"
 }
