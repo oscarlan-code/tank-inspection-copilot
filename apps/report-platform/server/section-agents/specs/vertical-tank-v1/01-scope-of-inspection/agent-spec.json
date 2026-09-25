@@ -1,0 +1,76 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 1,
+    "sectionId": "scope-of-inspection",
+    "title": "SCOPE OF INSPECTION"
+  },
+  "plannedReleaseId": "scope_of_inspection_v1",
+  "status": "planned",
+  "productEnabled": false,
+  "generationMode": "hybrid_deterministic_structure_with_bounded_ai_wording",
+  "promptPolicy": "bounded_scope_wording_only",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "inspection-context",
+      "content": "Confirmed tank, site, report reference and inspection window needed to understand the scope.",
+      "format": "compact_context_fields",
+      "requiredWhen": "profile_selected"
+    },
+    {
+      "blockId": "scope-activities",
+      "content": "One supported scope statement for each commissioned activity, component and coverage requirement.",
+      "format": "arrow_bullet_list",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "methods-and-deliverables",
+      "content": "Confirmed methods and deliverables not already clear in the activity statements.",
+      "format": "arrow_bullet_list",
+      "requiredWhen": "when_supplied"
+    },
+    {
+      "blockId": "limitations-and-exclusions",
+      "content": "Confirmed access, safety, surface, coverage and explicit scope exclusions.",
+      "format": "short_paragraphs_or_bullets",
+      "requiredWhen": "when_supplied"
+    },
+    {
+      "blockId": "procedure-references",
+      "content": "Approved procedure references actually governing the commissioned work.",
+      "format": "controlled_reference_list",
+      "requiredWhen": "when_required"
+    }
+  ],
+  "authorizedInputs": [
+    "asset_identity",
+    "inspection_scope",
+    "inspection_window",
+    "performed_or_commissioned_methods",
+    "scope_voice_claims",
+    "confirmed_limitations",
+    "confirmed_report_side_scope_inputs"
+  ],
+  "approvalBlockers": [
+    "missing_agreed_scope",
+    "unresolved_internal_external_scope",
+    "unresolved_material_limitation",
+    "conflicting_method_or_component_scope"
+  ],
+  "prohibitedBehavior": [
+    "completed_findings",
+    "acceptance_decisions",
+    "repair_recommendations",
+    "historical_scope_as_current_scope"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": null
+}

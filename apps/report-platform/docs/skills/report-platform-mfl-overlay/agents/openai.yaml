@@ -1,0 +1,4 @@
+interface:
+  display_name: "Report Platform MFL Overlay"
+  short_description: "Overlay MFL scans without changing app floor geometry."
+  default_prompt: "Use the report-platform MFL overlay workflow to preflight plate IDs, compose scans without changing geometry, and verify the output."

@@ -1,0 +1,263 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title description">
+  <title id="title">LAIQ offline RL retrieval optimization architecture</title>
+  <desc id="description">Architecture separating governed datasets, offline retrieval and prompt optimization, super-admin promotion, and live inspector report generation.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#12395c" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0b477e"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#1f8f68"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#ef4b58"/>
+    </marker>
+    <style>
+      .title { font: 700 34px "Avenir Next", Aptos, sans-serif; fill: #0b477e; }
+      .subtitle { font: 500 17px "Avenir Next", Aptos, sans-serif; fill: #60748d; }
+      .zone-title { font: 700 16px "Avenir Next", Aptos, sans-serif; letter-spacing: 1.8px; fill: #0b477e; }
+      .zone-title-white { font: 700 16px "Avenir Next", Aptos, sans-serif; letter-spacing: 1.8px; fill: #ffffff; }
+      .card-title { font: 700 18px "Avenir Next", Aptos, sans-serif; fill: #17324d; }
+      .card-copy { font: 500 14px "Avenir Next", Aptos, sans-serif; fill: #536a83; }
+      .small { font: 600 12px "Avenir Next", Aptos, sans-serif; fill: #60748d; }
+      .badge { font: 700 12px "Avenir Next", Aptos, sans-serif; letter-spacing: 0.7px; }
+      .flow-label { font: 700 12px "Avenir Next", Aptos, sans-serif; fill: #0b477e; }
+      .white-title { font: 700 17px "Avenir Next", Aptos, sans-serif; fill: #ffffff; }
+      .white-copy { font: 500 13px "Avenir Next", Aptos, sans-serif; fill: #eaf3fb; }
+      .arrow { fill: none; stroke: #0b477e; stroke-width: 2.5; marker-end: url(#arrow-blue); }
+      .arrow-green { fill: none; stroke: #1f8f68; stroke-width: 2.7; marker-end: url(#arrow-green); }
+      .arrow-red { fill: none; stroke: #ef4b58; stroke-width: 2.7; marker-end: url(#arrow-red); }
+      .arrow-dashed { fill: none; stroke: #60748d; stroke-width: 2; stroke-dasharray: 8 7; marker-end: url(#arrow-blue); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1120" fill="#f5f8fc"/>
+  <rect x="0" y="0" width="1600" height="8" fill="#ef4b58"/>
+
+  <g transform="translate(56 42)">
+    <rect x="0" y="0" width="48" height="48" rx="11" fill="#ffffff" stroke="#c8d8e8" stroke-width="2"/>
+    <path d="M12 11h19v7h7v19H19v-7h-7z" fill="none" stroke="#0b477e" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="22" cy="19" r="3.5" fill="#ef4b58"/>
+    <circle cx="31" cy="19" r="3.5" fill="#ef4b58"/>
+    <circle cx="31" cy="28" r="3.5" fill="#ef4b58"/>
+    <circle cx="22" cy="28" r="3.5" fill="#0b477e"/>
+    <text class="title" x="68" y="31">RL Retrieval Optimization Architecture</text>
+    <text class="subtitle" x="68" y="57">Historical evidence improves RAG through offline evaluation, controlled policy promotion, and measurable safety gates.</text>
+  </g>
+
+  <g>
+    <rect x="55" y="125" width="330" height="650" rx="24" fill="#ffffff" stroke="#cbdbea" stroke-width="2" filter="url(#shadow)"/>
+    <text class="zone-title" x="80" y="160">1. GOVERNED DATASETS</text>
+    <rect x="80" y="180" width="280" height="112" rx="16" fill="#eaf3fb" stroke="#b8d0e5"/>
+    <text class="card-title" x="100" y="211">Current evidence cases</text>
+    <text class="card-copy" x="100" y="238">
+      <tspan x="100" dy="0">Immutable LAIQ app exports</tspan>
+      <tspan x="100" dy="22">Measurements, voice, photos, maps</tspan>
+      <tspan x="100" dy="22">and approved report-side inputs</tspan>
+    </text>
+
+    <rect x="80" y="310" width="280" height="112" rx="16" fill="#eef8f4" stroke="#b8ddcf"/>
+    <text class="card-title" x="100" y="341">Approved precedent KB</text>
+    <text class="card-copy" x="100" y="368">
+      <tspan x="100" dy="0">Other historical reports only</tspan>
+      <tspan x="100" dy="22">Section metadata and embeddings</tspan>
+      <tspan x="100" dy="22">Stored in PostgreSQL + pgvector</tspan>
+    </text>
+
+    <rect x="80" y="440" width="280" height="102" rx="16" fill="#fff7e5" stroke="#ead49d"/>
+    <text class="card-title" x="100" y="471">Standards and tools</text>
+    <text class="card-copy" x="100" y="498">
+      <tspan x="100" dy="0">API rules, deterministic calculations</tspan>
+      <tspan x="100" dy="22">and report rendering contracts</tspan>
+    </text>
+
+    <rect x="80" y="560" width="280" height="120" rx="16" fill="#fff0f2" stroke="#f2b4bb" stroke-width="2"/>
+    <text class="card-title" x="100" y="591">Hidden gold report</text>
+    <text class="card-copy" x="100" y="618">
+      <tspan x="100" dy="0">Reviewed historical final sections</tspan>
+      <tspan x="100" dy="22">Evaluator access only</tspan>
+      <tspan x="100" dy="22">Excluded by document ID + SHA-256</tspan>
+    </text>
+    <rect x="100" y="700" width="240" height="42" rx="12" fill="#ef4b58"/>
+    <text class="badge" x="220" y="726" text-anchor="middle" fill="#ffffff">NO GOLD IN GENERATION</text>
+  </g>
+
+  <g>
+    <rect x="415" y="125" width="780" height="650" rx="24" fill="#ffffff" stroke="#cbdbea" stroke-width="2" filter="url(#shadow)"/>
+    <text class="zone-title" x="440" y="160">2. OFFLINE OPTIMIZATION LOOP</text>
+    <rect x="949" y="140" width="220" height="32" rx="16" fill="#eaf3fb"/>
+    <text class="badge" x="1059" y="161" text-anchor="middle" fill="#0b477e">SUPER ADMIN ONLY</text>
+
+    <rect x="445" y="188" width="220" height="148" rx="18" fill="#0b477e"/>
+    <text class="white-title" x="465" y="221">Candidate policy</text>
+    <text class="white-copy" x="465" y="249">
+      <tspan x="465" dy="0">Retrieval filters and top-K</tspan>
+      <tspan x="465" dy="22">Vector / lexical weights</tspan>
+      <tspan x="465" dy="22">Reranker version</tspan>
+      <tspan x="465" dy="22">Prompt, template and agent route</tspan>
+    </text>
+
+    <rect x="700" y="188" width="465" height="148" rx="18" fill="#eaf3fb" stroke="#a9c8e2" stroke-width="2"/>
+    <text class="card-title" x="725" y="221">Sandboxed section generation</text>
+    <rect x="725" y="242" width="93" height="58" rx="11" fill="#ffffff" stroke="#b8d0e5"/>
+    <text class="small" x="771" y="267" text-anchor="middle">Evidence</text>
+    <text class="small" x="771" y="284" text-anchor="middle">pack</text>
+    <rect x="835" y="242" width="93" height="58" rx="11" fill="#ffffff" stroke="#b8d0e5"/>
+    <text class="small" x="881" y="267" text-anchor="middle">Hybrid</text>
+    <text class="small" x="881" y="284" text-anchor="middle">retrieval</text>
+    <rect x="945" y="242" width="93" height="58" rx="11" fill="#ffffff" stroke="#b8d0e5"/>
+    <text class="small" x="991" y="267" text-anchor="middle">Tools +</text>
+    <text class="small" x="991" y="284" text-anchor="middle">validators</text>
+    <rect x="1055" y="242" width="85" height="58" rx="11" fill="#ffffff" stroke="#b8d0e5"/>
+    <text class="small" x="1098" y="267" text-anchor="middle">Section</text>
+    <text class="small" x="1098" y="284" text-anchor="middle">LLM</text>
+    <path class="arrow" d="M818 271 H830"/>
+    <path class="arrow" d="M928 271 H940"/>
+    <path class="arrow" d="M1038 271 H1050"/>
+
+    <path class="arrow" d="M665 262 H695"/>
+    <text class="flow-label" x="680" y="248" text-anchor="middle">apply</text>
+
+    <rect x="445" y="375" width="338" height="210" rx="18" fill="#f7f9fc" stroke="#cbdbea" stroke-width="2"/>
+    <text class="card-title" x="470" y="410">Multi-dimensional evaluator</text>
+    <text class="card-copy" x="470" y="440">
+      <tspan x="470" dy="0">Fact grounding and numeric accuracy</tspan>
+      <tspan x="470" dy="24">Evidence coverage and missing inputs</tspan>
+      <tspan x="470" dy="24">Recommendation and standards logic</tspan>
+      <tspan x="470" dy="24">Section structure and formatting</tspan>
+      <tspan x="470" dy="24">Leakage, latency and human rating</tspan>
+    </text>
+    <rect x="470" y="548" width="288" height="24" rx="12" fill="#fff0f2"/>
+    <text class="small" x="614" y="565" text-anchor="middle" fill="#b72d3a">Hard failures override aggregate score</text>
+
+    <rect x="820" y="375" width="345" height="210" rx="18" fill="#fff7e5" stroke="#ead49d" stroke-width="2"/>
+    <text class="card-title" x="845" y="410">Reward and diagnosis</text>
+    <text class="card-copy" x="845" y="440">
+      <tspan x="845" dy="0">Dimension scores, not one similarity value</tspan>
+      <tspan x="845" dy="24">Root cause: evidence, retrieval, prompt,</tspan>
+      <tspan x="845" dy="22">tool, rendering, model or gold defect</tspan>
+      <tspan x="845" dy="24">Positive and negative chunk labels</tspan>
+      <tspan x="845" dy="24">Candidate beats or loses to baseline</tspan>
+    </text>
+
+    <path class="arrow" d="M745 336 V370"/>
+    <text class="flow-label" x="758" y="358">output</text>
+    <path class="arrow" d="M783 480 H815"/>
+
+    <rect x="570" y="625" width="470" height="105" rx="18" fill="#eef8f4" stroke="#a9d5c5" stroke-width="2"/>
+    <text class="card-title" x="595" y="658">Policy optimizer</text>
+    <text class="card-copy" x="595" y="686">
+      <tspan x="595" dy="0">Reranker training + offline contextual bandit</tspan>
+      <tspan x="595" dy="22">Proposes a new version; never edits production directly</tspan>
+    </text>
+    <path class="arrow-green" d="M993 585 V610 H805 V620"/>
+    <path class="arrow-green" d="M570 678 H430 V262 H440"/>
+    <text class="flow-label" x="427" y="500" transform="rotate(-90 427 500)">next candidate</text>
+  </g>
+
+  <g>
+    <rect x="1225" y="125" width="320" height="650" rx="24" fill="#ffffff" stroke="#cbdbea" stroke-width="2" filter="url(#shadow)"/>
+    <text class="zone-title" x="1250" y="160">3. PROMOTION CONTROL</text>
+
+    <rect x="1250" y="188" width="270" height="172" rx="18" fill="#fff0f2" stroke="#f2b4bb" stroke-width="2"/>
+    <text class="card-title" x="1275" y="221">Safety gates</text>
+    <text class="card-copy" x="1275" y="249">
+      <tspan x="1275" dy="0">No unsupported facts</tspan>
+      <tspan x="1275" dy="22">No critical numeric mismatch</tspan>
+      <tspan x="1275" dy="22">No gold or tenant leakage</tspan>
+      <tspan x="1275" dy="22">No missing-input invention</tspan>
+      <tspan x="1275" dy="22">No benchmark regression</tspan>
+    </text>
+
+    <rect x="1250" y="390" width="270" height="116" rx="18" fill="#eaf3fb" stroke="#a9c8e2" stroke-width="2"/>
+    <text class="card-title" x="1275" y="423">Super-admin decision</text>
+    <text class="card-copy" x="1275" y="451">
+      <tspan x="1275" dy="0">Compare baseline and candidate</tspan>
+      <tspan x="1275" dy="22">Approve, reject or request tuning</tspan>
+    </text>
+
+    <rect x="1250" y="536" width="270" height="116" rx="18" fill="#1f8f68"/>
+    <text class="white-title" x="1275" y="570">Promoted policy registry</text>
+    <text class="white-copy" x="1275" y="598">
+      <tspan x="1275" dy="0">Immutable configuration version</tspan>
+      <tspan x="1275" dy="22">Auditable promotion and rollback</tspan>
+    </text>
+
+    <rect x="1250" y="682" width="270" height="60" rx="16" fill="#f7f9fc" stroke="#cbdbea"/>
+    <text class="small" x="1385" y="707" text-anchor="middle">Candidate failure returns to optimizer</text>
+    <text class="small" x="1385" y="726" text-anchor="middle">Production remains unchanged</text>
+
+    <path class="arrow" d="M1165 480 H1205 V274 H1245"/>
+    <path class="arrow" d="M1385 360 V385"/>
+    <path class="arrow-green" d="M1385 506 V531"/>
+    <path class="arrow-red" d="M1250 712 H1208 V700 H1045"/>
+  </g>
+
+  <path class="arrow" d="M360 236 H395 V344 H771 V305"/>
+  <path class="arrow-green" d="M360 366 H405 V352 H881 V305"/>
+  <path class="arrow" d="M360 491 H415 V360 H991 V305"/>
+  <path class="arrow-red" d="M360 620 H405 V480 H440"/>
+  <text class="flow-label" x="405" y="607" fill="#b72d3a">eval only</text>
+
+  <g>
+    <rect x="55" y="815" width="1490" height="250" rx="24" fill="#0c3f6c" filter="url(#shadow)"/>
+    <text class="zone-title-white" x="85" y="852">4. LIVE PRODUCTION GENERATION</text>
+    <rect x="1275" y="831" width="240" height="32" rx="16" fill="#ffffff" fill-opacity="0.14"/>
+    <text class="badge" x="1395" y="852" text-anchor="middle" fill="#ffffff">INSPECTOR WORKSPACE</text>
+
+    <rect x="85" y="885" width="220" height="112" rx="17" fill="#ffffff"/>
+    <text class="card-title" x="110" y="920">New app import</text>
+    <text class="card-copy" x="110" y="948">
+      <tspan x="110" dy="0">Immutable current evidence</tspan>
+      <tspan x="110" dy="22">and object manifest</tspan>
+    </text>
+
+    <rect x="350" y="885" width="220" height="112" rx="17" fill="#ffffff"/>
+    <text class="card-title" x="375" y="920">Load policy</text>
+    <text class="card-copy" x="375" y="948">
+      <tspan x="375" dy="0">Promoted retrieval, prompt</tspan>
+      <tspan x="375" dy="22">and tool-route version</tspan>
+    </text>
+
+    <rect x="615" y="885" width="220" height="112" rx="17" fill="#ffffff"/>
+    <text class="card-title" x="640" y="920">Real-time RAG</text>
+    <text class="card-copy" x="640" y="948">
+      <tspan x="640" dy="0">Evidence + approved precedent</tspan>
+      <tspan x="640" dy="22">+ tools + section LLM</tspan>
+    </text>
+
+    <rect x="880" y="885" width="220" height="112" rx="17" fill="#ffffff"/>
+    <text class="card-title" x="905" y="920">Validate</text>
+    <text class="card-copy" x="905" y="948">
+      <tspan x="905" dy="0">Grounding, missing inputs</tspan>
+      <tspan x="905" dy="22">leakage and report structure</tspan>
+    </text>
+
+    <rect x="1145" y="885" width="220" height="112" rx="17" fill="#ffffff"/>
+    <text class="card-title" x="1170" y="920">Inspector output</text>
+    <text class="card-copy" x="1170" y="948">
+      <tspan x="1170" dy="0">Edit, approve and export</tspan>
+      <tspan x="1170" dy="22">with complete provenance</tspan>
+    </text>
+
+    <rect x="1405" y="885" width="110" height="112" rx="17" fill="#eef8f4"/>
+    <text class="card-title" x="1460" y="922" text-anchor="middle">Telemetry</text>
+    <text class="small" x="1460" y="950" text-anchor="middle">Outcome</text>
+    <text class="small" x="1460" y="970" text-anchor="middle">feedback</text>
+
+    <path class="arrow-green" d="M305 941 H345"/>
+    <path class="arrow-green" d="M570 941 H610"/>
+    <path class="arrow-green" d="M835 941 H875"/>
+    <path class="arrow-green" d="M1100 941 H1140"/>
+    <path class="arrow-green" d="M1365 941 H1400"/>
+  </g>
+
+  <path class="arrow-green" d="M1385 652 V795 H460 V880"/>
+  <text class="flow-label" x="1095" y="788" fill="#1f8f68">approved version only</text>
+  <path class="arrow-dashed" d="M1460 885 V790 H220 V780"/>
+  <text class="flow-label" x="950" y="804">offline feedback; never automatic production learning</text>
+
+  <text class="small" x="800" y="1094" text-anchor="middle">LAIQ principle: app facts and deterministic tools define truth; historical reports guide retrieval, structure and professional wording.</text>
+</svg>

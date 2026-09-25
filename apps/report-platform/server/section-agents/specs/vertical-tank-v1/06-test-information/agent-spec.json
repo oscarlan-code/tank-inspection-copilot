@@ -1,0 +1,71 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 6,
+    "sectionId": "test-information",
+    "title": "TEST INFORMATION"
+  },
+  "plannedReleaseId": "test_information_v1",
+  "status": "planned",
+  "productEnabled": false,
+  "generationMode": "deterministic_test_records_with_bounded_wording",
+  "promptPolicy": "bounded_method_limitation_wording_only",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "test-inventory",
+      "content": "Methods actually performed or explicitly excluded.",
+      "format": "method_inventory_table",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "method-traceability",
+      "content": "Procedure, equipment, calibration, personnel and qualification fields required by the method contract.",
+      "format": "labelled_method_table",
+      "requiredWhen": "per_performed_method"
+    },
+    {
+      "blockId": "extent-and-limitations",
+      "content": "Confirmed examination extent, coverage and method limitations.",
+      "format": "bounded_paragraph_or_table_cells",
+      "requiredWhen": "per_performed_method"
+    },
+    {
+      "blockId": "result-references",
+      "content": "References to detailed measurement, scan, survey or NDT sections.",
+      "format": "controlled_cross_references",
+      "requiredWhen": "when_available"
+    }
+  ],
+  "authorizedInputs": [
+    "performed_test_records",
+    "scope_method_declarations",
+    "procedure_and_equipment_records",
+    "calibration_metadata",
+    "personnel_qualification",
+    "coverage_and_limitation_records",
+    "detailed_result_section_bindings"
+  ],
+  "approvalBlockers": [
+    "method_identity_missing",
+    "performed_status_unconfirmed",
+    "required_traceability_missing",
+    "conflicting_extent",
+    "unresolved_detailed_result_reference"
+  ],
+  "prohibitedBehavior": [
+    "test_inferred_from_template",
+    "historical_equipment_as_current",
+    "invented_calibration_or_qualification",
+    "detailed_scan_trace_rewritten_as_narrative"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": null
+}

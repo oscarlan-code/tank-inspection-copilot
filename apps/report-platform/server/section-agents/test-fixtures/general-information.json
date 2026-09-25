@@ -1,0 +1,254 @@
+{
+  "exportPackage": {
+    "packageType": "v3_product_export",
+    "schemaVersion": 3,
+    "inspectionId": "public-synthetic-unit-test",
+    "inspectionReference": "public-synthetic-unit-test",
+    "inspectionRecord": {
+      "inspectionId": "public-synthetic-unit-test",
+      "client": "Example Evaluation Client",
+      "tankNumber": "EXAMPLE-001",
+      "location": "Example Test Site",
+      "fieldLeaseName": "Example Lease",
+      "heightM": 5.5,
+      "diameterM": 8.25,
+      "shellCourseCount": 3
+    },
+    "task": {
+      "client": "Example Evaluation Client",
+      "tankNumber": "EXAMPLE-001",
+      "location": "Example Test Site"
+    },
+    "utMeasurements": [],
+    "layoutConfigs": [],
+    "layoutFigures": [],
+    "layoutTargets": [],
+    "elements": [],
+    "findings": [],
+    "voiceNotes": [],
+    "attachments": [],
+    "inspectionChecklistItems": [],
+    "inspectionChecklistSectionNotes": [],
+    "taskSnapshots": []
+  },
+  "manualSupplement": {
+    "generalTankInformation": {
+      "clientRepresentative": {
+        "value": "Fixture Reviewer",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "clientRepresentative"
+        }
+      },
+      "yearBuilt": {
+        "value": "2001",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "yearBuilt"
+        }
+      },
+      "manufacturer": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "manufacturer"
+        }
+      },
+      "constructionStandard": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "constructionStandard"
+        }
+      },
+      "serviceHeight": {
+        "value": "4.5 m (reported)",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "serviceHeight"
+        }
+      },
+      "materialSpecification": {
+        "value": "Carbon steel",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "materialSpecification"
+        }
+      },
+      "shellConstruction": {
+        "value": "Butt welded; upper course nominal 7 mm",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "shellConstruction"
+        }
+      },
+      "productStored": {
+        "value": "Water",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "productStored"
+        }
+      },
+      "drawingReference": {
+        "value": "EXAMPLE-DRAWING-A",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "drawingReference"
+        }
+      },
+      "specificGravity": {
+        "value": "1.0",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "specificGravity"
+        }
+      },
+      "roofType": {
+        "value": "Fixed Cone",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "roofType"
+        }
+      },
+      "designTemperature": {
+        "value": "35 \u00b0C",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "designTemperature"
+        }
+      },
+      "internalPressure": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "internalPressure"
+        }
+      },
+      "floorPlateCount": {
+        "value": "8",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "floorPlateCount"
+        }
+      },
+      "roofPlateCount": {
+        "value": "12",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "roofPlateCount"
+        }
+      },
+      "floorPlateThickness": {
+        "value": "7 mm (nominal)",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "floorPlateThickness"
+        }
+      },
+      "windGirder": {
+        "value": "Yes",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "windGirder"
+        }
+      },
+      "annularPlateCount": {
+        "value": "None",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "annularPlateCount"
+        }
+      },
+      "insulated": {
+        "value": "No",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "insulated"
+        }
+      },
+      "annularPlateThickness": {
+        "value": "Not Applicable",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "annularPlateThickness"
+        }
+      },
+      "stiffener": {
+        "value": "No",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "stiffener"
+        }
+      },
+      "externalHistory": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "externalHistory"
+        }
+      },
+      "internalHistory": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "internalHistory"
+        }
+      },
+      "bottomHistory": {
+        "value": "Not Provided",
+        "confirmed": true,
+        "sourceClass": "report_side_input",
+        "sourceRef": {
+          "kind": "synthetic_unit_test",
+          "recordId": "bottomHistory"
+        }
+      }
+    }
+  }
+}

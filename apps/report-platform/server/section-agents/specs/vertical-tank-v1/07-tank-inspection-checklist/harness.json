@@ -1,0 +1,53 @@
+{
+  "contractVersion": "section_agent_harness_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "tank-inspection-checklist",
+  "status": "planned",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "datasetRules": {
+    "groupBy": "asset_scenario_lineage",
+    "development": "approved_training_lineages",
+    "validation": "unseen_validation_lineages",
+    "heldOut": "sealed_hidden_lineages",
+    "goldAvailableDuringGeneration": false,
+    "sameLineageRetrievalAllowed": false
+  },
+  "requiredTests": [
+    "definition_version_integrity",
+    "row_count_and_order",
+    "prompt_response_note_exactness",
+    "unanswered_blocker",
+    "not_applicable_reason",
+    "response_note_conflict",
+    "zero_ai_calls",
+    "native_grid_docx_review",
+    "wrong_section_or_version_rejection",
+    "production_mode_rejection",
+    "unapproved_draft",
+    "kb_snapshot_hash_integrity",
+    "dependency_tamper_rejection",
+    "cross_agent_isolation"
+  ],
+  "metrics": [
+    "critical_integrity_blockers",
+    "protected_fact_accuracy",
+    "supported_claim_precision",
+    "required_output_recall",
+    "format_export_readiness",
+    "inspector_review_outcome",
+    "leakage_findings"
+  ],
+  "freezeGates": {
+    "criticalIntegrityBlockers": 0,
+    "protectedFactAccuracy": 1.0,
+    "unsupportedCurrentClaims": 0,
+    "leakageFindings": 0,
+    "renderReviewRequired": true,
+    "inspectorReviewRequired": true,
+    "manifestAndDependencyHashesPinned": true,
+    "standardObligationPackPinned": true
+  },
+  "promotionPerformedByHarness": false,
+  "existingHarnessReferences": []
+}

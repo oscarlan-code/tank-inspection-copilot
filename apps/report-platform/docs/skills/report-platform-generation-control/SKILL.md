@@ -1,0 +1,89 @@
+---
+name: report-platform-generation-control
+description: Use when changing LAIQ AI Engine generation, chat, controlled edits, provenance, rollback, or generated content transformation logic.
+---
+
+# Report Platform Generation Control
+
+## Core Rule
+
+If LAIQ AI Engine says it changed generated output, it must return a controlled action or a pending confirmation plan.
+
+## Important Files
+
+- `server/generation.mjs` (legacy comparison/read compatibility; do not extend)
+- `server/codex-cli.mjs`
+- `server/report-blocks.mjs`
+- `server/store.mjs`
+- `server/eval.mjs`
+- `src/app/App.tsx`
+- `src/components/RichTextSectionEditor.tsx`
+- `src/domain/types.ts`
+- `docs/contracts/reporting/GENERATED_CONTENT_CONTROL_SYSTEM.md`
+- `REPORT_COMPILER_WORKFLOW.md`
+- `SECTION_AGENT_RELEASES.md`
+- `server/section-agents/AGENTS.md`
+
+## Allowed AI Work
+
+AI may:
+
+- draft prose from an evidence pack
+- explain missing fields
+- classify user intent
+- choose a safe tool
+- propose a structured edit
+- rewrite narrative blocks while preserving protected facts
+
+AI must not:
+
+- invent app facts, measurements, findings, or map geometry
+- silently mutate imported app export data
+- claim an edit applied without a returned action
+- bypass approval, validation, or rollback
+- use hidden same-report gold text in generation
+
+## Controlled Action Expectations
+
+Supported action families include:
+
+- exact section/block replacement
+- selection-scoped paragraph/list rewrite with preview and explicit acceptance
+- whole-section text style
+- table-scoped style
+- checklist marker transform
+- deterministic measurement/checklist table rebuild
+- pending confirmation for non-trivial AI-planned edits
+- backend draft restore
+
+## Required Guardrails
+
+- Build new work through the Report Structure Agent -> ReportPlan -> SectionPlan ->
+  exact section agent -> Report Integrator path. Never add a legacy-generator
+  fallback.
+- Validate both the historical SectionPatternPack and applicable pinned
+  StandardObligationPack independently of current-evidence grounding.
+- Resolve an explicit section/profile agent release; never use `latest` or a mutable
+  global prompt/KB.
+- Keep R&D and product on the same release bytes, planner, compilers, validators,
+  formatter, and dependency hashes.
+- New section behavior creates a new immutable version. Promotion changes a
+  server-owned routing record and cannot be requested by app data or the model.
+- Snapshot drafts before mutation.
+- Bind targeted proposals to the section version plus document and selection hashes.
+- Verify that content outside an accepted targeted range remains unchanged.
+- Keep popup quick actions and right-panel selection chat on the same targeted-edit endpoint.
+- Pin the exact selected text in right-panel selection mode and keep the report unchanged until the user applies a proposal.
+- After apply, require the nearby Keep/Undo confirmation before closing selection mode.
+- Preserve app-sourced measurements and checklist rows.
+- Keep missing values pending.
+- Surface provenance where practical.
+- Keep eval/leak checks separate from generation prompts.
+
+## Validation
+
+```bash
+npm --prefix apps/report-platform run logic:audit
+STRICT_SAMPLE_LEAK=1 npm --prefix apps/report-platform run leak:audit
+npm --prefix apps/report-platform run report:eval
+```

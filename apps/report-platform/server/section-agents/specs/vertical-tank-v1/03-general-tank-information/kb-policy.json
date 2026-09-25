@@ -1,0 +1,40 @@
+{
+  "contractVersion": "section_kb_policy_candidate_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "general-tank-information",
+  "packId": "general_tank_information_v1_no_retrieval",
+  "status": "frozen_reference",
+  "mode": "frozen_no_retrieval",
+  "governedSource": {
+    "indexId": "governed_kb_content_v1",
+    "exactSectionKey": "general-tank-information",
+    "exactSectionKeyOnly": true,
+    "requiredDatasetSplit": "training",
+    "requiredEligibilityRole": "training_reference",
+    "requiredApproval": true,
+    "requiredProfile": "vertical_tank_inspection_v1"
+  },
+  "allowedUses": [
+    "none_at_runtime"
+  ],
+  "forbiddenUses": [
+    "current_tank_fact",
+    "current_measurement",
+    "current_finding",
+    "current_scope_decision",
+    "current_test_result",
+    "automatic_approval"
+  ],
+  "runtimeExclusions": [
+    "target_report",
+    "same_asset_or_scenario_lineage",
+    "alternate_rendition",
+    "near_duplicate",
+    "validation_gold",
+    "hidden_test_gold",
+    "post_cutoff_source"
+  ],
+  "currentFactsFromHistoricalSources": false,
+  "runtimeSnapshot": "general_tank_information_v1_no_retrieval",
+  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/03-general-tank-information/pack-candidate.json"
+}

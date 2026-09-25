@@ -1,0 +1,224 @@
+{
+  "schemaVersion": "report_profile_candidate_v3",
+  "profileId": "vertical_tank_inspection_v1",
+  "status": "source_reviewed_development_profile_evaluation_only",
+  "productEnabled": false,
+  "sourceReview": {
+    "broadFamilyRecords": 80,
+    "excludedHorizontalRecords": 11,
+    "uniqueVerticalReports": 69,
+    "familyCounts": {
+      "internal_external_api653": 33,
+      "internal_inspection": 32,
+      "external_inspection": 4
+    },
+    "representativeTocReview": {
+      "totalReports": 16,
+      "combinedInternalExternal": 6,
+      "internal": 6,
+      "external": 4,
+      "allContainCommonCore": true,
+      "directPdfTocCrossCheckReports": 3
+    },
+    "orientationRule": "verify_from_authoritative_asset_data_and_document_structure_not_family_label_alone",
+    "frequencyCaveat": "missing_parsed_heading_requires_review_and_does_not_prove_absence"
+  },
+  "commonCore": [
+    {
+      "order": 1,
+      "sectionId": "scope_of_inspection",
+      "title": "SCOPE OF INSPECTION",
+      "detectedReports": 69,
+      "totalReports": 69,
+      "outputMode": "evidence_bound_narrative_and_scope_list",
+      "implementationStatus": "planned"
+    },
+    {
+      "order": 2,
+      "sectionId": "inspection_and_maintenance_regime",
+      "title": "INSPECTION AND MAINTENANCE REGIME",
+      "detectedReports": 69,
+      "totalReports": 69,
+      "outputMode": "approved_controlled_template_ai_disabled",
+      "implementationStatus": "planned"
+    },
+    {
+      "order": 3,
+      "sectionId": "general_tank_information",
+      "title": "GENERAL TANK INFORMATION",
+      "detectedReports": 69,
+      "totalReports": 69,
+      "outputMode": "deterministic_labelled_fields",
+      "implementationStatus": "frozen_evaluation_only"
+    },
+    {
+      "order": 4,
+      "sectionId": "inspection_report",
+      "title": "INSPECTION REPORT",
+      "detectedReports": 68,
+      "totalReports": 69,
+      "outputMode": "evidence_bound_component_findings",
+      "implementationStatus": "planned"
+    },
+    {
+      "order": 5,
+      "sectionId": "repair_recommendations_api653_assessment",
+      "title": "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT",
+      "detectedReports": 65,
+      "totalReports": 69,
+      "outputMode": "inspector_approved_actions",
+      "implementationStatus": "planned"
+    },
+    {
+      "order": 6,
+      "sectionId": "test_information",
+      "title": "TEST INFORMATION",
+      "detectedReports": 68,
+      "totalReports": 69,
+      "outputMode": "deterministic_test_records_with_bounded_wording",
+      "implementationStatus": "planned"
+    },
+    {
+      "order": 7,
+      "sectionId": "tank_inspection_checklist",
+      "title": "TANK INSPECTION CHECKLIST",
+      "detectedReports": 66,
+      "totalReports": 69,
+      "outputMode": "deterministic_native_checklist_grid",
+      "implementationStatus": "planned"
+    }
+  ],
+  "scopeModuleFrequency": {
+    "combinedInternalExternal": {
+      "totalReports": 33,
+      "modules": [
+        { "moduleId": "roof_plate_thickness", "detectedReports": 33 },
+        { "moduleId": "minimum_shell_thickness_calculations", "detectedReports": 33 },
+        { "moduleId": "floor_plate_layout", "detectedReports": 33 },
+        { "moduleId": "shell_plate_thickness", "detectedReports": 32 },
+        { "moduleId": "shell_plate_layout", "detectedReports": 31 },
+        { "moduleId": "roof_nozzle_pad_thickness", "detectedReports": 29 },
+        { "moduleId": "roof_plate_layout", "detectedReports": 28 },
+        { "moduleId": "shell_nozzle_pad_thickness", "detectedReports": 28 },
+        { "moduleId": "photographs", "detectedReports": 28 },
+        { "moduleId": "tru_flux_interpretation_guidelines", "detectedReports": 28 },
+        { "moduleId": "mfl_plate_maps", "detectedReports": 27 },
+        { "moduleId": "shell_settlement", "detectedReports": 24 },
+        { "moduleId": "floor_corrosion_plan", "detectedReports": 20 }
+      ]
+    },
+    "internal": {
+      "totalReports": 32,
+      "modules": [
+        { "moduleId": "tru_flux_interpretation_guidelines", "detectedReports": 28 },
+        { "moduleId": "mfl_plate_maps", "detectedReports": 28 },
+        { "moduleId": "floor_plate_layout", "detectedReports": 27 },
+        { "moduleId": "floor_corrosion_plan", "detectedReports": 23 },
+        { "moduleId": "b_scan_profiles", "detectedReports": 22 }
+      ]
+    },
+    "external": {
+      "totalReports": 4,
+      "smallCohort": true,
+      "modulesDetectedInAllReports": [
+        "roof_plate_thickness",
+        "roof_nozzle_pad_thickness",
+        "minimum_shell_thickness_calculations",
+        "shell_plate_thickness",
+        "shell_plate_layout",
+        "shell_nozzle_pad_thickness",
+        "shell_settlement",
+        "photographs"
+      ],
+      "roofPlateLayoutDetectedReports": 2
+    }
+  },
+  "implementationWaves": [
+    {
+      "wave": 1,
+      "name": "common_core",
+      "sectionIds": [
+        "scope_of_inspection",
+        "inspection_and_maintenance_regime",
+        "general_tank_information",
+        "inspection_report",
+        "repair_recommendations_api653_assessment",
+        "test_information",
+        "tank_inspection_checklist"
+      ]
+    },
+    {
+      "wave": 2,
+      "name": "combined_and_external_measurements_layouts",
+      "selectionRule": "high_family_frequency_and_matching_current_api_evidence"
+    },
+    {
+      "wave": 3,
+      "name": "internal_floor_and_mfl",
+      "sectionIds": [
+        "floor_plate_layout",
+        "tru_flux_interpretation_guidelines",
+        "floor_corrosion_plan",
+        "mfl_plate_maps"
+      ]
+    },
+    {
+      "wave": 4,
+      "name": "specialist_conditional_modules",
+      "selectionRule": "qualified_native_input_and_renderer_required"
+    }
+  ],
+  "tk5452IntegratedReference": {
+    "universalTemplate": false,
+    "sectionCount": 21,
+    "sections": [
+      "SCOPE OF INSPECTION",
+      "INSPECTION AND MAINTENANCE REGIME",
+      "GENERAL TANK INFORMATION",
+      "INSPECTION REPORT",
+      "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT",
+      "TEST INFORMATION",
+      "TANK INSPECTION CHECKLIST",
+      "ROOF PLATE THICKNESS MEASUREMENTS",
+      "ROOF NOZZLE & REINFORCEMENT PAD THICKNESS MEASUREMENTS",
+      "ROOF PLATE LAYOUT",
+      "MINIMUM SHELL THICKNESS CALCULATIONS",
+      "SHELL PLATE THICKNESS MEASUREMENTS",
+      "SHELL NOZZLE & REINFORCEMENT PAD THICKNESS MEASUREMENTS",
+      "SHELL PLATE LAYOUT",
+      "TANK PIPING SPOT THICKNESS MEASUREMENTS",
+      "TANK PIPING LAYOUT",
+      "B-SCAN PROFILES",
+      "FLOOR PLATE LAYOUT WITH PLATE NUMBERING SYSTEM",
+      "GUIDELINES FOR THE INTERPRETATION OF THE TRU-FLUX DATA SHEETS",
+      "FLOOR PLATE CORROSION PLAN",
+      "FLOOR PLATE INDIVIDUAL PLATEMAPS"
+    ],
+    "tankPipingFrequency": {
+      "detectedReports": 1,
+      "totalReports": 69
+    }
+  },
+  "planningRules": {
+    "verifyVerticalOrientation": true,
+    "verifyInspectionScopeAndPerformedMethods": true,
+    "startFromCommonCore": true,
+    "technicalModulesAreConditional": true,
+    "assignNumbersAfterApplicabilityReview": true,
+    "emitEmptyConditionalSections": false,
+    "missingReleaseEvidenceOrRenderer": "block",
+    "legacyGeneratorFallback": false
+  },
+  "mflHandling": {
+    "source": "authenticated_direct_report_workspace_upload",
+    "includedInInspectionAppExport": false,
+    "preservation": "immutable_source_pdf",
+    "aiGeneration": false
+  },
+  "implementation": {
+    "reportStructureAgent": "not_implemented",
+    "frozenEvaluationOnlySectionAgents": ["general_tank_information_v1"],
+    "productEnabledSectionAgents": [],
+    "productEnabled": false
+  }
+}

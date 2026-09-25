@@ -1,0 +1,37 @@
+{
+  "contractVersion": "section_agent_release_v1",
+  "releaseId": "general_tank_information_v1",
+  "sectionId": "general-tank-information",
+  "status": "frozen_evaluation_candidate",
+  "productionEnabled": false,
+  "executionModes": [
+    "evaluation"
+  ],
+  "generationMode": "deterministic",
+  "prompt": null,
+  "kbSnapshot": "kb-policy.json",
+  "entryPoint": "server/section-agents/general-tank-information.mjs",
+  "entryExport": "generateGeneralTankInformation",
+  "originalDevelopmentFreezeSha256": "028737a548d28251b5c02deca99ccc7519cb4ebcf76bc93b92d3ef308f20eb2d",
+  "originalEvaluatedCodeHashes": {
+    "server/section-agents/general-tank-information.mjs": "0e5c3bbe2c09484494eb2e6d3f0ca3935a83632a60bd5fddecbc23b9a3cbf693",
+    "server/section-planner.mjs": "44e4e4bb9a009266ca2bcf4d15b91946a6790446633cbf6e422f9a0bc9bca6a1",
+    "server/section-contracts.mjs": "a70fe2560f59ed95324deda749a8ea94213ba4668325da8067399a91cf4d3dd2",
+    "server/report-document.mjs": "83a038b3a79859cb3ea3778b8daff81a84caf411c3062110ba35d65f71f6f0ba",
+    "server/docx-export.mjs": "677ca32f3fd4778e3f5f67770e684eb13d4956dd57f4f753ce36952ecb72556f"
+  },
+  "exportDependencyVersions": {
+    "docx": "9.7.1",
+    "@resvg/resvg-js": "2.6.2"
+  },
+  "files": {
+    "server/section-agents/general-tank-information.mjs": "0e5c3bbe2c09484494eb2e6d3f0ca3935a83632a60bd5fddecbc23b9a3cbf693",
+    "server/section-planner.mjs": "44e4e4bb9a009266ca2bcf4d15b91946a6790446633cbf6e422f9a0bc9bca6a1",
+    "server/section-contracts.mjs": "a70fe2560f59ed95324deda749a8ea94213ba4668325da8067399a91cf4d3dd2",
+    "server/report-document.mjs": "83a038b3a79859cb3ea3778b8daff81a84caf411c3062110ba35d65f71f6f0ba",
+    "server/report-toc.mjs": "6e31d868da703e6fec1fa12942f33d8ac2b762efb3bcfaaa9df50e74d9cf36e1",
+    "server/docx-export.mjs": "677ca32f3fd4778e3f5f67770e684eb13d4956dd57f4f753ce36952ecb72556f",
+    "server/layout-map-figure.mjs": "d4969c10641da270cd936b32136c185ae937f9ca505be521c5d59287889e649f",
+    "kb-policy.json": "038d4e60a44a3c58d12d91b3ef5262ec97666998c10c35e159175efeff380c2b"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "contractVersion": "section_agent_spec_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "reportSection": {
+    "number": 7,
+    "sectionId": "tank-inspection-checklist",
+    "title": "TANK INSPECTION CHECKLIST"
+  },
+  "plannedReleaseId": "tank_inspection_checklist_v1",
+  "status": "planned",
+  "productEnabled": false,
+  "generationMode": "deterministic_native_checklist_grid",
+  "promptPolicy": "disabled",
+  "outputBlocks": [
+    {
+      "blockId": "heading",
+      "content": "Exact report section number and title.",
+      "format": "section_heading",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "response-legend",
+      "content": "Legend from the exact checklist definition version.",
+      "format": "controlled_legend",
+      "requiredWhen": "always"
+    },
+    {
+      "blockId": "category-tables",
+      "content": "Checklist categories and rows in native order with item number, prompt, response and note.",
+      "format": "native_grid",
+      "requiredWhen": "for_each_applicable_category"
+    },
+    {
+      "blockId": "section-notes",
+      "content": "Section-level notes linked to their native category.",
+      "format": "native_note_rows",
+      "requiredWhen": "when_supplied"
+    },
+    {
+      "blockId": "not-applicable-reasons",
+      "content": "Explicit reason for applicable-template items reviewed as not applicable.",
+      "format": "native_grid_cell",
+      "requiredWhen": "when_not_applicable"
+    }
+  ],
+  "authorizedInputs": [
+    "checklist_definition_version",
+    "native_checklist_rows",
+    "response_meaning",
+    "item_notes",
+    "section_notes",
+    "reviewed_scope_applicability"
+  ],
+  "approvalBlockers": [
+    "unanswered_applicable_item",
+    "unknown_checklist_definition",
+    "response_note_conflict",
+    "missing_not_applicable_reason",
+    "item_identity_or_order_conflict"
+  ],
+  "prohibitedBehavior": [
+    "ai_authored_response",
+    "historical_response_reuse",
+    "unanswered_as_satisfactory",
+    "renumbered_item_identity",
+    "narrative_flattening_of_grid"
+  ],
+  "kbPolicyFile": "kb-policy.json",
+  "harnessFile": "harness.json",
+  "frozenReleaseReference": null
+}

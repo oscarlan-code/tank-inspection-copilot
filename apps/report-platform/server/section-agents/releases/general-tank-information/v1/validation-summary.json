@@ -1,0 +1,16 @@
+{
+  "contractVersion": "section_agent_packaging_replay_v1",
+  "release": "general_tank_information_v1",
+  "manifestSha256": "de8e7b1e980bfbd9777f05768f1996cc8bff08171f48177495eacc1af6a6fb43",
+  "reports": 11,
+  "fields": 341,
+  "identicalDrafts": 11,
+  "identicalEvidence": 11,
+  "developmentReports": 10,
+  "previouslyHeldOutReports": 1,
+  "unseenHoldoutTest": false,
+  "paidAiCalls": 0,
+  "productionEnabled": false,
+  "clientDataIncluded": false,
+  "passed": true
+}
