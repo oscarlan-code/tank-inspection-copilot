@@ -1,0 +1,14 @@
+{
+  "contractVersion": "section_kb_snapshot_v2",
+  "snapshotId": "general_tank_information_v2_no_runtime_retrieval",
+  "sectionId": "general-tank-information",
+  "retrieval": "disabled",
+  "sourceIds": [],
+  "entries": [],
+  "currentFactsFromPrecedent": false,
+  "confirmedSameAssetHistoryOnly": true,
+  "developmentUse": ["field_order_review", "label_review", "paired_row_format_review"],
+  "runtimeUse": [],
+  "excludedAtRuntime": ["target_report", "same_lineage_report", "near_duplicate", "validation_gold", "hidden_gold", "global_kb"],
+  "reason": "Current tank identity and configuration are structured facts. Historical reports informed the reviewed template but cannot supply current facts."
+}

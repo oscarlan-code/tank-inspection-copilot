@@ -85,8 +85,10 @@
     "evaluation:inspector:audit": "node ./server/scripts/audit-checklist-voice-routing.mjs && node ./server/scripts/audit-tk5452-inspector-evaluation.mjs",
     "evaluation:readiness": "node --env-file=.env ./server/scripts/review-report-pipeline.mjs",
     "evaluation:readiness:audit": "node ./server/scripts/audit-pipeline-readiness.mjs",
-    "section-agent:general-info:audit": "node server/scripts/audit-general-information-agent.mjs && node server/scripts/audit-section-agent-release.mjs",
-    "section-agent:general-info:private-audit": "npm run section-agent:general-info:audit && node server/scripts/audit-general-information-review.mjs && node server/scripts/audit-section-agent-release.mjs --private-data docs/reviews/data/general-tank-information-v1",
+    "section-agent:general-info:v2:audit": "node server/scripts/audit-general-information-v2.mjs",
+    "section-agent:general-info:v2:historical:audit": "node server/scripts/audit-general-information-v2-historical.mjs",
+    "section-agent:general-info:audit": "node server/scripts/audit-general-information-agent.mjs && node server/scripts/audit-section-agent-release.mjs && npm run section-agent:general-info:v2:audit",
+    "section-agent:general-info:private-audit": "npm run section-agent:general-info:audit && node server/scripts/audit-general-information-review.mjs && node server/scripts/audit-section-agent-release.mjs --private-data docs/reviews/data/general-tank-information-v1 && npm run section-agent:general-info:v2:historical:audit",
     "kb:common-core:split": "node ./server/scripts/build-common-core-section-pack-candidates.mjs --output ./.local/section-pattern-packs/vertical-tank-common-core-v1",
     "section-agent:common-core:audit": "node ./server/scripts/audit-common-core-agent-specs.mjs"
   },

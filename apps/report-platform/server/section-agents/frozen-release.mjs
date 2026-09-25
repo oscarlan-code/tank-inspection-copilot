@@ -16,7 +16,7 @@ export async function verifyFrozenRelease({ rootUrl, manifestSha256 }) {
   const bytes = await readFile(new URL('manifest.json', rootUrl));
   if (sha256(bytes) !== manifestSha256) throw new Error('Frozen section-agent manifest has changed. Create a new release.');
   const manifest = JSON.parse(bytes);
-  if (manifest.contractVersion !== 'section_agent_release_v1' || manifest.productionEnabled !== false
+  if (!['section_agent_release_v1', 'section_agent_release_v2'].includes(manifest.contractVersion) || manifest.productionEnabled !== false
       || manifest.executionModes.length !== 1 || manifest.executionModes[0] !== 'evaluation') {
     throw new Error('Unsupported section-agent release contract.');
   }
@@ -30,6 +30,12 @@ export async function verifyFrozenRelease({ rootUrl, manifestSha256 }) {
   }
   if (!manifest.files[manifest.entryPoint] || !manifest.files[manifest.kbSnapshot]) {
     throw new Error('Section-agent entry point and KB must be pinned.');
+  }
+  if (manifest.contractVersion === 'section_agent_release_v2') {
+    for (const path of [manifest.agentInstructions, manifest.agentSpec, manifest.harness,
+      manifest.standardObligationPack]) {
+      if (!path || !manifest.files[path]) throw new Error('V2 section-agent controls must be pinned.');
+    }
   }
   const kb = JSON.parse(await readFile(new URL(manifest.kbSnapshot, rootUrl)));
   return deepFreeze({ manifest, kb });
@@ -56,6 +62,46 @@ export async function runFrozenSectionAgent({ release, executionMode, sectionId,
     manifestSha256: release.manifestSha256,
     kbSnapshotId: kb.snapshotId,
     status: manifest.status,
+  };
+  return result;
+}
+
+export async function runPlannedFrozenSectionAgent({ release, executionMode, reportPlan, sectionPlan, evidenceSnapshot }) {
+  if (executionMode !== 'evaluation') throw new Error('This section agent awaits review before product promotion.');
+  const { manifest, kb } = await verifyFrozenRelease(release);
+  if (manifest.contractVersion !== 'section_agent_release_v2'
+      || !manifest.supportedSectionIds.includes(sectionPlan.sectionId)
+      || !manifest.supportedReportProfiles.includes(sectionPlan.reportProfileId)
+      || manifest.releaseId !== release.version || manifest.agentId !== release.agentId) {
+    throw new Error('Unsupported planned section agent, profile or section.');
+  }
+  if (manifest.generationMode !== 'deterministic' || manifest.prompt !== null
+      || kb.retrieval !== 'disabled' || kb.sourceIds.length || kb.entries.length
+      || kb.currentFactsFromPrecedent !== false) {
+    throw new Error('Unsupported KB or prompt policy for this planned agent.');
+  }
+  const module = await import(new URL(manifest.entryPoint, release.rootUrl).href);
+  deepFreeze(module.AGENT_POLICY);
+  deepFreeze(module.FIELD_DEFINITIONS);
+  const result = module[manifest.entryExport]({
+    contractVersion: manifest.executionContract,
+    executionMode,
+    reportPlanRef: {
+      reportPlanId: reportPlan.reportPlanId,
+      reportPlanSha256: reportPlan.reportPlanSha256,
+      reportProfileId: reportPlan.reportProfileId,
+      sectionInstanceId: sectionPlan.sectionInstanceId,
+    },
+    sectionPlan,
+    evidenceSnapshot,
+  });
+  result.release = {
+    agentId: manifest.agentId,
+    version: manifest.releaseId,
+    manifestSha256: release.manifestSha256,
+    kbSnapshotId: kb.snapshotId,
+    status: manifest.status,
+    productEnabled: manifest.productionEnabled,
   };
   return result;
 }

@@ -73,7 +73,7 @@ const requiredText = {
     "The new report compiler is a clean rebuild.",
     "Report Structure Agent",
     "legacy-generator fallback is allowed.",
-    "Only General Tank Information v1 has been implemented and evaluated.",
+    "Only the General Tank Information family has been implemented and evaluated.",
     "PostgreSQL is the only transactional database.",
   ],
   "REPORT_COMPILER_WORKFLOW.md": [

@@ -112,7 +112,7 @@ try {
   assertStatus(await requestJson(genericSourcePath), 403, "inspector cannot read generic original PDF");
   const kbComparisonCases = ['eval-tk5452-kb-ablation-v1-without-kb', 'eval-tk5452-kb-ablation-v1-with-kb'];
   const observationComparisonCases = ['eval-tk5452-kb-observations-v1-without-kb', 'eval-tk5452-kb-observations-v1-with-kb'];
-  const generalInformationCases = ['eval-general-info-v1-gti-01', 'eval-general-info-v1-gti-11'];
+  const generalInformationCases = ['eval-general-info-v2-gti-01', 'eval-general-info-v2-gti-11'];
   for (const id of generalInformationCases) {
     const path = `/api/v1/admin/system-rl/held-out-review?evaluationCaseId=${id}&sectionId=general-tank-information`;
     assertStatus(await requestJson(path, { cookie: null }), 401, 'Section-agent review requires authentication');

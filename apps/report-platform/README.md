@@ -11,10 +11,12 @@ section.
   approval, evaluation, and DOCX export exist as a V1 Beta baseline.
 - The previous shared report generator is legacy read/comparison support. Do not add
   new generation behavior or use it as a fallback.
-- General Tank Information is the only implemented section-agent candidate. It is
-  frozen, deterministic, evaluation-only, and not product-enabled.
-- The Report Structure Agent, new ReportPlan stores, remaining section agents,
-  Report Integrator, PDF parity, and product promotion registry remain to be built.
+- General Tank Information is the only implemented section-agent family. V1 is
+  frozen qualification evidence; V2 is the deterministic ReportPlan-bound
+  evaluation candidate. Neither is product-enabled.
+- The minimum in-memory ReportPlan/SectionPlan execution contract now exists for
+  this one section. The Report Structure Agent, durable plan stores, remaining
+  section agents, Report Integrator, PDF parity, and promotion registry remain to be built.
 - No report-generation model, KB policy, or section agent is currently promoted
   through the rebuilt pipeline.
 
@@ -44,9 +46,14 @@ separate.
 development reports preserved 310/310 fields and one previously held-out report
 preserved 31/31. It passed 16 behavior checks with no model or runtime retrieval.
 
-The frozen v1 remains qualification evidence. A new-interface successor must bind
-to ReportPlan/SectionPlan and a structured standard-obligation pack, then prove
-complete output parity before product qualification.
+`general_tank_information_v2` exercises the exact registry through a minimum
+reviewed ReportPlan and frozen SectionPlan. Its historical qualification used ten
+development reports and one separate held-out
+report. It preserved 341/341 fields and aligned the required structure in 11/11
+cases. Original report sections remained evaluator-only and were opened after
+generation. The fixtures are reconstructed app-shaped records; actual-device export
+and independent inspector review remain outstanding. One generic contract fixture
+remains for routing and blocker tests; it is not counted as qualification evidence.
 
 The common-core specifications for report sections 1–7 are available under
 `server/section-agents/specs/vertical-tank-v1/`. Each section has the same visible

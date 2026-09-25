@@ -62,8 +62,9 @@ features, or fallbacks to them.
 - Missing evidence, agent, standard basis, tool, or renderer remains visible. Never
   call the legacy generator as a substitute.
 
-Only General Tank Information v1 exists, is frozen, and is evaluation-only. Do not
-describe outlines or saved multi-section experiments as implemented agents.
+General Tank Information v1 remains frozen qualification evidence. V2 is the first
+ReportPlan/SectionPlan-bound evaluation candidate. Both remain product-disabled.
+Do not describe outlines or saved multi-section experiments as implemented agents.
 
 ## Evidence and AI
 

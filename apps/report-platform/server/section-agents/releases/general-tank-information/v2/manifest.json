@@ -1,0 +1,31 @@
+{
+  "contractVersion": "section_agent_release_v2",
+  "agentId": "general_tank_information",
+  "releaseId": "general_tank_information_v2",
+  "supportedReportProfiles": ["vertical_tank_inspection_v1"],
+  "supportedSectionIds": ["general-tank-information"],
+  "status": "evaluation_candidate",
+  "productionEnabled": false,
+  "executionModes": ["evaluation"],
+  "executionContract": "section_agent_execution_v1",
+  "resultContract": "section_agent_result_v1",
+  "generationMode": "deterministic",
+  "prompt": null,
+  "agentInstructions": "agent-instructions.md",
+  "agentSpec": "agent-spec.json",
+  "kbSnapshot": "kb-policy.json",
+  "standardObligationPack": "standard-obligation-pack.json",
+  "harness": "harness.json",
+  "entryPoint": "server/agent.mjs",
+  "entryExport": "executeGeneralTankInformation",
+  "files": {
+    "README.md": "ba2b18b525c5829963dbd583a416dd151fd1e7dc54cd58ec4f69815e9740efc1",
+    "agent-instructions.md": "a3e9552ece70c894e18e172fc1f5d72f27c2cc9047047ecf39b2c6e28dda917b",
+    "agent-spec.json": "3165c63f4240f39cebf6e2bf0fa585a14f73b94486b7de4844ca47af0a9ce931",
+    "harness.json": "d0cea65fcdc57005735ea5fcb6907044523a6f5c4b7541fd6c5e7e6246963848",
+    "kb-policy.json": "81300a8e254f36aa9977bfb10e066077d68a673eab266203a47afa4b8c985fe5",
+    "server/agent.mjs": "501f9c3ebbbf29605180433cfce41013c17ed762dfb64b54f4d1b69c90a05728",
+    "server/report-document.mjs": "83a038b3a79859cb3ea3778b8daff81a84caf411c3062110ba35d65f71f6f0ba",
+    "standard-obligation-pack.json": "e5b3afb5f04b8fde4cf396b238a9d4be665c2b4cc553fe72532dd4264d3ce48f"
+  }
+}

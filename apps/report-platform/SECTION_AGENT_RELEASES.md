@@ -3,8 +3,9 @@
 ## Status
 
 Every generated section uses one explicit immutable release. Only **General Tank
-Information** has an implemented evaluation candidate. All other section agents,
-the new serving interface, and product routing remain future work.
+Information** has an implemented agent family. V1 is frozen qualification evidence;
+V2 is the first ReportPlan-bound evaluation candidate. All other section agents,
+durable plan storage, report integration, and product routing remain future work.
 
 The previous shared generator is legacy and is never a fallback or extension point.
 
@@ -73,7 +74,7 @@ opening sealed expectations. Product saves an unapproved draft. Promotion create
 an audited server-owned routing record to an already-qualified manifest hash;
 rollback changes that pointer and preserves drafts/traces.
 
-## General Tank Information v1
+## General Tank Information v1 and v2
 
 | Item | Frozen result |
 | --- | --- |
@@ -84,9 +85,15 @@ rollback changes that pointer and preserves drafts/traces.
 | Safety | Missing stays missing; conflicts/critical gaps block; output remains unapproved |
 | Status | Frozen evaluation candidate; product disabled |
 
-The current v1 wrapper still enters through the legacy entry point and lacks the new
-structured standard pack. Keep it immutable as evidence. Build a successor on the
-new ReportPlan/SectionPlan interface and prove identical output before extending it.
+Keep v1 immutable as evidence. V2 adds the minimum reviewed ReportPlan, frozen
+SectionPlan, exact registry binding, explicit standard-pack decision, visible agent
+instructions and a lean contract harness. Qualification used ten historical
+development reports before freezing the
+development decision, followed by one different held-out report. V2 preserved
+341/341 fields and matched the required title, order and paired-field structure in
+11/11 cases. The original sections were evaluator-only. Actual-device and independent
+inspector validation remain open gates. V2 remains evaluation-only; this is not
+product promotion.
 
 ## Adding the next agent
 
@@ -95,7 +102,7 @@ new ReportPlan/SectionPlan interface and prove identical output before extending
 3. Review the applicable standard/edition and freeze a separate obligation pack.
 4. Define evidence, entities, outline, format, tools, narrative slots, blockers, and
    validators before writing prompts.
-5. Implement portable synthetic tests and authorized source-reviewed cases.
+5. Implement minimal contract tests and authorized source-reviewed historical cases.
 6. Freeze, then evaluate unchanged on validation and held-out lineage groups.
 7. Record all three gates, unsupported claims, rendered output, inspector review,
    hashes, and limitations.

@@ -2,14 +2,14 @@
   "contractVersion": "section_agent_harness_spec_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "general-tank-information",
-  "status": "qualified_frozen_evidence_exists",
+  "status": "report_plan_candidate_with_historical_qualification",
   "executionMode": "evaluation",
   "productEnabled": false,
   "datasetRules": {
     "groupBy": "asset_scenario_lineage",
-    "development": "approved_training_lineages",
-    "validation": "unseen_validation_lineages",
-    "heldOut": "sealed_hidden_lineages",
+    "development": "ten_historical_development_lineages",
+    "validation": "contract_checks_only_not_qualification",
+    "heldOut": "one_sealed_historical_lineage",
     "goldAvailableDuringGeneration": false,
     "sameLineageRetrievalAllowed": false
   },
@@ -54,7 +54,9 @@
   "existingHarnessReferences": [
     "../../../../scripts/audit-general-information-agent.mjs",
     "../../../../scripts/audit-section-agent-release.mjs",
-    "../../../../scripts/run-general-information-evaluation.mjs",
-    "../../../../../docs/reviews/data/general-tank-information-v1/"
+    "../../../../scripts/audit-general-information-v2.mjs",
+    "../../../../scripts/prepare-general-information-v2-historical.py",
+    "../../../../scripts/run-general-information-v2-historical-evaluation.mjs",
+    "../../../../scripts/audit-general-information-v2-historical.mjs"
   ]
 }

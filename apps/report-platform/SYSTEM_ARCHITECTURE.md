@@ -112,13 +112,14 @@ are indexed under `docs/contracts/`.
 | Editing, versioning, approval, DOCX export | Reusable baseline; new-pipeline binding pending |
 | Historical/standards ingestion and review | Baseline exists; immutable pack builders pending |
 | Previous shared generator and 32-section outline | Legacy comparison only |
-| Report Structure Agent and ReportPlan store | Planned |
-| General Tank Information agent | Frozen evaluation candidate; new-interface port pending |
+| Report Structure Agent and durable ReportPlan store | Planned; minimum one-section contract is executable |
+| General Tank Information agent | V1 frozen evidence; V2 ReportPlan-bound evaluation candidate |
 | Other section agents | Not implemented |
 | Report Integrator and product promotion registry | Planned |
 | PDF export and cloud production deployment | Planned |
 
-Only General Tank Information v1 has been implemented and evaluated. It remains
+Only the General Tank Information family has been implemented and evaluated. V1
+remains frozen evidence and V2 exercises the new one-section plan route. Both are
 evaluation-only and cannot enter product routing.
 
 ## Hard invariants
