@@ -7,10 +7,10 @@
     "title": "SCOPE OF INSPECTION"
   },
   "plannedReleaseId": "scope_of_inspection_v1",
-  "status": "planned",
+  "status": "frozen_evaluation_candidate",
   "productEnabled": false,
-  "generationMode": "hybrid_deterministic_structure_with_bounded_ai_wording",
-  "promptPolicy": "bounded_scope_wording_only",
+  "generationMode": "deterministic_confirmed_scope_compiler",
+  "promptPolicy": "disabled",
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -19,20 +19,14 @@
       "requiredWhen": "always"
     },
     {
-      "blockId": "inspection-context",
-      "content": "Confirmed tank, site, report reference and inspection window needed to understand the scope.",
-      "format": "compact_context_fields",
-      "requiredWhen": "profile_selected"
-    },
-    {
       "blockId": "scope-activities",
       "content": "One supported scope statement for each commissioned activity, component and coverage requirement.",
       "format": "arrow_bullet_list",
       "requiredWhen": "always"
     },
     {
-      "blockId": "methods-and-deliverables",
-      "content": "Confirmed methods and deliverables not already clear in the activity statements.",
+      "blockId": "scope-deliverables",
+      "content": "One supported scope statement for each confirmed deliverable.",
       "format": "arrow_bullet_list",
       "requiredWhen": "when_supplied"
     },
@@ -44,33 +38,33 @@
     },
     {
       "blockId": "procedure-references",
-      "content": "Approved procedure references actually governing the commissioned work.",
-      "format": "controlled_reference_list",
-      "requiredWhen": "when_required"
+      "content": "Approved procedure references carried inside their confirmed scope statements.",
+      "format": "controlled_reference_text",
+      "requiredWhen": "when_supplied"
     }
   ],
   "authorizedInputs": [
-    "asset_identity",
-    "inspection_scope",
-    "inspection_window",
-    "performed_or_commissioned_methods",
-    "scope_voice_claims",
-    "confirmed_limitations",
-    "confirmed_report_side_scope_inputs"
+    "native_v3_task_and_layout_evidence",
+    "confirmed_scope_claims",
+    "confirmed_scope_limitations",
+    "confirmed_scope_references"
   ],
   "approvalBlockers": [
-    "missing_agreed_scope",
-    "unresolved_internal_external_scope",
-    "unresolved_material_limitation",
-    "conflicting_method_or_component_scope"
+    "missing_or_unconfirmed_scope",
+    "missing_claim_provenance",
+    "non_sequential_or_duplicate_claim_order",
+    "unsupported_scope_property",
+    "unresolved_app_evidence_reference"
   ],
   "prohibitedBehavior": [
-    "completed_findings",
-    "acceptance_decisions",
-    "repair_recommendations",
-    "historical_scope_as_current_scope"
+    "derive_scope_from_completed_tasks",
+    "ai_generation",
+    "runtime_retrieval",
+    "copy_historical_scope",
+    "invent_scope_from_standard",
+    "automatic_approval"
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null
+  "frozenReleaseReference": "../../../releases/scope-of-inspection/v1/manifest.json"
 }

@@ -5,6 +5,41 @@ export const REPORT_PLAN_CONTRACT = 'report_plan_v1';
 export const SECTION_PLAN_CONTRACT = 'section_plan_execution_v1';
 export const FIRST_REPORT_PROFILE = 'vertical_tank_inspection_v1';
 
+const MINIMUM_SECTION_CONFIGS = deepFreeze({
+  'scope-of-inspection': {
+    sectionInstanceId: 'scope-of-inspection:1',
+    order: 1,
+    title: 'SCOPE OF INSPECTION',
+    authorizedInputLanes: [
+      'native_v3_task_and_layout_evidence',
+      'confirmed_scope_claims',
+      'confirmed_scope_limitations',
+      'confirmed_scope_references',
+    ],
+    historicalPatternPack: 'scope_of_inspection_pattern_pack_v1',
+    standardObligationPack: 'scope_of_inspection_v1_reporting_boundary',
+  },
+  'general-tank-information': {
+    sectionInstanceId: 'general-tank-information:1',
+    order: 3,
+    title: 'GENERAL TANK INFORMATION',
+    authorizedInputLanes: [
+      'native_inspection_record_identity',
+      'native_task_identity',
+      'confirmed_report_side_general_information',
+      'confirmed_same_asset_history',
+    ],
+    historicalPatternPack: 'general_tank_information_v2_no_runtime_retrieval',
+    standardObligationPack: 'general_tank_information_v1_not_applicable',
+  },
+});
+
+function minimumSectionConfig(sectionId) {
+  const config = MINIMUM_SECTION_CONFIGS[sectionId];
+  if (!config) throw new Error('The minimum ReportPlan does not support this section agent.');
+  return config;
+}
+
 const requiredText = (value, label) => {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required.`);
   return value.trim();
@@ -39,9 +74,8 @@ export function buildMinimumReportPlan({
     reportProfileId: requiredText(agentBinding?.reportProfileId, 'Agent report profile'),
     sectionId: requiredText(agentBinding?.sectionId, 'Agent section'),
   };
-  if (binding.reportProfileId !== FIRST_REPORT_PROFILE || binding.sectionId !== 'general-tank-information') {
-    throw new Error('The minimum ReportPlan supports only the first vertical-tank section agent.');
-  }
+  if (binding.reportProfileId !== FIRST_REPORT_PROFILE) throw new Error('Unsupported minimum ReportPlan profile.');
+  const config = minimumSectionConfig(binding.sectionId);
   const plan = {
     contractVersion: REPORT_PLAN_CONTRACT,
     reportPlanId: requiredText(reportPlanId, 'ReportPlan ID'),
@@ -54,10 +88,10 @@ export function buildMinimumReportPlan({
     importRevisionId: requiredText(importRevisionId, 'Import revision ID'),
     reportProfileId: FIRST_REPORT_PROFILE,
     sections: [{
-      sectionInstanceId: 'general-tank-information:1',
-      order: 3,
-      sectionId: 'general-tank-information',
-      title: 'GENERAL TANK INFORMATION',
+      sectionInstanceId: config.sectionInstanceId,
+      order: config.order,
+      sectionId: binding.sectionId,
+      title: config.title,
       applicability: { status: 'applicable', decidedBy: 'evaluation_harness' },
       agentBinding: binding,
     }],
@@ -73,8 +107,11 @@ export function validateMinimumReportPlan(plan) {
   }
   if (plan.sections?.length !== 1) throw new Error('The minimum ReportPlan must contain exactly one section instance.');
   const section = plan.sections[0];
-  if (section.sectionInstanceId !== 'general-tank-information:1' || section.sectionId !== 'general-tank-information'
-      || section.order !== 3 || section.applicability?.status !== 'applicable') {
+  const config = minimumSectionConfig(section.sectionId);
+  if (section.sectionInstanceId !== config.sectionInstanceId || section.order !== config.order
+      || section.title !== config.title || section.applicability?.status !== 'applicable'
+      || section.agentBinding?.sectionId !== section.sectionId
+      || section.agentBinding?.reportProfileId !== plan.reportProfileId) {
     throw new Error('Unsupported first-section ReportPlan entry.');
   }
   if (canonicalSha256(withoutHash(plan, 'reportPlanSha256')) !== plan.reportPlanSha256) {
@@ -85,6 +122,7 @@ export function validateMinimumReportPlan(plan) {
 
 export function buildMinimumSectionPlan({ reportPlan, sectionInstanceId, evidenceSnapshot }) {
   const section = validateMinimumReportPlan(reportPlan);
+  const config = minimumSectionConfig(section.sectionId);
   if (section.sectionInstanceId !== sectionInstanceId) throw new Error('Section instance is not in the ReportPlan.');
   if (!evidenceSnapshot?.exportPackage?.inspectionId || !evidenceSnapshot?.exportPackage?.inspectionRecord) {
     throw new Error('A current imported inspection evidence snapshot is required.');
@@ -101,14 +139,9 @@ export function buildMinimumSectionPlan({ reportPlan, sectionInstanceId, evidenc
     reportProfileId: reportPlan.reportProfileId,
     importRevisionId: reportPlan.importRevisionId,
     evidenceSnapshotSha256: canonicalSha256(evidenceSnapshot),
-    authorizedInputLanes: [
-      'native_inspection_record_identity',
-      'native_task_identity',
-      'confirmed_report_side_general_information',
-      'confirmed_same_asset_history',
-    ],
-    historicalPatternPack: 'general_tank_information_v2_no_runtime_retrieval',
-    standardObligationPack: 'general_tank_information_v1_not_applicable',
+    authorizedInputLanes: config.authorizedInputLanes,
+    historicalPatternPack: config.historicalPatternPack,
+    standardObligationPack: config.standardObligationPack,
     agentBinding: section.agentBinding,
     approvalState: 'not_approved',
   };

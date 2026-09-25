@@ -1,0 +1,14 @@
+{
+  "contractVersion": "section_kb_snapshot_v2",
+  "snapshotId": "scope_of_inspection_v1_no_runtime_retrieval",
+  "sectionId": "scope-of-inspection",
+  "retrieval": "disabled",
+  "sourceIds": [],
+  "entries": [],
+  "currentFactsFromPrecedent": false,
+  "confirmedSameAssetHistoryOnly": false,
+  "developmentUse": ["section_shape_review", "scope_order_review", "wording_cadence_review", "coverage_variation_review"],
+  "runtimeUse": [],
+  "excludedAtRuntime": ["target_report", "same_lineage_report", "near_duplicate", "validation_gold", "hidden_gold", "global_kb"],
+  "reason": "Historical scopes show reporting patterns but cannot establish the activities commissioned for the current inspection."
+}

@@ -2,17 +2,19 @@
 
 ## Status
 
-Every generated section uses one explicit immutable release. Only **General Tank
-Information** has an implemented agent family. V1 is frozen qualification evidence;
-V2 is the first ReportPlan-bound evaluation candidate. All other section agents,
-durable plan storage, report integration, and product routing remain future work.
+Every generated section uses one explicit immutable release. **Scope of Inspection
+and General Tank Information** now have implemented agent families. Scope v1 and
+General Information v2 are ReportPlan-bound evaluation candidates; General
+Information v1 is frozen qualification evidence. All other section agents, durable
+plan storage, report integration, and product routing remain future work.
 
 The previous shared generator is legacy and is never a fallback or extension point.
 
 The reviewable common-core specifications for report sections 1–7 live under
 `server/section-agents/specs/vertical-tank-v1/`. Every folder has the same
 `agent-spec.json`, `kb-policy.json`, and `harness.json` control files. These files
-define planned releases; only the General Tank Information release is executable.
+define planned releases; Scope of Inspection and General Tank Information are
+executable.
 
 ## Release contract
 
@@ -94,6 +96,24 @@ development decision, followed by one different held-out report. V2 preserved
 11/11 cases. The original sections were evaluator-only. Actual-device and independent
 inspector validation remain open gates. V2 remains evaluation-only; this is not
 product promotion.
+
+## Scope of Inspection v1
+
+| Item | Frozen result |
+| --- | --- |
+| Title/output | `1 SCOPE OF INSPECTION`; one reviewed arrow bullet per confirmed activity/deliverable, followed by explicit limitations/exclusions |
+| Inputs | Android V3 package plus a confirmed, source-referenced `scope_confirmation_v1` record |
+| Generation | Deterministic; no model or runtime retrieval |
+| Historical basis | 52 approved training sections, 32 normalized shapes, three report families; content excluded from runtime |
+| 10+1 evaluation | 81/81 confirmed claims and 52/52 protected concepts recovered; 11/11 format-aligned |
+| Safety | Completed tasks, historical frequency, and standards cannot silently create current scope |
+| Status | Frozen evaluation candidate; product disabled |
+
+The 10+1 cases reconstruct practical inspector notes and structured confirmations
+from ten training reports, then one validation-split report. Original report text is
+opened only after generation. This validates the section compiler after confirmed
+classification. It does not yet validate automated note-to-claim preprocessing,
+actual-device export, rendered inspector acceptance, or product behavior.
 
 ## Adding the next agent
 

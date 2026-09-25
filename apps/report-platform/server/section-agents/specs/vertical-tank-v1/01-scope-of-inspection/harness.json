@@ -2,18 +2,20 @@
   "contractVersion": "section_agent_harness_spec_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "scope-of-inspection",
-  "status": "planned",
+  "status": "report_plan_candidate_with_historical_qualification",
   "executionMode": "evaluation",
   "productEnabled": false,
   "datasetRules": {
-    "groupBy": "asset_scenario_lineage",
-    "development": "approved_training_lineages",
-    "validation": "unseen_validation_lineages",
-    "heldOut": "sealed_hidden_lineages",
+    "groupBy": "report_lineage_and_scope_shape",
+    "development": "ten_historical_training_reports",
+    "validation": "one_sealed_validation_split_report",
+    "heldOut": "future_independent_hidden_lineages",
     "goldAvailableDuringGeneration": false,
     "sameLineageRetrievalAllowed": false
   },
   "requiredTests": [
+    "confirmed_scope_required",
+    "completed_task_not_scope",
     "scope_obligation_recall",
     "method_component_coverage",
     "limitation_and_exclusion_preservation",
@@ -27,7 +29,8 @@
     "unapproved_draft",
     "kb_snapshot_hash_integrity",
     "dependency_tamper_rejection",
-    "cross_agent_isolation"
+    "cross_agent_isolation",
+    "historical_development_then_validation_freeze"
   ],
   "metrics": [
     "critical_integrity_blockers",
@@ -49,5 +52,8 @@
     "standardObligationPackPinned": true
   },
   "promotionPerformedByHarness": false,
-  "existingHarnessReferences": []
+  "existingHarnessReferences": [
+    "../../../../scripts/audit-scope-of-inspection-v1.mjs",
+    "../../../../scripts/audit-scope-of-inspection-v1-historical.mjs"
+  ]
 }

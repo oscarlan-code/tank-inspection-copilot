@@ -1,0 +1,41 @@
+{
+  "contractVersion": "section_agent_spec_v2",
+  "agentId": "scope_of_inspection",
+  "releaseVersion": "scope_of_inspection_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "section": { "order": 1, "sectionId": "scope-of-inspection", "title": "1 SCOPE OF INSPECTION" },
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "executionContract": "section_agent_execution_v1",
+  "resultContract": "section_agent_result_v1",
+  "generationMode": "deterministic_confirmed_scope_compiler",
+  "promptPolicy": "disabled",
+  "inputContract": {
+    "appExport": { "packageType": "v3_product_export", "schemaVersion": 3 },
+    "scopeConfirmation": "scope_confirmation_v1",
+    "requiredClaimFields": ["claimId", "order", "kind", "action", "target", "confirmed", "sourceRefs"]
+  },
+  "claimKinds": ["inspection_activity", "deliverable"],
+  "optionalClaimFields": ["method", "extent", "conditions", "controlledReferences", "appEvidenceRefs"],
+  "outputBlocks": [
+    { "blockId": "heading", "format": "section_heading", "requiredWhen": "always" },
+    { "blockId": "scope-claims", "format": "arrow_bullet_paragraphs", "requiredWhen": "always" },
+    { "blockId": "limitations", "format": "arrow_bullet_paragraphs", "requiredWhen": "confirmed limitations exist" },
+    { "blockId": "exclusions", "format": "arrow_bullet_paragraphs", "requiredWhen": "confirmed exclusions exist" }
+  ],
+  "authorizedInputs": [
+    "native_v3_task_and_layout_evidence",
+    "confirmed_scope_claims",
+    "confirmed_scope_limitations",
+    "confirmed_scope_references"
+  ],
+  "approvalBlockers": [
+    "missing_or_unconfirmed_scope", "missing_claim_provenance", "non_sequential_or_duplicate_claim_order",
+    "unsupported_scope_property", "unresolved_app_evidence_reference", "scope_contains_non_scope_record"
+  ],
+  "prohibitedBehavior": [
+    "derive_scope_from_completed_tasks", "ai_generation", "runtime_retrieval", "copy_historical_scope",
+    "invent_scope_from_standard", "emit_findings_or_recommendations", "automatic_approval"
+  ],
+  "renderer": { "documentContract": "report_document_v2", "format": "component-narrative" }
+}

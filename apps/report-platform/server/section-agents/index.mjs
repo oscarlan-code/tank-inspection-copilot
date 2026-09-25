@@ -4,6 +4,14 @@ import { deepFreeze, runFrozenSectionAgent, runPlannedFrozenSectionAgent } from 
 // Append explicit section/version entries. Never replace an existing release or
 // resolve "latest". A new section owns its own prompts, KB snapshot and dependencies.
 export const SECTION_AGENT_RELEASES = deepFreeze({
+  scope_of_inspection_v1: {
+    agentId: 'scope_of_inspection',
+    version: 'scope_of_inspection_v1',
+    sectionId: 'scope-of-inspection',
+    reportProfileIds: ['vertical_tank_inspection_v1'],
+    rootUrl: new URL('./releases/scope-of-inspection/v1/', import.meta.url).href,
+    manifestSha256: '5f836136c4da5fa68cafa385ae5ada7d9e082ca38dd8d3b36d6126a02d2f7f55',
+  },
   general_tank_information_v1: {
     agentId: 'general_tank_information',
     version: 'general_tank_information_v1',
@@ -41,7 +49,9 @@ export async function runSectionAgent({ sectionAgentVersion, executionMode, sect
   if (executionMode !== 'evaluation') throw new Error('This section agent awaits review before product promotion.');
   const release = Object.hasOwn(SECTION_AGENT_RELEASES, sectionAgentVersion) ? SECTION_AGENT_RELEASES[sectionAgentVersion] : null;
   if (!release || release.sectionId !== sectionId) throw new Error('Unsupported section agent or section.');
-  if (sectionAgentVersion === 'general_tank_information_v2') throw new Error('V2 requires a frozen ReportPlan and SectionPlan.');
+  if (['general_tank_information_v2', 'scope_of_inspection_v1'].includes(sectionAgentVersion)) {
+    throw new Error('This release requires a frozen ReportPlan and SectionPlan.');
+  }
   return runFrozenSectionAgent({ release, executionMode, sectionId, reportState });
 }
 

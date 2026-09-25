@@ -1,0 +1,14 @@
+{
+  "contractVersion": "standard_obligation_pack_v1",
+  "packId": "scope_of_inspection_v1_reporting_boundary",
+  "sectionId": "scope-of-inspection",
+  "status": "reviewed_applicability_boundary",
+  "obligations": [
+    "Report only the client-agreed and inspector-confirmed scope for the current job.",
+    "Preserve confirmed inspection extent, methods, limitations, exclusions and controlled references.",
+    "Do not turn a code requirement or common historical activity into current commissioned work."
+  ],
+  "standardTextIncluded": false,
+  "currentScopeFactsFromStandards": false,
+  "reason": "API 653 may inform an inspection program, but it does not prove which activities the client commissioned for this report."
+}

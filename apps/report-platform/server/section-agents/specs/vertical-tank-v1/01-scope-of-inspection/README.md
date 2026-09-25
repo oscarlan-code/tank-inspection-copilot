@@ -1,6 +1,9 @@
 # 1. Scope of Inspection agent
 
-Status: `planned`; evaluation only; product disabled.
+Status: `frozen_evaluation_candidate`; product disabled.
+
+This specification view points to the executable v1 release. It is no longer a
+planned prompt/retrieval design.
 
 ## Files to review
 
@@ -10,6 +13,17 @@ Status: `planned`; evaluation only; product disabled.
 | [kb-policy.json](kb-policy.json) | Exact `scope-of-inspection` KB lane, allowed pattern uses and leakage exclusions |
 | [harness.json](harness.json) | Dataset isolation, required tests, metrics and freeze gates |
 | [private pack candidate](../../../../../.local/section-pattern-packs/vertical-tank-common-core-v1/01-scope-of-inspection/pack-candidate.json) | Metadata-only candidate membership for source review; not a runtime pack |
+
+## Executable release controls
+
+- [V1 release](../../../releases/scope-of-inspection/v1/README.md): instructions,
+  spec, historical-pattern boundary, standard boundary and harness.
+- [V1 manifest](../../../releases/scope-of-inspection/v1/manifest.json): exact entry
+  point and file hashes.
+- [Contract audit](../../../../scripts/audit-scope-of-inspection-v1.mjs): plan
+  binding, input boundary, blockers, isolation and General Information regression.
+- [Historical audit](../../../../scripts/audit-scope-of-inspection-v1-historical.mjs):
+  ten development reports followed by one validation-split report.
 
 ## What the agent will produce
 
@@ -29,9 +43,8 @@ they cannot supply the current scope.
 ```text
 frozen current evidence + reviewed SectionPlan
   -> exact agent/version resolution
-  -> exact section-owned KB pack with lineage/gold exclusions
+  -> frozen offline pattern metadata with lineage/gold exclusions
   -> deterministic block compiler
-  -> bounded wording only inside declared scope slots
   -> claim, obligation, identity, leakage and format validators
   -> unapproved SectionDocument
   -> open evaluator-only expected content

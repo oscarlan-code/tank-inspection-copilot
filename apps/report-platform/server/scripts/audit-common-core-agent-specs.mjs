@@ -58,14 +58,26 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   for (const required of ['wrong_section_or_version_rejection', 'production_mode_rejection', 'unapproved_draft', 'kb_snapshot_hash_integrity', 'dependency_tamper_rejection', 'cross_agent_isolation']) {
     assert(harness.requiredTests.includes(required), `${definition.sectionId} missing ${required}`);
   }
-  if (definition.sectionId === 'general-tank-information') {
+  const implemented = {
+    'scope-of-inspection': {
+      releaseId: 'scope_of_inspection_v1',
+      runtimeSnapshot: 'scope_of_inspection_v1_no_runtime_retrieval',
+      minimumHarnessReferences: 2,
+    },
+    'general-tank-information': {
+      releaseId: 'general_tank_information_v2',
+      runtimeSnapshot: 'general_tank_information_v2_no_runtime_retrieval',
+      minimumHarnessReferences: 4,
+    },
+  }[definition.sectionId];
+  if (implemented) {
     assert.equal(agent.status, 'frozen_evaluation_candidate');
     assert.equal(kb.mode, 'frozen_no_retrieval');
-    assert.equal(agent.plannedReleaseId, 'general_tank_information_v2');
-    assert.equal(kb.runtimeSnapshot, 'general_tank_information_v2_no_runtime_retrieval');
+    assert.equal(agent.plannedReleaseId, implemented.releaseId);
+    assert.equal(kb.runtimeSnapshot, implemented.runtimeSnapshot);
     assert(agent.frozenReleaseReference);
     await readFile(resolve(folder, agent.frozenReleaseReference));
-    assert(harness.existingHarnessReferences.length >= 4);
+    assert(harness.existingHarnessReferences.length >= implemented.minimumHarnessReferences);
   } else {
     assert.equal(agent.status, 'planned');
     assert.equal(kb.status, 'definition_only_not_frozen');
@@ -118,5 +130,5 @@ try {
 }
 
 console.log(JSON.stringify({ passed: true, profileId: 'vertical_tank_inspection_v1', sectionAgentFolders: 7,
-  filesPerFolder: requiredFiles, frozenAgentReferencesVerified: 1, privatePackSplitterVerified: true,
+  filesPerFolder: requiredFiles, frozenAgentReferencesVerified: 2, privatePackSplitterVerified: true,
   productEnabled: false }, null, 2));

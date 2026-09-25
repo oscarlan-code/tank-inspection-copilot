@@ -1,0 +1,33 @@
+{
+  "contractVersion": "section_agent_release_v2",
+  "agentId": "scope_of_inspection",
+  "releaseId": "scope_of_inspection_v1",
+  "supportedReportProfiles": ["vertical_tank_inspection_v1"],
+  "supportedSectionIds": ["scope-of-inspection"],
+  "status": "evaluation_candidate",
+  "productionEnabled": false,
+  "executionModes": ["evaluation"],
+  "executionContract": "section_agent_execution_v1",
+  "resultContract": "section_agent_result_v1",
+  "generationMode": "deterministic",
+  "prompt": null,
+  "agentInstructions": "agent-instructions.md",
+  "agentSpec": "agent-spec.json",
+  "kbSnapshot": "kb-policy.json",
+  "historicalPatternPack": "section-pattern-pack.json",
+  "standardObligationPack": "standard-obligation-pack.json",
+  "harness": "harness.json",
+  "entryPoint": "server/agent.mjs",
+  "entryExport": "executeScopeOfInspection",
+  "files": {
+    "README.md": "5d44efe4104a2bf05a17298019903540778ce0ffdbfcbd29f1a819c4373264a7",
+    "agent-instructions.md": "c85d76a9d9a23d2cb99b9d5e9589f6c5be10c6c8c1b1e274ab8be02bd9afb610",
+    "agent-spec.json": "533d3ca1491d2fc08a3e4ac4ba28624a6d39aa30542cff5109838af2413d0f78",
+    "harness.json": "d2cc05b62f16923d5b3a1a301a97599f1271777eb8de6daf23f1888e1f281b14",
+    "kb-policy.json": "4eb58c244602a25598d45bc6c28c0eb146152ed9a7cd20679b222ff322835130",
+    "section-pattern-pack.json": "909f184b2d2d716becfb3a0e8537f80fa2e58fef3e65954037ea5525b5c11798",
+    "server/agent.mjs": "b75d12ac0a7485c21138177c38dbc860eb22fe05b81c46a0d2b450a36d65d5c7",
+    "server/report-document.mjs": "83a038b3a79859cb3ea3778b8daff81a84caf411c3062110ba35d65f71f6f0ba",
+    "standard-obligation-pack.json": "2ba3ea5bb5aceec4f37087ebbb3f16965c617119cea004f8b7953f55083c6de0"
+  }
+}

@@ -73,7 +73,7 @@ const requiredText = {
     "The new report compiler is a clean rebuild.",
     "Report Structure Agent",
     "legacy-generator fallback is allowed.",
-    "Only the General Tank Information family has been implemented and evaluated.",
+    "Scope of Inspection and General Tank Information are the implemented and evaluated agent families.",
     "PostgreSQL is the only transactional database.",
   ],
   "REPORT_COMPILER_WORKFLOW.md": [
@@ -84,7 +84,7 @@ const requiredText = {
     "There is no branch or fallback",
   ],
   "SECTION_AGENT_RELEASES.md": [
-    "Only **General Tank",
+    "**Scope of Inspection\nand General Tank Information**",
     "historical-report alignment",
     "technical-standard alignment",
     "same frozen bytes",

@@ -36,9 +36,16 @@ export async function verifyFrozenRelease({ rootUrl, manifestSha256 }) {
       manifest.standardObligationPack]) {
       if (!path || !manifest.files[path]) throw new Error('V2 section-agent controls must be pinned.');
     }
+    if (manifest.historicalPatternPack && !manifest.files[manifest.historicalPatternPack]) {
+      throw new Error('V2 historical pattern pack must be pinned.');
+    }
   }
   const kb = JSON.parse(await readFile(new URL(manifest.kbSnapshot, rootUrl)));
-  return deepFreeze({ manifest, kb });
+  const patternPack = manifest.historicalPatternPack
+    ? JSON.parse(await readFile(new URL(manifest.historicalPatternPack, rootUrl))) : null;
+  const standardPack = manifest.standardObligationPack
+    ? JSON.parse(await readFile(new URL(manifest.standardObligationPack, rootUrl))) : null;
+  return deepFreeze({ manifest, kb, patternPack, standardPack });
 }
 
 export async function runFrozenSectionAgent({ release, executionMode, sectionId, reportState }) {
@@ -68,7 +75,7 @@ export async function runFrozenSectionAgent({ release, executionMode, sectionId,
 
 export async function runPlannedFrozenSectionAgent({ release, executionMode, reportPlan, sectionPlan, evidenceSnapshot }) {
   if (executionMode !== 'evaluation') throw new Error('This section agent awaits review before product promotion.');
-  const { manifest, kb } = await verifyFrozenRelease(release);
+  const { manifest, kb, patternPack, standardPack } = await verifyFrozenRelease(release);
   if (manifest.contractVersion !== 'section_agent_release_v2'
       || !manifest.supportedSectionIds.includes(sectionPlan.sectionId)
       || !manifest.supportedReportProfiles.includes(sectionPlan.reportProfileId)
@@ -80,9 +87,18 @@ export async function runPlannedFrozenSectionAgent({ release, executionMode, rep
       || kb.currentFactsFromPrecedent !== false) {
     throw new Error('Unsupported KB or prompt policy for this planned agent.');
   }
+  const expectedPatternPack = patternPack?.packId ?? kb.snapshotId;
+  if (sectionPlan.historicalPatternPack !== expectedPatternPack
+      || sectionPlan.standardObligationPack !== standardPack?.packId
+      || patternPack?.runtimeRetrievalEnabled === true
+      || patternPack?.contentIncluded === true
+      || standardPack?.currentScopeFactsFromStandards === true) {
+    throw new Error('SectionPlan knowledge controls do not match the frozen release.');
+  }
   const module = await import(new URL(manifest.entryPoint, release.rootUrl).href);
   deepFreeze(module.AGENT_POLICY);
   deepFreeze(module.FIELD_DEFINITIONS);
+  deepFreeze(module.CLAIM_POLICY);
   const result = module[manifest.entryExport]({
     contractVersion: manifest.executionContract,
     executionMode,

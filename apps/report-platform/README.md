@@ -11,11 +11,12 @@ section.
   approval, evaluation, and DOCX export exist as a V1 Beta baseline.
 - The previous shared report generator is legacy read/comparison support. Do not add
   new generation behavior or use it as a fallback.
-- General Tank Information is the only implemented section-agent family. V1 is
-  frozen qualification evidence; V2 is the deterministic ReportPlan-bound
-  evaluation candidate. Neither is product-enabled.
-- The minimum in-memory ReportPlan/SectionPlan execution contract now exists for
-  this one section. The Report Structure Agent, durable plan stores, remaining
+- Two section-agent families are executable: Scope of Inspection v1 and General
+  Tank Information v2 use the deterministic ReportPlan-bound evaluation route.
+  General Tank Information v1 remains frozen qualification evidence. None is
+  product-enabled.
+- The minimum in-memory ReportPlan/SectionPlan execution contract now supports
+  these two sections. The Report Structure Agent, durable plan stores, remaining
   section agents, Report Integrator, PDF parity, and promotion registry remain to be built.
 - No report-generation model, KB policy, or section agent is currently promoted
   through the rebuilt pipeline.
@@ -40,7 +41,15 @@ standard and edition define technical obligations. Current app evidence and
 confirmed report-side inputs define current facts. These authorities remain
 separate.
 
-## First section agent
+## Implemented section agents
+
+`scope_of_inspection_v1` compiles an explicitly confirmed scope record into the
+reviewed arrow-bullet layout. It does not infer commissioned work from completed app
+tasks, historical frequency, or API 653. Contract tests and a private source-reviewed
+10+1 evaluation passed for 81 confirmed claims and 52 protected concepts. Those
+fixtures use reconstructed app-shaped evidence; actual-device export, automatic
+note-to-claim preprocessing, rendered inspector review, and product qualification
+remain open.
 
 `general_tank_information_v1` preserves 31 labelled fields per report. Ten
 development reports preserved 310/310 fields and one previously held-out report
@@ -57,8 +66,8 @@ remains for routing and blocker tests; it is not counted as qualification eviden
 
 The common-core specifications for report sections 1–7 are available under
 `server/section-agents/specs/vertical-tank-v1/`. Each section has the same visible
-agent, KB and harness control files. They are planned contracts; General Tank
-Information remains the only executable candidate.
+agent, KB and harness control files. The Scope of Inspection and General Tank
+Information folders now have executable candidates; the other five remain planned.
 
 ## Useful existing services
 
@@ -94,6 +103,7 @@ Primary validation:
 npm --prefix apps/report-platform run build
 npm --prefix apps/report-platform run architecture:audit
 npm --prefix apps/report-platform run section-agent:general-info:audit
+npm --prefix apps/report-platform run section-agent:scope:v1:audit
 apps/report-platform/scripts/report-platform-guardrails.sh --standard
 ```
 

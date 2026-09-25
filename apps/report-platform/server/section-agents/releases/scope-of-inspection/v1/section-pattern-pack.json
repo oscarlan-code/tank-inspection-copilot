@@ -1,0 +1,30 @@
+{
+  "contractVersion": "section_pattern_pack_v1",
+  "packId": "scope_of_inspection_pattern_pack_v1",
+  "sectionId": "scope-of-inspection",
+  "status": "frozen_offline_development_input",
+  "runtimeRetrievalEnabled": false,
+  "contentIncluded": false,
+  "sourcePopulation": {
+    "approvedTrainingSections": 52,
+    "normalizedShapeClusters": 32,
+    "reportFamilies": { "external_inspection": 3, "internal_external_api653": 25, "internal_inspection": 24 },
+    "memberSetSha256": "1962a19ae3eda5a98733ecf294e8ed9b140593e48be3e282e28ce4ba2f509fdb"
+  },
+  "reviewedPatterns": [
+    "one confirmed activity or deliverable per arrow bullet",
+    "prospective infinitive wording",
+    "retain method, coverage, quantity and access qualifiers",
+    "place report or drawing deliverables after inspection activities",
+    "state confirmed limitations or exclusions explicitly"
+  ],
+  "commonActivityFamilies": [
+    "visual_inspection", "thickness_measurement", "ultrasonic_crawler",
+    "magnetic_flux_leakage", "ultrasonic_corrosion_scan", "magnetic_particle_inspection",
+    "settlement_or_deflection_survey", "engineering_assessment", "report_compilation", "drawing_preparation"
+  ],
+  "forbiddenUses": [
+    "supply_current_scope_fact", "copy_source_sentence", "retrieve_at_runtime",
+    "select_current_activity_from_frequency", "override_confirmed_scope"
+  ]
+}

@@ -10,8 +10,9 @@ Read `SYSTEM_ARCHITECTURE.md` for whole-product boundaries and
 using an older topology or implementation-plan file.
 
 For Section Generation Agent work, also read `SECTION_AGENT_RELEASES.md` and
-`server/section-agents/AGENTS.md`. Only General Tank Information v1 is implemented;
-the remaining per-section agents are later work.
+`server/section-agents/AGENTS.md`. Scope of Inspection v1 and General Tank
+Information v1/v2 are implemented evaluation releases; the remaining per-section
+agents are later work.
 
 ## Core Rule
 

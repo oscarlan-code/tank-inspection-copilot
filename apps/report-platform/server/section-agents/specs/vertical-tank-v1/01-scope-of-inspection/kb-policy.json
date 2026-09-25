@@ -3,8 +3,8 @@
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "scope-of-inspection",
   "packId": "scope_of_inspection_pattern_pack_v1",
-  "status": "definition_only_not_frozen",
-  "mode": "section_pattern_retrieval_candidate",
+  "status": "frozen_reference",
+  "mode": "frozen_no_retrieval",
   "governedSource": {
     "indexId": "governed_kb_content_v1",
     "exactSectionKey": "scope-of-inspection",
@@ -15,10 +15,9 @@
     "requiredProfile": "vertical_tank_inspection_v1"
   },
   "allowedUses": [
-    "structure",
-    "scope_statement_cadence",
-    "terminology",
-    "format_patterns"
+    "offline_structure_review",
+    "offline_scope_statement_cadence_review",
+    "none_at_runtime"
   ],
   "forbiddenUses": [
     "current_tank_fact",
@@ -38,6 +37,7 @@
     "post_cutoff_source"
   ],
   "currentFactsFromHistoricalSources": false,
-  "runtimeSnapshot": null,
+  "runtimeSnapshot": "scope_of_inspection_v1_no_runtime_retrieval",
+  "frozenPatternPack": "scope_of_inspection_pattern_pack_v1",
   "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/01-scope-of-inspection/pack-candidate.json"
 }

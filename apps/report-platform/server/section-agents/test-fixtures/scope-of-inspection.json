@@ -1,0 +1,115 @@
+{
+  "exportPackage": {
+    "packageType": "v3_product_export",
+    "schemaVersion": 3,
+    "inspectionId": "inspection-scope-contract-fixture",
+    "inspectionRecord": {
+      "inspectionId": "inspection-scope-contract-fixture",
+      "client": "Evaluation Client",
+      "tankNumber": "VT-01",
+      "location": "Evaluation Yard"
+    },
+    "taskSnapshots": [
+      { "taskKey": "external_roof", "inScope": true, "isComplete": true },
+      { "taskKey": "shell_ut", "inScope": true, "isComplete": true },
+      { "taskKey": "unconfirmed_completed_task", "inScope": true, "isComplete": true }
+    ],
+    "layoutTargets": [
+      { "targetKey": "external_roof", "targetLabel": "External Roof", "inLayoutScope": true },
+      { "targetKey": "shell", "targetLabel": "Shell", "inLayoutScope": true }
+    ],
+    "voiceNotes": [
+      {
+        "voiceNoteId": "voice-scope-01",
+        "screenKey": "task_home",
+        "transcriptText": "Job says take roof readings where safe, run crawler readings at the four sides, and issue the inspection report. Do not include floor scanning this visit."
+      }
+    ]
+  },
+  "scopeConfirmation": {
+    "contractVersion": "scope_confirmation_v1",
+    "confirmed": true,
+    "confirmedBy": "evaluation-inspector",
+    "confirmedAtIso": "2026-09-25T09:00:00+08:00",
+    "sourceRefs": [
+      { "sourceType": "inspector_confirmed_scope", "sourceId": "scope-confirmation-01" },
+      { "sourceType": "app_voice_note", "sourceId": "voice-scope-01" }
+    ],
+    "claims": [
+      {
+        "claimId": "roof-ut",
+        "order": 1,
+        "kind": "inspection_activity",
+        "action": "carry out thickness measurements on",
+        "target": "accessible roof plates",
+        "extent": "with at least five readings per plate",
+        "conditions": ["where access, safety and surface conditions permit"],
+        "controlledReferences": [],
+        "appEvidenceRefs": [
+          { "kind": "app_task", "id": "external_roof" },
+          { "kind": "app_layout_target", "id": "external_roof" }
+        ],
+        "confirmed": true,
+        "sourceRefs": [
+          { "sourceType": "inspector_confirmed_scope", "sourceId": "scope-confirmation-01" },
+          { "sourceType": "app_voice_note", "sourceId": "voice-scope-01" }
+        ]
+      },
+      {
+        "claimId": "shell-crawler-ut",
+        "order": 2,
+        "kind": "inspection_activity",
+        "action": "carry out side-wall thickness measurements on",
+        "target": "the external shell",
+        "method": "an ultrasonic crawler",
+        "extent": "at four compass positions",
+        "conditions": [],
+        "controlledReferences": ["the approved inspection procedure"],
+        "appEvidenceRefs": [
+          { "kind": "app_task", "id": "shell_ut" },
+          { "kind": "app_layout_target", "id": "shell" }
+        ],
+        "confirmed": true,
+        "sourceRefs": [
+          { "sourceType": "inspector_confirmed_scope", "sourceId": "scope-confirmation-01" }
+        ]
+      },
+      {
+        "claimId": "report-deliverable",
+        "order": 3,
+        "kind": "deliverable",
+        "action": "compile",
+        "target": "the inspection report",
+        "conditions": [],
+        "controlledReferences": [],
+        "appEvidenceRefs": [],
+        "confirmed": true,
+        "sourceRefs": [
+          { "sourceType": "contract_scope", "sourceId": "work-order-01" }
+        ]
+      }
+    ],
+    "limitations": [
+      {
+        "recordId": "roof-access",
+        "order": 1,
+        "text": "roof measurements are restricted to safely accessible plate areas",
+        "confirmed": true,
+        "sourceRefs": [
+          { "sourceType": "inspector_confirmed_scope", "sourceId": "scope-confirmation-01" }
+        ]
+      }
+    ],
+    "exclusions": [
+      {
+        "recordId": "floor-mfl",
+        "order": 1,
+        "text": "floor MFL scanning",
+        "confirmed": true,
+        "sourceRefs": [
+          { "sourceType": "contract_scope", "sourceId": "work-order-01" }
+        ]
+      }
+    ]
+  }
+}

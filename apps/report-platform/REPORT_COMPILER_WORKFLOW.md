@@ -6,9 +6,9 @@ This is the sole active generation-pipeline contract. The previous shared genera
 hard-coded 32-section outline, and global retrieval/policy experiments are legacy
 comparison surfaces. There is no branch or fallback to them.
 
-Only General Tank Information has a frozen evaluation candidate. The Report
-Structure Agent, new stores/interfaces, remaining agents, integrator, and product
-routing are not yet implemented.
+Scope of Inspection and General Tank Information have frozen evaluation candidates.
+The Report Structure Agent, durable stores/interfaces, remaining agents, integrator,
+and product routing are not yet implemented.
 
 ## Pipeline
 
@@ -155,8 +155,9 @@ inspector approval. Neither path can promote itself.
 1. Implement schemas/stores for knowledge packs, ReportPlan, revised SectionPlan,
    SectionDocument, traces, release registry, and promotion registry.
 2. Implement the Report Structure Agent and review/freeze UI.
-3. Port General Tank Information into the new interface and prove output parity.
-4. Build remaining section agents one at a time, freezing each before the next.
+3. Keep General Tank Information and Scope of Inspection frozen while completing
+   their open device/preprocessing/inspector-review gates.
+4. Build the next section agents one at a time, freezing each before the next.
 5. Implement Report Integrator and browser/DOCX/PDF parity.
 6. Qualify multiple families/editions, inspector-note variation, security, load,
    canary, and rollback before product cutover.

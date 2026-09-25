@@ -1,0 +1,50 @@
+{
+  "contractVersion": "section_agent_harness_spec_v2",
+  "agentId": "scope_of_inspection",
+  "releaseVersion": "scope_of_inspection_v1",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "contractChecks": {
+    "purpose": "routing, input boundary, claim preservation, rendering safety and cross-agent isolation",
+    "fixtureCount": 1,
+    "qualificationEvidence": false
+  },
+  "historicalQualification": {
+    "groupBy": "report_lineage_and_scope_shape",
+    "developmentReports": 10,
+    "heldOutReports": 1,
+    "goldAvailableDuringGeneration": false,
+    "sameLineageRetrievalAllowed": false,
+    "narrativeMockInputCopiedFromGold": false,
+    "actualDeviceExport": false,
+    "independentInspectorReview": false,
+    "privateArtifactRoot": "docs/reviews/data/scope-of-inspection-v1-historical"
+  },
+  "requiredTests": [
+    "report_plan_hash_integrity", "section_plan_hash_integrity", "exact_registry_binding",
+    "v3_export_only", "confirmed_scope_required", "completed_task_not_scope",
+    "claim_count_and_order_preservation", "method_extent_condition_and_reference_preservation",
+    "limitation_and_exclusion_preservation", "source_reference_resolution", "unsupported_property_rejection",
+    "html_escaping", "wrong_profile_section_version_and_hash_rejection", "production_mode_rejection",
+    "immutable_input", "no_model_or_runtime_retrieval", "gold_exclusion", "unapproved_output",
+    "release_hash_integrity", "dependency_isolation", "general_information_regression",
+    "historical_development_then_held_out_freeze"
+  ],
+  "metrics": [
+    "scope_claim_recall", "protected_detail_recall", "unsupported_claim_count",
+    "format_alignment_rate", "critical_integrity_blockers", "leakage_findings"
+  ],
+  "freezeGates": {
+    "developmentReportsRequired": 10,
+    "heldOutReportsRequired": 1,
+    "scopeClaimRecall": 1.0,
+    "protectedDetailRecall": 1.0,
+    "unsupportedClaimCount": 0,
+    "formatAlignmentRate": 1.0,
+    "criticalIntegrityBlockers": 0,
+    "leakageFindings": 0,
+    "manifestAndDependencyHashesPinned": true,
+    "inspectorReviewRequired": true
+  },
+  "promotionPerformedByHarness": false
+}

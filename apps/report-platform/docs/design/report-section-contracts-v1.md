@@ -41,9 +41,10 @@ not fall back to it.
 
 An outline entry is not an implemented Section Generation Agent. Under the target
 architecture, every applicable section/profile instance must also bind to an exact
-agent release in its `SectionPlan`. Only General Tank Information v1 has that
-release today, and it remains evaluation-only. The other 31 compatibility entries
-describe planning structure for later work; they do not claim working agents.
+agent release in its `SectionPlan`. Scope of Inspection v1 and General Tank
+Information v1/v2 now have evaluation-only releases. The other compatibility
+entries describe planning structure for later work; they do not claim working
+agents.
 
 ## Profile boundary and ownership
 
