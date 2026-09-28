@@ -58,6 +58,23 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   for (const required of ['wrong_section_or_version_rejection', 'production_mode_rejection', 'unapproved_draft', 'kb_snapshot_hash_integrity', 'dependency_tamper_rejection', 'cross_agent_isolation']) {
     assert(harness.requiredTests.includes(required), `${definition.sectionId} missing ${required}`);
   }
+  if (definition.sectionId === 'inspection-report') {
+    assert.deepEqual(Object.keys(harness.evaluationTracks), ['interpretation', 'generation']);
+    assert(harness.robustnessProtocol.variantFamilies.length >= 8);
+    assert.equal(harness.robustnessProtocol.kbAblationRequired, true);
+    assert.equal(harness.robustnessProtocol.goldTextMaySeedNarrativeVariants, false);
+    assert.equal(harness.boundedRsiPilot.enabled, true);
+    assert(harness.boundedRsiPilot.maximumCandidateIterations <= 3);
+    assert(harness.boundedRsiPilot.pilotCohort.maximumRunsPerCandidate <= 30);
+    assert.equal(harness.boundedRsiPilot.automaticSourceLabelChanges, false);
+    assert.equal(harness.boundedRsiPilot.automaticFrozenReleaseMutation, false);
+    assert.equal(harness.boundedRsiPilot.automaticPromotion, false);
+    assert(harness.boundedRsiPilot.optimizerMustNotRead.includes('held_out_gold_before_final_candidate'));
+    assert.equal(harness.freezeGates.entityLocationSideAccuracy, 1);
+    assert.equal(harness.freezeGates.polarityUncertaintyAccuracy, 1);
+    assert.equal(harness.freezeGates.criticalClarificationMisses, 0);
+    assert(harness.freezeGates.crossVariantSemanticStabilityMinimum >= 0.95);
+  }
   const implemented = {
     'scope-of-inspection': {
       releaseId: 'scope_of_inspection_v1',
@@ -84,6 +101,18 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
     assert.equal(agent.frozenReleaseReference, null);
   }
 }
+
+const robustnessExample = JSON.parse(await readFile(join(appRoot,
+  'server/section-agents/test-fixtures/inspection-report-robustness-example.json'), 'utf8'));
+assert.equal(robustnessExample.contractVersion, 'inspection_report_note_variation_fixture_v1');
+assert.equal(robustnessExample.evaluationOnly, true);
+assert.equal(robustnessExample.qualificationEvidence, false);
+assert.equal(robustnessExample.sourceBasis.originalSectionTextIncluded, false);
+assert.equal(robustnessExample.variants.length, 6);
+assert.equal(new Set(robustnessExample.variants.map(row => row.variantId)).size, 6);
+assert.equal(new Set(robustnessExample.variants.map(row => row.note)).size, 6);
+assert(robustnessExample.variants.some(row => row.expectedBehavior === 'clarify_severity_before_generation'));
+assert(robustnessExample.prohibitedPreparation.includes('copy_original_report_sentence'));
 
 // Prove the private candidate splitter accepts only unique vertical training
 // documents and never copies report text into its manifests.
@@ -131,4 +160,5 @@ try {
 
 console.log(JSON.stringify({ passed: true, profileId: 'vertical_tank_inspection_v1', sectionAgentFolders: 7,
   filesPerFolder: requiredFiles, frozenAgentReferencesVerified: 2, privatePackSplitterVerified: true,
+  inspectionReportBoundedRsiVerified: true, inspectionReportVariationExampleVerified: true,
   productEnabled: false }, null, 2));

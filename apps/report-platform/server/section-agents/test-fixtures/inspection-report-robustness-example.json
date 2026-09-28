@@ -1,0 +1,79 @@
+{
+  "contractVersion": "inspection_report_note_variation_fixture_v1",
+  "evaluationOnly": true,
+  "qualificationEvidence": false,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_ae941a71373872c0c0b6",
+    "datasetSplit": "development",
+    "sectionId": "inspection-report",
+    "sourceItem": "FOUNDATION / west floor projection leading edge",
+    "originalSectionTextIncluded": false
+  },
+  "scenarioTruth": {
+    "observationId": "observation:foundation:west-floor-projection:leading-edge-corrosion",
+    "component": {
+      "componentId": "foundation.floor_projection",
+      "originalTerm": "floor projection",
+      "side": "external"
+    },
+    "location": {
+      "sector": "west",
+      "subLocation": "leading edge"
+    },
+    "condition": {
+      "type": "corrosion",
+      "severity": "minor",
+      "polarity": "observed",
+      "uncertainty": "none"
+    },
+    "extent": {
+      "kind": "approximate_length",
+      "value": 450,
+      "unit": "mm"
+    }
+  },
+  "variants": [
+    {
+      "variantId": "terse-shorthand",
+      "family": "terse_shorthand",
+      "note": "West floor projection edge: minor corr., about 450 mm long.",
+      "expectedBehavior": "normalize"
+    },
+    {
+      "variantId": "verbose-dictation",
+      "family": "verbose_dictation",
+      "note": "On the west side of the tank, I found minor corrosion running along the leading edge of the floor projection for roughly 450 millimetres.",
+      "expectedBehavior": "normalize"
+    },
+    {
+      "variantId": "terminology-alias",
+      "family": "terminology_aliases",
+      "note": "West-side bottom plate projection has light corrosion at the exposed edge, approximately 450 mm extent.",
+      "expectedBehavior": "normalize_with_original_term_preserved"
+    },
+    {
+      "variantId": "reordered-statements",
+      "family": "reordered_statements",
+      "note": "Around 450 mm long; minor corrosion; leading edge; west floor projection.",
+      "expectedBehavior": "normalize"
+    },
+    {
+      "variantId": "self-correction",
+      "family": "disfluency_and_self_correction",
+      "note": "North projection—sorry, correction, west projection—minor corrosion on the leading edge, about 450 mm.",
+      "expectedBehavior": "normalize_using_explicit_correction"
+    },
+    {
+      "variantId": "material-contradiction",
+      "family": "contradictory_detail_requiring_clarification",
+      "note": "West floor projection edge corrosion is about 450 mm long; severity is minor, although I also marked it severe in the checklist.",
+      "expectedBehavior": "clarify_severity_before_generation"
+    }
+  ],
+  "prohibitedPreparation": [
+    "copy_original_report_sentence",
+    "include_original_section_in_generator_input",
+    "change_scenario_truth_between_normalization_variants",
+    "resolve_material_contradiction_without_clarification"
+  ]
+}

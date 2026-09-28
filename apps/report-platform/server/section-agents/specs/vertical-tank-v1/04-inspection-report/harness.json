@@ -13,6 +13,108 @@
     "goldAvailableDuringGeneration": false,
     "sameLineageRetrievalAllowed": false
   },
+  "evaluationTracks": {
+    "interpretation": {
+      "input": "varied_raw_inspector_notes_for_one_fixed_truth_scenario",
+      "output": "traceable_structured_observations",
+      "purpose": "Measure whether wording variation changes component, location, side, polarity, uncertainty, severity or values before generation."
+    },
+    "generation": {
+      "input": "one_verified_structured_observation_snapshot_shared_by_all_candidates",
+      "output": "inspection_report_section_document",
+      "purpose": "Measure narrative quality and stability without confounding note interpretation."
+    }
+  },
+  "robustnessProtocol": {
+    "scenarioInvariant": "The underlying observation truth, entities, measurements and source links remain unchanged within a variant family.",
+    "variantFamilies": [
+      "terse_shorthand",
+      "verbose_dictation",
+      "terminology_aliases",
+      "reordered_statements",
+      "disfluency_and_self_correction",
+      "explicit_negation",
+      "uncertainty_and_qualification",
+      "mixed_components_in_one_note",
+      "missing_material_detail",
+      "contradictory_detail_requiring_clarification"
+    ],
+    "requiredPairwiseChecks": [
+      "entity_location_side_equivalence",
+      "polarity_equivalence",
+      "uncertainty_equivalence",
+      "protected_value_equivalence",
+      "supported_claim_set_equivalence",
+      "component_block_assignment_equivalence",
+      "clarification_behavior_equivalence"
+    ],
+    "kbAblationRequired": true,
+    "goldTextMaySeedNarrativeVariants": false,
+    "historicalTargetOrNearDuplicateRetrievalAllowed": false
+  },
+  "boundedRsiPilot": {
+    "enabled": true,
+    "meaning": "offline_bounded_release_improvement",
+    "maximumCandidateIterations": 3,
+    "pilotCohort": {
+      "developmentLineages": 3,
+      "validationLineages": 1,
+      "sealedHeldOutLineages": 1,
+      "variantsPerLineage": 6,
+      "maximumRunsPerCandidate": 30
+    },
+    "feedbackRecord": [
+      "failure_class",
+      "root_cause_stage",
+      "source_evidence_refs",
+      "expected_observation_or_claim",
+      "actual_observation_or_claim",
+      "affected_metric",
+      "proposed_release_change",
+      "review_decision"
+    ],
+    "allowedCandidateChanges": [
+      "new_prompt_version",
+      "new_terminology_map_version",
+      "new_evidence_routing_version",
+      "new_pattern_pack_snapshot",
+      "new_validator_version"
+    ],
+    "rootCauseRouting": {
+      "raw_note_identity_or_terminology_loss": "revise_interpretation_or_terminology_candidate",
+      "correct_observation_missing_from_output": "revise_generation_prompt_or_obligation_mapping_candidate",
+      "unsupported_generated_claim": "revise_generation_prompt_and_pre_display_validator_candidate",
+      "value_unit_polarity_or_uncertainty_change": "block_candidate_and_revise_structured_binding",
+      "historical_wording_copy_or_current_fact_borrowing": "block_candidate_and_revise_kb_policy_or_retrieval_filter",
+      "format_or_order_failure": "revise_deterministic_composer_or_renderer_candidate",
+      "wording_only_difference_with_stable_meaning": "no_change_required"
+    },
+    "iterationFlow": [
+      "freeze_baseline_candidate",
+      "run_development_variants",
+      "cluster_failures_by_root_cause_stage",
+      "prepare_reviewable_candidate_diff",
+      "register_new_candidate_version",
+      "run_full_development_regression",
+      "run_validation_without_tuning",
+      "open_sealed_held_out_only_for_final_comparison",
+      "require_engineer_and_inspector_review"
+    ],
+    "optimizerMayRead": [
+      "development_inputs",
+      "development_gold_after_generation",
+      "development_evaluator_feedback"
+    ],
+    "optimizerMustNotRead": [
+      "validation_gold_before_final_candidate",
+      "held_out_gold_before_final_candidate",
+      "production_feedback_without_review",
+      "other_tenant_content"
+    ],
+    "automaticSourceLabelChanges": false,
+    "automaticFrozenReleaseMutation": false,
+    "automaticPromotion": false
+  },
   "requiredTests": [
     "required_obligation_recall",
     "supported_claim_precision",
@@ -20,6 +122,13 @@
     "polarity_and_uncertainty_preservation",
     "protected_value_accuracy",
     "voice_variation_robustness",
+    "interpretation_and_generation_stage_isolation",
+    "variant_pair_semantic_stability",
+    "clarification_on_material_ambiguity",
+    "kb_ablation_without_current_fact_borrowing",
+    "development_feedback_does_not_open_validation_or_held_out_gold",
+    "candidate_change_requires_new_version",
+    "rsi_iteration_cap",
     "same_lineage_exclusion",
     "component_order_and_format",
     "cross_reference_resolution",
@@ -35,6 +144,12 @@
     "protected_fact_accuracy",
     "supported_claim_precision",
     "required_output_recall",
+    "entity_location_side_accuracy",
+    "polarity_uncertainty_accuracy",
+    "clarification_precision_and_recall",
+    "cross_variant_semantic_stability",
+    "cross_variant_format_stability",
+    "output_length_variance",
     "format_export_readiness",
     "inspector_review_outcome",
     "leakage_findings"
@@ -42,7 +157,11 @@
   "freezeGates": {
     "criticalIntegrityBlockers": 0,
     "protectedFactAccuracy": 1.0,
+    "entityLocationSideAccuracy": 1.0,
+    "polarityUncertaintyAccuracy": 1.0,
     "unsupportedCurrentClaims": 0,
+    "criticalClarificationMisses": 0,
+    "crossVariantSemanticStabilityMinimum": 0.95,
     "leakageFindings": 0,
     "renderReviewRequired": true,
     "inspectorReviewRequired": true,
