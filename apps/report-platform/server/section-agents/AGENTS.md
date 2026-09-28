@@ -69,12 +69,16 @@ requires the separate promotion registry and canary controls.
    facts or expose same-case/near-duplicate gold.
 5. Run development cases, freeze the complete artifact, then evaluate unchanged on
    validation and genuinely held-out lineage groups. Keep gold outside generation.
-6. Add an explicit registry entry and compatibility tests. Rerun regression tests
-   for every already-frozen release.
-7. Record fact preservation, semantic coverage, historical pattern alignment,
+6. Add explicit generator and independent pre-display reviewer registry entries.
+   The reviewer receives current evidence and generated output but no gold, and it
+   must fail closed before user presentation.
+7. Add the section-specific post-generation evaluator/rubric for sealed-gold R&D
+   comparison. It cannot affect visibility, approval, or promotion.
+8. Add compatibility tests and rerun regression tests for every already-frozen release.
+9. Record fact preservation, semantic coverage, historical pattern alignment,
    applicable standard-obligation coverage, unsupported claims, format/export
    readiness, inspector review, hashes, and known limits separately.
-8. Leave the release as a candidate until a distinct promotion review authorizes a
+10. Leave the release as a candidate until a distinct promotion review authorizes a
    product routing record. Do not enable product traffic from app-supplied flags.
 
 Never edit an existing `releases/<section>/<version>/` directory. Corrections create

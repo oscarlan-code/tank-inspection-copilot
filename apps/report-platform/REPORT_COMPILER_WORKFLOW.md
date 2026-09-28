@@ -21,10 +21,12 @@ and product routing are not yet implemented.
 6. Freeze one SectionPlan per section instance
 7. Resolve the exact immutable section-agent release
 8. Compile deterministic content and allowed narrative
-9. Validate current evidence, historical pattern, and standard obligations
-10. Integrate SectionDocuments into one ReportDocument
-11. Inspector edits and approves exact revisions
-12. Render/export selected approved content
+9. Run the exact independent pre-display Section Review Agent without gold
+10. Validate current evidence, historical pattern, and standard obligations
+11. Expose only `ready_for_review` unapproved drafts
+12. Integrate SectionDocuments into one ReportDocument
+13. Inspector edits and approves exact revisions
+14. Render/export selected approved content
 ```
 
 ## Core contracts
@@ -95,8 +97,11 @@ For one frozen SectionPlan, the orchestrator verifies all hashes and runs:
 6. typed SectionDocument creation with trace and unapproved status.
 
 Agent types are structured, visual, narrative, hybrid, or approved standard
-template. Inspection and Maintenance Regime normally uses a standard template and
-does not require AI drafting.
+template. Every generator release also requires one exact pre-display reviewer
+release. Structured sections normally use deterministic review; future narrative
+reviewers may require a bounded LLM semantic check after deterministic blockers pass.
+Inspection and Maintenance Regime normally uses a standard template and does not
+require AI drafting.
 
 ## Three validation gates
 

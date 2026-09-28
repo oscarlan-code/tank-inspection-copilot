@@ -14,7 +14,7 @@ const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = async name => JSON.parse(await readFile(new URL(name, root), 'utf8'));
 const cohort = await json('cohort.json');
 const preparation = await json(`${split}-preparation.json`);
-const codeFiles = ['server/section-agents/general-tank-information.mjs', 'server/section-agents/index.mjs', 'server/generation.mjs', 'server/section-planner.mjs', 'server/section-contracts.mjs', 'server/report-document.mjs', 'server/docx-export.mjs', 'server/scripts/prepare-general-information-mocks.py', 'server/scripts/run-general-information-evaluation.mjs'];
+const codeFiles = ['server/section-agents/general-tank-information.mjs', 'server/section-agents/generator-registry.mjs', 'server/generation.mjs', 'server/section-planner.mjs', 'server/section-contracts.mjs', 'server/report-document.mjs', 'server/docx-export.mjs', 'server/scripts/prepare-general-information-mocks.py', 'server/scripts/run-general-information-evaluation.mjs'];
 const codeHashes = Object.fromEntries(await Promise.all(codeFiles.map(async name => [name, digest(await readFile(new URL(`../../${name}`, import.meta.url)))])));
 if (split === 'held_out') {
   const freeze = await json('development-freeze.json');

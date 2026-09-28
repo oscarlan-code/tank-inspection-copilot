@@ -14,8 +14,8 @@ traceable inspection report and exports only approved content.
 
 ```text
 LAIQ app -> authenticated import -> normalized evidence -> ReportPlan
-         -> SectionPlans -> Section Agents -> ReportDocument
-         -> inspector approval -> DOCX/PDF
+         -> SectionPlans -> Section Agents -> pre-display Section Review Agents
+         -> ReportDocument -> inspector approval -> DOCX/PDF
 ```
 
 The app and report platform are independent products connected by versioned export
@@ -48,7 +48,10 @@ exact section-agent bindings. It creates structure, not section prose.
 Each Section Generation Agent receives one frozen `SectionPlan`, section-scoped
 current evidence, a historical `SectionPatternPack`, and its applicable standard
 obligations. It emits a typed `SectionDocument`, validation results, trace, and an
-unapproved draft. The deterministic Report Integrator verifies ordering,
+unapproved draft. An independently versioned pre-display Section Review Agent then
+checks current-evidence fidelity, section format and knowledge boundaries without
+gold. Only `ready_for_review` drafts may be presented, and they remain unapproved.
+The deterministic Report Integrator verifies ordering,
 cross-references, protected facts, unresolved obligations, and styles before
 creating one semantic `ReportDocument` for browser and export.
 
@@ -120,7 +123,8 @@ are indexed under `docs/contracts/`.
 | PDF export and cloud production deployment | Planned |
 
 Scope of Inspection and General Tank Information are the implemented and evaluated agent families.
-Scope v1 and General Information v2 exercise the new plan route;
+Both now have independent pre-display reviewer releases and post-generation sealed-gold
+evaluator releases. Scope v1 and General Information v2 exercise the new plan route;
 General Information v1 remains frozen evidence. All are evaluation-only and cannot
 enter product routing.
 

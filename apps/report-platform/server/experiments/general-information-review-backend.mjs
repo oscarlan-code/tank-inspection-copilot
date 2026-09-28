@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 
 const dataRoot = new URL('../../docs/reviews/data/general-tank-information-v2-historical/', import.meta.url);
 const sourceRoot = new URL('../../docs/reviews/data/general-tank-information-v1/', import.meta.url);
-const releaseManifest = new URL('../section-agents/releases/general-tank-information/v2/manifest.json', import.meta.url);
+const releaseManifest = new URL('../section-agents/releases/general-tank-information/generator/v2/manifest.json', import.meta.url);
 const cohort = loadPrivateCohort();
 const sectionId = 'general-tank-information';
 

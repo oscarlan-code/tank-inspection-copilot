@@ -66,5 +66,5 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": "../../../releases/scope-of-inspection/v1/manifest.json"
+  "frozenReleaseReference": "../../../releases/scope-of-inspection/generator/v1/manifest.json"
 }

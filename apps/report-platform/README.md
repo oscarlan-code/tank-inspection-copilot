@@ -16,8 +16,10 @@ section.
   General Tank Information v1 remains frozen qualification evidence. None is
   product-enabled.
 - The minimum in-memory ReportPlan/SectionPlan execution contract now supports
-  these two sections. The Report Structure Agent, durable plan stores, remaining
-  section agents, Report Integrator, PDF parity, and promotion registry remain to be built.
+  these two sections. Each has an independent frozen pre-display reviewer and a
+  separate post-generation gold evaluator. The Report Structure Agent, durable plan
+  stores, remaining section agents, Report Integrator, PDF parity, and promotion
+  registry remain to be built.
 - No report-generation model, KB policy, or section agent is currently promoted
   through the rebuilt pipeline.
 
@@ -31,6 +33,7 @@ immutable app import
   -> reviewed ReportPlan and table of contents
   -> evidence classification and frozen SectionPlans
   -> exact immutable Section Generation Agents
+  -> independent pre-display Section Review Agents (no gold)
   -> evidence / historical-pattern / standard validation
   -> deterministic Report Integrator and ReportDocument
   -> inspector edit, approval, and selected-content export
@@ -63,6 +66,12 @@ cases. Original report sections remained evaluator-only and were opened after
 generation. The fixtures are reconstructed app-shaped records; actual-device export
 and independent inspector review remain outstanding. One generic contract fixture
 remains for routing and blocker tests; it is not counted as qualification evidence.
+
+Both implemented generators now resolve to exact review releases under
+`server/section-agents/releases/<section-id>/reviewer/`. A generated draft is exposed only after its reviewer
+returns `ready_for_review`; it remains unapproved. R&D-only gold comparison releases
+live under `server/section-agents/releases/<section-id>/evaluator/` and open the original section only after
+generation. Their live LLM path is explicit and is not used by contract audits.
 
 The common-core specifications for report sections 1–7 are available under
 `server/section-agents/specs/vertical-tank-v1/`. Each section has the same visible

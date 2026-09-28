@@ -16,9 +16,9 @@ planned prompt/retrieval design.
 
 ## Executable release controls
 
-- [V1 release](../../../releases/scope-of-inspection/v1/README.md): instructions,
+- [V1 release](../../../releases/scope-of-inspection/generator/v1/README.md): instructions,
   spec, historical-pattern boundary, standard boundary and harness.
-- [V1 manifest](../../../releases/scope-of-inspection/v1/manifest.json): exact entry
+- [V1 manifest](../../../releases/scope-of-inspection/generator/v1/manifest.json): exact entry
   point and file hashes.
 - [Contract audit](../../../../scripts/audit-scope-of-inspection-v1.mjs): plan
   binding, input boundary, blockers, isolation and General Information regression.

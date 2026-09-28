@@ -10,7 +10,7 @@ import { GENERAL_INFORMATION_REVIEW_SOURCES } from '../experiments/general-infor
 
 const dataRoot = new URL('../../docs/reviews/data/general-tank-information-v2-historical/', import.meta.url);
 const sourceRoot = new URL('../../docs/reviews/data/general-tank-information-v1/', import.meta.url);
-const releaseManifest = new URL('../section-agents/releases/general-tank-information/v2/manifest.json', import.meta.url);
+const releaseManifest = new URL('../section-agents/releases/general-tank-information/generator/v2/manifest.json', import.meta.url);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const load = async (root, name) => JSON.parse(await readFile(new URL(name, root), 'utf8'));
 

@@ -1,0 +1,27 @@
+{
+  "contractVersion": "section_review_knowledge_policy_v1",
+  "sectionId": "scope-of-inspection",
+  "currentFactAuthority": [
+    "confirmed_scope_claims",
+    "confirmed_scope_limitations",
+    "confirmed_scope_exclusions"
+  ],
+  "historicalKbUse": [
+    "arrow_bullet_shape_check",
+    "ordering_pattern_check",
+    "wording_cadence_check"
+  ],
+  "standardUse": [
+    "reporting_boundary_check"
+  ],
+  "historicalKbCannot": [
+    "supply_current_scope",
+    "add_common_activity",
+    "override_confirmed_scope"
+  ],
+  "standardCannot": [
+    "invent_client_commissioned_work"
+  ],
+  "runtimeRetrieval": "disabled",
+  "goldAccess": "prohibited"
+}

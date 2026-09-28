@@ -19,8 +19,11 @@ Product and evaluation execute identical pinned:
 - deterministic tools, validators, formatter, integrator, and renderer;
 - model/provider settings for declared narrative slots.
 
-The only difference is the sink: evaluation opens sealed expected data after
-generation; product saves an unapproved draft for inspector review.
+Before either sink, the same exact pre-display Section Review Agent checks current
+evidence, format and knowledge boundaries without gold. Only `ready_for_review`
+drafts may be presented, and they remain unapproved. After generation, evaluation
+opens sealed expected data for a separately versioned gold evaluator; product saves
+the guarded unapproved draft for inspector review.
 
 ## Independent dimensions
 
@@ -47,12 +50,24 @@ Use several inspectors' varied notes for one expert-defined scenario. Assess ent
 identity, condition, negation, severity/extent, uncertainty, original wording,
 normalized terminology, source spans, and required clarification.
 
-### Section generation
+### Section generation and pre-display review
 
-Run each frozen release on development, validation, and held-out lineage groups.
+Run each frozen generator together with its exact independent reviewer release. The
+reviewer receives the current evidence and generated result, never gold, and controls
+only whether an unapproved draft is safe to display. Run each frozen release on
+development, validation, and held-out lineage groups.
 Measure protected-field preservation, required-concept recall, unsupported claims,
 relationship errors, structure/format compliance, standard-obligation coverage,
 missing-input behavior, and inspector edit/acceptance effort.
+
+### Post-generation gold evaluation
+
+After generation and pre-display review complete, open the sealed original section.
+A section-specific evaluator compares current evidence, generated content and the
+original for semantic recovery, supported-claim precision and format alignment.
+Exact wording is not a target. The evaluator cannot change visibility, approval or
+promotion. Contract audits inject a local judge; the explicit live-LLM path requires
+separate authorization for the disclosed evaluator-only content.
 
 ### Recommendations
 

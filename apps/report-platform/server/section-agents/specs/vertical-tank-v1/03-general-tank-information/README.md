@@ -15,11 +15,11 @@ changing the frozen release.
 
 ## Executable release controls
 
-- [V2 release](../../../releases/general-tank-information/v2/README.md): instructions, spec, KB, standard-pack decision and harness.
-- [V2 manifest](../../../releases/general-tank-information/v2/manifest.json): exact entry point and file hashes.
+- [V2 release](../../../releases/general-tank-information/generator/v2/README.md): instructions, spec, KB, standard-pack decision and harness.
+- [V2 manifest](../../../releases/general-tank-information/generator/v2/manifest.json): exact entry point and file hashes.
 - [V2 contract audit](../../../../scripts/audit-general-information-v2.mjs): ReportPlan/SectionPlan binding, blockers, isolation and v1 regression.
 - [V2 historical audit](../../../../scripts/audit-general-information-v2-historical.mjs): ten development reports followed by one frozen held-out report.
-- [V1 release](../../../releases/general-tank-information/v1/manifest.json): earlier 10+1 qualification evidence; never modify it.
+- [V1 release](../../../releases/general-tank-information/generator/v1/manifest.json): earlier 10+1 qualification evidence; never modify it.
 
 V2 now uses the minimum ReportPlan/SectionPlan interface. Product use still requires
 durable plan storage, promotion routing, persistence, integration and canary review.

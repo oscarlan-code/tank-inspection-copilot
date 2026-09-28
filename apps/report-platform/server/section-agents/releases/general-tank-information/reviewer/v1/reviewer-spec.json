@@ -1,0 +1,30 @@
+{
+  "contractVersion": "section_review_agent_spec_v1",
+  "reviewerId": "section_reviewer",
+  "releaseVersion": "reviewer_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "general-tank-information",
+  "generatorReleaseVersion": "general_tank_information_v2",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "reviewMode": "deterministic_evidence_and_format_guard",
+  "goldAllowed": false,
+  "llmPolicy": {
+    "mode": "not_required",
+    "reason": "All current output slots are protected structured fields."
+  },
+  "requiredChecks": [
+    "generator_valid",
+    "exact_title",
+    "field_count_and_order",
+    "protected_value_and_unit_fidelity",
+    "evidence_id_completeness",
+    "paired_field_format",
+    "no_runtime_retrieval",
+    "no_live_model",
+    "unapproved_output"
+  ],
+  "passState": "ready_for_review",
+  "failureState": "blocked",
+  "passDoesNotApprove": true
+}

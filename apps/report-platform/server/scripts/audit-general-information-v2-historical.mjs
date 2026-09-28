@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { SECTION_AGENT_RELEASES } from '../section-agents/index.mjs';
+import { SECTION_AGENT_RELEASES } from '../section-agents/generator-registry.mjs';
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
@@ -22,7 +22,7 @@ const release = SECTION_AGENT_RELEASES.general_tank_information_v2;
 const freeze = await json(dataRoot, 'development-freeze.json');
 assert.equal(freeze.releaseManifestSha256, release.manifestSha256);
 assert.equal(freeze.releaseManifestSha256,
-  await fileSha(`${appRoot}/server/section-agents/releases/general-tank-information/v2/manifest.json`));
+  await fileSha(`${appRoot}/server/section-agents/releases/general-tank-information/generator/v2/manifest.json`));
 assert.equal(freeze.cohortSha256, sha256(await bytes(sourceRoot, 'cohort.json')));
 assert.equal(freeze.preparationScriptSha256,
   await fileSha(`${appRoot}/server/scripts/prepare-general-information-v2-historical.py`));

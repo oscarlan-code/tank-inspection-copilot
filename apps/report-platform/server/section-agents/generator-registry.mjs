@@ -1,5 +1,5 @@
 import { canonicalSha256, validateMinimumReportPlan, validateMinimumSectionPlan } from '../report-plans/minimum-report-plan.mjs';
-import { deepFreeze, runFrozenSectionAgent, runPlannedFrozenSectionAgent } from './frozen-release.mjs';
+import { deepFreeze, runFrozenSectionAgent, runPlannedFrozenSectionAgent } from './generator-runtime.mjs';
 
 // Append explicit section/version entries. Never replace an existing release or
 // resolve "latest". A new section owns its own prompts, KB snapshot and dependencies.
@@ -9,7 +9,7 @@ export const SECTION_AGENT_RELEASES = deepFreeze({
     version: 'scope_of_inspection_v1',
     sectionId: 'scope-of-inspection',
     reportProfileIds: ['vertical_tank_inspection_v1'],
-    rootUrl: new URL('./releases/scope-of-inspection/v1/', import.meta.url).href,
+    rootUrl: new URL('./releases/scope-of-inspection/generator/v1/', import.meta.url).href,
     manifestSha256: '5f836136c4da5fa68cafa385ae5ada7d9e082ca38dd8d3b36d6126a02d2f7f55',
   },
   general_tank_information_v1: {
@@ -17,7 +17,7 @@ export const SECTION_AGENT_RELEASES = deepFreeze({
     version: 'general_tank_information_v1',
     sectionId: 'general-tank-information',
     reportProfileIds: ['vertical_tank_inspection_v1'],
-    rootUrl: new URL('./releases/general-tank-information/v1/', import.meta.url).href,
+    rootUrl: new URL('./releases/general-tank-information/generator/v1/', import.meta.url).href,
     manifestSha256: 'de8e7b1e980bfbd9777f05768f1996cc8bff08171f48177495eacc1af6a6fb43',
   },
   general_tank_information_v2: {
@@ -25,7 +25,7 @@ export const SECTION_AGENT_RELEASES = deepFreeze({
     version: 'general_tank_information_v2',
     sectionId: 'general-tank-information',
     reportProfileIds: ['vertical_tank_inspection_v1'],
-    rootUrl: new URL('./releases/general-tank-information/v2/', import.meta.url).href,
+    rootUrl: new URL('./releases/general-tank-information/generator/v2/', import.meta.url).href,
     manifestSha256: '1f8a904ab31719c836888600a401ad919b62bba100d564c9b32a292390bfce9b',
   },
 });

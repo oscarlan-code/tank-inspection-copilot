@@ -52,7 +52,9 @@ features, or fallbacks to them.
   release. Unknown, missing, or unqualified bindings fail closed.
 - Each release pins its input/applicability contract, outline, format, deterministic
   logic, optional prompt/model, historical SectionPatternPack, applicable
-  StandardObligationPack, validators, renderer interface, and dependencies.
+  StandardObligationPack, validators, renderer interface, and dependencies. Every
+  generator release also resolves to an exact independent pre-display reviewer; an
+  unreviewed or blocked draft cannot enter the user-facing report view.
 - R&D and product execute the same release bytes and hashes. Evaluation opens gold
   only after generation. Product saves an unapproved draft.
 - Promotion changes an audited server-owned routing record. App data, request flags,

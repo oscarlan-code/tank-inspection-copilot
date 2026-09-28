@@ -1,5 +1,5 @@
 import { generatePlannedSectionDraft } from './planned-generation.mjs';
-import { runSectionAgent } from './section-agents/index.mjs';
+import { runSectionAgent } from './section-agents/generator-registry.mjs';
 import { createHash, randomUUID } from "node:crypto";
 import {
   getAiStatus,

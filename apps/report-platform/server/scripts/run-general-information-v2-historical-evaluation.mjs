@@ -5,9 +5,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildMinimumReportPlan, buildMinimumSectionPlan } from '../report-plans/minimum-report-plan.mjs';
-import { executePlannedSection, getSectionAgentBinding, SECTION_AGENT_RELEASES } from '../section-agents/index.mjs';
-import { FIELD_DEFINITIONS } from '../section-agents/releases/general-tank-information/v2/server/agent.mjs';
-import { reportNodeText } from '../section-agents/releases/general-tank-information/v2/server/report-document.mjs';
+import { executePlannedSection, getSectionAgentBinding, SECTION_AGENT_RELEASES } from '../section-agents/generator-registry.mjs';
+import { FIELD_DEFINITIONS } from '../section-agents/releases/general-tank-information/generator/v2/server/agent.mjs';
+import { reportNodeText } from '../section-agents/releases/general-tank-information/generator/v2/server/report-document.mjs';
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
@@ -26,7 +26,7 @@ const escape = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g,
 const scriptPaths = {
   preparation: `${appRoot}/server/scripts/prepare-general-information-v2-historical.py`,
   evaluation: fileURLToPath(import.meta.url),
-  releaseManifest: `${appRoot}/server/section-agents/releases/general-tank-information/v2/manifest.json`,
+  releaseManifest: `${appRoot}/server/section-agents/releases/general-tank-information/generator/v2/manifest.json`,
 };
 const fileSha = async path => sha256(await readFile(path));
 const writeNewJson = async (name, value) => writeFile(new URL(name, outputRoot), `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });

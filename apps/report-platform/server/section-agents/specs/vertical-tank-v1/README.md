@@ -14,7 +14,7 @@ are reviewable specifications, not executable releases. Each folder contains:
 The folder number is the report section number. It is different from development
 order. `03-general-tank-information` was the first section agent implemented; its
 actual frozen evaluation release remains under
-`server/section-agents/releases/general-tank-information/v1/` and is not modified
+`server/section-agents/releases/general-tank-information/generator/v1/` and is not modified
 by these specifications.
 
 ## Agent folders

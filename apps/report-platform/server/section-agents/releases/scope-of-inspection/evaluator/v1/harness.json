@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_evaluation_harness_v1",
+  "evaluatorId": "section_evaluator",
+  "releaseVersion": "evaluator_v1",
+  "requiredTests": [
+    "exact_generator_and_reviewer_binding",
+    "gold_hash_integrity",
+    "gold_opened_after_generation",
+    "gold_absent_from_generation_retrieval",
+    "no_judge_wait_state",
+    "structured_judge_output",
+    "unsupported_claim_forces_block",
+    "does_not_change_user_visibility",
+    "manifest_integrity"
+  ],
+  "liveModelCallsInContractAudit": 0,
+  "promotionPerformedByHarness": false
+}

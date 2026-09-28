@@ -15,7 +15,7 @@ DEFAULT_SOURCE = PROJECT / "docs/reviews/data/general-tank-information-v1"
 DEFAULT_OUTPUT = PROJECT / "docs/reviews/data/general-tank-information-v2-historical"
 LEGACY_EXTRACTOR = Path(__file__).with_name("prepare-general-information-mocks.py")
 EVALUATOR = Path(__file__).with_name("run-general-information-v2-historical-evaluation.mjs")
-V2_MANIFEST = PROJECT / "server/section-agents/releases/general-tank-information/v2/manifest.json"
+V2_MANIFEST = PROJECT / "server/section-agents/releases/general-tank-information/generator/v2/manifest.json"
 
 
 def digest(path):

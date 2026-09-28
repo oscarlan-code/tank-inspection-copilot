@@ -1,0 +1,39 @@
+{
+  "contractVersion": "section_review_agent_release_v1",
+  "reviewerId": "section_reviewer",
+  "releaseId": "reviewer_v1",
+  "supportedReportProfiles": [
+    "vertical_tank_inspection_v1"
+  ],
+  "supportedSectionIds": [
+    "scope-of-inspection"
+  ],
+  "supportedGenerator": {
+    "releaseVersion": "scope_of_inspection_v1",
+    "manifestSha256": "5f836136c4da5fa68cafa385ae5ada7d9e082ca38dd8d3b36d6126a02d2f7f55"
+  },
+  "status": "evaluation_candidate",
+  "productionEnabled": false,
+  "executionModes": [
+    "evaluation"
+  ],
+  "reviewContract": "section_review_execution_v1",
+  "resultContract": "section_review_result_v1",
+  "reviewMode": "deterministic_pre_display_guard",
+  "goldAllowed": false,
+  "reviewerInstructions": "reviewer-instructions.md",
+  "reviewerSpec": "reviewer-spec.json",
+  "knowledgeReviewPolicy": "knowledge-review-policy.json",
+  "harness": "harness.json",
+  "entryPoint": "server/reviewer.mjs",
+  "entryExport": "reviewScopeOfInspection",
+  "files": {
+    "README.md": "c6449ac93a39b7fa973e01769c73284f931a0df79e64b28b1146a17f5536a73d",
+    "harness.json": "d919504dbee57eff97e29d0b96613fe297e20707dee0b368015f15901ebd87df",
+    "knowledge-review-policy.json": "4c77a1b4c1dabbe74f78ba2bf10344d6b66b1ab68f98a6c3b71f3808d61f5043",
+    "reviewer-instructions.md": "7045c9a790ec3087e6192500bf0f135ecda03fb37b67129a0c3b92910a2f1237",
+    "reviewer-spec.json": "ce8539b0189c3f3e30470385e33b200c6acec44ac15e6bf0529aad2eb8e4fbe7",
+    "server/reviewer.mjs": "35b24f47ab55eec1bcb3fe8773d51893a1651699bfbc537b64d9a5475e62a692"
+  },
+  "agentRole": "reviewer"
+}

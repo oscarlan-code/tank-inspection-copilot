@@ -40,7 +40,9 @@ section-agent, knowledge-authority, or promotion rules in the root contracts.
   sequence for the rebuilt V1 ReportPlan. Roof configuration controls applicability
   and does not split the vertical-tank report family. General Tank Information v1
   is frozen evidence; v2 is the first ReportPlan-bound evaluation candidate. Both
-  remain product-disabled. Uniform per-section agent, KB and
+  remain product-disabled. Their independent pre-display reviewers live under
+  `server/section-agents/releases/<section-id>/reviewer/`; sealed-gold R&D evaluators live under
+  `server/section-agents/releases/<section-id>/evaluator/`. Uniform per-section agent, KB and
   harness specifications for sections 1–7 live under
   `server/section-agents/specs/vertical-tank-v1/`.
 - `docs/reviews/`: dated audit and qualification evidence. Results record what was

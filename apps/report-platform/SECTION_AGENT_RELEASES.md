@@ -31,7 +31,10 @@ A release owns or hash-pins:
   manifest hash.
 
 Gold and evaluator labels are never runtime inputs. No mutable global prompt, KB,
-standard pack, dependency, or `latest` release is allowed.
+standard pack, dependency, or `latest` release is allowed. Every generator release
+must resolve to one exact immutable pre-display reviewer release before its draft can
+be shown. The reviewer receives current evidence and generated output but no gold;
+passing permits review and never grants approval.
 
 ## Execution
 
@@ -126,8 +129,11 @@ actual-device export, rendered inspector acceptance, or product behavior.
 6. Freeze, then evaluate unchanged on validation and held-out lineage groups.
 7. Record all three gates, unsupported claims, rendered output, inspector review,
    hashes, and limitations.
-8. Add exact registry routing and rerun prior-agent regressions.
-9. Keep evaluation-only until separate product qualification and canary approval.
+8. Add exact generator, pre-display reviewer and post-generation gold-evaluator
+   registry routing; rerun prior-agent regressions.
+9. Verify that blocked reviews hide the user-facing draft and that the sealed gold
+   opens only after generation.
+10. Keep evaluation-only until separate product qualification and canary approval.
 
 Finishing one agent does not authorize incomplete full-report generation. Missing
 agents keep their sections blocked.

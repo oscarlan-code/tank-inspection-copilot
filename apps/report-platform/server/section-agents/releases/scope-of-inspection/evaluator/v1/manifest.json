@@ -1,0 +1,43 @@
+{
+  "contractVersion": "section_evaluation_agent_release_v1",
+  "evaluatorId": "section_evaluator",
+  "releaseId": "evaluator_v1",
+  "supportedReportProfiles": [
+    "vertical_tank_inspection_v1"
+  ],
+  "supportedSectionIds": [
+    "scope-of-inspection"
+  ],
+  "supportedGenerator": {
+    "releaseVersion": "scope_of_inspection_v1",
+    "manifestSha256": "5f836136c4da5fa68cafa385ae5ada7d9e082ca38dd8d3b36d6126a02d2f7f55"
+  },
+  "supportedReviewer": {
+    "releaseVersion": "reviewer_v1",
+    "manifestSha256": "ec54c0668bc124ae733f8806a74954d57d94417b2f67b6e4ecf655292c8b02a7"
+  },
+  "status": "evaluation_candidate",
+  "executionModes": [
+    "evaluation"
+  ],
+  "goldAccess": "post_generation_only",
+  "evaluationContract": "section_gold_evaluation_execution_v1",
+  "resultContract": "section_gold_evaluation_result_v1",
+  "evaluatorInstructions": "evaluator-instructions.md",
+  "evaluatorSpec": "evaluator-spec.json",
+  "rubric": "rubric.json",
+  "outputSchema": "output-schema.json",
+  "harness": "harness.json",
+  "entryPoint": "server/evaluator.mjs",
+  "entryExport": "evaluateScopeOfInspectionGold",
+  "files": {
+    "README.md": "2244875ea258a6fadb95cc128186196981a0215c6d733d1119c3d60b2b1b3a9c",
+    "evaluator-instructions.md": "3baef8b05953f152880e01e3a3eca6ac87ece14ea255786839086c3a57a31cc8",
+    "evaluator-spec.json": "0d5869fa692021c1b3583438d75ef2770238573bc7d8028581c42c5d8fd7ed16",
+    "harness.json": "dbdc2cb78e1325620617f61796d1bc236c8e4bc3edfa0fb18752a5dec32e9643",
+    "output-schema.json": "859e6fdf19454f4fc5f8c0f3448926784b4986f2b2f36e31c49aff307679a60d",
+    "rubric.json": "10329475ed0ac0fec4a2c90d56014313ae2ee247a1cba8d9dd2beac307e62048",
+    "server/evaluator.mjs": "346b8734b0fd9c4cb07a945b3861fe735a3d99bc53544655792824fc946cebc2"
+  },
+  "agentRole": "evaluator"
+}

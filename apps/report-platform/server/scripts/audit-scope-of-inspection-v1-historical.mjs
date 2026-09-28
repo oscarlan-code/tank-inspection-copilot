@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildMinimumReportPlan, buildMinimumSectionPlan } from '../report-plans/minimum-report-plan.mjs';
-import { executePlannedSection, getSectionAgentBinding } from '../section-agents/index.mjs';
+import { executePlannedSection, getSectionAgentBinding } from '../section-agents/generator-registry.mjs';
 
 const args = process.argv.slice(2);
 const dataArg = args.includes('--data') ? args[args.indexOf('--data') + 1]

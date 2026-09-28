@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { SECTION_AGENT_RELEASES, runSectionAgent } from '../section-agents/index.mjs';
-import { runFrozenSectionAgent, verifyFrozenRelease } from '../section-agents/frozen-release.mjs';
+import { SECTION_AGENT_RELEASES, runSectionAgent } from '../section-agents/generator-registry.mjs';
+import { runFrozenSectionAgent, verifyFrozenRelease } from '../section-agents/generator-runtime.mjs';
 
 const release = SECTION_AGENT_RELEASES.general_tank_information_v1;
 const request = { sectionAgentVersion: release.version, sectionId: release.sectionId, executionMode: 'evaluation' };
@@ -70,7 +70,7 @@ assert.throws(() => { module.GENERAL_INFORMATION_AGENT.kbPolicy.retrieval = 'ena
 
 const temp = await mkdtemp(join(tmpdir(), 'laiq-frozen-section-'));
 try {
-  const copyRoot = pathToFileURL(join(temp, 'server/section-agents/releases/general-tank-information/v1/')).href;
+  const copyRoot = pathToFileURL(join(temp, 'server/section-agents/releases/general-tank-information/generator/v1/')).href;
   await cp(fileURLToPath(release.rootUrl), fileURLToPath(copyRoot), { recursive: true });
   const isolated = { ...release, rootUrl: copyRoot };
   // Simulate future changes to common files and a second agent's KB. None may

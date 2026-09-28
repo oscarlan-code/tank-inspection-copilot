@@ -1,0 +1,31 @@
+{
+  "contractVersion": "section_review_agent_spec_v1",
+  "reviewerId": "section_reviewer",
+  "releaseVersion": "reviewer_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "scope-of-inspection",
+  "generatorReleaseVersion": "scope_of_inspection_v1",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "reviewMode": "deterministic_claim_and_format_guard",
+  "goldAllowed": false,
+  "llmPolicy": {
+    "mode": "not_required",
+    "reason": "The current release deterministically compiles confirmed scope claims."
+  },
+  "requiredChecks": [
+    "generator_valid",
+    "exact_title",
+    "claim_count_and_order",
+    "protected_concept_fidelity",
+    "limitation_and_exclusion_fidelity",
+    "component_narrative_format",
+    "no_scope_widening",
+    "no_runtime_retrieval",
+    "no_live_model",
+    "unapproved_output"
+  ],
+  "passState": "ready_for_review",
+  "failureState": "blocked",
+  "passDoesNotApprove": true
+}

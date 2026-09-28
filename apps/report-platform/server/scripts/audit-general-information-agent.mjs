@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { generateSectionDraft } from '../generation.mjs';
 import { GENERAL_INFORMATION_AGENT_VERSION as version, GENERAL_INFORMATION_SECTION as sectionId } from '../section-agents/general-tank-information.mjs';
-import { buildFinalReportDocx } from '../section-agents/releases/general-tank-information/v1/server/docx-export.mjs';
+import { buildFinalReportDocx } from '../section-agents/releases/general-tank-information/generator/v1/server/docx-export.mjs';
 const fixture = JSON.parse(await readFile(new URL('../section-agents/test-fixtures/general-information.json', import.meta.url)));
 const run = reportState => generateSectionDraft({ reportState, sectionId, executionMode: 'evaluation', sectionAgentVersion: version });
 const checks = [];

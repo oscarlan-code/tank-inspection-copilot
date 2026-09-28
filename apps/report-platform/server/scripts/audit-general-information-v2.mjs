@@ -8,11 +8,11 @@ import { buildMinimumReportPlan, buildMinimumSectionPlan } from '../report-plans
 import {
   SECTION_AGENT_RELEASES, executePlannedSection, getSectionAgentBinding,
   resolveSectionAgentRelease, runSectionAgent,
-} from '../section-agents/index.mjs';
-import { verifyFrozenRelease } from '../section-agents/frozen-release.mjs';
+} from '../section-agents/generator-registry.mjs';
+import { verifyFrozenRelease } from '../section-agents/generator-runtime.mjs';
 
 const release = SECTION_AGENT_RELEASES.general_tank_information_v2;
-const releaseRoot = new URL('../section-agents/releases/general-tank-information/v2/', import.meta.url);
+const releaseRoot = new URL('../section-agents/releases/general-tank-information/generator/v2/', import.meta.url);
 const readJson = async url => JSON.parse(await readFile(url, 'utf8'));
 const { manifest } = await verifyFrozenRelease(release);
 const [spec, harness, standardPack, fixture] = await Promise.all([

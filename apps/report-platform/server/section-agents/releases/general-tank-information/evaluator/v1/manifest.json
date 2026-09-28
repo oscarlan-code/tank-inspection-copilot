@@ -1,0 +1,43 @@
+{
+  "contractVersion": "section_evaluation_agent_release_v1",
+  "evaluatorId": "section_evaluator",
+  "releaseId": "evaluator_v1",
+  "supportedReportProfiles": [
+    "vertical_tank_inspection_v1"
+  ],
+  "supportedSectionIds": [
+    "general-tank-information"
+  ],
+  "supportedGenerator": {
+    "releaseVersion": "general_tank_information_v2",
+    "manifestSha256": "1f8a904ab31719c836888600a401ad919b62bba100d564c9b32a292390bfce9b"
+  },
+  "supportedReviewer": {
+    "releaseVersion": "reviewer_v1",
+    "manifestSha256": "a5804bd21cb1b2676c72a54d8d8983c31fc2bc1f98b23eae5ee1fce45d59ad96"
+  },
+  "status": "evaluation_candidate",
+  "executionModes": [
+    "evaluation"
+  ],
+  "goldAccess": "post_generation_only",
+  "evaluationContract": "section_gold_evaluation_execution_v1",
+  "resultContract": "section_gold_evaluation_result_v1",
+  "evaluatorInstructions": "evaluator-instructions.md",
+  "evaluatorSpec": "evaluator-spec.json",
+  "rubric": "rubric.json",
+  "outputSchema": "output-schema.json",
+  "harness": "harness.json",
+  "entryPoint": "server/evaluator.mjs",
+  "entryExport": "evaluateGeneralTankInformationGold",
+  "files": {
+    "README.md": "2244875ea258a6fadb95cc128186196981a0215c6d733d1119c3d60b2b1b3a9c",
+    "evaluator-instructions.md": "c3d70c9ab27a032aa726e9f29bd03915800c8e4942aeb8ac427fa145b94ad496",
+    "evaluator-spec.json": "5ccc9cb5be2957d3cbc6be22b4a7e69016c739543aeedbbdc74d517acceae470",
+    "harness.json": "dbdc2cb78e1325620617f61796d1bc236c8e4bc3edfa0fb18752a5dec32e9643",
+    "output-schema.json": "859e6fdf19454f4fc5f8c0f3448926784b4986f2b2f36e31c49aff307679a60d",
+    "rubric.json": "6092c143cf754a9a7712d66fbb4b3f777b6db8f989bbdcf3feedad77c130f0c8",
+    "server/evaluator.mjs": "7edc5ad36a34d34f20914bb6b40ca84b75827bbaba57ad83dbea024ac4131bac"
+  },
+  "agentRole": "evaluator"
+}

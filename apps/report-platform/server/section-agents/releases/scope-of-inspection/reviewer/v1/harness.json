@@ -1,0 +1,24 @@
+{
+  "contractVersion": "section_review_harness_v1",
+  "reviewerId": "section_reviewer",
+  "releaseVersion": "reviewer_v1",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "requiredTests": [
+    "exact_registry_binding",
+    "generator_release_hash_binding",
+    "gold_exclusion",
+    "claim_order_and_count",
+    "protected_concept_preservation",
+    "limitation_and_exclusion_preservation",
+    "removed_claim_block",
+    "changed_claim_block",
+    "completed_task_not_scope",
+    "invalid_generation_hidden",
+    "unapproved_output",
+    "manifest_integrity",
+    "future_section_fail_closed"
+  ],
+  "liveModelCalls": 0,
+  "promotionPerformedByHarness": false
+}

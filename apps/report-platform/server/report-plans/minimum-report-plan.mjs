@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { deepFreeze } from '../section-agents/frozen-release.mjs';
+import { deepFreeze } from '../section-agents/generator-runtime.mjs';
 
 export const REPORT_PLAN_CONTRACT = 'report_plan_v1';
 export const SECTION_PLAN_CONTRACT = 'section_plan_execution_v1';
