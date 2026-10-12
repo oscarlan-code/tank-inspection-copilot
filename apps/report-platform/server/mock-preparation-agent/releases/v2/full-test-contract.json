@@ -1,0 +1,91 @@
+{
+  "contractVersion": "mock_preparation_full_test_v1",
+  "status": "candidate_protocol",
+  "agentRelease": "mock-preparation-agent-v2",
+  "productUseEnabled": false,
+  "cohort": {
+    "id": "vertical-tank-internal-external-v1",
+    "manifestCaseCount": 12,
+    "developmentCaseCount": 9,
+    "heldOutValidationCaseCount": 3,
+    "splitUnit": "source report and asset lineage",
+    "sameCaseVariantsStayTogether": true
+  },
+  "qualificationStages": [
+    {
+      "id": "full_case_regression",
+      "split": "training",
+      "purpose": "Exercise every eligible unit and Android contract path before held-out evaluation."
+    },
+    {
+      "id": "held_out_validation",
+      "split": "validation",
+      "purpose": "Measure generalization without changing prompts, model, grader, composition rules or gates."
+    }
+  ],
+  "datasetReadiness": {
+    "requiredPerCase": [
+      "case.json",
+      "source-receipt.json",
+      "source-blocks.jsonl",
+      "checklist-extraction.json",
+      "semantic-pairs.json",
+      "reviewed-case-plan.json",
+      "freeze-manifest.json"
+    ],
+    "checklistItemCount": 195,
+    "checklistUnresolvedCount": 0,
+    "semanticUnitDenominator": "all reviewed semantic units in semantic-pairs.json",
+    "narrativeEligibility": "capturable semantic units owned by the pinned agent release",
+    "acceptedSemanticGoldStatuses": [
+      "human_approved",
+      "frozen"
+    ]
+  },
+  "datasets": [
+    {
+      "id": "base-source-grounded",
+      "generator": "deterministic",
+      "sourceWordingAllowed": true
+    },
+    {
+      "id": "natural-field-speech",
+      "generator": "gpt-5.6-sol",
+      "sourceWordingAllowed": false
+    },
+    {
+      "id": "concise-field-shorthand",
+      "generator": "gpt-5.6-sol",
+      "sourceWordingAllowed": false
+    }
+  ],
+  "execution": {
+    "maximumAtomicFactsPerModelBatch": 20,
+    "preserveEvidenceGroupsWithinBatch": true,
+    "maximumRepairAttemptsAfterInitial": 2,
+    "stopOnInfrastructureFailure": true,
+    "continueAndRecordSemanticFailure": true,
+    "noPromptChangesDuringHeldOutRun": true
+  },
+  "hardGates": {
+    "sourceReceiptIntegrity": 1,
+    "checklistCompleteness": 1,
+    "criticalFactPreservation": 1,
+    "measurementUnitPolarityLocationIntegrity": 1,
+    "unsupportedClaimCount": 0,
+    "androidRoundTripPassRate": 1,
+    "lineageCoverage": 1
+  },
+  "review": {
+    "reviewAllFailures": true,
+    "stratifiedPassSampleRate": 0.1,
+    "minimumPassRowsPerEvidenceType": 5,
+    "finalFreezeRequiresHumanDecision": true
+  },
+  "aggregation": {
+    "primary": "macro_average_by_source_report",
+    "secondary": "unit_and_evidence_type",
+    "showCountsWithRates": true,
+    "doNotMergeDevelopmentAndValidationScores": true
+  }
+}

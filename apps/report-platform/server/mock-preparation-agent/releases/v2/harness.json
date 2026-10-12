@@ -1,0 +1,32 @@
+{
+  "contractVersion": "mock_preparation_harness_v2",
+  "model": {
+    "id": "gpt-5.6-sol",
+    "reasoningEffort": "high"
+  },
+  "input": {
+    "unit": "atomic source fact",
+    "composition": "explicit many-facts-to-one-note plan",
+    "pilotFactCount": 20,
+    "maximumFactsPerFullTestBatch": 20,
+    "fullTestSelection": "all reviewed eligible facts, batched without splitting a planned evidence group"
+  },
+  "output": {
+    "unit": "base voice-note clause plus controlled wording variations",
+    "requiredLineage": "every clause declares covered fact IDs"
+  },
+  "hardGates": [
+    "every selected fact assigned to exactly one planned note",
+    "every selected fact covered by exactly one generated clause",
+    "no unknown note or fact ID",
+    "no empty clause",
+    "base dataset may preserve source wording",
+    "variation datasets must change expression without changing facts",
+    "pre-export semantic guard preserves every fact",
+    "pre-export semantic guard finds zero unsupported claims"
+  ],
+  "repair": {
+    "maximumAttemptsAfterInitial": 2,
+    "feedbackSource": "independent pre-export guard only"
+  }
+}

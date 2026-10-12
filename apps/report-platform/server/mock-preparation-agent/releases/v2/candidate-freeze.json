@@ -1,0 +1,26 @@
+{
+  "contractVersion": "mock_preparation_candidate_freeze_v1",
+  "releaseId": "mock-preparation-agent-v2",
+  "status": "frozen_evaluation_candidate",
+  "productUseEnabled": false,
+  "validatedRelease": false,
+  "modelId": "gpt-5.6-sol",
+  "gitBaseCommitAtFreeze": "09b8e6464903389b8f373e8799122956aa79005d",
+  "releaseIdentity": "Locked file hashes are authoritative; the manifest may be committed after this base commit.",
+  "createdAtIso": "2026-10-12T13:55:39.912Z",
+  "lockedFiles": {
+    "README.md": "cefbf71298c74faf2358736152e6b6bc5f6f4eebcc5357522afffc34fdcc7398",
+    "agent-spec.json": "e18229bb0b30f6bcb4530912e928229c8a2ab15275fcd973d76d62b5fcad5372",
+    "harness.json": "1c0971bb76585c02570ae49fc02ef33caa739beda8194a6eb8676f2c8b738ee7",
+    "prompt.md": "a8c0ddc79ce4e37dc35425c088d60a9b884c0a8751133d2f51a39bb92633ebad",
+    "reviewer-prompt.md": "8fc12995c90ea22a0c306740957fcebb48bc23b3b28df735edd61e7d1ed4ffb5",
+    "prepare-pilot.mjs": "1c8df7eb9f1c2a931f0a7699827a5281d34c004b2ac689f3628f5d8ce4281426",
+    "audit-pilot-android.mjs": "505cc631153cb94e80943658536c7748ea3c7a2a1616aad5b0bc3774f4ba01ed",
+    "full-test-contract.json": "38f8d3007b8f72fccd9cda915d41fd51796c3db3efa7abf373609f6576d1313d",
+    "full-test-preflight.mjs": "5d5a7228e711a036bbdbbe3b81906e6005ad50cd5c1a8236457cf242a9fa9bbc",
+    "full-test-preflight.test.mjs": "0b47ca9b3bc07b315a4bcc8e73a09c954eead4799fa2d477abc0d2b493c63f01",
+    "freeze-candidate.mjs": "41dc5e89a85f13f829ad3d54cf1783a92addfdac77914ff9c0de0327eb170a2e"
+  },
+  "aggregateSha256": "4de2dc6330b92139e9210ca16b0bcbd50aa23d95c7f752a2899f65a439765c3c",
+  "nextDecision": "Run the locked full-test protocol. Human review is required before a validated release freeze."
+}

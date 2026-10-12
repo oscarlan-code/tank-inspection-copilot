@@ -1,0 +1,23 @@
+{
+  "agentId": "mock-preparation-agent",
+  "release": "v2",
+  "status": "evaluation_candidate",
+  "goal": "Create a source-grounded Android V3 mock dataset and controlled voice-note variations from one atomic fact ledger without changing inspection truth.",
+  "modelId": "gpt-5.6-sol",
+  "openBookSourceAccess": true,
+  "productUseEnabled": false,
+  "reportGenerationEnabled": false,
+  "llmOwnedUnitTypes": [
+    "observation",
+    "recommendation",
+    "scope_fact",
+    "test_method"
+  ],
+  "forbidden": [
+    "using report-generation agents or report-section routing",
+    "inventing a fact, action, measurement, location, relationship, condition, limitation or recommendation",
+    "changing protected values or units",
+    "writing directly to an Android export",
+    "using post-export evaluator labels during generation"
+  ]
+}
