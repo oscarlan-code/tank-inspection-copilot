@@ -1,0 +1,21 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "scope-of-inspection",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "scope_obligation",
+  "dimensions": [
+    "obligation_recall",
+    "supported_claim_precision",
+    "method_component_coverage",
+    "limitation_preservation",
+    "protected_value_accuracy",
+    "format_conformance"
+  ],
+  "criticalFailureRules": [
+    "any_unsupported_current_scope_claim",
+    "any_missing_safety_or_access_limitation",
+    "any_changed_quantity_or_unit"
+  ],
+  "productEnabled": false
+}

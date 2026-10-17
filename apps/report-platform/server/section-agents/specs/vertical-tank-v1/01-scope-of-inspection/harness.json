@@ -2,7 +2,7 @@
   "contractVersion": "section_agent_harness_spec_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "scope-of-inspection",
-  "status": "report_plan_candidate_with_historical_qualification",
+  "status": "scaffold_ready_package_bound_candidate_pending",
   "executionMode": "evaluation",
   "productEnabled": false,
   "datasetRules": {

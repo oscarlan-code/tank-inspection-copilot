@@ -1,0 +1,21 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "general-tank-information",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "labelled_field",
+  "dimensions": [
+    "field_recall",
+    "field_precision",
+    "protected_value_accuracy",
+    "unit_accuracy",
+    "label_and_order_conformance",
+    "missing_value_accuracy"
+  ],
+  "criticalFailureRules": [
+    "any_wrong_asset_identity",
+    "any_invented_value",
+    "any_changed_value_or_unit"
+  ],
+  "productEnabled": false
+}

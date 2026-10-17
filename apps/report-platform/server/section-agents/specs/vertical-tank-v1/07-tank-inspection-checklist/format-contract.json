@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "tank-inspection-checklist",
+  "title": "7 TANK INSPECTION CHECKLIST",
+  "layoutFamily": "native_checklist_grid",
+  "orderedBlocks": [
+    "response-legend",
+    "category-tables",
+    "section-notes",
+    "not-applicable-reasons"
+  ],
+  "rules": [
+    "Preserve native category and item order.",
+    "Show item number, prompt, response and note as separate cells.",
+    "Use the legend from the exact checklist definition version.",
+    "Do not flatten the grid into narrative prose."
+  ]
+}

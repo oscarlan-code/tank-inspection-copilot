@@ -1,0 +1,22 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "tank-inspection-checklist",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "checklist_item",
+  "dimensions": [
+    "item_coverage",
+    "response_accuracy",
+    "note_accuracy",
+    "not_applicable_reason_accuracy",
+    "category_and_item_order",
+    "grid_format_conformance"
+  ],
+  "criticalFailureRules": [
+    "any_missing_applicable_item",
+    "any_changed_response",
+    "any_reordered_or_renumbered_item",
+    "any_unanswered_item_presented_as_satisfactory"
+  ],
+  "productEnabled": false
+}

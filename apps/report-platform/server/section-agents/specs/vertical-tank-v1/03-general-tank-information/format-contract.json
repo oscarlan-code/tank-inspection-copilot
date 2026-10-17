@@ -1,0 +1,29 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "general-tank-information",
+  "title": "3 GENERAL TANK INFORMATION",
+  "layoutFamily": "paired_label_value_rows",
+  "orderedBlocks": [
+    "identity-and-site",
+    "configuration-and-dimensions",
+    "inspection-details",
+    "previous-history"
+  ],
+  "bodyFieldCount": 31,
+  "reportHeaderMetadata": [
+    "jobNo",
+    "dateCompleted",
+    "inspector"
+  ],
+  "supportOnlyFields": [
+    "externalRoofType",
+    "internalRoofType",
+    "insulationDistance"
+  ],
+  "rules": [
+    "Use fixed paired label-value rows.",
+    "Preserve source units and precision; unit conversion is disabled.",
+    "Use Not recorded for a missing expected field.",
+    "Do not add a narrative summary."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "test-information",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "method_record_and_limitation_claim",
+  "dimensions": [
+    "method_inventory_recall",
+    "method_status_accuracy",
+    "traceability_field_accuracy",
+    "protected_value_accuracy",
+    "extent_and_limitation_fidelity",
+    "result_reference_accuracy",
+    "format_conformance"
+  ],
+  "criticalFailureRules": [
+    "any_invented_performed_method",
+    "any_changed_test_value_or_unit",
+    "any_invented_traceability_record"
+  ],
+  "productEnabled": false
+}

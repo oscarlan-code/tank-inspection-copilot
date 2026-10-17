@@ -1,15 +1,26 @@
 # Vertical tank V1 common-core agent specifications
 
-These seven folders define the same control surface for report sections 1–7. They
-are reviewable specifications, not executable releases. Each folder contains:
+These seven folders define separate agent families for report sections 1–7. They
+share lifecycle infrastructure, but they do not share prompts, output contracts or
+section knowledge. Each folder contains:
 
 - `agent-spec.json`: inputs, ordered output blocks, format, blockers, prohibited
   behavior, and generation mode;
+- `generator-instructions.md`: the section-specific prompt or, for deterministic
+  sections, an explicit instruction that no model call is allowed;
+- `format-contract.json`: the exact block order and presentation family;
 - `kb-policy.json`: the section-owned historical/controlled knowledge lane and
   retrieval restrictions;
+- `reviewer-spec.json`: the pre-display guard, which cannot see gold output;
+- `evaluator-spec.json`: the post-generation comparison against sealed gold;
 - `harness.json`: dataset separation, required tests, metrics, freeze gates, and
   product-promotion prohibition;
 - `README.md`: a short guide to that section.
+
+`scaffold-registry.json` is the top-level inventory. It records development order,
+generation strategy and whether a package-bound candidate exists. A scaffold is a
+reviewable design; it is not executable until a candidate is created under
+`server/section-agents/sandbox/candidates/<section-id>/candidate-*`.
 
 The folder number is the report section number. It is different from development
 order. `03-general-tank-information` was the first section agent implemented; its
@@ -21,13 +32,13 @@ by these specifications.
 
 | Report section | Folder | Status |
 | ---: | --- | --- |
-| 1 | `01-scope-of-inspection/` | Planned |
-| 2 | `02-inspection-maintenance-regime/` | Planned; AI disabled |
-| 3 | `03-general-tank-information/` | Frozen evaluation candidate reference |
-| 4 | `04-inspection-report/` | Planned |
-| 5 | `05-repair-recommendations/` | Planned |
-| 6 | `06-test-information/` | Planned |
-| 7 | `07-tank-inspection-checklist/` | Planned; AI disabled |
+| 1 | `01-scope-of-inspection/` | Scaffold ready; package-bound candidate pending |
+| 2 | `02-inspection-maintenance-regime/` | Scaffold ready; AI disabled |
+| 3 | `03-general-tank-information/` | Package-bound Candidate A implemented in sandbox |
+| 4 | `04-inspection-report/` | Scaffold ready; section-specific LLM prompt |
+| 5 | `05-repair-recommendations/` | Scaffold ready; section-specific LLM prompt |
+| 6 | `06-test-information/` | Scaffold ready; bounded wording prompt |
+| 7 | `07-tank-inspection-checklist/` | Scaffold ready; AI disabled |
 
 ## KB split
 
@@ -56,3 +67,8 @@ content evaluator-only, checks the exact agent/KB/standard/renderer hashes, and
 returns an unapproved draft. It evaluates current-evidence fidelity, historical
 format alignment and standard obligations separately. Product eligibility is a
 separate server-owned routing decision and is false for all seven specifications.
+
+Development is sequential: create Candidate A for one section, run development,
+validation, held-out and rendered human review, then freeze its exact bytes. Work
+on the next section cannot mutate the frozen prompt, KB pack, renderer, reviewer or
+evaluator of an earlier section.

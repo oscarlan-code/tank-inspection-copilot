@@ -29,7 +29,7 @@ for (const stage of workflow.stages.filter((item) => item.implementation)) {
 }
 
 const [mockRelease, classifierRegistry, classifierContract, routerArchive, routerRegistry, outlineManifest,
-  sectionCandidateRegistry, sectionCandidateManifest] = await Promise.all([
+  sectionCandidateRegistry, sectionCandidateManifest, sectionScaffoldRegistry] = await Promise.all([
   readJson('server/mock-preparation-agent/releases/v1/release-manifest.json'),
   readJson('server/contents-classification-agent/release-registry.json'),
   readJson('server/contents-classification-agent/evaluation-pathway-contract.json'),
@@ -38,6 +38,7 @@ const [mockRelease, classifierRegistry, classifierContract, routerArchive, route
   readJson('server/contents-classification-agent/outline-profiles/vertical-api653-v6/outline-manifest.json'),
   readJson('server/section-agents/sandbox/candidate-registry.json'),
   readJson('server/section-agents/sandbox/candidates/general-tank-information/candidate-a/candidate-manifest.json'),
+  readJson('server/section-agents/specs/vertical-tank-v1/scaffold-registry.json'),
 ]);
 
 assert.equal(mockRelease.releaseId, workflow.activeEvaluationReleases.mockPreparation);
@@ -58,9 +59,15 @@ assert.equal(routerRegistry.activeReleaseId, null);
 assert.equal(routerRegistry.archiveStatus, 'historical_evaluation_only');
 assert.equal(workflow.generationHandoff.productGenerationEligible, false);
 assert.equal(workflow.stages[5].state, 'minimum_evaluation_contract_implemented');
-assert.equal(workflow.stages[6].state, 'sandbox_candidate_implemented');
-assert.equal(workflow.stages[6].qualificationState, 'not_qualified_or_promoted');
+assert.equal(workflow.stages[6].state, 'one_candidate_implemented_six_scaffolds_ready');
+assert.equal(workflow.stages[6].qualificationState, 'no_section_qualified_or_promoted');
 assert.equal(workflow.stages[7].state, 'planned');
+assert.equal(workflow.sectionAgentArchitecture.registry, workflow.stages[6].scaffoldRegistry);
+assert.equal(workflow.sectionAgentArchitecture.sectionCount, 7);
+assert.equal(workflow.sectionAgentArchitecture.packageBoundCandidateCount, 1);
+assert.equal(workflow.sectionAgentArchitecture.scaffoldOnlyCount, 6);
+assert.equal(sectionScaffoldRegistry.entries.length, workflow.sectionAgentArchitecture.sectionCount);
+assert.equal(sectionScaffoldRegistry.productEnabled, false);
 const candidate = sectionCandidateRegistry.entries.find((entry) => entry.candidateId === workflow.activeSandboxCandidates.generalTankInformation);
 assert(candidate, 'Workflow sandbox candidate is absent from the exact candidate registry.');
 assert.equal(candidate.productEnabled, false);

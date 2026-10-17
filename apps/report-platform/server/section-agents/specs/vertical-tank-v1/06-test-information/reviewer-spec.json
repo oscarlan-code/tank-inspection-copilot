@@ -1,0 +1,24 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "test-information",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "deterministic_fields_with_independent_narrative_review",
+  "checks": [
+    "performed_and_excluded_method_status",
+    "procedure_equipment_calibration_trace",
+    "personnel_and_qualification_trace",
+    "protected_value_and_unit_preservation",
+    "extent_and_limitation_support",
+    "detailed_result_reference_resolution",
+    "format_conformance"
+  ],
+  "hardFailures": [
+    "inferred_performed_method",
+    "invented_equipment_calibration_or_qualification",
+    "changed_test_value_or_unit",
+    "unresolved_result_reference"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

@@ -59,10 +59,11 @@
     {
       "order": 7,
       "stageId": "section-generation-and-pre-display-review",
-      "candidateId": "general-tank-information-candidate-a",
+      "scaffoldRegistry": "server/section-agents/specs/vertical-tank-v1/scaffold-registry.json",
+      "implementedCandidateId": "general-tank-information-candidate-a",
       "implementation": "server/section-agents/sandbox/candidates/general-tank-information/candidate-a",
-      "state": "sandbox_candidate_implemented",
-      "qualificationState": "not_qualified_or_promoted"
+      "state": "one_candidate_implemented_six_scaffolds_ready",
+      "qualificationState": "no_section_qualified_or_promoted"
     },
     {
       "order": 8,
@@ -78,6 +79,28 @@
   },
   "activeSandboxCandidates": {
     "generalTankInformation": "general-tank-information-candidate-a"
+  },
+  "sectionAgentArchitecture": {
+    "registry": "server/section-agents/specs/vertical-tank-v1/scaffold-registry.json",
+    "sectionCount": 7,
+    "developmentMode": "one_section_at_a_time",
+    "packageBoundCandidateCount": 1,
+    "scaffoldOnlyCount": 6,
+    "sectionOwnedControls": [
+      "generator_instructions",
+      "format_contract",
+      "kb_policy",
+      "reviewer_spec",
+      "evaluator_spec",
+      "qualification_harness"
+    ],
+    "sharedControls": [
+      "contract_validation",
+      "hashing",
+      "tracing",
+      "lifecycle_control",
+      "rendering_primitives"
+    ]
   },
   "generationHandoff": {
     "contractVersion": "section_evidence_package_v1",
@@ -99,7 +122,7 @@
     }
   ],
   "nextBuild": {
-    "objective": "Qualify General Tank Information Candidate A before creating an immutable evaluation release.",
+    "objective": "Qualify General Tank Information Candidate A, freeze its evaluation release, then build Scope of Inspection Candidate A without changing the frozen General Information agent.",
     "requiredBeforePromotion": [
       "freeze_development_validation_and_held_out_lineages",
       "run_ten_development_and_one_untouched_report",

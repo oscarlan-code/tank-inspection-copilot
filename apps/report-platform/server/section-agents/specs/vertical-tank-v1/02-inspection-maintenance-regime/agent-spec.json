@@ -7,10 +7,22 @@
     "title": "INSPECTION AND MAINTENANCE REGIME"
   },
   "plannedReleaseId": "inspection_maintenance_regime_v1",
-  "status": "planned",
+  "status": "scaffold_ready",
   "productEnabled": false,
   "generationMode": "deterministic_approved_template",
   "promptPolicy": "disabled",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": null,
+    "promptVersion": null,
+    "modelBinding": null
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "inspection-maintenance-regime",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -64,5 +76,10 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": null,
+  "historicalReleaseReferences": []
 }

@@ -2,7 +2,7 @@
   "contractVersion": "section_agent_harness_spec_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "repair-recommendations",
-  "status": "planned",
+  "status": "scaffold_ready",
   "executionMode": "evaluation",
   "productEnabled": false,
   "datasetRules": {

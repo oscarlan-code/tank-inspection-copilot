@@ -1,0 +1,23 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "inspection-maintenance-regime",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "deterministic",
+  "checks": [
+    "approved_template_identity",
+    "template_hash_integrity",
+    "declared_substitution_only",
+    "same_asset_history_trace",
+    "interval_and_due_date_support",
+    "format_conformance"
+  ],
+  "hardFailures": [
+    "template_byte_drift",
+    "undeclared_substitution",
+    "unsupported_interval_or_due_date",
+    "cross_asset_history"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

@@ -7,10 +7,22 @@
     "title": "TEST INFORMATION"
   },
   "plannedReleaseId": "test_information_v1",
-  "status": "planned",
+  "status": "scaffold_ready",
   "productEnabled": false,
   "generationMode": "deterministic_test_records_with_bounded_wording",
   "promptPolicy": "bounded_method_limitation_wording_only",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": "test-information-limitation-wording",
+    "promptVersion": "v1",
+    "modelBinding": "exact_model_and_snapshot_required_in_candidate_manifest"
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "test-information",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -67,5 +79,10 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": null,
+  "historicalReleaseReferences": []
 }

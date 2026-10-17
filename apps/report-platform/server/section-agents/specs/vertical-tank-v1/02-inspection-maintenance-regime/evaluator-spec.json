@@ -1,0 +1,20 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "inspection-maintenance-regime",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "template_block_and_declared_field",
+  "dimensions": [
+    "template_integrity",
+    "substitution_accuracy",
+    "supported_history_accuracy",
+    "requirement_qualification",
+    "format_conformance"
+  ],
+  "criticalFailureRules": [
+    "any_unapproved_template_change",
+    "any_invented_interval_or_due_date",
+    "any_wrong_asset_history"
+  ],
+  "productEnabled": false
+}

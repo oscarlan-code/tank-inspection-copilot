@@ -12,11 +12,15 @@ R&D truth -> Mock Preparation v1 -> Android round trip --+
 Inspector capture -> Android ProductStore export -------+   -> Classification v1
                                                             -> reviewed section packages
                                                             -> package-bound evaluation plan
-                                                            -> General Information Candidate A
-                                                            -> independent pre-display review
+                                                            -> exact section-agent registry entry
+                                                            -> section-owned generator
+                                                            -> section-owned pre-display reviewer
 ```
 
 Run `npm run workflow:scaffold:audit` after changing a release registry, workflow
-stage, archive state, or generation handoff. Candidate A is executable in the
-sandbox but is not qualified, frozen, promoted, or product-enabled. The higher
-Report Structure Agent, durable plan store and report integration remain planned.
+stage, archive state, or generation handoff. Seven section-agent scaffolds now
+exist under `server/section-agents/specs/vertical-tank-v1/`. Each owns its prompt or
+deterministic instructions, format, KB policy, reviewer, evaluator and harness.
+Only General Tank Information Candidate A is executable; it is not qualified,
+frozen, promoted, or product-enabled. The higher Report Structure Agent, durable
+plan store and report integration remain planned.

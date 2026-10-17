@@ -1,0 +1,19 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "repair-recommendations",
+  "title": "5 REPAIR RECOMMENDATIONS / API 653 ASSESSMENT",
+  "layoutFamily": "component_action_list",
+  "orderedBlocks": [
+    "recommendations-by-component",
+    "priority-timing-and-responsibility",
+    "basis-and-limitations",
+    "references",
+    "confirmed-no-action"
+  ],
+  "rules": [
+    "Use one numbered or arrow item per approved action.",
+    "Keep the action adjacent to its component, location and finding reference.",
+    "Show qualifiers and missing information explicitly.",
+    "Omit a no-action statement unless it is explicitly approved."
+  ]
+}

@@ -2,7 +2,7 @@
   "contractVersion": "section_agent_harness_spec_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "general-tank-information",
-  "status": "report_plan_candidate_with_historical_qualification",
+  "status": "sandbox_candidate_implemented_not_qualified",
   "executionMode": "evaluation",
   "productEnabled": false,
   "datasetRules": {
@@ -21,7 +21,6 @@
     "wrong_asset_history_rejection",
     "hidden_reference_invariance",
     "release_hash_integrity",
-    "cross_agent_isolation",
     "unapproved_output",
     "docx_approval_gate",
     "wrong_section_or_version_rejection",
@@ -51,6 +50,9 @@
     "standardObligationPackPinned": true
   },
   "promotionPerformedByHarness": false,
+  "activeCandidateHarnessReferences": [
+    "../../../sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs"
+  ],
   "existingHarnessReferences": [
     "../../../../scripts/audit-general-information-agent.mjs",
     "../../../../scripts/audit-section-agent-release.mjs",

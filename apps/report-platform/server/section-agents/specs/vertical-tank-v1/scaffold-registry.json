@@ -1,0 +1,97 @@
+{
+  "contractVersion": "section_agent_scaffold_registry_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "status": "section_by_section_development",
+  "productEnabled": false,
+  "inputContract": "section_evidence_package_v1",
+  "planContract": "package_bound_section_plan_v1",
+  "developmentOrder": [
+    "general-tank-information",
+    "scope-of-inspection",
+    "inspection-maintenance-regime",
+    "inspection-report",
+    "repair-recommendations",
+    "test-information",
+    "tank-inspection-checklist"
+  ],
+  "rules": [
+    "Each section owns its generator instructions, format contract, KB policy, reviewer rubric and evaluator rubric.",
+    "A prompt, KB bundle or reviewer decision from one section cannot be substituted for another section.",
+    "Shared runtime code is limited to contract validation, hashing, tracing, lifecycle controls and rendering primitives.",
+    "Only an exact reviewed section_evidence_package_v1 and matching SectionPlan may enter a section generator.",
+    "A section must qualify and freeze independently before its evaluation release can be registered.",
+    "No scaffold or sandbox candidate is product eligible."
+  ],
+  "entries": [
+    {
+      "sectionNumber": 1,
+      "sectionId": "scope-of-inspection",
+      "title": "SCOPE OF INSPECTION",
+      "folder": "01-scope-of-inspection",
+      "generationStrategy": "deterministic_confirmed_scope_compiler",
+      "llmEnabled": false,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    },
+    {
+      "sectionNumber": 2,
+      "sectionId": "inspection-maintenance-regime",
+      "title": "INSPECTION AND MAINTENANCE REGIME",
+      "folder": "02-inspection-maintenance-regime",
+      "generationStrategy": "deterministic_approved_template",
+      "llmEnabled": false,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    },
+    {
+      "sectionNumber": 3,
+      "sectionId": "general-tank-information",
+      "title": "GENERAL TANK INFORMATION",
+      "folder": "03-general-tank-information",
+      "generationStrategy": "deterministic_labelled_fields",
+      "llmEnabled": false,
+      "status": "sandbox_candidate_implemented",
+      "activePackageBoundCandidate": "general-tank-information-candidate-a"
+    },
+    {
+      "sectionNumber": 4,
+      "sectionId": "inspection-report",
+      "title": "INSPECTION REPORT",
+      "folder": "04-inspection-report",
+      "generationStrategy": "evidence_bound_component_narrative",
+      "llmEnabled": true,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    },
+    {
+      "sectionNumber": 5,
+      "sectionId": "repair-recommendations",
+      "title": "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT",
+      "folder": "05-repair-recommendations",
+      "generationStrategy": "inspector_approved_action_composer",
+      "llmEnabled": true,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    },
+    {
+      "sectionNumber": 6,
+      "sectionId": "test-information",
+      "title": "TEST INFORMATION",
+      "folder": "06-test-information",
+      "generationStrategy": "deterministic_test_records_with_bounded_wording",
+      "llmEnabled": true,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    },
+    {
+      "sectionNumber": 7,
+      "sectionId": "tank-inspection-checklist",
+      "title": "TANK INSPECTION CHECKLIST",
+      "folder": "07-tank-inspection-checklist",
+      "generationStrategy": "deterministic_native_checklist_grid",
+      "llmEnabled": false,
+      "status": "scaffold_ready",
+      "activePackageBoundCandidate": null
+    }
+  ]
+}

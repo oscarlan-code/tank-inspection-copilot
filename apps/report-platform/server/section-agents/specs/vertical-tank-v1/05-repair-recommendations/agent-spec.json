@@ -7,10 +7,22 @@
     "title": "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT"
   },
   "plannedReleaseId": "repair_recommendations_v1",
-  "status": "planned",
+  "status": "scaffold_ready",
   "productEnabled": false,
   "generationMode": "hybrid_reviewed_actions_with_bounded_ai_wording",
   "promptPolicy": "approved_action_wording_only",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": "repair-recommendations-generation",
+    "promptVersion": "v1",
+    "modelBinding": "exact_model_and_snapshot_required_in_candidate_manifest"
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "repair-recommendations",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -72,5 +84,10 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": null,
+  "historicalReleaseReferences": []
 }

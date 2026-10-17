@@ -1,0 +1,25 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "scope-of-inspection",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "deterministic",
+  "checks": [
+    "package_and_plan_identity",
+    "statement_to_current_evidence_trace",
+    "scope_obligation_completeness",
+    "prospective_tense",
+    "method_component_coverage",
+    "limitation_and_exclusion_preservation",
+    "protected_value_and_unit_preservation",
+    "section_format_conformance"
+  ],
+  "hardFailures": [
+    "unsupported_scope_claim",
+    "completed_work_presented_as_scope",
+    "finding_or_recommendation_in_scope",
+    "missing_source_reference"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

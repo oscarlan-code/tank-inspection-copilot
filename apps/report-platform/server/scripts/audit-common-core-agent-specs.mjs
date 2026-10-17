@@ -13,8 +13,29 @@ import { buildInspectionReportKnowledgeCandidate, parseKnowledgeCandidateArgumen
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const specsRoot = join(appRoot, 'server/section-agents/specs/vertical-tank-v1');
-const requiredFiles = ['README.md', 'agent-spec.json', 'kb-policy.json', 'harness.json'];
+const requiredFiles = [
+  'README.md',
+  'agent-spec.json',
+  'generator-instructions.md',
+  'format-contract.json',
+  'kb-policy.json',
+  'reviewer-spec.json',
+  'evaluator-spec.json',
+  'harness.json',
+];
 const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
+const scaffoldRegistry = JSON.parse(await readFile(join(specsRoot, 'scaffold-registry.json'), 'utf8'));
+assert.equal(scaffoldRegistry.contractVersion, 'section_agent_scaffold_registry_v1');
+assert.equal(scaffoldRegistry.profileId, 'vertical_tank_inspection_v1');
+assert.equal(scaffoldRegistry.productEnabled, false);
+assert.equal(scaffoldRegistry.inputContract, 'section_evidence_package_v1');
+assert.equal(scaffoldRegistry.planContract, 'package_bound_section_plan_v1');
+assert.equal(scaffoldRegistry.entries.length, 7);
+assert.equal(new Set(scaffoldRegistry.entries.map((entry) => entry.sectionId)).size, 7);
+assert.equal(scaffoldRegistry.entries.filter((entry) => entry.llmEnabled).length, 3);
+assert.deepEqual(scaffoldRegistry.entries.filter((entry) => entry.llmEnabled)
+  .map((entry) => entry.sectionId), ['inspection-report', 'repair-recommendations', 'test-information']);
 
 assert.deepEqual(parseCommonCorePackCliArguments(['--output', '/tmp/out']), { outputArg: '/tmp/out', sourceArg: null });
 assert.deepEqual(parseCommonCorePackCliArguments(['--source', '/tmp/in', '--output', '/tmp/out']),
@@ -25,19 +46,70 @@ const directories = (await readdir(specsRoot, { withFileTypes: true }))
   .filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
 assert.deepEqual(directories, COMMON_CORE_SECTION_DEFINITIONS.map(definition => `${String(definition.order).padStart(2, '0')}-${definition.sectionId}`));
 
+const instructionBodies = [];
 for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   const folder = join(specsRoot, `${String(definition.order).padStart(2, '0')}-${definition.sectionId}`);
   const files = (await readdir(folder)).sort();
   assert.deepEqual(files, [...requiredFiles].sort(), `Unexpected files for ${definition.sectionId}`);
-  const [agent, kb, harness] = await Promise.all(['agent-spec.json', 'kb-policy.json', 'harness.json']
+  const [agent, kb, harness, format, reviewer, evaluator] = await Promise.all([
+    'agent-spec.json', 'kb-policy.json', 'harness.json', 'format-contract.json',
+    'reviewer-spec.json', 'evaluator-spec.json',
+  ]
     .map(name => readFile(join(folder, name), 'utf8').then(JSON.parse)));
+  const instructions = await readFile(join(folder, 'generator-instructions.md'), 'utf8');
+  instructionBodies.push(instructions);
+  const registryEntry = scaffoldRegistry.entries.find((entry) => entry.sectionId === definition.sectionId);
+  assert(registryEntry, `Scaffold registry missing ${definition.sectionId}`);
+  assert.equal(registryEntry.folder, `${String(definition.order).padStart(2, '0')}-${definition.sectionId}`);
+  assert.equal(registryEntry.sectionNumber, definition.order);
+  assert.equal(registryEntry.title, definition.title);
   assert.equal(agent.contractVersion, 'section_agent_spec_v1');
   assert.equal(agent.profileId, 'vertical_tank_inspection_v1');
   assert.deepEqual(agent.reportSection, { number: definition.order, sectionId: definition.sectionId, title: definition.title });
   assert.equal(agent.productEnabled, false);
   assert(agent.outputBlocks.length > 0 && new Set(agent.outputBlocks.map(block => block.blockId)).size === agent.outputBlocks.length);
   for (const key of ['generationMode', 'promptPolicy', 'authorizedInputs', 'approvalBlockers', 'prohibitedBehavior']) assert(has(agent, key));
+  assert.deepEqual(agent.inputContract, {
+    package: 'section_evidence_package_v1',
+    plan: 'package_bound_section_plan_v1',
+    exactSectionId: definition.sectionId,
+    reviewedRoutingRequired: true,
+  });
+  assert.equal(agent.generatorInstructionsFile, 'generator-instructions.md');
+  assert.equal(agent.formatContractFile, 'format-contract.json');
+  assert.equal(agent.reviewerSpecFile, 'reviewer-spec.json');
+  assert.equal(agent.evaluatorSpecFile, 'evaluator-spec.json');
+  assert.equal(agent.generationControl.instructionsVersion, 'v1');
+  if (registryEntry.llmEnabled) {
+    assert.notEqual(agent.promptPolicy, 'disabled');
+    assert.equal(agent.generationControl.promptVersion, 'v1');
+    assert(agent.generationControl.promptId.startsWith(definition.sectionId));
+    assert.equal(agent.generationControl.modelBinding,
+      'exact_model_and_snapshot_required_in_candidate_manifest');
+  } else {
+    assert.equal(agent.promptPolicy, 'disabled');
+    assert.equal(agent.generationControl.promptId, null);
+    assert.equal(agent.generationControl.promptVersion, null);
+    assert.equal(agent.generationControl.modelBinding, null);
+  }
+  assert(instructions.includes(definition.title));
   assert(!JSON.stringify(agent).includes('"latest"'));
+
+  assert.equal(format.contractVersion, 'section_format_contract_v1');
+  assert.equal(format.sectionId, definition.sectionId);
+  assert(format.title.includes(definition.title));
+  assert(format.orderedBlocks.length > 0);
+  assert.deepEqual(format.orderedBlocks,
+    agent.outputBlocks.filter((block) => block.blockId !== 'heading').map((block) => block.blockId));
+  assert.equal(reviewer.contractVersion, 'section_reviewer_scaffold_v1');
+  assert.equal(reviewer.sectionId, definition.sectionId);
+  assert.equal(reviewer.goldAccess, false);
+  assert.equal(reviewer.passDecision, 'ready_for_human_review');
+  assert.equal(reviewer.productEnabled, false);
+  assert.equal(evaluator.contractVersion, 'section_evaluator_scaffold_v1');
+  assert.equal(evaluator.sectionId, definition.sectionId);
+  assert.equal(evaluator.goldAccess, 'sealed_gold_after_generation_only');
+  assert.equal(evaluator.productEnabled, false);
 
   assert.equal(kb.contractVersion, 'section_kb_policy_candidate_v1');
   assert.equal(kb.sectionId, definition.sectionId);
@@ -99,32 +171,22 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
     assert.equal(harness.freezeGates.criticalClarificationMisses, 0);
     assert(harness.freezeGates.crossVariantSemanticStabilityMinimum >= 0.95);
   }
-  const implemented = {
-    'scope-of-inspection': {
-      releaseId: 'scope_of_inspection_v1',
-      runtimeSnapshot: 'scope_of_inspection_v1_no_runtime_retrieval',
-      minimumHarnessReferences: 2,
-    },
-    'general-tank-information': {
-      releaseId: 'general_tank_information_v2',
-      runtimeSnapshot: 'general_tank_information_v2_no_runtime_retrieval',
-      minimumHarnessReferences: 4,
-    },
-  }[definition.sectionId];
-  if (implemented) {
-    assert.equal(agent.status, 'frozen_evaluation_candidate');
-    assert.equal(kb.mode, 'frozen_no_retrieval');
-    assert.equal(agent.plannedReleaseId, implemented.releaseId);
-    assert.equal(kb.runtimeSnapshot, implemented.runtimeSnapshot);
-    assert(agent.frozenReleaseReference);
-    await readFile(resolve(folder, agent.frozenReleaseReference));
-    assert(harness.existingHarnessReferences.length >= implemented.minimumHarnessReferences);
+  if (definition.sectionId === 'general-tank-information') {
+    assert.equal(agent.status, 'sandbox_candidate_implemented');
+    assert.equal(registryEntry.status, 'sandbox_candidate_implemented');
+    assert.equal(registryEntry.activePackageBoundCandidate, 'general-tank-information-candidate-a');
+    assert(agent.activePackageBoundCandidate);
+    await readFile(resolve(folder, agent.activePackageBoundCandidate));
   } else {
-    assert.equal(agent.status, 'planned');
-    assert.equal(kb.status, 'definition_only_not_frozen');
-    assert.equal(agent.frozenReleaseReference, null);
+    assert.equal(agent.status, 'scaffold_ready');
+    assert.equal(registryEntry.status, 'scaffold_ready');
+    assert.equal(agent.activePackageBoundCandidate, null);
+  }
+  for (const historicalReference of agent.historicalReleaseReferences) {
+    await readFile(resolve(folder, historicalReference));
   }
 }
+assert.equal(new Set(instructionBodies).size, 7, 'Every section must own distinct generator instructions.');
 
 assert.deepEqual(parseInventoryArguments(['--source', '/tmp/source', '--output', '/tmp/inventory.json']),
   { source: '/tmp/source', output: '/tmp/inventory.json', caseId: null });
@@ -342,7 +404,9 @@ try {
 }
 
 console.log(JSON.stringify({ passed: true, profileId: 'vertical_tank_inspection_v1', sectionAgentFolders: 7,
-  filesPerFolder: requiredFiles, frozenAgentReferencesVerified: 2, privatePackSplitterVerified: true,
+  filesPerFolder: requiredFiles, sectionSpecificInstructionFilesVerified: 7,
+  packageBoundCandidatesVerified: 1, historicalReleaseReferencesVerified: 4,
+  privatePackSplitterVerified: true,
   inspectionReportKnowledgeCandidateBuilderVerified: true,
   inspectionReportBoundedRsiVerified: true, inspectionReportVariationExampleVerified: true, inspectionReportFullFidelityWorkflowVerified: true, inspectionReportInventoryBuilderVerified: true,
   productEnabled: false }, null, 2));

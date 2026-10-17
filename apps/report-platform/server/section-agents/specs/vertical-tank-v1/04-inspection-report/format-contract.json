@@ -1,0 +1,26 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "inspection-report",
+  "title": "4 INSPECTION REPORT",
+  "layoutFamily": "component_findings",
+  "orderedBlocks": [
+    "diked-area",
+    "foundation",
+    "shell-external",
+    "shell-appurtenances",
+    "access-structures",
+    "roof-external",
+    "roof-appurtenances",
+    "roof-internal",
+    "shell-internal",
+    "floor-internal",
+    "assessment-summaries"
+  ],
+  "rules": [
+    "Render only blocks selected by the frozen SectionPlan.",
+    "Use the accepted heading and layout variant recorded in the plan.",
+    "Keep observation prose short and component-bound.",
+    "Render quantitative summaries deterministically.",
+    "Keep figures, photos and layouts as controlled cross-references."
+  ]
+}

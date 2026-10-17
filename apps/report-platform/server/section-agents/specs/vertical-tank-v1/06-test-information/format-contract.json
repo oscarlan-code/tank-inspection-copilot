@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "test-information",
+  "title": "6 TEST INFORMATION",
+  "layoutFamily": "method_traceability_tables",
+  "orderedBlocks": [
+    "test-inventory",
+    "method-traceability",
+    "extent-and-limitations",
+    "result-references"
+  ],
+  "rules": [
+    "Use one method row or subsection per performed or explicitly excluded method.",
+    "Keep procedure, equipment, calibration and personnel fields tabular.",
+    "Keep bounded narrative only in extent and limitation cells.",
+    "Link detailed results; do not duplicate full measurement tables."
+  ]
+}

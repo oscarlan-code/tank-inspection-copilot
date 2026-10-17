@@ -1,0 +1,23 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "repair-recommendations",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "observation_action_pair",
+  "dimensions": [
+    "approved_action_recall",
+    "supported_action_precision",
+    "observation_action_linkage",
+    "applicability_reasoning",
+    "priority_timing_accuracy",
+    "necessary_clarification_recall",
+    "format_conformance"
+  ],
+  "criticalFailureRules": [
+    "any_unapproved_action",
+    "any_invented_urgency_or_code_basis",
+    "any_action_linked_to_wrong_observation",
+    "any_missing_required_inspector_confirmation"
+  ],
+  "productEnabled": false
+}

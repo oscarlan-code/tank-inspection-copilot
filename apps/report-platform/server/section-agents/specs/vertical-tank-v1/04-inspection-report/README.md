@@ -1,19 +1,19 @@
 # 4. Inspection Report agent
 
-Status: `planned`; product disabled.
+Status: scaffold ready; product disabled.
 
-- Review [agent-spec.json](agent-spec.json) for inputs, output blocks and format.
-- Review [kb-policy.json](kb-policy.json) for the isolated section KB.
-- Review [harness.json](harness.json) for the two-track robustness evaluation,
-  bounded RSI pilot and freeze gates.
-- Review the active full-section workflow at
-  `../../../evaluation-workflows/inspection-report/`. Generation remains blocked
-  until a disjoint multi-report SectionKnowledgeBundle, complete reviewed source
-  inventory, target-blind frozen ReportPlan, Truth Case and six-variant mock export
-  pass its audit.
+This agent writes component findings. Deterministic code owns block selection,
+ordering, values and units; a version-pinned LLM may compose evidence-bound prose.
 
-The interpretation track varies practical inspector wording while holding one
-scenario truth fixed. The generation track gives every candidate the same verified
-structured observations. Development feedback may produce a new candidate version;
-it cannot mutate a frozen release, open validation/held-out gold early, relabel
-sources or promote a release.
+| File | Purpose |
+| --- | --- |
+| `agent-spec.json` | Component blocks, inputs and prohibited behavior |
+| `generator-instructions.md` | Section 4 evidence-bound prompt |
+| `format-contract.json` | Component-block layout and order |
+| `kb-policy.json` | Multi-report structure and terminology knowledge boundary |
+| `reviewer-spec.json` | Pre-display claim and integrity checks |
+| `evaluator-spec.json` | Atomic-finding comparison and robustness metrics |
+| `harness.json` | Two-track evaluation and bounded iteration controls |
+
+Generation remains blocked until the disjoint knowledge bundle, reviewed source
+inventory, complete mock export and target-blind SectionPlan pass qualification.

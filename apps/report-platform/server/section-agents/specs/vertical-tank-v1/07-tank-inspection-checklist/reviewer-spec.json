@@ -1,0 +1,24 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "tank-inspection-checklist",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "deterministic",
+  "checks": [
+    "checklist_definition_identity",
+    "category_and_item_order",
+    "applicable_item_completion",
+    "response_and_note_trace",
+    "not_applicable_reason",
+    "legend_and_grid_conformance"
+  ],
+  "hardFailures": [
+    "unanswered_applicable_item",
+    "unknown_definition_version",
+    "changed_item_identity_or_order",
+    "historical_response_reuse",
+    "unanswered_item_presented_as_satisfactory"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

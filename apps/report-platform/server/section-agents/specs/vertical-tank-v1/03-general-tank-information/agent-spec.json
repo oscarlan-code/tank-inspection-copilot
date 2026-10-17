@@ -6,11 +6,23 @@
     "sectionId": "general-tank-information",
     "title": "GENERAL TANK INFORMATION"
   },
-  "plannedReleaseId": "general_tank_information_v2",
-  "status": "frozen_evaluation_candidate",
+  "plannedReleaseId": "general_tank_information_package_bound_v1",
+  "status": "sandbox_candidate_implemented",
   "productEnabled": false,
   "generationMode": "deterministic_labelled_fields",
   "promptPolicy": "disabled",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": null,
+    "promptVersion": null,
+    "modelBinding": null
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "general-tank-information",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -65,5 +77,14 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": "../../../releases/general-tank-information/generator/v2/manifest.json"
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": "../../../sandbox/candidates/general-tank-information/candidate-a/candidate-manifest.json",
+  "historicalReleaseReferences": [
+    "../../../releases/general-tank-information/generator/v1/manifest.json",
+    "../../../releases/general-tank-information/generator/v2/manifest.json",
+    "../../../releases/general-tank-information/generator/v3/manifest.json"
+  ]
 }

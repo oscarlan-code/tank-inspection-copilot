@@ -1,0 +1,26 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "repair-recommendations",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "independent_version_pinned_reviewer",
+  "checks": [
+    "action_to_current_observation_link",
+    "inspector_approval_state",
+    "component_and_location_accuracy",
+    "priority_timing_and_responsibility_support",
+    "precedent_applicability_disclosure",
+    "technical_basis_separation",
+    "missing_information_and_confirmation",
+    "format_and_cross_reference_conformance"
+  ],
+  "hardFailures": [
+    "unapproved_action",
+    "action_without_current_observation",
+    "invented_code_clause_or_urgency",
+    "historical_recommendation_presented_as_current_instruction",
+    "unsupported_no_action_conclusion"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

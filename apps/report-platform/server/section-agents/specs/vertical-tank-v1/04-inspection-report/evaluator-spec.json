@@ -1,0 +1,24 @@
+{
+  "contractVersion": "section_evaluator_scaffold_v1",
+  "sectionId": "inspection-report",
+  "role": "post_generation_gold_evaluator",
+  "goldAccess": "sealed_gold_after_generation_only",
+  "comparisonUnit": "atomic_finding_claim",
+  "dimensions": [
+    "required_fact_recall",
+    "supported_claim_precision",
+    "entity_location_side_accuracy",
+    "polarity_uncertainty_accuracy",
+    "protected_value_accuracy",
+    "component_block_assignment",
+    "cross_variant_semantic_stability",
+    "format_similarity_with_accepted_variation"
+  ],
+  "criticalFailureRules": [
+    "any_unsupported_current_claim",
+    "any_changed_protected_value_or_unit",
+    "any_wrong_component_or_side",
+    "any_missed_material_ambiguity"
+  ],
+  "productEnabled": false
+}

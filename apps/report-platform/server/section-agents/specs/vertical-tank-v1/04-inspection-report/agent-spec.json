@@ -7,10 +7,22 @@
     "title": "INSPECTION REPORT"
   },
   "plannedReleaseId": "inspection_report_v1",
-  "status": "planned",
+  "status": "scaffold_ready",
   "productEnabled": false,
   "generationMode": "hybrid_deterministic_blocks_with_evidence_bound_ai_wording",
   "promptPolicy": "one_bounded_claim_per_output_obligation",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": "inspection-report-generation",
+    "promptVersion": "v1",
+    "modelBinding": "exact_model_and_snapshot_required_in_candidate_manifest"
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "inspection-report",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -120,7 +132,12 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null,
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": null,
+  "historicalReleaseReferences": [],
   "knowledgeInputs": {
     "sectionKnowledgeBundle": "one_frozen_bundle_with_generation_projection",
     "standardObligationPack": "separate_pinned_applicable_pack",

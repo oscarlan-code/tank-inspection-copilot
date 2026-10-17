@@ -1,0 +1,25 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "general-tank-information",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "deterministic",
+  "checks": [
+    "package_and_plan_identity",
+    "required_identity_presence",
+    "field_to_evidence_trace",
+    "field_order_and_label",
+    "value_precision_and_unit_preservation",
+    "missing_value_behavior",
+    "header_metadata_separation",
+    "format_conformance"
+  ],
+  "hardFailures": [
+    "identity_conflict",
+    "unsupported_field_value",
+    "changed_value_or_unit",
+    "cross_asset_history"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

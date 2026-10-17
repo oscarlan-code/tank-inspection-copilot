@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "scope-of-inspection",
+  "title": "1 SCOPE OF INSPECTION",
+  "layoutFamily": "compact_scope_list",
+  "orderedBlocks": [
+    "scope-activities",
+    "scope-deliverables",
+    "limitations-and-exclusions",
+    "procedure-references"
+  ],
+  "rules": [
+    "Use one arrow bullet per distinct confirmed obligation.",
+    "Keep quantities, units, component names and conditions in the same bullet.",
+    "Do not add empty headings for absent optional blocks.",
+    "Do not include findings, results, acceptance decisions or repair actions."
+  ]
+}

@@ -6,11 +6,23 @@
     "sectionId": "scope-of-inspection",
     "title": "SCOPE OF INSPECTION"
   },
-  "plannedReleaseId": "scope_of_inspection_v1",
-  "status": "frozen_evaluation_candidate",
+  "plannedReleaseId": "scope_of_inspection_package_bound_v1",
+  "status": "scaffold_ready",
   "productEnabled": false,
   "generationMode": "deterministic_confirmed_scope_compiler",
   "promptPolicy": "disabled",
+  "generationControl": {
+    "instructionsVersion": "v1",
+    "promptId": null,
+    "promptVersion": null,
+    "modelBinding": null
+  },
+  "inputContract": {
+    "package": "section_evidence_package_v1",
+    "plan": "package_bound_section_plan_v1",
+    "exactSectionId": "scope-of-inspection",
+    "reviewedRoutingRequired": true
+  },
   "outputBlocks": [
     {
       "blockId": "heading",
@@ -66,5 +78,12 @@
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": "../../../releases/scope-of-inspection/generator/v1/manifest.json"
+  "generatorInstructionsFile": "generator-instructions.md",
+  "formatContractFile": "format-contract.json",
+  "reviewerSpecFile": "reviewer-spec.json",
+  "evaluatorSpecFile": "evaluator-spec.json",
+  "activePackageBoundCandidate": null,
+  "historicalReleaseReferences": [
+    "../../../releases/scope-of-inspection/generator/v1/manifest.json"
+  ]
 }

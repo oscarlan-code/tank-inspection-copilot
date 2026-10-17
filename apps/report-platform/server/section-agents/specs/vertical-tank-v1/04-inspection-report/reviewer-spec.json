@@ -1,0 +1,27 @@
+{
+  "contractVersion": "section_reviewer_scaffold_v1",
+  "sectionId": "inspection-report",
+  "role": "pre_display_guard",
+  "goldAccess": false,
+  "modelPolicy": "independent_version_pinned_reviewer",
+  "checks": [
+    "package_plan_and_bundle_identity",
+    "claim_to_current_evidence_trace",
+    "component_location_and_side",
+    "polarity_uncertainty_and_severity",
+    "protected_value_and_unit_preservation",
+    "supported_block_coverage",
+    "clarification_required_for_material_ambiguity",
+    "historical_current_fact_separation",
+    "format_and_cross_reference_conformance"
+  ],
+  "hardFailures": [
+    "unsupported_current_claim",
+    "changed_measurement_or_unit",
+    "wrong_component_location_or_side",
+    "historical_fact_borrowing",
+    "recommendation_or_fitness_conclusion_in_findings"
+  ],
+  "passDecision": "ready_for_human_review",
+  "productEnabled": false
+}

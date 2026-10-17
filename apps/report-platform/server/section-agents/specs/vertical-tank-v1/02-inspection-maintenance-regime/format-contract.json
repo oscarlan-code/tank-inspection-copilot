@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_format_contract_v1",
+  "sectionId": "inspection-maintenance-regime",
+  "title": "2 INSPECTION AND MAINTENANCE REGIME",
+  "layoutFamily": "controlled_template",
+  "orderedBlocks": [
+    "approved-template-body",
+    "declared-substitutions",
+    "known-history",
+    "qualified-requirements"
+  ],
+  "rules": [
+    "Preserve the approved template paragraph and list structure.",
+    "Render only declared substitution fields.",
+    "Omit optional history or requirement blocks when evidence is absent.",
+    "Record the template ID, revision and hash outside the visible report body."
+  ]
+}
