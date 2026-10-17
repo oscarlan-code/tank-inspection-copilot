@@ -1,0 +1,14 @@
+{
+  "candidateId": "candidate-a",
+  "agentRelease": "mock-preparation-v1",
+  "implementationGitCommit": "0000000000000000000000000000000000000000",
+  "changedVariable": "baseline",
+  "model": {
+    "mode": "disabled",
+    "reason": "Replace with a pinned model version and hash when an LLM creates the candidate output."
+  },
+  "prompt": {
+    "mode": "disabled",
+    "reason": "Replace with a pinned prompt version and hash when a prompt creates the candidate output."
+  }
+}

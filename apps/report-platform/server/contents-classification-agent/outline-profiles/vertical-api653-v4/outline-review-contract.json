@@ -1,0 +1,37 @@
+{
+  "contractVersion": "outline_understanding_review_v4",
+  "profileId": "vertical-api653-inspection-report-v4",
+  "status": "approved_for_evaluation_with_product_blocker",
+  "requiredEvidence": [
+    "multi_report_heading_frequency",
+    "representative_toc_review",
+    "canonical_section_alias_review",
+    "section_block_definition_review",
+    "API_653_applicability_and_edition_review",
+    "Android_API_capability_mapping",
+    "external_document_boundary_review",
+    "ambiguous_block_failure_audit"
+  ],
+  "requiredDecisions": [
+    "approve_common_core",
+    "approve_conditional_modules",
+    "approve_section_aliases",
+    "approve_block_definitions",
+    "approve_current_evidence_sources",
+    "approve_known_exclusions",
+    "approve_routing_ownership_definitions"
+  ],
+  "hardRules": [
+    "one_report_cannot_define_the_profile",
+    "historical_frequency_cannot_override_standard_obligation",
+    "target_evaluation_report_cannot_define_its_own_gold_label_space",
+    "final_toc_is_owned_by_report_structure_agent"
+  ],
+  "approval": {
+    "reviewRecord": "outline-review.json",
+    "decision": "approved_for_classification_evaluation_with_product_blocker",
+    "evaluationUseApproved": true,
+    "productUseApproved": false,
+    "productBlockerId": "api653-current-revision-gap"
+  }
+}

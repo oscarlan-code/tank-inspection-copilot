@@ -1,0 +1,45 @@
+{
+  "contractVersion": "classification_evaluation_rubric_v1",
+  "unitOfEvaluation": "one_original_text_unit_or_one_export_evidence_atom_with_reviewed_correspondence",
+  "columns": [
+    "caseId",
+    "truthUnitId",
+    "originalReportText",
+    "exportEvidenceId",
+    "exportEvidenceText",
+    "goldSectionLabels",
+    "predictedSectionLabels",
+    "goldBlockLabels",
+    "predictedBlockLabels",
+    "meaningPreserved",
+    "lineageIntegrity",
+    "result",
+    "feedback"
+  ],
+  "deterministicMetrics": [
+    "section_precision",
+    "section_recall",
+    "section_f1",
+    "exact_multi_label_match",
+    "block_accuracy",
+    "critical_miss_count",
+    "over_routing_rate",
+    "unresolved_rate",
+    "lineage_coverage"
+  ],
+  "llmJudgeUse": "semantic_adjudication_only_when_label_alias_or_claim_boundary_requires_review",
+  "aggregation": [
+    "per_section",
+    "per_block",
+    "per_evidence_type",
+    "per_voice_variation",
+    "macro_average_per_report_lineage"
+  ],
+  "hardFailures": [
+    "critical_section_missed",
+    "wrong_current_fact",
+    "value_unit_polarity_or_identity_changed",
+    "target_gold_exposed_to_runtime",
+    "unreviewed_assignment_entered_section_package"
+  ]
+}

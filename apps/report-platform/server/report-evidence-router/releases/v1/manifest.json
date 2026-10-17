@@ -1,0 +1,29 @@
+{
+  "contractVersion": "report_evidence_router_release_v1",
+  "agentId": "report-evidence-router",
+  "releaseId": "report-evidence-router_v1",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "executionModes": [
+    "evaluation"
+  ],
+  "entryPoint": "server/router.mjs",
+  "entryExport": "routeReportEvidence",
+  "files": {
+    "README.md": "bec72fd856bbc59e972df33d115213beecd4092833c62faa0baabb5c44756983",
+    "agent-instructions.md": "2d92f3ea0df1cb5a99ff9a779e0a2c7e799e28485f71442a0569eae4cda2a46e",
+    "agent-spec.json": "b47464eb55c4621d97a10fa377457fc4a87b7c7d4c3ca104d6caa92452cca77d",
+    "harness.json": "b92a87d0396366ace7f8a9ea01c91e67dcfc706a65d3ce2b9488050ef08bb7fb",
+    "kb-policy.json": "0a10e1c596aa542144b85da703bbbbfaa0b5450838ae2f71e9d7a156474fce54",
+    "output-schema.json": "5add575edaf253e281ebb953edf1410ab1a2da8a493c61ccccccf058cc76efc7",
+    "routing-taxonomy.json": "831ea2876359ce6726745f30f48748cdd27d15246d938cb200a1a8601d5e5fd7",
+    "section-block-registry.json": "0deb201ec7bebdc2f9efc0864b36a7f049c6f12a752b87ea316527ef89b8a8ae",
+    "server/router.mjs": "9e8ff719e39a70791efca0830fda15085d4cd33681f9811fe3fbb1333297fb57",
+    "test-fixtures/android-export.json": "4515148219afb36ad669b65e4b34fb312e6c200eda2dc58b318f24fbb7d919e5"
+  },
+  "dependencies": {
+    "../../../section-planner.mjs": "44e4e4bb9a009266ca2bcf4d15b91946a6790446633cbf6e422f9a0bc9bca6a1",
+    "../../../section-contracts.mjs": "a70fe2560f59ed95324deda749a8ea94213ba4668325da8067399a91cf4d3dd2",
+    "../../../report-toc.mjs": "81fc4a4dc226c6df6d5af1e9d9e1041b645282c215f4abf18031ba977246468e"
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "contractVersion": "contents_classification_heldout_cases_v1",
+  "datasetId": "classification-v5-heldout-20",
+  "datasetSplit": "validation",
+  "evaluationRole": "held_out_validation",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "cases": [
+    {
+      "caseId": "v5_hold_001",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 2,
+      "sourceText": "To carry out a Magnetic Flux Leakage (MFLmap) inspection supported by an ultrasonic continuous corrosion scan of the floor plates.",
+      "classifierInput": "Use MFL mapping on the floor plates, backed up by a continuous ultrasonic corrosion scan.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" }
+    },
+    {
+      "caseId": "v5_hold_002",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 2,
+      "sourceText": "Produce CAD Drawing of floor plate layout, identifying all existing fittings, appurtenances and obvious tank modifications / repairs.",
+      "classifierInput": "The job deliverable includes a CAD floor layout showing fittings, appurtenances, and visible modifications or repairs.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "scope" }
+    },
+    {
+      "caseId": "v5_hold_003",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 4,
+      "sourceText": "Height: 22.86 m; Service Height: 21.0 m; Diameter: 76.2 m",
+      "classifierInput": "Tank dimensions recorded: overall height 22.86 m, working height 21.0 m, and diameter 76.2 m.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" }
+    },
+    {
+      "caseId": "v5_hold_004",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 4,
+      "sourceText": "Previous Inspection History - External: Not Provided; Internal: Not Provided; Bottom: Not Provided",
+      "classifierInput": "There are no supplied records for earlier external, internal, or bottom inspections.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" }
+    },
+    {
+      "caseId": "v5_hold_005",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 6,
+      "sourceText": "Shell external was visually inspected from ground.",
+      "classifierInput": "I completed the outside shell visual check from ground level.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" }
+    },
+    {
+      "caseId": "v5_hold_006",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 6,
+      "sourceText": "2 inch and 6 inch nozzles (Northeast) were not dismantled for inspection.",
+      "classifierInput": "The northeast 2-inch and 6-inch shell nozzles stayed assembled, so their internals were not examined.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-appurtenances" }
+    },
+    {
+      "caseId": "v5_hold_007",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 7,
+      "sourceText": "Floating roof external not cleaned for inspection.",
+      "classifierInput": "The floating roof outside surface could not be inspected properly because it had not been cleaned.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-external" }
+    },
+    {
+      "caseId": "v5_hold_008",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 8,
+      "sourceText": "Shell internal was visually inspected from floor.",
+      "classifierInput": "The internal shell visual examination was carried out while standing on the tank floor.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-internal" }
+    },
+    {
+      "caseId": "v5_hold_009",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 9,
+      "sourceText": "Floor internal MFL scanning with UT backup indicated for bottom plates: general remaining thickness 6.4 to 6.8 mm and underside pitting corrosion of remaining thickness 2.1 mm to 5.5 mm.",
+      "classifierInput": "MFL with UT confirmation found bottom plates generally at 6.4-6.8 mm, with underside pits leaving 2.1-5.5 mm.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" }
+    },
+    {
+      "caseId": "v5_hold_010",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f",
+      "sourcePage": 16,
+      "sourceText": "Floating roof external should be cleaned and inspected.",
+      "classifierInput": "Clean the outside of the floating roof and then carry out the inspection.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" }
+    },
+    {
+      "caseId": "v5_hold_011",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 2,
+      "sourceText": "To carry out thickness measurements of tank bottom sump.",
+      "classifierInput": "Include ultrasonic thickness readings on the tank bottom sump in the inspection work.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" }
+    },
+    {
+      "caseId": "v5_hold_012",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 4,
+      "sourceText": "Year Built: 1952 (New Floor Plate installed in 1978)",
+      "classifierInput": "The tank dates from 1952, and a replacement floor was installed in 1978.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" }
+    },
+    {
+      "caseId": "v5_hold_013",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 5,
+      "sourceText": "The tank was suspected to be constructed on a previous floor, as inferred from a second floor projection that was visible from the outside under the actual floor projection.",
+      "classifierInput": "A second projection visible below the present one suggests that the current floor may sit over an older floor.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" }
+    },
+    {
+      "caseId": "v5_hold_014",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 6,
+      "sourceText": "Shell nozzle internal not cleaned for inspection at 4 inch Southwest, six 2 inch Southeast, and two 1 inch on 16 inch Northeast.",
+      "classifierInput": "Several shell-nozzle bores were not cleaned, including the southwest 4-inch, southeast 2-inch group, and northeast small branches.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-appurtenances" }
+    },
+    {
+      "caseId": "v5_hold_015",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 7,
+      "sourceText": "Pontoon internal not inspected due to restricted access; drain sump internal not inspected due to partial obstruction by overflow.",
+      "classifierInput": "I could not examine inside the pontoons because access was restricted, and the drain-sump interior was partly blocked by the overflow.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-internal" }
+    },
+    {
+      "caseId": "v5_hold_016",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 8,
+      "sourceText": "Roof leg pins corroded away or missing.",
+      "classifierInput": "Some floating-roof leg pins have either corroded away or are missing.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-appurtenances" }
+    },
+    {
+      "caseId": "v5_hold_017",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 10,
+      "sourceText": "Side sump (Southwest) piping internal not cleaned for inspection.",
+      "classifierInput": "The inside of the southwest side-sump pipe could not be inspected because it was not cleaned.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" }
+    },
+    {
+      "caseId": "v5_hold_018",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 11,
+      "sourceText": "Floor internal UT scanning on both Sump A and Sump B lip, wall and bottom sections indicated remaining thickness of 8.8 to 9.1 mm with an average reading of 9.0 mm.",
+      "classifierInput": "UT on both floor sumps measured the lips, walls, and bottoms at 8.8-9.1 mm, averaging 9.0 mm.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" }
+    },
+    {
+      "caseId": "v5_hold_019",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 17,
+      "sourceText": "Roof leg pins corroded away or missing should be replaced.",
+      "classifierInput": "Replace every roof-leg pin that is missing or has corroded away.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" }
+    },
+    {
+      "caseId": "v5_hold_020",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b",
+      "sourcePage": 19,
+      "sourceText": "Flaw Detector: Epoch 4 (S/N IRS 3167); Couplant: Water; Test Material: Carbon Steel",
+      "classifierInput": "The UT setup used Epoch 4 serial IRS 3167 with water couplant on carbon steel.",
+      "expectedUse": { "sectionId": "test-information", "blockId": "equipment" }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "contractVersion": "section_gold_rubric_v1",
+  "rubricId": "general_tank_information_evaluator_v2_rubric_v1",
+  "sectionId": "general-tank-information",
+  "dimensions": [
+    {
+      "id": "evidenceCoverage",
+      "weight": 0.3,
+      "focus": "Coverage of facts and claims supported by processed current evidence."
+    },
+    {
+      "id": "originalMeaningRecovery",
+      "weight": 0.3,
+      "focus": "Recovery of the original section’s field meaning while respecting the reconstructed current evidence."
+    },
+    {
+      "id": "formatAlignment",
+      "weight": 0.15,
+      "focus": "Alignment with the reviewed section title, order and presentation pattern."
+    },
+    {
+      "id": "supportedClaimPrecision",
+      "weight": 0.25,
+      "focus": "Absence of unsupported or contradicted generated claims."
+    }
+  ],
+  "blocking": [
+    "critical_current_fact_change",
+    "unsupported_critical_claim",
+    "gold_leakage",
+    "failed_pre_display_review"
+  ],
+  "exactWordingTarget": false
+}

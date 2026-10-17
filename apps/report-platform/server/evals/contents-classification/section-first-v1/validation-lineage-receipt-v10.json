@@ -1,0 +1,24 @@
+{
+  "contractVersion": "contents_classification_validation_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:v10",
+      "corpusReportId": "corpus_report_f0bf18d1d2a1f5e8",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38"
+    },
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:be2",
+      "corpusReportId": "corpus_report_1b3925f386f16a59",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b"
+    }
+  ],
+  "developmentOverlap": false,
+  "priorValidationOverlap": false,
+  "priorHiddenOverlap": false
+}

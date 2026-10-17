@@ -1,0 +1,28 @@
+{
+  "contractVersion": "report_evidence_router_spec_v2",
+  "agentId": "report-evidence-router",
+  "releaseVersion": "report-evidence-router_v2",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "inputContract": "android_v3_export_plus_reviewed_routing_decisions",
+  "outputContract": "report_evidence_routing_v2",
+  "responsibility": "Create source-linked atomic evidence and section-isolated reviewed projections before section generation; routing readiness never implies generation or approval readiness.",
+  "unitResolutionPrecedence": ["utMeasurements[].unitCode", "utMeasurements[].unit", "unitProfile.thicknessUnit"],
+  "deterministicCollections": [
+    "inspectionRecord", "inspectionChecklistItems", "inspectionChecklistSectionNotes",
+    "findings", "utMeasurements", "layoutTargets", "layoutConfigs", "layoutFigures",
+    "elements", "attachments", "taskSnapshots"
+  ],
+  "modelEligibleInputs": ["voiceNotes.transcriptText", "ambiguous narrative fields"],
+  "evidenceUseRoles": ["required_structured", "required_narrative", "supporting", "cross_reference"],
+  "requiredOutputs": ["evidence-ledger.json", "section-evidence-projections", "routing-review.json", "routing-manifest.json"],
+  "approvalBlockers": [
+    "unrouted_retained_evidence", "unsupported_fact", "hidden_gold", "missing_entity",
+    "unknown_or_conflicting_unit", "unverified_transcript", "unconfirmed_action",
+    "ambiguous_section_or_block", "input_or_dependency_hash_mismatch"
+  ],
+  "prohibitedBehavior": [
+    "report_prose_generation", "source_record_mutation", "historical_fact_injection",
+    "target_gold_access", "automatic_voice_proposal_approval", "automatic_product_enablement"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "contractVersion": "contents_classification_heldout_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:v9",
+      "corpusReportId": "corpus_report_de0ec41cd887afb7",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a"
+    },
+    {
+      "assetLineageKey": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "corpusReportId": "corpus_report_ef6551cba03af5c1",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289"
+    }
+  ],
+  "developmentOverlap": false,
+  "regressionLineageOverlap": false,
+  "priorHeldoutLineageOverlap": false
+}

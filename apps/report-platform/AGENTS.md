@@ -101,6 +101,47 @@ Do not optimize exact historical wording. Track semantic coverage, supported-cla
 precision, protected-field/relationship accuracy, format readiness, inspector edits,
 and approval outcome. Leakage or altered critical data is blocking.
 
+## Frozen mock-preparation evaluation UI
+
+The human-review contract for `src/components/MockPreparationEvaluation.tsx` is
+frozen as `mock_preparation_truth_to_mock_ui_v2`. Dataset expansion, grader
+changes, Android round-trip checks, and backend pipeline work must feed the
+existing interface without redesigning it.
+
+- Keep one primary Step 1 workflow: `Original report` → `Reviewed truth` →
+  `Mockup output` → `Evaluation`. Do not duplicate the current run across several
+  top-level tabs.
+- Open `/admin/evaluation` on Step 1. Keep the general Evaluation Lab navigation,
+  generic live-data banner, KB/account actions, and unrelated evaluation modules
+  out of this pathway.
+- Distinguish reviewed source text units, atomic truth facts, comparison rows, and
+  evaluation results. Never present these counts as interchangeable.
+- Keep the spreadsheet columns and order: `#`, `Mock variation`, `Evidence type`,
+  `Truth text unit (original report)`, `Generated mockup text unit`, `Evaluator`,
+  `Meaning`, `Integrity`, `Overall`, and `Feedback`.
+- Keep the complete truth text and generated mockup text visible side by side in
+  every comparison row and in the selected-row inspector.
+- Keep the base-source-grounded, natural-field-speech, and
+  concise-field-shorthand datasets in the workbook. Keep all current comparison
+  rows in one workbook without pagination hiding later units.
+- Keep the GPT-5.6 performance charts visible below the workbook and allow a
+  selected bar or matrix cell to filter the same rows.
+- Keep Step 1 gates and evaluator calibration as secondary collapsed audit
+  sections. Calibration results cannot count as mockup-output performance.
+- Preserve complete-report qualification separately: structured fields, checklist
+  rows, measurements, narrative facts, layouts, and explicit outside-app
+  dispositions must all remain accounted for. The UI freeze protects presentation;
+  it must not narrow, replace, or falsely complete the backend report denominator.
+- Loading another report may change only report identity, data, counts, generated
+  evidence, and evaluation results. Dataset shape alone is not approval to alter
+  navigation, component hierarchy, columns, row formatting, filters, or charts.
+- Do not change this workflow, information hierarchy, default filter, column
+  contract, or associated layout styling unless the user explicitly approves a UI
+  change. Backend or dataset work alone is not approval to alter the UI.
+- After an explicitly approved UI change, update
+  `docs/contracts/evaluation/MOCK_PREPARATION_EVALUATION_UI.md`, its contract test,
+  and the reviewed browser screenshot together.
+
 ## Platform rules
 
 - PostgreSQL is the only transactional database; do not add SQLite/fallback files.

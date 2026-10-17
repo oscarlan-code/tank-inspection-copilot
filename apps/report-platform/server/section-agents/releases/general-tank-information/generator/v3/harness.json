@@ -1,0 +1,26 @@
+{
+  "contractVersion": "section_agent_harness_spec_v3",
+  "agentId": "general_tank_information",
+  "releaseVersion": "general_tank_information_v3",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "requiredTests": [
+    "exact_router_release_binding", "routing_manifest_hash_integrity", "projection_hash_integrity",
+    "section_projection_isolation", "report_plan_hash_integrity", "section_plan_hash_integrity",
+    "exact_generator_registry_binding", "all_31_fields_in_fixed_order", "android_alias_mapping",
+    "app_provenance_preservation", "duplicate_value_cross_check", "unit_integrity",
+    "every_projected_record_accounted", "unknown_routed_field_blocks", "reviewer_blocks_omission",
+    "gold_exclusion", "immutable_input", "no_model_or_runtime_retrieval", "unapproved_output",
+    "release_hash_integrity", "v2_regression"
+  ],
+  "freezeGates": {
+    "protectedFactAccuracy": 1.0,
+    "projectedEvidenceDispositionCoverage": 1.0,
+    "unsupportedFacts": 0,
+    "silentEvidenceOmissions": 0,
+    "criticalIntegrityBlockers": 0,
+    "manifestAndDependencyHashesPinned": true,
+    "inspectorReviewRequired": true
+  },
+  "promotionPerformedByHarness": false
+}

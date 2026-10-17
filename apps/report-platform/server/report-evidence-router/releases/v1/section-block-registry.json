@@ -1,0 +1,22 @@
+{
+  "contractVersion": "report_evidence_router_section_registry_v1",
+  "authority": "A frozen ReportPlan selects from these canonical section contracts; this file does not create a table of contents.",
+  "sections": [
+    {"sectionId":"scope-of-inspection","blocks":["identity","scope","limitations","references"]},
+    {"sectionId":"inspection-maintenance-regime","blocks":["history","regime","limitations"]},
+    {"sectionId":"general-tank-information","blocks":["identity","configuration","history","inspection-details"]},
+    {"sectionId":"inspection-report","blocks":["inspection-extent","diked-area","foundation","shell-external","shell-appurtenances","access-structures","roof-external","roof-appurtenances","roof-internal","shell-internal","floor-internal","assessment-summaries","inspection-implication"]},
+    {"sectionId":"repair-recommendations","blocks":["recommendations","basis","limitations"]},
+    {"sectionId":"test-information","blocks":["methods","results","limitations"]},
+    {"sectionId":"tank-inspection-checklist","blocks":["legend","checklist","notes"]},
+    {"sectionId":"roof-plate-thickness-measurements","blocks":["basis","measurements","layout-reference"]},
+    {"sectionId":"roof-plate-layout","blocks":["layout","legend","references"]},
+    {"sectionId":"roof-nozzle-reinforcement-pad-thickness-measurements","blocks":["basis","measurements","layout-reference"]},
+    {"sectionId":"minimum-shell-thickness-calculations","blocks":["basis","inputs","calculations","limitations"]},
+    {"sectionId":"shell-plate-thickness-measurements","blocks":["basis","measurements","layout-reference"]},
+    {"sectionId":"shell-plate-layout","blocks":["layout","legend","references"]},
+    {"sectionId":"shell-nozzle-reinforcement-pad-thickness-measurements","blocks":["basis","measurements","layout-reference"]},
+    {"sectionId":"photographs","blocks":["photographs"]},
+    {"sectionId":"floor-plate-layout-platemaps-numbering-system","blocks":["layout","legend","aliases"]}
+  ]
+}

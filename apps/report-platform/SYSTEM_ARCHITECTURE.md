@@ -13,9 +13,10 @@ The platform converts an immutable LAIQ inspection-app revision into an editable
 traceable inspection report and exports only approved content.
 
 ```text
-LAIQ app -> authenticated import -> normalized evidence -> ReportPlan
-         -> SectionPlans -> Section Agents -> pre-display Section Review Agents
+LAIQ app -> authenticated import -> Report Evidence Routing Agent -> ReportPlan
+         -> frozen section projections / SectionPlans -> Section Agents -> pre-display Section Review Agents
          -> ReportDocument -> inspector approval -> DOCX/PDF
+         -> shared traces, evidence accountability, evaluation matrix, and control-plane audit
 ```
 
 The app and report platform are independent products connected by versioned export
@@ -45,12 +46,15 @@ an immutable, reviewed `ReportPlan` containing the report profile, standard/edit
 ordered table of contents, section instances, dependencies, applicability, and
 exact section-agent bindings. It creates structure, not section prose.
 
-Each Section Generation Agent receives one frozen `SectionPlan`, section-scoped
-current evidence, a historical `SectionPatternPack`, and its applicable standard
-obligations. It emits a typed `SectionDocument`, validation results, trace, and an
-unapproved draft. An independently versioned pre-display Section Review Agent then
-checks current-evidence fidelity, section format and knowledge boundaries without
-gold. Only `ready_for_review` drafts may be presented, and they remain unapproved.
+Each section release family pins one multi-report `SectionKnowledgeBundle`. Its
+structure, mock-preparation, generation, review, and evaluation projections share one
+bundle ID and hash while exposing only role-appropriate knowledge. The Section
+Generation Agent receives one frozen `SectionPlan`, section-scoped current evidence,
+the generation projection, and applicable standard obligations. It emits a typed
+`SectionDocument`, validation results, trace, and an unapproved draft. An
+independently versioned pre-display Section Review Agent uses the review projection
+to check current-evidence fidelity, accepted section variation, format, and knowledge
+boundaries without gold. Only `ready_for_review` drafts may be presented, and they remain unapproved.
 The deterministic Report Integrator verifies ordering,
 cross-references, protected facts, unresolved obligations, and styles before
 creating one semantic `ReportDocument` for browser and export.
@@ -91,6 +95,12 @@ historical practice, then traceable reviewed judgment.
 Imported evidence is append-only. Editing creates derived report state and never
 changes the pinned inspection revision.
 
+The shared `report-evidence-router` release owns normalization, atomic claim
+extraction, physical-entity resolution and reviewed multi-section uses. Deterministic
+app records follow rules; a model may propose terminology or destinations for voice
+claims, but only reviewed decisions enter a frozen section projection. Each source
+record is routed, explicitly excluded, or retained in a blocking review queue.
+
 ## Platform boundaries
 
 - PostgreSQL is the only transactional database.
@@ -116,15 +126,17 @@ are indexed under `docs/contracts/`.
 | Historical/standards ingestion and review | Baseline exists; immutable pack builders pending |
 | Previous shared generator and 32-section outline | Legacy comparison only |
 | Report Structure Agent and durable ReportPlan store | Planned; minimum two-section contract is executable |
+| Report Evidence Routing Agent | V1 frozen evaluation evidence; V2 evaluation successor; product-disabled |
 | Scope of Inspection agent | V1 ReportPlan-bound evaluation candidate |
-| General Tank Information agent | V1 frozen evidence; V2 ReportPlan-bound evaluation candidate |
+| General Tank Information agent | V1 frozen evidence; V3 routed ReportPlan evaluation candidate |
 | Other section agents | Not implemented |
+| Shared all-agent monitoring | V1 evaluation contract; router/generator/reviewer/evaluator tracing active for TK5452 |
 | Report Integrator and product promotion registry | Planned |
 | PDF export and cloud production deployment | Planned |
 
 Scope of Inspection and General Tank Information are the implemented and evaluated agent families.
 Both now have independent pre-display reviewer releases and post-generation sealed-gold
-evaluator releases. Scope v1 and General Information v2 exercise the new plan route;
+evaluator releases. Scope v1 and General Information v3 exercise the routed plan path;
 General Information v1 remains frozen evidence. All are evaluation-only and cannot
 enter product routing.
 

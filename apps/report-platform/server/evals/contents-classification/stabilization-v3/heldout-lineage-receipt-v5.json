@@ -1,0 +1,24 @@
+{
+  "contractVersion": "contents_classification_heldout_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:shell-eastern-petroleum-pte-ltd:148",
+      "corpusReportId": "corpus_report_18620f41a76f62df",
+      "sourceReport": "17SE1-1 Shell Bukom TK 148 Internal Inspection Report.pdf",
+      "sourceSha256": "76bb2a375e8357a29e35b05589ad79958b8d27b321d6bb1d7651fed2c64d433f"
+    },
+    {
+      "assetLineageKey": "asset:shell-eastern-petroleum-pte-ltd:77",
+      "corpusReportId": "corpus_report_de3a5ec3d5207b18",
+      "sourceReport": "17SE7-1 Shell Bukom TK 77 Internal Inspection Report.pdf",
+      "sourceSha256": "a70301720f4c8ae6c4ad0af5574b5b5fdc794ac05ae3dc769b4cbf2f2ddc3b7b"
+    }
+  ],
+  "developmentOverlap": false,
+  "regressionLineageOverlap": false,
+  "earlierRobustnessSourceNameOverlap": false
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sealed_classification_input_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "guardId",
+    "lineageToken",
+    "inputPackageHash",
+    "sourceExportSha256",
+    "sourceReceiptSha256",
+    "exportPackage"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "sealed_classification_input_v1"
+    },
+    "guardId": {
+      "const": "evaluation-input-leakage-guard-v1"
+    },
+    "lineageToken": {
+      "type": "string",
+      "pattern": "^eval_ln_[a-f0-9]{64}$"
+    },
+    "inputPackageHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceExportSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceReceiptSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "exportPackage": {
+      "type": "object",
+      "required": [
+        "packageType",
+        "schemaVersion",
+        "inspectionId",
+        "inspectionReference"
+      ],
+      "properties": {
+        "packageType": {
+          "const": "v3_product_export"
+        },
+        "schemaVersion": {
+          "const": 3
+        }
+      }
+    }
+  }
+}

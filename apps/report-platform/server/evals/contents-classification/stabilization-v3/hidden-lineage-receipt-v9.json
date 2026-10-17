@@ -1,0 +1,25 @@
+{
+  "contractVersion": "contents_classification_hidden_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "hidden_test",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:be51",
+      "corpusReportId": "corpus_report_4a6c5df88c789c1a",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2"
+    },
+    {
+      "assetLineageKey": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "corpusReportId": "corpus_report_4d005066dee3daf6",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca"
+    }
+  ],
+  "developmentOverlap": false,
+  "validationOverlap": false,
+  "priorHeldoutLineageOverlap": false,
+  "runPolicy": "Execute once after the disclosed focused regression passes; never tune this candidate on the result."
+}

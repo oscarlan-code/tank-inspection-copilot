@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "scores",
+    "missingFacts",
+    "unsupportedClaims",
+    "materialDifferences",
+    "wordingDifferences",
+    "rationale"
+  ],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "needs_attention",
+        "blocked"
+      ]
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceCoverage",
+        "originalMeaningRecovery",
+        "formatAlignment",
+        "supportedClaimPrecision"
+      ],
+      "properties": {
+        "evidenceCoverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "originalMeaningRecovery": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "formatAlignment": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "supportedClaimPrecision": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "missingFacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unsupportedClaims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "materialDifferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "wordingDifferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generated",
+          "original",
+          "assessment"
+        ],
+        "properties": {
+          "generated": {
+            "type": "string"
+          },
+          "original": {
+            "type": "string"
+          },
+          "assessment": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rationale": {
+      "type": "string"
+    }
+  }
+}

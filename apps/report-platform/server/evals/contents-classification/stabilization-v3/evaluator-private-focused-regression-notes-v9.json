@@ -1,0 +1,38 @@
+{
+  "contractVersion": "contents_classification_voice_note_cases_v1",
+  "datasetId": "classification-v9-focused-regression-2",
+  "datasetSplit": "regression",
+  "evaluationRole": "post_failure_focused_regression",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 2,
+  "cases": [
+    {
+      "caseId": "v8_note_010",
+      "lineageId": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289",
+      "sourcePage": [
+        8,
+        17
+      ],
+      "sourceText": "Maximum out-of-plane deflection was 2.062 mm against Smax 2.533 mm. No repairs were needed for the dimensional condition.",
+      "voiceNote": "Maximum shell out-of-plane deflection is 2.062 mm against a 2.533 mm limit; no dimensional repair is required from these survey results.",
+      "expectedAtoms": [
+        {
+          "text": "Maximum shell out-of-plane deflection is 2.062 mm against a 2.533 mm limit",
+          "expectedUse": {
+            "sectionId": "shell-settlement",
+            "blockId": "measurements"
+          }
+        },
+        {
+          "text": "no dimensional repair is required from these survey results.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    }
+  ]
+}

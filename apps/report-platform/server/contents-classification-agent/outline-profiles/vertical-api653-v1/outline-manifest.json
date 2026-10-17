@@ -1,0 +1,33 @@
+{
+  "contractVersion": "vertical_outline_manifest_v1",
+  "profileId": "vertical-api653-inspection-report-v1",
+  "status": "frozen_for_r_and_d_evaluation",
+  "frozenAt": "2026-10-15T00:00:00+08:00",
+  "immutable": true,
+  "evaluationUseEnabled": true,
+  "productUseEnabled": false,
+  "files": [
+    {
+      "path": "outline-profile.json",
+      "sha256": "a7a2363c8c4328b9a6f5fd46ec2307711eff5d37f54e621a7948122f1c973b93"
+    },
+    {
+      "path": "historical-outline-evidence.json",
+      "sha256": "11de7d153727a7e671b5a159ee296b9a5496a213374bf20c27fbb0449361ca43"
+    },
+    {
+      "path": "api653-report-obligations.json",
+      "sha256": "8eaa8aa140018138f75515c5cd0cb83ed92faa780f19f2d6ba9ce77668a0a243"
+    },
+    {
+      "path": "outline-review.json",
+      "sha256": "93647875d0fbda75a9a65d253c34cd5cdaea745db778855bf3a76038fe720ff0"
+    },
+    {
+      "path": "outline-review-contract.json",
+      "sha256": "0017ab0a11fb22aa736769964b260faf05696600a7104f68d2f82ca92ddcc433"
+    }
+  ],
+  "bundleSha256": "10622591810c590e5b262c920e2c77a5bf7f1f150d50475604f1e80858428cee",
+  "changePolicy": "Semantic changes require a new profile version."
+}

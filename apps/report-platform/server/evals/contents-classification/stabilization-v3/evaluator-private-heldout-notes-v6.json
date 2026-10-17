@@ -1,0 +1,216 @@
+{
+  "contractVersion": "contents_classification_voice_note_cases_v1",
+  "datasetId": "classification-v6-heldout-raw-notes-30",
+  "datasetSplit": "validation",
+  "evaluationRole": "held_out_end_to_end_validation",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 30,
+  "cases": [
+    {
+      "caseId": "v6_note_001",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 4,
+      "sourceText": "Measure and record tank bottom plate elevation and settlement across the tank diameter. Perform out-of-roundness, peaking, banding and plumbness survey on the shell.",
+      "voiceNote": "Take bottom elevation readings across the tank diameter for settlement; survey shell roundness, peaking, banding and plumbness.",
+      "expectedAtoms": [
+        { "text": "Take bottom elevation readings across the tank diameter for settlement", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } },
+        { "text": "survey shell roundness, peaking, banding and plumbness.", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_002",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 4,
+      "sourceText": "A softcopy PDF formatted report will be produced as the documented record. Reports are to be delivered within 10 working days.",
+      "voiceNote": "Deliver a PDF record of the completed assignments; issue the individual tank report within ten working days.",
+      "expectedAtoms": [
+        { "text": "Deliver a PDF record of the completed assignments", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "scope" } },
+        { "text": "issue the individual tank report within ten working days.", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "scope" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_003",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 2008; Service Height: 15.971 m",
+      "voiceNote": "The tank was built in 2008, and its service height is 15.971 m.",
+      "expectedAtoms": [
+        { "text": "The tank was built in 2008", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } },
+        { "text": "its service height is 15.971 m.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_004",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 6,
+      "sourceText": "Design Temp.: 60 C; Internal Pres.: 7.5 mbar (G)",
+      "voiceNote": "Design conditions are 60 degrees C with 7.5 mbar gauge internal pressure.",
+      "expectedAtoms": [
+        { "text": "Design conditions are 60 degrees C with 7.5 mbar gauge internal pressure.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_005",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 6,
+      "sourceText": "Previous Inspection History - External: Not Provided; Internal: Not Provided; Bottom: Not Provided",
+      "voiceNote": "No earlier external inspection record was supplied; previous internal and bottom inspection records were also not provided.",
+      "expectedAtoms": [
+        { "text": "No earlier external inspection record was supplied", "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" } },
+        { "text": "previous internal and bottom inspection records were also not provided.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_006",
+      "lineageId": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f",
+      "sourcePage": 12,
+      "sourceText": "At station 5, out-of-plane deflection Si was 1.4138 mm; API 653 maximum out-of-plane deflection Smax was 12.4324 mm.",
+      "voiceNote": "Settlement station 5 shows 1.4138 mm out-of-plane deflection against the 12.4324 mm API 653 maximum.",
+      "expectedAtoms": [
+        { "text": "Settlement station 5 shows 1.4138 mm out-of-plane deflection against the 12.4324 mm API 653 maximum.", "expectedUse": { "sectionId": "shell-settlement", "blockId": "measurements" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_007",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 4,
+      "sourceText": "Take at least five readings per accessible roof plate. Inspect the side wall by ultrasonic crawler at four compass points with at least five readings per strake.",
+      "voiceNote": "Collect at least five UT readings on every accessible roof plate; run the shell crawler at four compass points with at least five readings on each strake.",
+      "expectedAtoms": [
+        { "text": "Collect at least five UT readings on every accessible roof plate", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } },
+        { "text": "run the shell crawler at four compass points with at least five readings on each strake.", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_008",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1980; Roof Type: Fixed Cone Roof",
+      "voiceNote": "Construction year is 1980, and the tank has a fixed cone roof.",
+      "expectedAtoms": [
+        { "text": "Construction year is 1980", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } },
+        { "text": "the tank has a fixed cone roof.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_009",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 7,
+      "sourceText": "Tank sits on a concrete foundation with some cracks. Exfoliation corrosion was evident along the edge projection leading edge.",
+      "voiceNote": "The concrete foundation has some cracking; the external floor edge projection shows exfoliation corrosion.",
+      "expectedAtoms": [
+        { "text": "The concrete foundation has some cracking", "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" } },
+        { "text": "the external floor edge projection shows exfoliation corrosion.", "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_010",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 8,
+      "sourceText": "The shell was inspected from ground and was visibly sound, but slight bulges were seen on many vertical and horizontal butt welds.",
+      "voiceNote": "I checked the external shell from ground and it appeared sound; slight bulges remain visible on several vertical and horizontal butt welds.",
+      "expectedAtoms": [
+        { "text": "I checked the external shell from ground and it appeared sound", "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" } },
+        { "text": "slight bulges remain visible on several vertical and horizontal butt welds.", "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_011",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 10,
+      "sourceText": "Roof internal visual inspections were carried out from the tank floor. The roof underside was uncoated with general surface corrosion and minor scale.",
+      "voiceNote": "I viewed the roof interior from the tank floor; the underside is uncoated with general corrosion and light scale.",
+      "expectedAtoms": [
+        { "text": "I viewed the roof interior from the tank floor", "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-internal" } },
+        { "text": "the underside is uncoated with general corrosion and light scale.", "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-internal" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_012",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 11,
+      "sourceText": "Shell internal visual inspections were carried out from the tank bottom. Internal plates were uncoated with general surface rust and no significant visual corrosion.",
+      "voiceNote": "I inspected the inside shell from the tank bottom; its uncoated plates have general surface rust but no significant visual corrosion.",
+      "expectedAtoms": [
+        { "text": "I inspected the inside shell from the tank bottom", "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-internal" } },
+        { "text": "its uncoated plates have general surface rust but no significant visual corrosion.", "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-internal" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_013",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 11,
+      "sourceText": "General topside pits on floor plates were 1 to 3 mm deep. MFL indications at 40% and above were backed up by visual and ultrasonic A-scan, with readings from 6.8 to 7.6 mm.",
+      "voiceNote": "Scattered floor topside pits are about 1 to 3 mm deep; MFL calls at 40 percent or more were checked by visual and A-scan UT, reading 6.8 to 7.6 mm.",
+      "expectedAtoms": [
+        { "text": "Scattered floor topside pits are about 1 to 3 mm deep", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } },
+        { "text": "MFL calls at 40 percent or more were checked by visual and A-scan UT, reading 6.8 to 7.6 mm.", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_014",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 11,
+      "sourceText": "Sump wall readings were 12.0 to 12.6 mm. The sump lip and bottom could not be tested because surface contour and nearby welding prohibited probe access.",
+      "voiceNote": "The centre-sump wall reads 12.0 to 12.6 mm; I could not test the sump lip or bottom because the contour and nearby welding blocked probe access.",
+      "expectedAtoms": [
+        { "text": "The centre-sump wall reads 12.0 to 12.6 mm", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } },
+        { "text": "I could not test the sump lip or bottom because the contour and nearby welding blocked probe access.", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_015",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 13,
+      "sourceText": "Repair pits up to approximately 6 mm deep along welds by weld fill. Coat internal pipes and nozzles to prevent further topside corrosion.",
+      "voiceNote": "Weld-fill the pits up to roughly 6 mm deep along the welds; coat the internal pipes and nozzles to limit further topside corrosion.",
+      "expectedAtoms": [
+        { "text": "Weld-fill the pits up to roughly 6 mm deep along the welds", "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" } },
+        { "text": "coat the internal pipes and nozzles to limit further topside corrosion.", "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" } }
+      ]
+    },
+    {
+      "caseId": "v6_note_016",
+      "lineageId": "asset:pacific-petroleum-company:5",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37",
+      "sourcePage": 17,
+      "sourceText": "Flaw Detector: Epoch 4 (S/N IRS 3167). Calibration Standard: A.S. 2083 Calibration Blocks and Their Method of Use in Ultrasonic Testing.",
+      "voiceNote": "UT equipment is Epoch 4 serial IRS 3167; use AS 2083 calibration blocks and the prescribed ultrasonic calibration method.",
+      "expectedAtoms": [
+        { "text": "UT equipment is Epoch 4 serial IRS 3167", "expectedUse": { "sectionId": "test-information", "blockId": "equipment" } },
+        { "text": "use AS 2083 calibration blocks and the prescribed ultrasonic calibration method.", "expectedUse": { "sectionId": "test-information", "blockId": "methods" } }
+      ]
+    }
+  ]
+}

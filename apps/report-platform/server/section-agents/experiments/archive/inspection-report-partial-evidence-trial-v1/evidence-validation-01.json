@@ -1,0 +1,296 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-validation-01",
+  "datasetSplit": "validation",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_46d82c5ba5edfba6a0b0",
+    "sourceCaseId": "canonical_case_ef1ce252b870954b9580",
+    "sourceSha256": "21d5bf891ce6fcde1fbda5f96b22308dd9c925fedb098010bcd0051d7cd046bf",
+    "datasetGroupKey": "asset:internal_external_api653:465",
+    "reportFamily": "internal_external_api653",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "diked-area",
+    "foundation",
+    "shell-external",
+    "shell-appurtenances",
+    "access-structure",
+    "roof-external",
+    "roof-internal",
+    "shell-internal",
+    "floor-internal"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "South dike wall has collapsed over part of the site drain. Floor edge projection could not be seen because the plinth seal covers it. Vegetation around projection, foundation and some anchors suggests possible water path to floor underside. Shell paint is generally okay but weathered, especially upper strakes. Pad tell-tales are open except S4; no leaks seen. Three roof walkways to 463 north, 466 west and 467 east have holes and heavy corrosion. Fixed cone roof structure is satisfactory with no major deformation. Roof underside and rafters are bare with general surface corrosion; internal shell plates are also bare and rusty. Peripheral scan found three underside pits at 3.0–3.5 mm, general band 5.7–6.3 mm. Floor underside has widespread clustered and isolated corrosion, minimum 3.0 mm. Sump readings: upper wall 7.8–8.8, middle 6.9–7.8, base 7.0–7.6 mm."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "S dike collapsed partly over drain. Edge projection not inspected—plinth seal cover. Vegetation at edge/foundation/anchors = possible underside water ingress. Shell coating weathered esp upper strakes but generally satisfactory. Pad tell-tales open except S4; no leaks. 3 walkways: TK463 N, 466 W, 467 E; perforated + heavy corr. Fixed cone roof structurally satisfactory/no significant deformation. Roof underside + rafters uncoated, surface corr. Internal shell uncoated/rust. Periphery: 3 underside pits 3.0-3.5 mm, general 5.7-6.3. Floor underside widespread clustered/isolated corr, min 3.0. Sump upper 7.8-8.8, middle 6.9-7.8, base 7.0-7.6 mm."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Sump is 7.8–8.8 upper wall, 6.9–7.8 middle and 7.0–7.6 base. Floor underside widespread clustered and isolated corrosion, minimum 3.0 mm; peripheral band has three underside pits at 3.0–3.5 with general readings 5.7–6.3. Internal shell bare and rusty, roof underside/rafters bare with surface corrosion. Fixed roof has no significant distortion and is structurally satisfactory. Walkways to 463 north, 466 west, 467 east all heavily corroded and perforated. Pad tell-tales open except S4, no leaks. Upper shell paint weathered but generally satisfactory. Edge plate was inaccessible below plinth seal; vegetation suggests possible underside water entry. South dike collapsed onto drainage."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "South dike wall is down and covering part of the drain. Couldn’t check the edge projection—it is under the plinth seal. Vegetation at projection, concrete and anchor bolts may indicate water getting under floor. Shell coating generally satisfactory, weathered more on top courses. Tell-tale holes open except S4, and no leak signs. The three walkways—north to 463, west to 466, east to 467—have heavy corrosion and perforations. Fixed cone roof structure satisfactory, no significant deformation. Roof underside and rafters uncoated with general corrosion; shell inside also uncoated with general rust. Peripheral UT found three underside pits 3.0 to 3.5 mm, general 5.7 to 6.3. Floor underside widespread clustered and isolated corrosion, lowest 3.0. Sump: upper 7.8–8.8, middle 6.9–7.8, base 7.0–7.6."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Dike S: collapsed / blocks part drain. Floor edge: inaccessible under plinth seal. Vegetation edge + foundation + anchors: possible underside water ingress. Shell paint: satisfactory generally, weathered upper strakes. Tell-tales: open except S4; no leak. Walkways x3—463 N, 466 W, 467 E—perforated + heavy corr. Fixed cone roof: structure satisfactory / no major deformation. Roof underside + rafters: uncoated / surface corr. Shell internal: uncoated / surface rust. Periphery: 3 underside pits 3.0–3.5 mm; general 5.7–6.3. Floor underside: widespread clustered/isolated corr, min 3.0. Sump upper 7.8–8.8 / middle 6.9–7.8 / base 7.0–7.6 mm."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Civil: south dike collapsed over part of drain; edge projection inaccessible under plinth seal; vegetation may signal water ingress below floor. Shell: coating generally satisfactory but weathered at upper strakes; pad tell-tales open except S4 with no leakage. Access: all three walkways to 463 north, 466 west and 467 east have perforation and heavy corrosion. Roof: fixed cone structure satisfactory with no significant deformation; underside and rafters uncoated with surface corrosion. Internal shell uncoated with surface rust. Floor: three periphery underside pits at 3.0–3.5 mm, general 5.7–6.3; underside corrosion widespread, clustered and isolated, minimum 3.0. Sump upper wall 7.8–8.8, middle 6.9–7.8, base 7.0–7.6 mm."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-dike-collapse",
+      "componentBlock": "diked-area",
+      "component": "dike wall",
+      "location": "south sector",
+      "polarity": "observed",
+      "condition": "collapsed onto part of the site drainage",
+      "qualifier": null,
+      "protectedTerms": [
+        "south",
+        "collapsed",
+        "site drainage"
+      ],
+      "sourceReference": {
+        "blockId": "block_76d7b3521d90bc365faf9f69",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-edge-projection-inaccessible",
+      "componentBlock": "foundation",
+      "component": "floor edge projection plate",
+      "location": null,
+      "polarity": "not_inspected",
+      "condition": "covered by plinth seal and inaccessible",
+      "qualifier": null,
+      "protectedTerms": [
+        "edge projection",
+        "plinth seal",
+        "inaccessible"
+      ],
+      "sourceReference": {
+        "blockId": "block_8812b78ee638edcee23ef415",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-foundation-vegetation",
+      "componentBlock": "foundation",
+      "component": "edge projection, concrete foundation and anchor bolts",
+      "location": null,
+      "polarity": "observed",
+      "condition": "vegetation growth indicating possible water ingress to the floor underside",
+      "qualifier": null,
+      "protectedTerms": [
+        "vegetation",
+        "possible",
+        "water ingress",
+        "floor underside"
+      ],
+      "sourceReference": {
+        "blockId": "block_771072f53b904723f1bda155",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-coating-upper",
+      "componentBlock": "shell-external",
+      "component": "external shell coating",
+      "location": "upper strakes",
+      "polarity": "observed",
+      "condition": "weathered but generally satisfactory",
+      "qualifier": null,
+      "protectedTerms": [
+        "upper strakes",
+        "weathered",
+        "satisfactory"
+      ],
+      "sourceReference": {
+        "blockId": "block_0b586f8b2b21bfe1dda1e971",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-nozzle-telltales",
+      "componentBlock": "shell-appurtenances",
+      "component": "reinforcement-pad tell-tale holes",
+      "location": null,
+      "polarity": "observed",
+      "condition": "open to atmosphere except at shell nozzle S4; no leakage observed",
+      "qualifier": null,
+      "protectedTerms": [
+        "open",
+        "except",
+        "S4",
+        "no leakage"
+      ],
+      "sourceReference": {
+        "blockId": "block_928e978d0932e5378742b4ca",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-walkways-corrosion",
+      "componentBlock": "access-structure",
+      "component": "three roof walkways",
+      "location": "to tanks 463 north, 466 west and 467 east",
+      "polarity": "observed",
+      "condition": "perforations and heavy corrosion at multiple locations",
+      "qualifier": null,
+      "protectedTerms": [
+        "three",
+        "463",
+        "north",
+        "466",
+        "west",
+        "467",
+        "east",
+        "perforations",
+        "heavy corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_77d6ccd6e82d7edae5733a6a",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-roof-structure",
+      "componentBlock": "roof-external",
+      "component": "fixed cone roof",
+      "location": null,
+      "polarity": "observed",
+      "condition": "structurally satisfactory with no significant deformation",
+      "qualifier": null,
+      "protectedTerms": [
+        "fixed cone roof",
+        "satisfactory",
+        "no significant deformation"
+      ],
+      "sourceReference": {
+        "blockId": "block_2f2925b67aad6c47c8ef7f25",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-roof-internal-corrosion",
+      "componentBlock": "roof-internal",
+      "component": "roof underside and rafters",
+      "location": null,
+      "polarity": "observed",
+      "condition": "uncoated with general surface corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "roof underside",
+        "rafters",
+        "uncoated",
+        "surface corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_1151f63c883f3424858374bc",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-shell-internal-rust",
+      "componentBlock": "shell-internal",
+      "component": "internal shell plates",
+      "location": null,
+      "polarity": "observed",
+      "condition": "uncoated with general surface rust",
+      "qualifier": null,
+      "protectedTerms": [
+        "internal shell",
+        "uncoated",
+        "surface rust"
+      ],
+      "sourceReference": {
+        "blockId": "block_3953cd447695b643a8c6e807",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-floor-periphery-pits",
+      "componentBlock": "floor-internal",
+      "component": "shell-to-bottom peripheral band",
+      "location": null,
+      "polarity": "measured",
+      "condition": "three isolated underside pits with 3.0 mm to 3.5 mm remaining thickness",
+      "qualifier": "general peripheral thickness ranged from 5.7 mm to 6.3 mm",
+      "protectedTerms": [
+        "three",
+        "underside pits",
+        "3.0 mm",
+        "3.5 mm",
+        "5.7 mm",
+        "6.3 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_b9d8c3588c2ce3b3b3d91b7f",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-floor-underside-general",
+      "componentBlock": "floor-internal",
+      "component": "floor underside",
+      "location": null,
+      "polarity": "observed",
+      "condition": "widespread clustered and isolated corrosion with lowest remaining thickness of 3.0 mm",
+      "qualifier": null,
+      "protectedTerms": [
+        "widespread",
+        "clustered",
+        "isolated",
+        "3.0 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_e78cddaf50a884d1a3c3e6c7",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-sump-thickness",
+      "componentBlock": "floor-internal",
+      "component": "center sump",
+      "location": "upper wall, middle wall and base",
+      "polarity": "measured",
+      "condition": "upper wall 7.8 mm to 8.8 mm, middle wall 6.9 mm to 7.8 mm, base 7.0 mm to 7.6 mm",
+      "qualifier": null,
+      "protectedTerms": [
+        "upper wall",
+        "7.8 mm",
+        "8.8 mm",
+        "middle wall",
+        "6.9 mm",
+        "base",
+        "7.0 mm",
+        "7.6 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_b0082383ecf710cd1a803023",
+        "page": 11
+      }
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+{
+  "contractVersion": "contents_classification_hidden_context_cases_v1",
+  "datasetId": "classification-v10-hidden-context-20",
+  "datasetSplit": "hidden_test",
+  "evaluationRole": "untouched_hidden_context_test",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 20,
+  "cases": [
+    {
+      "caseId": "hidden10-001",
+      "lineageId": "asset:pacific-energy-swp-ltd:13",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "sourcePage": 4,
+      "sourceText": "To carry out thickness measurements on roof plates with a minimum of five (5) readings per plate. To carry out sidewall inspection utilizing an Ultrasonic Crawler at four (4) compass points with a minimum of five (5) readings per strake.",
+      "voiceNote": "Get at least five UT readings from each roof plate we can reach; run the crawler on every shell course at north, east, south and west with five readings at each course position.",
+      "expectedAtoms": [
+        {
+          "text": "Get at least five UT readings from each roof plate we can reach",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "run the crawler on every shell course at north, east, south and west with five readings at each course position.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-002",
+      "lineageId": "asset:pacific-energy-swp-ltd:13",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1995. Total Shell Course: 3. Product Stored: Diesel. Specific Gravity: 0.91.",
+      "voiceNote": "The tank was built in 1995 and has three shell courses. It stores diesel with recorded specific gravity 0.91.",
+      "expectedAtoms": [
+        {
+          "text": "The tank was built in 1995 and has three shell courses.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "It stores diesel with recorded specific gravity 0.91.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-003",
+      "lineageId": "asset:pacific-energy-swp-ltd:13",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "sourcePage": 7,
+      "sourceText": "The sealant tape exhibited deterioration in several areas, resulting in gaps between the concrete ring beam and the edge projection plate. Twelve (12) earthing points were attached to the tank. Minor corrosion was observed at the attachment points.",
+      "voiceNote": "The plinth seal tape has broken down in places and left gaps above the concrete ring beam; all twelve grounding attachments are present but show minor corrosion.",
+      "expectedAtoms": [
+        {
+          "text": "The plinth seal tape has broken down in places and left gaps above the concrete ring beam",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "foundation"
+          }
+        },
+        {
+          "text": "all twelve grounding attachments are present but show minor corrosion.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-appurtenances"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-004",
+      "lineageId": "asset:pacific-energy-swp-ltd:13",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "sourcePage": 10,
+      "sourceText": "All visual inspections for the roof internal were carried out from the tank floor. Slight bulge was observed on the tank floor central area spreading across the tank. Ultrasonic thickness scanning around the area showed a thickness ranging from 0.374 inches to 0.382 inches.",
+      "voiceNote": "I checked the underside of the fixed roof only from the tank floor; a slight bulge crosses the middle of the floor and UT around it measured 0.374 to 0.382 inch.",
+      "expectedAtoms": [
+        {
+          "text": "I checked the underside of the fixed roof only from the tank floor",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-internal"
+          }
+        },
+        {
+          "text": "a slight bulge crosses the middle of the floor and UT around it measured 0.374 to 0.382 inch.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "floor-internal"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-005",
+      "lineageId": "asset:pacific-energy-swp-ltd:13",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "sourcePage": [22, 30],
+      "sourceText": "Roof plate thickness table: minimum reading 0.180 inch. Shell settlement station 2: out-of-plane deflection Si 12.727 mm. Maximum allowable out-of-plane deflection Smax 69.328 mm.",
+      "voiceNote": "The lowest roof plate value is 0.180 inch; settlement point 2 has Si 12.727 mm against the 69.328 mm allowable maximum.",
+      "expectedAtoms": [
+        {
+          "text": "The lowest roof plate value is 0.180 inch",
+          "expectedUse": {
+            "sectionId": "roof-plate-thickness-measurements",
+            "blockId": "measurements"
+          }
+        },
+        {
+          "text": "settlement point 2 has Si 12.727 mm against the 69.328 mm allowable maximum.",
+          "expectedUse": {
+            "sectionId": "shell-settlement",
+            "blockId": "measurements"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-006",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "sourcePage": 2,
+      "sourceText": "To carry out a Magnetic Flux Leakage inspection supported by an ultrasonic continuous corrosion scan of the floor plates. To carry out a continuous corrosion scan of the 100 mm band around the periphery of the tank and areas where access to the MFLmap is restricted.",
+      "voiceNote": "Scan the floor with MFL and back it up with continuous ultrasonic corrosion scanning; continuously scan the 100 millimetre perimeter band and any locations the MFL unit cannot reach.",
+      "expectedAtoms": [
+        {
+          "text": "Scan the floor with MFL and back it up with continuous ultrasonic corrosion scanning",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "continuously scan the 100 millimetre perimeter band and any locations the MFL unit cannot reach.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-007",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "sourcePage": 4,
+      "sourceText": "Roof Type: Fixed Cone Roof with Internal Floater. Floor Plate Thickness: 6 mm. Annular Plate Thickness: 10 mm.",
+      "voiceNote": "The roof configuration is fixed cone with an internal floating deck. Plate thicknesses are bottom 6 mm, annular ring 10 mm.",
+      "expectedAtoms": [
+        {
+          "text": "The roof configuration is fixed cone with an internal floating deck.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "Plate thicknesses are bottom 6 mm, annular ring 10 mm.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-008",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "sourcePage": [5, 6],
+      "sourceText": "Perforations were evident at the North sector at 20 inch manhole reinforcement, and South sector at 20 inch nozzle reinforcement and beside curb angle. Paint failure was observed at Southwest, 3rd course, near gauge pole.",
+      "voiceNote": "The external fixed roof is perforated beside the north manway reinforcement and around the south nozzle and curb angle; inside the shell, coating has failed on course 3 near the southwest gauge pole.",
+      "expectedAtoms": [
+        {
+          "text": "The external fixed roof is perforated beside the north manway reinforcement and around the south nozzle and curb angle",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        },
+        {
+          "text": "inside the shell, coating has failed on course 3 near the southwest gauge pole.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-internal"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-009",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "sourcePage": [11, 12],
+      "sourceText": "Perforations evident at the Roof external North sector and South sector should be repaired by welded-on patch plates. Floor internal scattered GRP patches, 17 patches, were considered a temporary repair and should be converted to a permanent repair.",
+      "voiceNote": "Fit welded patches over the perforated areas on the external roof; replace all seventeen temporary GRP floor patches with permanent repairs.",
+      "expectedAtoms": [
+        {
+          "text": "Fit welded patches over the perforated areas on the external roof",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        },
+        {
+          "text": "replace all seventeen temporary GRP floor patches with permanent repairs.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden10-010",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "sourcePage": 14,
+      "sourceText": "Flaw Detector: Epoch 4, S/N IRS 3167. Corrosion Volume Detector: MFLmap Truflux, Unit No. 2.",
+      "voiceNote": "UT work used the Epoch 4 flaw detector serial IRS 3167; the floor scan used MFLmap Truflux unit 2.",
+      "expectedAtoms": [
+        {
+          "text": "UT work used the Epoch 4 flaw detector serial IRS 3167",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "equipment"
+          }
+        },
+        {
+          "text": "the floor scan used MFLmap Truflux unit 2.",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "equipment"
+          }
+        }
+      ]
+    }
+  ]
+}

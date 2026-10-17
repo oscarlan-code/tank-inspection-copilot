@@ -1,0 +1,191 @@
+{
+  "contractVersion": "vertical_outline_historical_evidence_v1",
+  "profileId": "vertical-api653-inspection-report-v3",
+  "status": "frozen_supporting_evidence_for_evaluation",
+  "countingRules": {
+    "historicalFrequencyIsDescriptiveOnly": true,
+    "historicalFrequencyDoesNotCreateStandardObligation": true,
+    "missingParsedHeadingDoesNotProveAbsence": true,
+    "validationAndHeldOutReportsCannotBecomeRuntimeClassificationExamples": true
+  },
+  "verticalFamilyReview": {
+    "sourcePath": "docs/design/vertical-tank-inspection-v1.json",
+    "sourceSha256": "2a8a2e5c93c46551545657bbf048e1f195c6c6a06ec8b378db442a483c599dab",
+    "broadFamilyRecords": 80,
+    "excludedHorizontalRecords": 11,
+    "uniqueVerticalReports": 69,
+    "familyCounts": {
+      "internalAndExternal": 33,
+      "internal": 32,
+      "external": 4
+    },
+    "representativeTocReports": 16,
+    "directPdfTocCrossChecks": 3,
+    "commonCoreFoundAcrossRepresentativeSet": true
+  },
+  "commonCorePatternPacks": {
+    "sourcePath": ".local/section-pattern-packs/vertical-tank-common-core-v1/index.json",
+    "sourceSha256": "16b796ee0ae9a99ab0c4125d2e95fa401a909198eb73b991d9693231838305e1",
+    "eligibleTrainingDocuments": 52,
+    "inventoryOnlyNotReleaseEligible": true,
+    "sections": [
+      {
+        "sectionId": "scope-of-inspection",
+        "sourceCount": 52,
+        "memberSetSha256": "1962a19ae3eda5a98733ecf294e8ed9b140593e48be3e282e28ce4ba2f509fdb"
+      },
+      {
+        "sectionId": "inspection-maintenance-regime",
+        "sourceCount": 52,
+        "memberSetSha256": "9a5d2506ea22a045fad457646b6c26f301aeeec4bede6488942bb633f585d9f4"
+      },
+      {
+        "sectionId": "general-tank-information",
+        "sourceCount": 52,
+        "memberSetSha256": "bbf6576c5c1c3f752de87c013449b5495a8d0971797cfcd357f730cb7163773c"
+      },
+      {
+        "sectionId": "inspection-report",
+        "sourceCount": 51,
+        "memberSetSha256": "e6c0567097fd8577cdc442a23b07e0421ccb750ebeea479d481f60c134fcafb3"
+      },
+      {
+        "sectionId": "repair-recommendations",
+        "sourceCount": 49,
+        "memberSetSha256": "4ddf2ebf4c62fc8084fe704b29f4c5b793ae74c7d7ad560454ad1fc34c8a8a7c"
+      },
+      {
+        "sectionId": "test-information",
+        "sourceCount": 51,
+        "memberSetSha256": "4d05d076c6558b7bfa6132809c5d582ba8ae8824696c97a89c86e2aa22f81f64"
+      },
+      {
+        "sectionId": "tank-inspection-checklist",
+        "sourceCount": 49,
+        "memberSetSha256": "db1edd28e01fcba6f8e34925a059b5b200ecd8373e151143f451e8e515870170"
+      }
+    ]
+  },
+  "broadKnowledgeBaseReview": {
+    "sourcePath": "docs/reviews/data/kb-outline-audit-2026-09-17.json",
+    "sourceSha256": "6e3ea0fd11e549151217de8e71b645ad859801ca50dc82b37e6f55dcebf7d488",
+    "genericOutlinePath": "docs/reviews/data/generic-report-outline-v2.json",
+    "genericOutlineSha256": "89eb9b995045fa5bdac585edf8da991e8618324bd09b997b318e115b496b6854",
+    "documentEntries": 166,
+    "uniqueSourceFiles": 162,
+    "extractedSections": 6633,
+    "extractedChunks": 14393,
+    "reviewLimit": "Agent-synthesized extracted headings, tables, TOCs and selected body corroboration; not a human every-page certification.",
+    "moduleCoverage": [
+      {
+        "moduleId": "identity",
+        "approvedUsableUniqueSourceFiles": 146
+      },
+      {
+        "moduleId": "scope",
+        "approvedUsableUniqueSourceFiles": 138
+      },
+      {
+        "moduleId": "regime",
+        "approvedUsableUniqueSourceFiles": 139
+      },
+      {
+        "moduleId": "findings",
+        "approvedUsableUniqueSourceFiles": 147
+      },
+      {
+        "moduleId": "recommendations",
+        "approvedUsableUniqueSourceFiles": 115
+      },
+      {
+        "moduleId": "methods",
+        "approvedUsableUniqueSourceFiles": 103
+      },
+      {
+        "moduleId": "checklist",
+        "approvedUsableUniqueSourceFiles": 92
+      },
+      {
+        "moduleId": "thickness",
+        "approvedUsableUniqueSourceFiles": 57
+      },
+      {
+        "moduleId": "layout",
+        "approvedUsableUniqueSourceFiles": 120
+      },
+      {
+        "moduleId": "calculations",
+        "approvedUsableUniqueSourceFiles": 101,
+        "observedLabels": [
+          "shell-minimum-thickness",
+          "floor-corrosion-rate",
+          "shell-corrosion-rate",
+          "roof-corrosion-rate",
+          "annular-corrosion-rate",
+          "calculation-assessment"
+        ]
+      },
+      {
+        "moduleId": "ndt",
+        "approvedUsableUniqueSourceFiles": 19
+      },
+      {
+        "moduleId": "survey",
+        "approvedUsableUniqueSourceFiles": 62
+      },
+      {
+        "moduleId": "graphs",
+        "approvedUsableUniqueSourceFiles": 58
+      },
+      {
+        "moduleId": "photos",
+        "approvedUsableUniqueSourceFiles": 71
+      },
+      {
+        "moduleId": "method-guidance",
+        "approvedUsableUniqueSourceFiles": 69
+      },
+      {
+        "moduleId": "corrosion-plan",
+        "approvedUsableUniqueSourceFiles": 47
+      },
+      {
+        "moduleId": "platemaps",
+        "approvedUsableUniqueSourceFiles": 65
+      },
+      {
+        "moduleId": "assessment",
+        "approvedUsableUniqueSourceFiles": 2
+      },
+      {
+        "moduleId": "scan-profiles",
+        "approvedUsableUniqueSourceFiles": 32
+      },
+      {
+        "moduleId": "dimensional",
+        "approvedUsableUniqueSourceFiles": 7
+      },
+      {
+        "moduleId": "repair-verification",
+        "approvedUsableUniqueSourceFiles": 10
+      },
+      {
+        "moduleId": "consultation",
+        "approvedUsableUniqueSourceFiles": 1
+      },
+      {
+        "moduleId": "calibration",
+        "approvedUsableUniqueSourceFiles": 1
+      },
+      {
+        "moduleId": "references",
+        "approvedUsableUniqueSourceFiles": 17
+      },
+      {
+        "moduleId": "summary",
+        "approvedUsableUniqueSourceFiles": 2
+      }
+    ]
+  },
+  "conclusion": "The seven common-core labels are stable historical anchors. Eighteen technical labels remain conditional. Corrosion-rate and remaining-life assessment is explicit because it is independently supported by historical calculation headings and API 653 report-content obligations."
+}

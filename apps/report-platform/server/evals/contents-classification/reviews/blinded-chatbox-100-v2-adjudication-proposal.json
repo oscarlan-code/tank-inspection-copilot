@@ -1,0 +1,88 @@
+{
+  "contractVersion": "contents_classification_gold_adjudication_proposal_v1",
+  "datasetId": "blinded-chatbox-100-v2",
+  "sourceFailureAudit": "blinded-chatbox-100-v2-failure-audit.json",
+  "status": "engineering_proposal_domain_review_required",
+  "mutatesFrozenGold": false,
+  "purpose": "Record proposed resolutions for the six disputed rows without changing the frozen 100-row evaluation or its published score.",
+  "proposals": [
+    {
+      "challengeId": "challenge_004",
+      "currentGold": {
+        "sectionId": "repair-recommendations",
+        "blockId": "recommendations"
+      },
+      "proposedGold": {
+        "sectionId": "inspection-report",
+        "blockId": "inspection-extent"
+      },
+      "reason": "The claim records completed marking of repair locations; it does not itself propose an action.",
+      "domainQuestion": "Should completed repair-location marking be recorded as inspection extent/status rather than a repair recommendation?"
+    },
+    {
+      "challengeId": "challenge_039",
+      "currentGold": {
+        "sectionId": "repair-recommendations",
+        "blockId": "recommendations"
+      },
+      "proposedGold": {
+        "sectionId": "repair-recommendations",
+        "blockId": "timing-and-monitoring"
+      },
+      "reason": "The operative instruction is to monitor the identified shell buckling.",
+      "domainQuestion": "Should explicit monitoring instructions use the specific timing-and-monitoring block?"
+    },
+    {
+      "challengeId": "challenge_050",
+      "currentGold": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      },
+      "proposedGold": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      },
+      "reason": "The source explicitly states that the earth point is attached to the tank shell.",
+      "domainQuestion": "Are earth points attached to the shell owned by shell appurtenances, while foundation earthing-system observations remain under foundation?"
+    },
+    {
+      "challengeId": "challenge_069",
+      "currentGold": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      },
+      "proposedGold": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      },
+      "reason": "Duplicate source pattern: the earth point is explicitly attached to the tank shell.",
+      "domainQuestion": "Apply the same canonical earth-point ownership decision as challenge_050."
+    },
+    {
+      "challengeId": "challenge_082",
+      "currentGold": {
+        "sectionId": "test-information",
+        "blockId": "equipment"
+      },
+      "proposedGold": {
+        "sectionId": "test-information",
+        "blockId": "methods"
+      },
+      "reason": "A calibration standard and its method of use govern procedure; a named instrument or physical block is equipment.",
+      "domainQuestion": "Should calibration standards/procedures be methods and physical calibration blocks be equipment?"
+    },
+    {
+      "challengeId": "challenge_089",
+      "currentGold": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      },
+      "proposedGold": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      },
+      "reason": "Duplicate source pattern: the earth point is explicitly attached to the tank shell.",
+      "domainQuestion": "Apply the same canonical earth-point ownership decision as challenge_050."
+    }
+  ]
+}

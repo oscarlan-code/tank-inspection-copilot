@@ -1,0 +1,209 @@
+{
+  "contractVersion": "contents_classification_heldout_cases_v1",
+  "datasetId": "classification-v5-regression-20",
+  "datasetSplit": "validation",
+  "evaluationRole": "post_failure_regression",
+  "goldReviewStatus": "post_failure_regression_not_held_out",
+  "cases": [
+    {
+      "caseId": "hold_001",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 4,
+      "sourceText": "To carry out side wall inspection utilizing an Ultrasonic Crawler at four (4) compass points with a minimum of five (5) readings per strake.",
+      "classifierInput": "Plan the shell UT crawler work at four compass positions and collect at least five readings on every strake.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" }
+    },
+    {
+      "caseId": "hold_002",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 4,
+      "sourceText": "To compile a full report showing readings and locations of such readings. Review against API 653, Engineering Integrity Assessment and comments shall also be included.",
+      "classifierInput": "The deliverable must list the readings and their locations and include the API 653 engineering integrity review and comments.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "scope" }
+    },
+    {
+      "caseId": "hold_003",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1950",
+      "classifierInput": "Construction year recorded as 1950.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" }
+    },
+    {
+      "caseId": "hold_004",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 6,
+      "sourceText": "Specific Gravity: 0.7956",
+      "classifierInput": "Stored-product specific gravity is 0.7956.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" }
+    },
+    {
+      "caseId": "hold_005",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 6,
+      "sourceText": "Previous Inspection History - External: Job No. A12P58-2/1, Oct 2012",
+      "classifierInput": "Previous external inspection was job A12P58-2/1 in October 2012.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" }
+    },
+    {
+      "caseId": "hold_006",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 7,
+      "sourceText": "Standing water was present on the North sector collecting under the 8 inch pipeline connecting to shell nozzle S5, and on the South sector.",
+      "classifierInput": "Standing water has collected in the north bund below the 8-inch line to shell nozzle S5 and also in the south bund.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "diked-area" }
+    },
+    {
+      "caseId": "hold_007",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 7,
+      "sourceText": "The tank was found to be sitting on a concrete ring beam which is lower than the general area. No proper foundation was found.",
+      "classifierInput": "The concrete ring beam sits below the surrounding grade and there is no proper tank foundation.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" }
+    },
+    {
+      "caseId": "hold_008",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 8,
+      "sourceText": "Coating failure (blistering) was observed along the entire external shell-to-bottom joint extending up to approximately 100 mm.",
+      "classifierInput": "Blistered coating runs along the whole external shell-to-bottom joint and extends about 100 mm upward.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" }
+    },
+    {
+      "caseId": "hold_009",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 8,
+      "sourceText": "Insufficient weld passes were observed on some of the nozzle reinforcement pad-to-shell plate joints.",
+      "classifierInput": "Some shell-nozzle reinforcement pads have too few weld passes at the pad-to-shell joint.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-appurtenances" }
+    },
+    {
+      "caseId": "hold_010",
+      "lineageId": "asset:pacific-energy-swp-ltd:su1",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959",
+      "sourcePage": 14,
+      "sourceText": "It is highly recommended that the tank be jacked up to re-level the tank to its original position and rebuild the foundation beneath.",
+      "classifierInput": "Jack up and re-level the tank, then rebuild the foundation below it.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" }
+    },
+    {
+      "caseId": "hold_011",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 2,
+      "sourceText": "To carry out a Magnetic Flux Leakage (MFLmap) inspection supported by an ultrasonic continuous corrosion scan of the floor plates.",
+      "classifierInput": "Inspect the floor plates by MFL mapping with a supporting continuous ultrasonic corrosion scan.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" }
+    },
+    {
+      "caseId": "hold_012",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 2,
+      "sourceText": "To compile a full report showing readings and locations of such readings. Review against API 653, Engineering Integrity Assessment and comments shall also be included.",
+      "classifierInput": "Provide a full report with each reading location plus the API 653 integrity assessment and comments.",
+      "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "scope" }
+    },
+    {
+      "caseId": "hold_013",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 4,
+      "sourceText": "Construction (Shell): Butt-welded",
+      "classifierInput": "Shell construction uses butt-welded joints.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" }
+    },
+    {
+      "caseId": "hold_014",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 4,
+      "sourceText": "Previous Inspection History - External: Not Provided; Internal: Not Provided; Bottom: Not Provided",
+      "classifierInput": "No previous external, internal, or bottom inspection history was supplied.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" }
+    },
+    {
+      "caseId": "hold_015",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 5,
+      "sourceText": "Floor projection moderate leading edge corrosion observed: 25 to 40 mm wide remaining, 8000 mm long (West to North).",
+      "classifierInput": "From west through north, the floor edge projection has moderate leading-edge corrosion over 8000 mm, leaving 25 to 40 mm width.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" }
+    },
+    {
+      "caseId": "hold_016",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 6,
+      "sourceText": "Shell plate external paint weathering were evident.",
+      "classifierInput": "Weathering is visible in the external shell paint.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" }
+    },
+    {
+      "caseId": "hold_017",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 6,
+      "sourceText": "Roof external access was not advised due to barricades and maintenance work in progress.",
+      "classifierInput": "The external roof was not accessed because barricades were up and maintenance was underway.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-external" }
+    },
+    {
+      "caseId": "hold_018",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 7,
+      "sourceText": "Floor internal topside showed 7 perforations on bottom plates (North to East quarter).",
+      "classifierInput": "Seven topside perforations were found in bottom plates between north and east inside the tank.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" }
+    },
+    {
+      "caseId": "hold_019",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 12,
+      "sourceText": "Floor internal areas of perforations and corrosions marked on site and on the Floor Plate Layout should be repaired by welded-on patch plates.",
+      "classifierInput": "Repair the marked perforated and corroded floor areas with welded-on patch plates.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" }
+    },
+    {
+      "caseId": "hold_020",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8",
+      "sourcePage": 13,
+      "sourceText": "Corrosion Volume Detector: MFLmap Truflux (Unit No. 2)",
+      "classifierInput": "MFL floor scan equipment was the Truflux MFLmap corrosion-volume detector, unit 2.",
+      "expectedUse": { "sectionId": "test-information", "blockId": "equipment" }
+    }
+  ]
+}

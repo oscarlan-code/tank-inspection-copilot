@@ -10,6 +10,12 @@ import { loadSectionKbAblationReview } from './section-kb-ablation-review-backen
 import { OBSERVATION_CASES } from './kb-observation-comparison.mjs';
 import { loadObservationKbReview } from './kb-observation-review-backend.mjs';
 import { GENERAL_INFORMATION_REVIEW_SOURCES, loadGeneralInformationReview } from './general-information-review-backend.mjs';
+import {
+  TK5452_OBSERVED_SECTION_CASE,
+  TK5452_ROUTED_SECTION_CASE,
+  TK5452_ROUTED_SECTION_SOURCE,
+  loadTk5452RoutedSectionReview,
+} from './tk5452-routed-section-review-backend.mjs';
 
 const ROOT = fileURLToPath(new URL('../../docs/reviews/data/syn025-current-only-v3/', import.meta.url));
 const PAIRED_ROOT = fileURLToPath(new URL('../../docs/reviews/data/tk5452-paired-v1/', import.meta.url));
@@ -26,6 +32,18 @@ export class GenericOutlineReviewError extends Error {
 }
 const DEFAULT_CASE = 'eval-generic-syn025-v3-tk5452';
 const SOURCES = {
+  [TK5452_OBSERVED_SECTION_CASE]: {
+    revision: 'routed-section-agents-observed-v1',
+    routedSectionAgents: true,
+    label: 'TK 5452 · routed evidence · all-agent monitoring',
+    ...TK5452_ROUTED_SECTION_SOURCE,
+  },
+  [TK5452_ROUTED_SECTION_CASE]: {
+    revision: 'routed-section-agents-v1',
+    routedSectionAgents: true,
+    label: 'TK 5452 · routed evidence · frozen section agents',
+    ...TK5452_ROUTED_SECTION_SOURCE,
+  },
   [INSPECTOR_CASE]: {
     revision: 'inspector-notes-v2', inspectorNotes: true, label: 'TK 5452 · inspector notes · evaluation v2',
     absolutePath: '/Users/oscar/Public/irs/Sample Reports/Shell Singapore Pte Ltd (Bukom)/19SE2-1 - TK 5452/19SE2-1 Shell Bukom TK 5452 Internal & External Inspection Report.pdf',
@@ -97,6 +115,14 @@ export function matchesGenericOutlineReviewCase(id) {
 /** Authentication/authorization stays with the existing admin API caller. */
 export async function loadGenericOutlineHeldOutReview({ evaluationCaseId = DEFAULT_CASE, sectionId = 'identity', evalRunId = null } = {}) {
   const source = sourceFor(evaluationCaseId);
+  if (source.routedSectionAgents) {
+    try { return await loadTk5452RoutedSectionReview({ evaluationCaseId, sectionId, evalRunId }); }
+    catch (error) {
+      if ([404, 409].includes(error.statusCode)) throw failure(error.statusCode, error.message, 'routed_section_agent_review_invalid');
+      if (error.code === 'ENOENT') throw failure(503, 'The saved TK5452 routed section-agent evaluation is not available yet.', 'routed_section_agent_review_pending');
+      throw error;
+    }
+  }
   if (source.generalInformation) {
     try { return await loadGeneralInformationReview({ evaluationCaseId, sectionId, evalRunId }); }
     catch (error) {

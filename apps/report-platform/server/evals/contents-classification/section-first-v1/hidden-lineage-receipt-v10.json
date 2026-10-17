@@ -1,0 +1,36 @@
+{
+  "contractVersion": "contents_classification_hidden_lineage_receipt_v1",
+  "datasetId": "classification-v10-hidden-context-20",
+  "datasetSplit": "hidden_test",
+  "evaluationRole": "untouched_hidden_context_test",
+  "candidateId": "contents-classification-v10",
+  "candidateFingerprintSha256": "f612872980fe52795930a879e36a05217b0bd3f0067f065ece1f9ff4a719690a",
+  "lineagePolicy": "asset_lineage_disjoint_from_development_validation_and_prior_candidate_hidden_tests",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:13",
+      "corpusReportId": "corpus_report_54ba810a67563db2",
+      "sourceReport": "24PE1-2 TK 13 Internal & External Inspection Report.pdf",
+      "sourceSha256": "c8b72cb48a8cf8f3baf8ad70f657dcfb25b87b8a4671a5342eebf0838638efa2",
+      "governedDatasetSplit": "hidden_test",
+      "retrievalEligible": false
+    },
+    {
+      "assetLineageKey": "asset:shell-eastern-petroleum-pte-ltd:301",
+      "corpusReportId": "corpus_report_2f0811415127ee8e",
+      "sourceReport": "16SE5-1 Shell Bukom TK 301 Internal Inspection Report.pdf",
+      "sourceSha256": "4bca55ac6750c0a31e6e5b7bc64f0f924cec3797bfb46c77eb12c3e088a5a90c",
+      "governedDatasetSplit": "hidden_test",
+      "retrievalEligible": false
+    }
+  ],
+  "assertions": {
+    "candidateBytesFrozenAfterValidation": true,
+    "goldExcludedFromClassifierRequests": true,
+    "originalReportExcludedFromClassifierRequests": true,
+    "sameLineageRetrievalExcluded": true,
+    "oneRunOnly": true,
+    "failureStopsCandidate": true,
+    "productEnabled": false
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "contractVersion": "bounded_section_rsi_trial_v1",
+  "experimentId": "inspection-report-rsi-trial-v1",
+  "status": "invalid_baseline_requires_full_section_evidence",
+  "section": {
+    "profileId": "vertical_tank_inspection_v1",
+    "sectionId": "inspection-report",
+    "title": "4 INSPECTION REPORT"
+  },
+  "fixedVariables": {
+    "modelId": "gpt-5.6-sol",
+    "reasoningEffort": "medium",
+    "generatorRepeatsPerReport": 2,
+    "cohortManifest": "cohort.json",
+    "outputSchemaVersion": "inspection_report_trial_output_v1",
+    "kbMode": "disabled_for_prompt_isolation",
+    "runtimeRetrievals": 0,
+    "composerVersion": "inspection_report_trial_composer_v1",
+    "reviewerVersion": "inspection_report_trial_deterministic_reviewer_v1",
+    "metricVersion": "inspection_report_trial_metrics_v1"
+  },
+  "cohortPlan": {
+    "splitUnit": "source_report_asset_scenario_lineage",
+    "totalReports": 6,
+    "development": {
+      "reports": 4,
+      "percent": 66.7
+    },
+    "validation": {
+      "reports": 1,
+      "percent": 16.7
+    },
+    "heldOut": {
+      "reports": 1,
+      "percent": 16.7,
+      "opens": "once_after_final_candidate_is_frozen"
+    },
+    "noteVariantsPerReport": 6,
+    "totalInterpretationCases": 36,
+    "developmentGeneratorRunsPerCandidate": 8,
+    "preparedReports": 6,
+    "completeSectionEvidenceReports": 0,
+    "fullSectionEvidencePrepared": false,
+    "preparedEvidenceFiles": [
+      "evidence-development-01.json",
+      "evidence-development-02.json",
+      "evidence-development-03.json",
+      "evidence-development-04.json",
+      "evidence-validation-01.json",
+      "evidence-heldout-01.json"
+    ],
+    "remainingReportsToPrepare": 0,
+    "allVariantsFromOneReportStayInOneSplit": true,
+    "sameAssetAndNearDuplicateReportsStayInOneSplit": true
+  },
+  "variableUnderTest": {
+    "name": "generator_prompt",
+    "candidateA": "candidate-a-prompt.md",
+    "candidateSlots": ["A", "B", "C", "D", "E", "F"],
+    "preparedCandidates": ["A"],
+    "creationRule": "Create each next candidate only after its parent feedback is reviewed; assign a new prompt hash and change no fixed variable.",
+    "validationRule": "Candidate E runs validation. Candidate F is allowed only for a reviewed validation failure and must rerun all development and validation cases.",
+    "heldOutRule": "Freeze the final candidate before held-out gold opens. Held-out feedback cannot create another candidate in this experiment."
+  },
+  "dataBoundary": {
+    "generatorReceives": [
+      "current_structured_observations",
+      "source_references",
+      "protected_terms",
+      "section_output_contract"
+    ],
+    "generatorDoesNotReceive": [
+      "original_historical_section",
+      "expected_report_wording",
+      "evaluation_labels",
+      "recommendations"
+    ],
+    "externalBaselineRequestCountWhenCohortReady": 8,
+    "historicalOriginalSentExternally": false
+  },
+  "metrics": [
+    "source_obligation_coverage",
+    "required_evidence_recall",
+    "supported_claim_precision",
+    "protected_term_accuracy",
+    "component_block_accuracy",
+    "exact_component_heading_accuracy",
+    "component_order_accuracy",
+    "title_accuracy",
+    "cross_run_evidence_set_stability",
+    "unsupported_claim_count",
+    "format_export_readiness"
+  ],
+  "hardGates": {
+    "sourceObligationCoverage": 1.0,
+    "requiredEvidenceRecall": 1.0,
+    "supportedClaimPrecision": 1.0,
+    "protectedTermAccuracy": 1.0,
+    "componentBlockAccuracy": 1.0,
+    "exactComponentHeadingAccuracy": 1.0,
+    "componentOrderAccuracy": 1.0,
+    "titleAccuracy": 1.0,
+    "unsupportedClaimCount": 0,
+    "formatExportReadiness": 1.0
+  },
+  "fidelityAssessment": {
+    "candidateAFullSectionValid": false,
+    "selectedEvidenceHardGatesPassed": true,
+    "eligibleOriginalFindingEstimate": 197,
+    "selectedEligibleFindings": 44,
+    "estimatedSourceCoverage": 0.223,
+    "perDevelopmentReportCoverage": {
+      "inspection-report-rsi-development-01": 0.175,
+      "inspection-report-rsi-development-02": 0.222,
+      "inspection-report-rsi-development-03": 0.289,
+      "inspection-report-rsi-development-04": 0.235
+    },
+    "invalidatingFindings": [
+      "mock_app_evidence_is_a_selected_sample_not_a_complete_section_export",
+      "reviewer_scores_recall_against_selected_evidence_instead_of_full_source_obligations",
+      "exact_component_headings_and_order_are_not_enforced",
+      "access_structure_block_identifier_differs_between_spec_and_trial"
+    ],
+    "requiredRemediation": [
+      "classify_every_source_section_statement_as_required_current_fact_deterministic_content_recommendation_cross_reference_or_out_of_scope",
+      "prepare_complete_mock_app_export_for_every_required_current_fact",
+      "pin_display_heading_and_block_order_in_the_report_plan",
+      "rescore_candidate_a_offline_and_rerun_generation_only_after_the_input_contract_is_complete"
+    ]
+  },
+  "feedbackRouting": {
+    "missing_evidence_id": "generator_prompt_or_obligation_mapping",
+    "unsupported_evidence_id_or_claim": "generator_prompt_and_pre_display_validator",
+    "wrong_component_block": "evidence_routing_or_composer",
+    "incomplete_source_obligation_coverage": "mock_export_preparation_and_evidence_contract",
+    "wrong_component_heading_or_order": "report_plan_and_deterministic_composer",
+    "changed_protected_term": "structured_binding_or_prompt",
+    "wrong_title": "deterministic_composer",
+    "all_hard_gates_pass": "human_style_review_before_deciding_whether_candidate_b_is_needed"
+  },
+  "maximumCandidateIterations": 6,
+  "automaticPromptMutation": false,
+  "automaticGoldRelabelling": false,
+  "automaticPromotion": false,
+  "productEnabled": false
+}

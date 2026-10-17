@@ -1,0 +1,146 @@
+{
+  "contractVersion": "evaluation_input_leakage_policy_v1",
+  "guardId": "evaluation-input-leakage-guard-v1",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "outlineProfile": {
+    "path": "../../../outline-profiles/vertical-api653-v1/outline-profile.json",
+    "profileId": "vertical-api653-inspection-report-v1",
+    "sha256": "a7a2363c8c4328b9a6f5fd46ec2307711eff5d37f54e621a7948122f1c973b93"
+  },
+  "nativeTopLevelAllowlist": [
+    "packageType",
+    "schemaVersion",
+    "inspectionReference",
+    "tenantId",
+    "workspaceId",
+    "inspectionId",
+    "exportedByUserId",
+    "exportedAtIso",
+    "deviceId",
+    "workflowScreen",
+    "unitProfile",
+    "profile",
+    "task",
+    "inspectionRecord",
+    "validationResults",
+    "taskSnapshots",
+    "layoutTargets",
+    "layoutConfigs",
+    "layoutFigures",
+    "elements",
+    "utMeasurements",
+    "inspectionChecklistItems",
+    "inspectionChecklistSectionNotes",
+    "findings",
+    "voiceNotes",
+    "attachments"
+  ],
+  "forbiddenExportKeyNames": [
+    "goldSha256",
+    "goldApprovalManifestSha256",
+    "goldSectionId",
+    "goldBlockId",
+    "goldLabel",
+    "goldLabels",
+    "expectedSectionId",
+    "expectedBlockId",
+    "targetReportSectionId",
+    "reportSectionId",
+    "truthUnitId",
+    "originalReportPage",
+    "sourcePageNumber",
+    "sourceReportName",
+    "chunkId",
+    "mockPreparationMetadata",
+    "captureScenarioProvenance",
+    "evaluationLabel",
+    "evaluationLabels"
+  ],
+  "narrativeFieldNames": [
+    "transcriptText",
+    "description",
+    "findingText",
+    "noteText",
+    "notes",
+    "comment",
+    "comments",
+    "details",
+    "observation",
+    "recommendation",
+    "caption"
+  ],
+  "nativeTaxonomyFieldsAllowed": [
+    "inspectionChecklistItems[].sectionKey",
+    "inspectionChecklistItems[].sectionTitle",
+    "voiceNotes[].screenKey",
+    "voiceNotes[].screenLabel",
+    "taskSnapshots[].taskKey",
+    "taskSnapshots[].taskTitle"
+  ],
+  "minimumExactSourceSequenceWords": 8,
+  "blockingExactSourceSequenceWords": 16,
+  "sourceReceipt": {
+    "requiredPackageType": "laiq_android_app_export_receipt",
+    "minimumSchemaVersion": 2,
+    "requiredProducer": "ProductStore.exportInspection",
+    "evaluatorOnlyFields": [
+      "caseId",
+      "caseRevision",
+      "variant",
+      "goldSha256",
+      "goldApprovalManifestSha256",
+      "planSha256",
+      "draftSha256",
+      "roundTripOutputRelativePath"
+    ]
+  },
+  "rules": {
+    "unknownTopLevelExportField": "block",
+    "forbiddenMetadataAnywhereInExport": "block",
+    "explicitReportSectionHintInNarrative": "block",
+    "exactSourceNarrativeOverlapBelowBlockingThreshold": "review",
+    "exactSourceNarrativeOverlapAtOrAboveBlockingThreshold": "block",
+    "receiptHashMismatch": "block",
+    "blockedInputProducesRuntimePackage": false,
+    "crosswalkIsEvaluatorOnly": true,
+    "protectedNativeEvidenceMutation": "block",
+    "mockTransportIdentifierPseudonymization": "required"
+  },
+  "metadataPseudonymization": {
+    "voiceNoteFields": [
+      "voiceNoteId",
+      "relativePath",
+      "displayName"
+    ],
+    "attachmentFields": [
+      "relativePath"
+    ],
+    "conditionalAttachmentFields": [
+      "attachmentId",
+      "displayName"
+    ],
+    "conditionalAttachmentKinds": [
+      "voice_audio"
+    ],
+    "sourceDerivedDisplayNamePatterns": [
+      "^Report photo\\b",
+      "^(?:obs|rec|scope|method|test)-"
+    ],
+    "preserveExactly": [
+      "transcriptText",
+      "inspectionRecord",
+      "unitProfile",
+      "utMeasurements",
+      "inspectionChecklistItems",
+      "inspectionChecklistSectionNotes",
+      "findings",
+      "targetKey",
+      "itemKey",
+      "elementId",
+      "values",
+      "units",
+      "polarity"
+    ]
+  }
+}

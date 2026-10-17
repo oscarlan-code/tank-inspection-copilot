@@ -1,0 +1,66 @@
+{
+  "contractVersion": "contents_classification_qualification_record_v1",
+  "candidateId": "contents-classification-v9",
+  "candidateFingerprintSha256": "831e59fecd3d95d46a8053f175fef287bf72bc925bb41e1b14dc0d6e18c12533",
+  "atomizerId": "evidence-atomizer-v4",
+  "evaluationRole": "final_hidden_qualification",
+  "executionPolicy": "single_hidden_run_no_tuning_on_result",
+  "datasetId": "classification-v9-hidden-raw-notes-20",
+  "reportLineages": 2,
+  "gates": {
+    "minimumSectionAccuracy": 0.98,
+    "minimumExactAccuracy": 0.9,
+    "maximumUnroutedCount": 0
+  },
+  "metrics": {
+    "total": 20,
+    "sectionPassed": 18,
+    "sectionAccuracy": 0.9,
+    "exactPassed": 18,
+    "exactAccuracy": 0.9,
+    "reportLineages": 2,
+    "unroutedCount": 2
+  },
+  "decision": "not_qualified_stop_without_tuning",
+  "leakageDecision": "passed",
+  "classificationGuardDecision": "passed",
+  "failureSummary": [
+    {
+      "caseId": "v9_hidden_note_006",
+      "atomIndex": 1,
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      },
+      "predictedUse": null,
+      "feedback": "Clarify which component or part below the manhole platform was inaccessible; the owner could change between foundation, shell, or access-structure blocks.",
+      "assessment": "The isolated atom lacks the component context present in the preceding atom; fail-closed behavior is safer than guessing, but the end-to-end pipeline did not meet the qualification gate."
+    },
+    {
+      "caseId": "v9_hidden_note_008",
+      "atomIndex": 1,
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "roof-external"
+      },
+      "predictedUse": null,
+      "feedback": "Clarify whether the drain sump is on the roof or is an internal floor/side sump; that location changes the owning block.",
+      "assessment": "The isolated atom lacks the component context present in the preceding atom; fail-closed behavior is safer than guessing, but the end-to-end pipeline did not meet the qualification gate."
+    }
+  ],
+  "requiredDisposition": [
+    "Do not promote or connect contents-classification-v9 to section generators.",
+    "Do not tune contents-classification-v9 against this hidden result.",
+    "Design a new candidate using only development data with context-complete atomization or explicit note-level context, then evaluate it on new untouched lineages."
+  ],
+  "productEnabled": false,
+  "artifacts": {
+    "evaluationPath": ".local/contents-classification-eval/stabilization/contents-classification-v9/hidden-raw-notes-20/evaluation.json",
+    "evaluationSha256": "08f3d893b7502be39f59db2886f444710760b97be6b65a6e699b686c73400bf8",
+    "requestPreviewPath": ".local/contents-classification-eval/stabilization/contents-classification-v9/hidden-raw-notes-20/request-preview.json",
+    "requestPreviewSha256": "01a458be6629cfe957843e3533f25b613209dbf2761dbe6fdead47b40254df4c",
+    "classificationPath": ".local/contents-classification-eval/stabilization/contents-classification-v9/hidden-raw-notes-20/classification.json",
+    "classificationSha256": "5f971aadd7c4b3a10b0af6a4f06eb78795e1db6510a94b689dcf807674b92833"
+  },
+  "recordedAtIso": "2026-10-16T23:31:17.170Z"
+}

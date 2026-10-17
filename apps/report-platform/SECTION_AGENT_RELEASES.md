@@ -4,11 +4,18 @@
 
 Every generated section uses one explicit immutable release. **Scope of Inspection
 and General Tank Information** now have implemented agent families. Scope v1 and
-General Information v2 are ReportPlan-bound evaluation candidates; General
+General Information v3 are routed ReportPlan evaluation candidates; General
 Information v1 is frozen qualification evidence. All other section agents, durable
 plan storage, report integration, and product routing remain future work.
 
 The previous shared generator is legacy and is never a fallback or extension point.
+
+The two existing frozen families were qualified before the shared
+`SectionKnowledgeBundle` projection contract was introduced. Keep their historical
+releases immutable. They are not proof that structure planning, mock preparation,
+generation, pre-display review, and gold evaluation all use the new bundle. Adopting
+that contract requires a new release version and fresh qualification; Section 4 is
+the first planned trial.
 
 The reviewable common-core specifications for report sections 1–7 live under
 `server/section-agents/specs/vertical-tank-v1/`. Every folder has the same
@@ -18,20 +25,26 @@ executable.
 
 ## Release contract
 
+Every agent role also produces one immutable execution-configuration snapshot. It records the exact release manifest, Git commit, model provider/ID/version and settings hash, prompt ID/version/content hash, knowledge snapshots, schema bindings and evaluator rubric. Deterministic roles record model and prompt as explicitly disabled. Changing any item creates a new configuration hash and experiment candidate.
+
 A release owns or hash-pins:
 
 - agent ID/version, supported report profiles and section instances;
 - input schema, evidence/entity vocabulary, applicability, and missing-input rules;
 - outline, ordered blocks, format, output obligations, and protected fields;
 - deterministic compilers/tools and optional bounded prompt/model;
-- historical `SectionPatternPack` and applicable `StandardObligationPack`;
+- one multi-report `SectionKnowledgeBundle` that pins the historical `SectionPatternPack` and role projections, plus an applicable `StandardObligationPack`;
 - fact, relationship, structure, standard, leakage, and export validators;
 - formatter/renderer interfaces and complete dependency hashes;
 - qualification cohort/splits, metrics, inspector/render review, limitations, and
   manifest hash.
 
-Gold and evaluator labels are never runtime inputs. No mutable global prompt, KB,
-standard pack, dependency, or `latest` release is allowed. Every generator release
+Gold and evaluator labels are never runtime inputs. Planning, mock preparation,
+generation, pre-display review, and post-generation evaluation use role-specific
+projections from the same SectionKnowledgeBundle ID and hash. The target report and
+its exact structure are excluded from planning, mock preparation, generation, and
+pre-display review. No mutable global prompt, KB, standard pack, dependency, or
+`latest` release is allowed. Every generator release
 must resolve to one exact immutable pre-display reviewer release before its draft can
 be shown. The reviewer receives current evidence and generated output but no gold;
 passing permits review and never grants approval.
@@ -50,7 +63,9 @@ original evidence or approved typed outputs.
 Each release must pass independently:
 
 - **current-evidence fidelity**;
-- **historical-report alignment** for compatible structure and presentation;
+- **historical-report alignment** measured as generic KB pattern conformance for
+  compatible structure, accepted variation and presentation;
+- **target-report recovery** as a separate post-generation evaluation dimension;
 - **technical-standard alignment** for the pinned applicable edition.
 
 Historical practice cannot override the standard or supply current facts. Standards
@@ -79,7 +94,7 @@ opening sealed expectations. Product saves an unapproved draft. Promotion create
 an audited server-owned routing record to an already-qualified manifest hash;
 rollback changes that pointer and preserves drafts/traces.
 
-## General Tank Information v1 and v2
+## General Tank Information v1–v3
 
 | Item | Frozen result |
 | --- | --- |
@@ -99,6 +114,11 @@ development decision, followed by one different held-out report. V2 preserved
 11/11 cases. The original sections were evaluator-only. Actual-device and independent
 inspector validation remain open gates. V2 remains evaluation-only; this is not
 product promotion.
+
+V3 consumes the reviewed router-v2 section projection and explicitly dispositions
+all 43 projected records in the TK5452 case: 31 rendered, three corroborating, and
+nine delegated. It has exact reviewer-v2 and evaluator-v2 bindings and remains
+evaluation-only.
 
 ## Scope of Inspection v1
 
@@ -133,7 +153,9 @@ actual-device export, rendered inspector acceptance, or product behavior.
    registry routing; rerun prior-agent regressions.
 9. Verify that blocked reviews hide the user-facing draft and that the sealed gold
    opens only after generation.
-10. Keep evaluation-only until separate product qualification and canary approval.
+10. Record router, plan, generator, reviewer, evaluator, evidence-accountability,
+    and control-boundary spans through the shared all-agent monitoring contract.
+11. Keep evaluation-only until separate product qualification and canary approval.
 
 Finishing one agent does not authorize incomplete full-report generation. Missing
 agents keep their sections blocked.

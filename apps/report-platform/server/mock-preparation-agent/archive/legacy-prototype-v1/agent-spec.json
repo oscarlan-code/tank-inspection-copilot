@@ -1,0 +1,28 @@
+{
+  "agentId": "mock-preparation-agent",
+  "release": "v1",
+  "status": "evaluation_candidate",
+  "goal": "Convert reviewed source semantic units into realistic Android V3 narrative evidence without changing or inventing inspection meaning.",
+  "openBookSourceAccess": true,
+  "llmOwnedUnitTypes": [
+    "observation",
+    "recommendation",
+    "scope_fact",
+    "test_method"
+  ],
+  "deterministicUnitTypes": [
+    "structured_field",
+    "checklist_rating",
+    "ut_measurement_row"
+  ],
+  "humanVisualUnitTypes": [
+    "layout_figure"
+  ],
+  "forbidden": [
+    "copying issued-report narrative verbatim",
+    "inventing a fact, measurement, location, relationship, condition or recommendation",
+    "changing protected values or units",
+    "writing directly to an Android export",
+    "using evaluator labels or grader feedback during generation"
+  ]
+}

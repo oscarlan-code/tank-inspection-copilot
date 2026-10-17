@@ -1,0 +1,24 @@
+{
+  "contractVersion": "contents_classification_heldout_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:su1",
+      "corpusReportId": "corpus_report_d1abc77a91b89248",
+      "sourceReport": "18PE2-5 TK SU1 Internal & External Inspection Report.pdf",
+      "sourceSha256": "dbd579fbb9e01259264eecc747d8b1a023d0dd62a210ed6ba8fdabb58f0bc959"
+    },
+    {
+      "assetLineageKey": "asset:shell-eastern-petroleum-pte-ltd:4612",
+      "corpusReportId": "corpus_report_0686b408ec5adcd3",
+      "sourceReport": "16SE6-1 Shell Bukom TK 4612 Internal Inspection Report.pdf",
+      "sourceSha256": "5afda5f6e9e1f7af5e17a3cf5a624bf1e1da130df0bb38a15ddf3a5994d133e8"
+    }
+  ],
+  "developmentOverlap": false,
+  "regressionLineageOverlap": false,
+  "earlierRobustnessSourceNameOverlap": false
+}

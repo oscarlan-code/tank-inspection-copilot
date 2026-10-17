@@ -99,6 +99,8 @@ export async function runPlannedFrozenSectionAgent({ release, executionMode, rep
   deepFreeze(module.AGENT_POLICY);
   deepFreeze(module.FIELD_DEFINITIONS);
   deepFreeze(module.CLAIM_POLICY);
+  deepFreeze(module.FIELD_SOURCE_POLICY);
+  deepFreeze(module.AUXILIARY_EVIDENCE_POLICY);
   const result = module[manifest.entryExport]({
     contractVersion: manifest.executionContract,
     executionMode,

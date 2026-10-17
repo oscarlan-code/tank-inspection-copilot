@@ -1,0 +1,60 @@
+{
+  "contractVersion": "contents_classification_agent_spec_v5",
+  "agentId": "contents-classification-agent",
+  "candidateId": "contents-classification-v5",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "goal": "Assign each source-linked Android narrative atom to one primary canonical report section/block without writing report content or using target gold.",
+  "outlineProfile": "outline-profiles/vertical-api653-v4/outline-profile.json",
+  "runtimeKnowledge": [
+    "reviewed_outline_profile",
+    "Android_export_API_contract",
+    "approved_component_glossary",
+    "approved_section_aliases",
+    "lineage_excluded_classification_examples"
+  ],
+  "runtimeForbidden": [
+    "target_original_report",
+    "target_gold_labels",
+    "evaluator_feedback",
+    "same_case_or_near_duplicate_historical_passages",
+    "report_prose_generation",
+    "final_table_of_contents_selection",
+    "automatic_review_approval"
+  ],
+  "classificationModes": {
+    "structured": "deterministic_API_path_mapping",
+    "narrative": "bounded_LLM_proposal",
+    "ambiguous": "needs_review"
+  },
+  "routingCardinality": {
+    "voiceNarrativePrimaryUses": "zero_or_one",
+    "deterministicCrossReferences": "allowed",
+    "secondaryNarrativeReuse": "requires_separate_atom"
+  },
+  "requiredOutput": [
+    "evidenceAtoms",
+    "classificationAssignments",
+    "unresolvedItems",
+    "classificationManifest"
+  ],
+  "outlineProfileBinding": {
+    "profileId": "vertical-api653-inspection-report-v4",
+    "manifestPath": "outline-profiles/vertical-api653-v4/outline-manifest.json",
+    "requiredStatus": "frozen_for_r_and_d_evaluation",
+    "profileSha256": "b718a3d6f1c417405b5a059040f1c453627f9bc035a6e1b728b9a32e16a45435",
+    "manifestSha256": "97a12e533d824c50f7e655f9780fae241a0ebc0b2556c58fbad4928ff9064f23"
+  },
+  "inputGuard": {
+    "guardId": "evaluation-input-leakage-guard-v1",
+    "path": "input-guards/evaluation-leakage/v1/guard.mjs",
+    "requiredDecision": "passed",
+    "runtimeInput": "sealed_classification_input_v1",
+    "evaluatorCrosswalkAccessibleToClassifier": false
+  },
+  "atomizer": {
+    "atomizerId": "evidence-atomizer-v1",
+    "path": "atomizers/evidence-atomizer/v1/atomizer.mjs",
+    "narrativeRule": "exact_source_spans_only"
+  }
+}

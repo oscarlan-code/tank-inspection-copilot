@@ -22,8 +22,11 @@ import {
 import { TruthCaseBuilder } from "./TruthCaseBuilder";
 import { CaptureVariantBuilder } from "./CaptureVariantBuilder";
 import { SectionPlanningPanel } from "./SectionPlanningPanel";
+import { SectionAgentMonitoring, type SectionAgentMonitoringView } from "./SectionAgentMonitoring";
+import { MockPreparationEvaluation } from "./MockPreparationEvaluation";
+import { ContentsClassificationEvaluation } from "./ContentsClassificationEvaluation";
 
-type EvaluationView = "sources" | "truth" | "runs" | "policy" | "outlines";
+type EvaluationView = "sources" | "truth" | "mock" | "classification" | "runs" | "policy" | "outlines";
 
 export function EvaluationLab({
   principal,
@@ -36,7 +39,8 @@ export function EvaluationLab({
   onOpenAccounts: () => void;
   onOpenKnowledgeBase: () => void;
 }) {
-  const [view, setView] = useState<EvaluationView>(() => new URLSearchParams(window.location.search).has("outlineExperiment") ? "outlines" : new URLSearchParams(window.location.search).has("evaluationCaseId") ? "policy" : "sources");
+  const opensSavedReview = useMemo(() => new URLSearchParams(window.location.search).has("evaluationCaseId"), []);
+  const [view, setView] = useState<EvaluationView>(() => new URLSearchParams(window.location.search).has("classificationEval") ? "classification" : new URLSearchParams(window.location.search).has("outlineExperiment") ? "outlines" : new URLSearchParams(window.location.search).has("evaluationCaseId") ? "policy" : "mock");
   const [outlineSelection, setOutlineSelection] = useState("");
   const [outlineReportId, setOutlineReportId] = useState("");
   const [truthStageMode, setTruthStageMode] = useState<"source" | "capture">("source");
@@ -44,7 +48,7 @@ export function EvaluationLab({
   const [state, setState] = useState<EvaluationLabState | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [policyStatus, setPolicyStatus] = useState<SystemRlStatus | null>(null);
@@ -68,8 +72,13 @@ export function EvaluationLab({
   }, [search, state]);
 
   useEffect(() => {
-    void refresh();
+    if (!opensSavedReview && view !== "mock" && view !== "classification") void refresh();
   }, []);
+
+  useEffect(() => {
+    if (view === "policy" || view === "mock" || view === "classification" || state || loading || error) return;
+    void refresh();
+  }, [error, loading, state, view]);
 
   useEffect(() => {
     if (view !== "policy" || policyStatus || policyBusy) return;
@@ -192,37 +201,39 @@ export function EvaluationLab({
 
   return (
     <main className="eval-lab-shell eval-live-shell">
-      <header className="eval-lab-header">
+      <header className={view === "mock" || view === "classification" ? "eval-lab-header mock-agent-header" : "eval-lab-header"}>
         <div className="brand-lockup">
           <img alt="LAIQ logo" className="brand-logo" src="/laiq-logo.png" />
-          <div><p className="eyebrow">Super Admin</p><h1>Evaluation Lab</h1></div>
+          <div><p className="eyebrow">{view === "mock" || view === "classification" ? "Evaluation only" : "Super Admin"}</p><h1>{view === "mock" ? "Step 1 · Truth → Mockup" : view === "classification" ? "Step 2 · Evidence → Sections" : "Evaluation Lab"}</h1></div>
         </div>
-        <nav className="eval-lab-nav" aria-label="Evaluation Lab stages">
+        {view !== "mock" && view !== "classification" ? <nav className="eval-lab-nav" aria-label="Evaluation Lab stages">
           <StageButton active={view === "sources"} label="1. Approved Sources" onClick={() => setView("sources")} />
           <StageButton active={view === "truth"} label="2. Truth & Mock Data" onClick={() => setView("truth")} />
+          <StageButton active={false} label="Mock agent eval · Step 1" onClick={() => setView("mock")} />
+          <StageButton active={false} label="Classification eval · Step 2" onClick={() => setView("classification")} />
           <StageButton active={view === "runs"} label="3. Evaluation Runs" onClick={() => setView("runs")} />
           <StageButton active={view === "policy"} label={heldOutReview?.evaluationOnly ? "4. Review results" : "4. Policy Registry"} onClick={() => setView("policy")} />
           <StageButton active={view === "outlines"} label="Outline experiment" onClick={() => setView("outlines")} />
-        </nav>
+        </nav> : null}
         <div className="eval-lab-header-actions">
-          <button className="topbar-nav-button" onClick={onOpenKnowledgeBase} type="button">Review KB</button>
-          <button className="topbar-nav-button" onClick={onOpenAccounts} type="button">Accounts</button>
+          {view !== "mock" && view !== "classification" ? <button className="topbar-nav-button" onClick={onOpenKnowledgeBase} type="button">Review KB</button> : null}
+          {view !== "mock" && view !== "classification" ? <button className="topbar-nav-button" onClick={onOpenAccounts} type="button">Accounts</button> : null}
           <button className="toolbar-button" onClick={onClose} type="button">Back to reports</button>
-          <div className="topbar-account" title={`${principal.tenantName} · ${principal.userId}`}>
+          {view !== "mock" && view !== "classification" ? <div className="topbar-account" title={`${principal.tenantName} · ${principal.userId}`}>
             <span>{principal.displayName}</span>
-          </div>
+          </div> : null}
         </div>
       </header>
 
-      <div className="eval-live-banner">
+      {view !== "mock" && view !== "classification" ? <div className="eval-live-banner">
         <strong>{heldOutReview?.evaluationOnly ? "EVALUATION ONLY" : "LIVE DATA"}</strong>
-        <span>{heldOutReview?.sectionAgentEvaluation ? `General Tank Information: 10 development reports and 1 held-out test. Saved deterministic results; no production promotion.` : heldOutReview?.inputReadiness ? (heldOutReview.inputReadiness.status === "supplied" ? `All ${heldOutReview.inputReadiness.totalSections} selected ${heldOutReview.comparisonExperiment?.unitLabel ?? "sections"} have prepared inputs. Reviewing saved results; no model or policy was promoted.` : `Incomplete mock: ${heldOutReview.inputReadiness.sectionsWithInputs} of ${heldOutReview.inputReadiness.totalSections} sections have inputs; ${heldOutReview.inputReadiness.sectionsWithoutInputs} have none. Some supplied sections still have gaps. No model or policy was promoted.`) : heldOutReview?.evaluationOnly ? (heldOutReview.generationBackend?.startsWith("tk5452_") ? "Reviewing the saved TK5452 evaluation across 21 source sections. No model or production policy was promoted." : "Reviewing the saved 12-section run from the generic-outline generation backend. No model or production policy was promoted.") : "Approved KB sources, Truth Cases, Capture Variants, Evaluation Runs, and policy state are loaded from PostgreSQL."}</span>
+        <span>{heldOutReview?.evaluationDisplay?.banner ?? (heldOutReview?.sectionAgentEvaluation ? `General Tank Information: 10 development reports and 1 held-out test. Saved deterministic results; no production promotion.` : heldOutReview?.inputReadiness ? (heldOutReview.inputReadiness.status === "supplied" ? `All ${heldOutReview.inputReadiness.totalSections} selected ${heldOutReview.comparisonExperiment?.unitLabel ?? "sections"} have prepared inputs. Reviewing saved results; no model or policy was promoted.` : `Incomplete mock: ${heldOutReview.inputReadiness.sectionsWithInputs} of ${heldOutReview.inputReadiness.totalSections} sections have inputs; ${heldOutReview.inputReadiness.sectionsWithoutInputs} have none. Some supplied sections still have gaps. No model or policy was promoted.`) : heldOutReview?.evaluationOnly ? (heldOutReview.generationBackend?.startsWith("tk5452_") ? "Reviewing the saved TK5452 evaluation across 21 source sections. No model or production policy was promoted." : "Reviewing the saved 12-section run from the generic-outline generation backend. No model or production policy was promoted.") : "Approved KB sources, Truth Cases, Capture Variants, Evaluation Runs, and policy state are loaded from PostgreSQL.")}</span>
         <button disabled={loading} onClick={() => void refresh()} type="button">Refresh</button>
-      </div>
+      </div> : null}
       {error ? <div className="eval-live-feedback error">{error}</div> : null}
       {message ? <div className="eval-live-feedback success">{message}</div> : null}
 
-      {loading && !state ? <LiveEmpty title="Loading Evaluation Lab" detail="Reading approved KB and app-package state from PostgreSQL." /> : null}
+      {view !== "mock" && view !== "classification" && loading && !state ? <LiveEmpty title="Loading Evaluation Lab" detail="Reading approved KB and app-package state from PostgreSQL." /> : null}
       {view === "outlines" && state ? <section className="eval-panel">
         <h2>Outline and evidence experiment</h2>
         <p>Review the 32 section outlines, map each captured record to one or more content blocks, and generate an evaluation draft. Results stay in this experiment; report drafts and production policy remain unchanged.</p>
@@ -234,6 +245,8 @@ export function EvaluationLab({
         {!state.evaluationCases.some(item => item.reportJobId) ? <p>Prepare and import a Capture Variant in Truth &amp; Mock Data to make an evaluation case available.</p> : null}
       </section> : null}
       {outlineReportId ? <SectionPlanningPanel reportJobId={outlineReportId} canEdit onClose={() => setOutlineReportId("")} /> : null}
+      {view === "mock" ? <MockPreparationEvaluation /> : null}
+      {view === "classification" ? <ContentsClassificationEvaluation onBack={() => setView("mock")} /> : null}
       {!loading && state && view === "sources" ? (
         <ApprovedSources
           documents={filteredDocuments}
@@ -427,7 +440,7 @@ function DatasetEvaluationCard({ item }: { item: EvaluationLabCase }) {
 function LivePolicy({ busy, error, heldOutReview, labState, onPrepareHeldOut, onPromote, onRefresh, onRollback, onRunHeldOut, onOpenSection, status }: { busy: boolean; error: string; heldOutReview: SystemRlHeldOutReview | null; labState: EvaluationLabState | null; onPrepareHeldOut: () => void; onPromote: (id: string) => void; onRefresh: () => void; onRollback: (id: string) => void; onRunHeldOut: (documentId: string) => void; onOpenSection: (evaluationCaseId: string, sectionId: string) => void; status: SystemRlStatus | null }) {
   const [selectedReportId, setSelectedReportId] = useState("");
   if (heldOutReview?.evaluationOnly) return <section className="eval-live-stage">
-    <div className="eval-page-heading"><div><p className="eyebrow">Report generation evaluation</p><h2>Original, generated and app evidence</h2><p>{heldOutReview?.sectionAgentEvaluation ? "General Tank Information · 10 development reports + 1 held-out test · no AI calls" : heldOutReview?.comparisonExperiment ? `${heldOutReview.comparisonExperiment.name} · identical current inputs · saved AI responses` : heldOutReview?.generationBackend?.startsWith("tk5452_") ? "21-section paired backend · source-aligned mock capture · inspector review" : "12-section outline backend · saved generation results · inspector review"}</p></div><button className="toolbar-button" disabled={busy} onClick={onRefresh} type="button">Refresh</button></div>
+    <div className="eval-page-heading"><div><p className="eyebrow">Report generation evaluation</p><h2>Original, generated and app evidence</h2><p>{heldOutReview.evaluationDisplay?.subtitle ?? (heldOutReview?.sectionAgentEvaluation ? "General Tank Information · 10 development reports + 1 held-out test · no AI calls" : heldOutReview?.comparisonExperiment ? `${heldOutReview.comparisonExperiment.name} · identical current inputs · saved AI responses` : heldOutReview?.generationBackend?.startsWith("tk5452_") ? "21-section paired backend · source-aligned mock capture · inspector review" : "12-section outline backend · saved generation results · inspector review")}</p></div><button className="toolbar-button" disabled={busy} onClick={onRefresh} type="button">Refresh</button></div>
     {error ? <div className="eval-live-feedback error">{error}</div> : null}
     <HeldOutReview busy={busy} onOpenSection={onOpenSection} review={heldOutReview} />
   </section>;
@@ -473,7 +486,11 @@ function LivePolicy({ busy, error, heldOutReview, labState, onPrepareHeldOut, on
 
 function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenSection: (evaluationCaseId: string, sectionId: string) => void; review: SystemRlHeldOutReview }) {
   const [generationView, setGenerationView] = useState<"ai" | "retained">("ai");
-  useEffect(() => setGenerationView("ai"), [review.evaluationCaseId, review.sectionId]);
+  const [reviewView, setReviewView] = useState<"comparison" | SectionAgentMonitoringView>(review.agentMonitoring ? "review" : "comparison");
+  useEffect(() => {
+    setGenerationView("ai");
+    setReviewView(review.agentMonitoring ? "review" : "comparison");
+  }, [review.evaluationCaseId, review.sectionId]);
   const showsCandidate = generationView === "ai" && Boolean(review.aiCandidateContent);
   const displayedGeneration = showsCandidate ? review.aiCandidateContent ?? "" : review.generatedContent ?? "";
   const inputStatus = review.inputReadiness?.sections.find(section => section.sectionId === review.sectionId);
@@ -483,8 +500,25 @@ function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenS
   const isPlanningDiagnostic = isPlanningRun && (review.benchmarkStatus === "diagnostic_unreviewed_obligations" || review.sectionPlanEvaluation?.denominatorSource !== "independent_expected_obligations");
   const resultLabel = metrics?.hardFailure ? "Blocked · critical integrity" : metrics ? sectionOutcomeLabel(metrics.outcomeCode, false) : "Evaluated";
   const currentValue = reviewSectionValue(review.evaluationCaseId ?? "", review.sectionId ?? "");
+  const heading = <div className="eval-heldout-review-heading"><div><p className="eyebrow">Human review · {review.sectionTitle ?? humanize(review.sectionId ?? "section")}</p><h3>{review.reportName}</h3><small>{review.sections?.length ?? 0} evaluated {review.evaluationDisplay?.unitLabel ?? (review.sectionAgentEvaluation ? "reports" : review.comparisonExperiment?.unitLabel ?? "sections")} · {review.evaluationDisplay?.backendLabel ?? (review.sectionAgentEvaluation ? "section agent evaluation" : review.evaluationOnly ? (review.generationBackend?.startsWith("tk5452_") ? "paired evaluation backend" : "generic-outline backend") : `latest ${humanize(review.datasetSplit ?? "training")} cohort`)}</small></div><div className="eval-review-navigation"><select aria-label="Review section" disabled={busy} onChange={(event) => { const [evaluationCaseId, sectionId] = parseReviewSectionValue(event.target.value); if (evaluationCaseId && sectionId) onOpenSection(evaluationCaseId, sectionId); }} value={currentValue}>{review.sections?.map((section) => <option key={`${section.evaluationCaseId}:${section.sectionId}`} value={reviewSectionValue(section.evaluationCaseId, section.sectionId)}>{sectionOutcomeLabel(section.outcomeCode, section.hardFailure)} · {section.reportName} · {section.sectionTitle ?? humanize(section.sectionId)}</option>)}</select><button className="toolbar-button" disabled={busy || !review.previousSectionId || !review.previousEvaluationCaseId} onClick={() => review.previousEvaluationCaseId && review.previousSectionId && onOpenSection(review.previousEvaluationCaseId, review.previousSectionId)} type="button">Previous</button><button className="toolbar-button toolbar-button-primary" disabled={busy || !review.nextSectionId || !review.nextEvaluationCaseId} onClick={() => review.nextEvaluationCaseId && review.nextSectionId && onOpenSection(review.nextEvaluationCaseId, review.nextSectionId)} type="button">{review.sectionAgentEvaluation ? "Next report" : "Next section"}</button>{review.sourcePdfUrl || review.goldDocumentId ? <button className="toolbar-button" onClick={() => window.open(`${review.sourcePdfUrl ?? `/api/v1/admin/kb-review/documents/${encodeURIComponent(review.goldDocumentId ?? "")}/source`}#page=${review.sourcePageNumber ?? 1}`, "_blank", "noopener,noreferrer")} type="button">Preview original PDF</button> : null}<span>{metrics?.score != null ? `${Math.round(metrics.score * 100)}% · ${resultLabel}` : resultLabel}</span></div></div>;
+  const monitoringTabs = review.agentMonitoring ? <nav aria-label="Evaluation review views" className="agent-monitoring-tabs">
+    {([
+      ["review", "Segment review"],
+      ["comparison", "Whole section"],
+      ["timeline", "Run trace"],
+      ["evidence", "Evidence routing"],
+      ["matrix", "Scores"],
+      ["control", "Versions"],
+    ] as Array<["comparison" | SectionAgentMonitoringView, string]>).map(([value, label]) => <button aria-pressed={reviewView === value} className={reviewView === value ? "active" : ""} key={value} onClick={() => setReviewView(value)} type="button">{label}</button>)}
+  </nav> : null;
+  if (review.agentMonitoring && reviewView !== "comparison") return <section className="eval-heldout-review">
+    {heading}
+    {monitoringTabs}
+    <SectionAgentMonitoring currentSectionId={review.sectionId} monitoring={review.agentMonitoring} view={reviewView} />
+  </section>;
   return <section className="eval-heldout-review">
-    <div className="eval-heldout-review-heading"><div><p className="eyebrow">Human review · {review.sectionTitle ?? humanize(review.sectionId ?? "section")}</p><h3>{review.reportName}</h3><small>{review.sections?.length ?? 0} evaluated {review.sectionAgentEvaluation ? "reports" : review.comparisonExperiment?.unitLabel ?? "sections"} · {review.sectionAgentEvaluation ? "section agent evaluation" : review.evaluationOnly ? (review.generationBackend?.startsWith("tk5452_") ? "paired evaluation backend" : "generic-outline backend") : `latest ${humanize(review.datasetSplit ?? "training")} cohort`}</small></div><div className="eval-review-navigation"><select aria-label="Review section" disabled={busy} onChange={(event) => { const [evaluationCaseId, sectionId] = parseReviewSectionValue(event.target.value); if (evaluationCaseId && sectionId) onOpenSection(evaluationCaseId, sectionId); }} value={currentValue}>{review.sections?.map((section) => <option key={`${section.evaluationCaseId}:${section.sectionId}`} value={reviewSectionValue(section.evaluationCaseId, section.sectionId)}>{sectionOutcomeLabel(section.outcomeCode, section.hardFailure)} · {section.reportName} · {section.sectionTitle ?? humanize(section.sectionId)}</option>)}</select><button className="toolbar-button" disabled={busy || !review.previousSectionId || !review.previousEvaluationCaseId} onClick={() => review.previousEvaluationCaseId && review.previousSectionId && onOpenSection(review.previousEvaluationCaseId, review.previousSectionId)} type="button">Previous</button><button className="toolbar-button toolbar-button-primary" disabled={busy || !review.nextSectionId || !review.nextEvaluationCaseId} onClick={() => review.nextEvaluationCaseId && review.nextSectionId && onOpenSection(review.nextEvaluationCaseId, review.nextSectionId)} type="button">{review.sectionAgentEvaluation ? "Next report" : "Next section"}</button>{review.sourcePdfUrl || review.goldDocumentId ? <button className="toolbar-button" onClick={() => window.open(`${review.sourcePdfUrl ?? `/api/v1/admin/kb-review/documents/${encodeURIComponent(review.goldDocumentId ?? "")}/source`}#page=${review.sourcePageNumber ?? 1}`, "_blank", "noopener,noreferrer")} type="button">Preview original PDF</button> : null}<span>{metrics?.score != null ? `${Math.round(metrics.score * 100)}% · ${resultLabel}` : resultLabel}</span></div></div>
+    {heading}
+    {monitoringTabs}
     {review.revisionChoices?.length ? <label className="eval-reference-choice">Evaluation run <select aria-label="Evaluation run" disabled={busy} value={review.evaluationCaseId} onChange={event => { const choice = review.revisionChoices?.find(item => item.evaluationCaseId === event.target.value); const sectionId = choice?.sectionIds && !choice.sectionIds.includes(review.sectionId ?? "") ? choice.sectionIds[0] : review.sectionId ?? "identity"; onOpenSection(event.target.value, sectionId); }}>{review.revisionChoices.map(choice => <option key={choice.evaluationCaseId} value={choice.evaluationCaseId}>{choice.label}</option>)}</select></label> : null}
     {review.comparisonExperiment ? <div className="eval-generation-view" role="group" aria-label="KB comparison"><strong>Same mock inputs</strong>{review.revisionChoices?.filter(choice => review.comparisonExperiment?.caseIds ? review.comparisonExperiment.caseIds.includes(choice.evaluationCaseId) : choice.sectionIds?.length === 2).map(choice => <button key={choice.evaluationCaseId} type="button" className={`toolbar-button${review.evaluationCaseId === choice.evaluationCaseId ? " toolbar-button-primary" : ""}`} aria-pressed={review.evaluationCaseId === choice.evaluationCaseId} disabled={busy} onClick={() => onOpenSection(choice.evaluationCaseId, review.sectionId ?? "01-scope")}>{choice.label.replace(/^(Same mock|12 observations) · /, "")}</button>)}<span>{review.comparisonExperiment.wordCount} words · {review.comparisonExperiment.modelId}</span></div> : null}
     {review.referenceChoices?.length ? <label className="eval-reference-choice">Original report <select aria-label="Original report" disabled={busy} value={review.evaluationCaseId} onChange={event => onOpenSection(event.target.value, review.sectionId ?? "identity")}>{review.referenceChoices.map(choice => <option key={choice.evaluationCaseId} value={choice.evaluationCaseId}>{choice.label}</option>)}</select></label> : null}
@@ -500,7 +534,7 @@ function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenS
     {review.evidenceReview?.available ? <div className={`eval-automated-review ${review.evidenceReview.verdict}`}><strong>Semantic evidence check: {humanize(review.evidenceReview.verdict)}</strong><p>Overall draft readiness also requires captured-fact preservation, completeness, and formatting.</p><p>{review.evidenceReview.assessment}</p><ul>{[...review.evidenceReview.missingEvidence, ...review.evidenceReview.unsupportedStatements].map((reason, index) => <li key={index}>{reason}</li>)}</ul></div> : null}
     {metrics?.hardFailure ? <div className="eval-live-feedback error"><strong>This draft is blocked.</strong> Correct the critical-data or evidence-isolation problem before inspector review. {metrics.hardFailureReasons.join(" ")}</div> : null}
     <div className="eval-heldout-review-grid">
-      <article><strong>{review.benchmarkStatus === "paired_source_reconstruction" ? "Original section · Paired source" : isPlanningRun ? "Original section · Historical reference" : "Original section · Gold benchmark"}</strong><SectionPagePreview evaluationOnly={review.evaluationOnly}><ReviewDocument empty="No original content is mapped to this section." text={cleanOriginalSection(review.originalSectionContent ?? "")} /></SectionPagePreview></article>
+      <article><strong>{review.benchmarkStatus === "paired_source_reconstruction" ? "Original section · Paired source" : isPlanningRun ? "Original section · Historical reference" : "Original section · Gold benchmark"}</strong>{review.evaluationDisplay?.originalMode === "source_pdf" && review.sourcePdfUrl ? <iframe aria-label={`Original source PDF · page ${review.sourcePageNumber ?? 1}`} src={`${review.sourcePdfUrl}#page=${review.sourcePageNumber ?? 1}&view=FitH`} title={`Original source PDF · ${review.sectionTitle ?? humanize(review.sectionId ?? "section")}`} /> : <SectionPagePreview evaluationOnly={review.evaluationOnly}><ReviewDocument empty="No original content is mapped to this section." text={cleanOriginalSection(review.originalSectionContent ?? "")} /></SectionPagePreview>}</article>
       <article><strong>Generation · {missingInput ? "Missing input" : showsCandidate ? "AI output for review" : "Retained draft"}</strong>
         {inputStatus && inputStatus.status !== "supplied" ? <div className="eval-input-gap" role="status"><strong>{missingInput ? "Not generated — mock input is missing" : "Partial section — additional inputs needed"}</strong><ul>{inputStatus.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul></div> : null}
         {review.aiCandidateContent ? <div className="eval-generation-view"><label>View <select aria-label="Generation view" value={generationView} onChange={event => setGenerationView(event.target.value as "ai" | "retained")}><option value="ai">AI output</option><option value="retained">Retained draft</option></select></label><p>{review.comparisonExperiment?.reviewOnlyProposals ? (showsCandidate ? "Experimental proposals: inspector review required. Mechanical checks do not establish technical correctness." : "Supplied observations only; proposed actions are shown in AI output.") : showsCandidate && !review.rawAiResponse?.accepted ? "Not accepted by automatic validation. Review this AI response against the evidence." : showsCandidate ? "AI wording accepted for inspector review." : "The retained draft uses captured wording where AI validation did not pass."}</p></div> : null}
@@ -509,7 +543,7 @@ function HeldOutReview({ busy, onOpenSection, review }: { busy: boolean; onOpenS
     </div>
     {review.rawAiResponse ? <details className="eval-automated-review"><summary>AI response · {review.comparisonExperiment?.reviewOnlyProposals ? "proposals awaiting inspector review" : review.rawAiResponse.accepted ? "accepted wording" : "not accepted by automatic validation"}</summary><ol>{review.rawAiResponse.findings.map((finding, index) => <li key={index}>{finding.text}</li>)}</ol></details> : null}
     {metrics && !showsCandidate ? <div className="eval-review-points">
-      <ReviewPoint label={review.sectionAgentEvaluation ? "Structured field preservation" : isPlanningRun ? "Section requirements" : "Captured-fact recovery"} value={metrics.requiredFactRecall} />
+      <ReviewPoint label={review.evaluationDisplay?.evidenceMetricLabel ?? (review.sectionAgentEvaluation ? "Structured field preservation" : isPlanningRun ? "Section requirements" : "Captured-fact recovery")} value={metrics.requiredFactRecall} />
       <ReviewPoint label="Claim precision" value={metrics.claimPrecision} />
       <ReviewPoint label="Protected facts" value={metrics.protectedFactAccuracy} />
       <ReviewPoint label="Historical content coverage (diagnostic)" value={metrics.goldContentCoverage} />
@@ -531,7 +565,7 @@ function AppEvidenceColumn({ evidence }: { evidence: SystemRlHeldOutReview["appE
     <p>{item.text}</p>
     {item.processedText.length ? <details><summary>Statements supplied to this section ({item.processedText.length})</summary><ul>{item.processedText.map((text, index) => <li key={index}>{text}</li>)}</ul></details> : null}
     {item.issues.length ? <p className="eval-evidence-issue">Needs review: {item.issues.join("; ")}</p> : null}
-    {!item.usedInGeneration ? <small>Excluded from generation pending review.</small> : null}
+    {!item.usedInGeneration ? <small>Not rendered in this section.</small> : null}
     <details><summary>Source record</summary><code>{item.sourcePointer}</code></details>
   </section>)}</div>;
 }
@@ -554,7 +588,7 @@ function parseReviewSectionValue(value: string): [string, string] {
 
 function ReviewPoint({ label, value }: { label: string; value: number | null }) { return <div><span>{label}</span><strong>{formatPercent(value)}</strong></div>; }
 function ProvenanceLegend({ html, aiWordingCount }: { html: string; aiWordingCount?: number }) { const counts = provenanceCounts(html); if (aiWordingCount !== undefined) counts.llm_prediction = aiWordingCount; return <div className="eval-provenance-legend" aria-label="Generated content provenance"><span className="field">Structured field data · {counts.app_field_data}</span><span className="voice">Voice or note evidence · {counts.app_voice_data}</span><span className="prediction">LLM-generated wording · {counts.llm_prediction}</span><span className="template">Template structure · {counts.precedent_template}</span>{counts.calculation ? <span>Calculated summaries · {counts.calculation}</span> : null}</div>; }
-function provenanceCounts(html: string) { const counts = { app_field_data: 0, app_voice_data: 0, llm_prediction: 0, precedent_template: 0, calculation: 0 }; for (const match of html.matchAll(/data-laiq-provenance=["']([^"']+)["']/g)) { const key = (match[1] === "app_field" ? "app_field_data" : match[1] === "voice_note" ? "app_voice_data" : match[1]) as keyof typeof counts; if (key in counts) counts[key] += 1; } return counts; }
+function provenanceCounts(html: string) { const counts = { app_field_data: 0, app_voice_data: 0, llm_prediction: 0, precedent_template: 0, calculation: 0 }; for (const match of html.matchAll(/data-laiq-provenance=["']([^"']+)["']/g)) { const raw = match[1]; const key = (raw === "app_field" ? "app_field_data" : raw === "voice_note" || raw.startsWith("confirmed_scope_") ? "app_voice_data" : raw) as keyof typeof counts; if (key in counts) counts[key] += 1; } counts.precedent_template += [...html.matchAll(/data-report-format=["'][^"']+["']/g)].length; return counts; }
 function SectionPagePreview({ children, evaluationOnly = false }: { children: React.ReactNode; evaluationOnly?: boolean }) { return <div className="eval-pdf-page"><div className="eval-pdf-page-header"><span>LAIQ INSPECTION REPORT</span><span>SECTION PREVIEW</span></div>{children}<div className="eval-pdf-page-footer"><span>{evaluationOnly ? "Evaluation section preview" : "Export-ready section preview"}</span><span>Page</span></div></div>; }
 function ReviewDocument({ empty, text }: { empty: string; text: string }) {
   if (!text) return <div className="eval-review-scroll eval-review-document"><p>{empty}</p></div>;

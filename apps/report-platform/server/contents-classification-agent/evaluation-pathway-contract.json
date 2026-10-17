@@ -1,0 +1,23 @@
+{
+  "contractVersion": "contents_classification_evaluation_pathway_v1",
+  "releaseId": "contents-classification-evaluation-v1",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "stages": [
+    { "order": 1, "stageId": "android-export-input-guard", "input": "raw Android ProductStore export plus authenticated export receipt", "output": "sealed clean evaluation input" },
+    { "order": 2, "stageId": "evidence-atomizer-v5", "input": "sealed clean evaluation input", "output": "source-linked evidence atoms" },
+    { "order": 3, "stageId": "registered-contents-classifier", "input": "source-linked evidence atoms", "output": "guarded section and block proposals" },
+    { "order": 4, "stageId": "classification-human-review", "input": "all model proposals and unresolved deterministic records", "output": "sealed reviewed classification decisions" },
+    { "order": 5, "stageId": "section-evidence-projector", "input": "sealed reviewed decisions plus reviewed section selection", "output": "isolated evaluation section evidence packages" }
+  ],
+  "gates": {
+    "exactReleaseRequired": true,
+    "rawExportReceiptIntegrityRequired": true,
+    "goldMayReachRuntime": false,
+    "allNarrativeProposalsRequireHumanReview": true,
+    "sectionAndBlockMustBothBeSealed": true,
+    "crossSectionPackageLeakageAllowed": false,
+    "evaluationSectionAgentEligibleAfterReview": true,
+    "productGenerationEligible": false
+  }
+}

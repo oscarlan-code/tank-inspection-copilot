@@ -1,0 +1,19 @@
+{
+  "contractVersion": "report_evidence_router_registry_v1",
+  "productReleaseId": null,
+  "releases": [
+    {
+      "releaseId": "report-evidence-router_v1",
+      "path": "releases/v1",
+      "status": "frozen_evaluation_candidate",
+      "productEnabled": false
+    },
+    {
+      "releaseId": "report-evidence-router_v2",
+      "path": "releases/v2",
+      "status": "evaluation_candidate",
+      "productEnabled": false,
+      "supersedes": "report-evidence-router_v1"
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-heldout-01",
+  "datasetSplit": "heldout",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_b62c8abe80ceba7be60f",
+    "sourceCaseId": "canonical_case_ab60b05acae52c4ded8c",
+    "sourceSha256": "f0cdf705658f0c7bebf3b9e5e3cb050683d0b02f355dfe27ac14f3e3ea32290f",
+    "datasetGroupKey": "asset:external_inspection:ra-2",
+    "reportFamily": "external_inspection",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "diked-area",
+    "foundation",
+    "shell-external",
+    "shell-appurtenances",
+    "access-structure",
+    "roof-external"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "At six o’clock contact points, the four-inch inlet and ten-inch outlet pipes have scaled corrosion; their supports are corroded and perforated. No plinth seal is fitted to the edge projection. Earthing points are wrapped in greased tape and marked tested March 2015 at 4 ohms. MPI was not done on shell-to-bottom welds because coating remains. Shell paint is cracked in several places. One isolated pit about 3 mm deep is on second course southwest by the automatic gauge. Gauge pipe is perforated at the top. Several stair treads attach across shell butt-weld joints, recorded against API 650 guidance. Roof has scattered topside pits up to 2 mm; coated areas are assessed stopped. Curb angle is 50–70 mm originally, with about 20 mm left beside roof plate 12."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "4 in inlet + 10 in outlet, 6 o’clock support contacts: scale corr; supports perforated/corroded. Edge projection no plinth seal. Earth points grease-tape wrapped; test mark Mar 2015, 4 ohms. Shell-bottom MPI not done—coated. Shell coating cracks several spots. 2nd course SW near auto gauge: isolated pit ~3 mm. Auto gauge pipe top perforated. Several stair treads cross butt-weld joints, API 650 issue. Roof scattered topside pits to ~2 mm, coated/stopped. Curb angle 50–70 mm, local remaining ~20 mm next to plate 12."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Curb angle beside plate 12 has about 20 mm left versus 50–70 mm width; roof pits scattered to 2 mm and are coated, corrosion assessed stopped. Stair tread attachments cross shell butt welds, an API 650 issue. Gauge pipe perforated at top; second course southwest near gauge has one 3 mm pit. Shell paint cracked in several areas. Couldn’t do MPI on coated shell-bottom welds. Earth points are grease-tape wrapped with March 2015 / 4-ohm mark. No plinth seal at edge plate. Four-inch inlet and ten-inch outlet have scaling at six o’clock contacts, supports perforated and corroded."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "Pipework: four-inch inlet and ten-inch outlet, corrosion and scale at six o’clock where they sit on supports; the supports themselves are perforated and corroded. Edge plate has no plinth seal. Earth points wrapped in greased fabric, tag says tested March 2015, four ohms. No MPI on the shell-to-bottom weld—coating prevented it. Shell coating cracked at several spots. Southwest second course near automatic gauge has isolated pit, about 3 millimetres. Automatic gauge pipe perforated up high. Several stair treads are welded over the shell butt joints; recorded contrary to API 650. Roof scattered topside pits maximum about 2 millimetres, now coated and assessed stopped. Curb angle is 50 to 70 millimetres, locally only about 20 left next to plate 12."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Pipes/supports: 4 in inlet + 10 in outlet / 6 o’clock contacts / scale corr / supports perforated. Foundation: edge projection no plinth seal. Earthing: greased tape / tested Mar-2015 / 4 ohms. Shell-bottom weld MPI: NOT done, coated. Shell paint: cracked several locations. Shell course 2 SW by gauge: isolated pit ~3 mm. Gauge pipe top: perforated. Stair treads: several across butt-weld joints / API 650 issue. Roof: scattered topside pits <=2 mm / coated / stopped. Curb angle at plate 12: width 50–70 mm; remaining ~20 mm local."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Piping: four-inch inlet and ten-inch outlet have scaled corrosion at six o’clock contacts; supports are perforated/corroded. Foundation: edge projection lacks plinth seal; earthing points are grease-tape wrapped and marked March 2015 at 4 ohms; MPI not performed on coated shell-bottom welds. Shell: coating cracks at several locations and one southwest second-course pit near gauge is about 3 mm. Appurtenance: gauge pipe perforated at top. Access: several stair treads cross butt-weld joints, flagged against API 650. Roof: scattered topside pits to 2 mm are coated and assessed stopped; curb angle is 50–70 mm, locally about 20 mm remaining beside plate 12."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-pipe-support-corrosion",
+      "componentBlock": "diked-area",
+      "component": "4-inch inlet and 10-inch outlet pipes with supports",
+      "location": "6 o’clock contact areas",
+      "polarity": "observed",
+      "condition": "scaled corrosion on pipes and perforated corroded supports",
+      "qualifier": null,
+      "protectedTerms": [
+        "4-inch",
+        "10-inch",
+        "6 o’clock",
+        "scaled corrosion",
+        "perforated",
+        "supports"
+      ],
+      "sourceReference": {
+        "blockId": "block_2f5674a35b9d3f0163164268",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-plinth-seal-absent",
+      "componentBlock": "foundation",
+      "component": "edge projection plate",
+      "location": null,
+      "polarity": "not_present",
+      "condition": "plinth seal",
+      "qualifier": null,
+      "protectedTerms": [
+        "edge projection",
+        "plinth seal",
+        "not present"
+      ],
+      "sourceReference": {
+        "blockId": "block_935c09f863093bea2b7b2d07",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-earthing-test",
+      "componentBlock": "foundation",
+      "component": "earthing points",
+      "location": null,
+      "polarity": "observed",
+      "condition": "wrapped with greased fabric tape and marked as tested in March 2015 at 4 ohms",
+      "qualifier": null,
+      "protectedTerms": [
+        "greased fabric tape",
+        "March 2015",
+        "4 ohms"
+      ],
+      "sourceReference": {
+        "blockId": "block_7957d000deacd3fc1bf384ac",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-bottom-mpi",
+      "componentBlock": "foundation",
+      "component": "external shell-to-bottom welds",
+      "location": null,
+      "polarity": "not_performed",
+      "condition": "magnetic particle inspection was not performed because the welds were coated",
+      "qualifier": null,
+      "protectedTerms": [
+        "MPI",
+        "not performed",
+        "coated"
+      ],
+      "sourceReference": {
+        "blockId": "block_c19b3bab7e32c73ce58344f6",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-coating-cracks",
+      "componentBlock": "shell-external",
+      "component": "external shell coating",
+      "location": "several locations",
+      "polarity": "observed",
+      "condition": "cracking",
+      "qualifier": null,
+      "protectedTerms": [
+        "shell coating",
+        "several",
+        "cracking"
+      ],
+      "sourceReference": {
+        "blockId": "block_3c6fa19903d5ca01051701ac",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-pit",
+      "componentBlock": "shell-external",
+      "component": "second shell course",
+      "location": "southwest near automatic gauge",
+      "polarity": "observed",
+      "condition": "isolated pit approximately 3 mm deep",
+      "qualifier": null,
+      "protectedTerms": [
+        "second course",
+        "southwest",
+        "automatic gauge",
+        "isolated pit",
+        "3 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_17a0b6d68261f4132e70a28b",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-gauge-pipe-perforation",
+      "componentBlock": "shell-appurtenances",
+      "component": "automatic gauge pipe",
+      "location": "top sector",
+      "polarity": "observed",
+      "condition": "perforation",
+      "qualifier": null,
+      "protectedTerms": [
+        "automatic gauge pipe",
+        "top sector",
+        "perforation"
+      ],
+      "sourceReference": {
+        "blockId": "block_7ca5af4a6dca32ac9cea4857",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-stair-tread-welds",
+      "componentBlock": "access-structure",
+      "component": "shell-mounted stairway treads",
+      "location": "shell plate butt-weld joints",
+      "polarity": "observed",
+      "condition": "several tread attachments cross the butt-weld joints and were recorded as contrary to API 650 guidance",
+      "qualifier": null,
+      "protectedTerms": [
+        "stairway treads",
+        "butt-weld joints",
+        "API 650"
+      ],
+      "sourceReference": {
+        "blockId": "block_44a37e6086f1fd96c66290f7",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-roof-pitting",
+      "componentBlock": "roof-external",
+      "component": "roof plates",
+      "location": "scattered locations",
+      "polarity": "observed",
+      "condition": "topside pitting up to approximately 2 mm deep",
+      "qualifier": "areas were coated and corrosion was assessed as stopped",
+      "protectedTerms": [
+        "topside pitting",
+        "2 mm",
+        "coated",
+        "stopped"
+      ],
+      "sourceReference": {
+        "blockId": "block_f60751011a24263181259eb7",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-curb-angle-loss",
+      "componentBlock": "roof-external",
+      "component": "roof curb angle",
+      "location": "adjacent to roof plate 12",
+      "polarity": "measured",
+      "condition": "original width ranged from 50 mm to 70 mm; some corroded areas had approximately 20 mm remaining",
+      "qualifier": null,
+      "protectedTerms": [
+        "roof plate 12",
+        "50 mm",
+        "70 mm",
+        "20 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_9691b579f8ec5f8d31897625",
+        "page": 9
+      }
+    }
+  ]
+}

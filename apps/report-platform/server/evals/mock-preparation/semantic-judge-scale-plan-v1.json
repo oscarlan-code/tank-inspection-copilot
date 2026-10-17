@@ -1,0 +1,27 @@
+{
+  "contractVersion": "mock_semantic_scale_plan_v1",
+  "planId": "semantic-judge-scale-plan-v1",
+  "purpose": "Test the calibrated semantic grader on 15 new judgments before grading the complete narrative dataset.",
+  "variants": [
+    "concise-field",
+    "natural-sequence",
+    "disfluent-asr"
+  ],
+  "sourceUnitIds": [
+    "source-unit-src-p004-b0073-scope-01",
+    "source-unit-src-p007-b0209-obs-04",
+    "source-unit-src-p007-b0216-obs-06",
+    "source-unit-src-p011-b0330-obs-24",
+    "source-unit-src-p013-b0414-rec-05"
+  ],
+  "coverage": [
+    "scope obligation with quantity and access conditions",
+    "component, sector, extent and severity",
+    "inspection limitation and reason",
+    "measurement range, unit and average",
+    "recommendation action and rationale"
+  ],
+  "pilotUnitsExcluded": true,
+  "expectedJudgments": 15,
+  "nextActionAfterRun": "Human-review all 15 judgments before authorizing full-dataset grading."
+}

@@ -1,0 +1,27 @@
+{
+  "contractVersion": "report_evidence_router_harness_v2",
+  "agentId": "report-evidence-router",
+  "releaseVersion": "report-evidence-router_v2",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "requiredTests": [
+    "immutable_input", "stable_input_hash", "atomic_source_spans", "multi_section_use",
+    "structured_deterministic_routing", "voice_proposal_requires_review",
+    "voice_audio_explicit_exclusion", "protected_value_and_unit_preservation",
+    "android_unit_profile_resolution", "row_unit_precedence_and_conflict_blocking",
+    "unresolved_unit_blocks_affected_section", "hidden_gold_rejection",
+    "per_section_projection_isolation", "nested_use_section_isolation",
+    "routing_only_readiness_semantics", "output_hash_integrity", "dependency_hash_integrity"
+  ],
+  "freezeGates": {
+    "retainedEvidenceDispositionCoverage": 1.0,
+    "protectedFactAccuracy": 1.0,
+    "unsupportedFacts": 0,
+    "hiddenGoldRecords": 0,
+    "selectedSectionProjectionLeakage": 0,
+    "reviewedVoiceDecisionRate": 1.0,
+    "actualAndroidExportRequired": true,
+    "independentReviewRequired": true
+  },
+  "promotionPerformedByHarness": false
+}

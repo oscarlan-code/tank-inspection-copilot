@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "report_evidence_routing_v2",
+  "type": "object",
+  "required": ["contractVersion", "releaseId", "inputPackageHash", "evidenceLedger", "sectionEvidenceProjections", "routingReview", "routingManifest"],
+  "properties": {
+    "contractVersion": {"const": "report_evidence_routing_v2"},
+    "releaseId": {"const": "report-evidence-router_v2"},
+    "inputPackageHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidenceLedger": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidenceId", "kind", "sourceRef", "quality", "uses", "disposition"],
+        "properties": {
+          "evidenceId": {"type": "string"},
+          "kind": {"type": "string"},
+          "sourceRef": {"type": "object"},
+          "quality": {"type": "object"},
+          "uses": {"type": "array"},
+          "disposition": {
+            "type": "object",
+            "required": ["state", "reason"],
+            "properties": {"state": {"enum": ["routed", "excluded", "needs_review"]}, "reason": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "sectionEvidenceProjections": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["contractVersion", "sectionId", "title", "inputPackageHash", "sourcePlanId", "evidenceUses", "evidenceRecords", "blockers", "routingStatus", "readinessScope"],
+        "properties": {
+          "contractVersion": {"const": "section_evidence_projection_v2"},
+          "sectionId": {"type": "string"},
+          "title": {"type": "string"},
+          "inputPackageHash": {"type": "string"},
+          "sourcePlanId": {"type": "string"},
+          "evidenceUses": {"type": "array"},
+          "evidenceRecords": {"type": "array"},
+          "blockers": {"type": "array"},
+          "routingStatus": {"enum": ["routing_ready", "routing_blocked", "routing_empty"]},
+          "readinessScope": {"const": "evidence_routing_only"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "routingReview": {
+      "type": "object",
+      "required": ["contractVersion", "counts", "dispositionCoverage", "unresolved", "explicitExclusions", "pendingModelProposals", "proposalsAppliedToGeneration", "readinessScope", "sectionRoutingStatus", "selectedSectionsRoutingReady", "wholeJobRoutingReady"],
+      "properties": {
+        "contractVersion": {"const": "report_evidence_routing_review_v2"},
+        "readinessScope": {"const": "evidence_routing_only"},
+        "selectedSectionsRoutingReady": {"type": "boolean"},
+        "wholeJobRoutingReady": {"type": "boolean"}
+      }
+    },
+    "routingManifest": {"type": "object"}
+  },
+  "additionalProperties": false
+}

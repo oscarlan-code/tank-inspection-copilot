@@ -1,0 +1,263 @@
+{
+  "contractVersion": "contents_classification_validation_context_cases_v1",
+  "datasetId": "classification-v10-validation-context-20",
+  "datasetSplit": "validation",
+  "evaluationRole": "independent_context_validation",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 20,
+  "cases": [
+    {
+      "caseId": "val10-001",
+      "lineageId": "asset:pacific-energy-swp-ltd:v10",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38",
+      "sourcePage": 5,
+      "sourceText": "Take at least five roof readings per accessible plate. Carry out a shell settlement survey and calculate out-of-plane settlement and deflection.",
+      "voiceNote": "Take five readings from every roof plate we can reach; survey the shell for settlement and calculate out-of-plane movement and deflection.",
+      "expectedAtoms": [
+        {
+          "text": "Take five readings from every roof plate we can reach",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "survey the shell for settlement and calculate out-of-plane movement and deflection.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-002",
+      "lineageId": "asset:pacific-energy-swp-ltd:v10",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38",
+      "sourcePage": 7,
+      "sourceText": "Year Built: 1977. Product Stored: PULP.",
+      "voiceNote": "The recorded build year is 1977; stored product is pulp.",
+      "expectedAtoms": [
+        {
+          "text": "The recorded build year is 1977",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "stored product is pulp.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-003",
+      "lineageId": "asset:pacific-energy-swp-ltd:v10",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38",
+      "sourcePage": 8,
+      "sourceText": "The site drain contained debris and standing water. The earth point attached to the shell was satisfactory.",
+      "voiceNote": "The site drain has debris and standing water; the grounding point fixed to the shell looks satisfactory.",
+      "expectedAtoms": [
+        {
+          "text": "The site drain has debris and standing water",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "diked-area"
+          }
+        },
+        {
+          "text": "the grounding point fixed to the shell looks satisfactory.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-appurtenances"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-004",
+      "lineageId": "asset:pacific-energy-swp-ltd:v10",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38",
+      "sourcePage": 11,
+      "sourceText": "Several shell-mounted stair treads are welded in shell plate butt joints. Roof plate coating had spot failures with corrosion initiation.",
+      "voiceNote": "Several stair treads cross the shell butt joints; the dome roof plates have isolated coating breakdown with early corrosion.",
+      "expectedAtoms": [
+        {
+          "text": "Several stair treads cross the shell butt joints",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "access-structures"
+          }
+        },
+        {
+          "text": "the dome roof plates have isolated coating breakdown with early corrosion.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-005",
+      "lineageId": "asset:pacific-energy-swp-ltd:v10",
+      "sourceReport": "22PE1-4 TK V10 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7d96bcee42d6cd9ab4c7cabca0dd3f5002ab7600aae99d714f6f0e59448f5d38",
+      "sourcePage": 8,
+      "sourceText": "Two shell locations buckled inward during discharge and reverted when vacuum was manually released.",
+      "voiceNote": "Two outside wall areas buckle inward while product is discharged; the areas return to their prior shape when the vacuum is released.",
+      "expectedAtoms": [
+        {
+          "text": "Two outside wall areas buckle inward while product is discharged",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        },
+        {
+          "text": "the areas return to their prior shape when the vacuum is released.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-006",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 4,
+      "sourceText": "Carry out a shell settlement survey and calculate out-of-plane settlement. Carry out a general visual inspection and record detrimental conditions.",
+      "voiceNote": "Survey the shell settlement and calculate the out-of-plane result; visually inspect the tank and record conditions affecting serviceability.",
+      "expectedAtoms": [
+        {
+          "text": "Survey the shell settlement and calculate the out-of-plane result",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "visually inspect the tank and record conditions affecting serviceability.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "scope"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-007",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1971 estimated. Product Stored: Jet A1.",
+      "voiceNote": "Construction year is estimated as 1971; the service product is Jet A1.",
+      "expectedAtoms": [
+        {
+          "text": "Construction year is estimated as 1971",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "the service product is Jet A1.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-008",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 10,
+      "sourceText": "Roof internal was inspected from the tank bottom. Roof plate underside was uncoated with general surface corrosion.",
+      "voiceNote": "I viewed the roof interior from the tank bottom; the underside plates are uncoated with general surface rust.",
+      "expectedAtoms": [
+        {
+          "text": "I viewed the roof interior from the tank bottom",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-internal"
+          }
+        },
+        {
+          "text": "the underside plates are uncoated with general surface rust.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-internal"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-009",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": [
+        10,
+        11
+      ],
+      "sourceText": "MFL was restricted to accessible areas because internal piping remained. Plate 2.2 could not be scanned due to uneven contour.",
+      "voiceNote": "Floor MFL covered only areas reachable around the remaining piping; plate 2.2 could not be scanned because its contour is uneven.",
+      "expectedAtoms": [
+        {
+          "text": "Floor MFL covered only areas reachable around the remaining piping",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "floor-internal"
+          }
+        },
+        {
+          "text": "plate 2.2 could not be scanned because its contour is uneven.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "floor-internal"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "val10-010",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 13,
+      "sourceText": "Blast corrosion from edge projection plates and install a plinth seal. Replace the perforated firewater pipe.",
+      "voiceNote": "Blast the corroded edge projection and fit a protective plinth seal; replace the firewater pipe where it has perforated.",
+      "expectedAtoms": [
+        {
+          "text": "Blast the corroded edge projection and fit a protective plinth seal",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        },
+        {
+          "text": "replace the firewater pipe where it has perforated.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    }
+  ]
+}

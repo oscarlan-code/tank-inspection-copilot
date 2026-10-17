@@ -1,0 +1,20 @@
+{
+  "contractVersion": "classification_gold_evaluator_spec_v1",
+  "agentId": "classification-gold-evaluator",
+  "release": "v1-scaffold",
+  "status": "scaffold",
+  "productEnabled": false,
+  "goal": "Evaluate a sealed closed-book classification output against human-reviewed original-report text units and gold section/block labels.",
+  "inputs": [
+    "sealedClassificationOutput",
+    "humanReviewedOriginalTextUnits",
+    "goldSectionBlockLabels",
+    "reviewedOutlineProfile"
+  ],
+  "forbiddenOutputs": [
+    "runtimeClassificationMutation",
+    "sectionGeneratorInput",
+    "productPromotionDecision"
+  ],
+  "evaluationTiming": "after_runtime_output_is_sealed"
+}

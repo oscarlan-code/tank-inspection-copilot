@@ -14,11 +14,12 @@ and product routing are not yet implemented.
 
 ```text
 1. Authenticate and pin one app import revision
-2. Normalize evidence and resolve physical entities
-3. Build reviewed ReportBlueprintPack and StandardObligationPack
+2. Run the exact Report Evidence Routing Agent release: normalize evidence, resolve
+   physical entities, preserve source spans, and review multi-section uses
+3. Build reviewed ReportBlueprintPack, SectionKnowledgeBundles, and StandardObligationPack
 4. Create, review, and freeze ReportPlan / table of contents
-5. Classify evidence into one or more selected section uses
-6. Freeze one SectionPlan per section instance
+5. Reconcile the reviewed ReportPlan with routed uses and explicit exclusions
+6. Freeze one evidence projection and SectionPlan per section instance
 7. Resolve the exact immutable section-agent release
 8. Compile deterministic content and allowed narrative
 9. Run the exact independent pre-display Section Review Agent without gold
@@ -35,6 +36,7 @@ and product routing are not yet implemented.
 | --- | --- |
 | `EvidenceRecord` / `Entity` | Canonical current evidence with source, identity, value/unit, polarity, uncertainty, and relationships. |
 | `ReportBlueprintPack` | Reviewed compatible historical report structures and provenance. |
+| `SectionKnowledgeBundle` | One multi-report SectionPatternPack with target-blind role projections for planning, mock preparation, generation, review, and evaluation. |
 | `StandardObligationPack` | Reviewed applicable obligations for a pinned standard and edition. |
 | `ReportPlan` | Immutable report profile, ToC, section instances, dependencies, applicability, and exact agent bindings. |
 | `SectionPlan` | One section's evidence uses, blocks, missing inputs, knowledge subsets, tools, and release binding. |
@@ -52,6 +54,12 @@ rows/cells/order/units, findings/photos, layout geometry, figures, attachments, 
 voice metadata/transcripts. Normalization never rewrites the import or flattens
 structured tables into prose.
 
+Current Android V3 exports declare the inspection-wide UT thickness unit at
+`/unitProfile/thicknessUnit`. Resolve an explicit `utMeasurements[].unitCode` or
+`utMeasurements[].unit` first, then that package profile. Missing or conflicting
+declarations remain unresolved; do not infer a unit from the package schema version,
+numeric magnitude, narrative context or historical reports.
+
 Voice interpretation stores both original wording and normalized terminology with
 source spans and confidence. Ambiguous identity, negation, severity, location, or
 unit becomes a clarification item.
@@ -65,6 +73,18 @@ One evidence record may have several reviewed uses:
 
 Supporting evidence is available to the agent but is not appended to customer
 report text automatically.
+
+The versioned `report-evidence-router` is the sole shared preprocessing boundary.
+It emits an evidence ledger, section projections, a routing review and a hash
+manifest. Native structured records use deterministic rules. A bounded model may
+propose interpretation for voice or ambiguous narrative, but a proposal is never a
+generation input until an authorized review decision confirms its entity, block,
+role and uncertainty. Voice audio is retained as transcript provenance and is not
+separately rendered as report content.
+
+`routing_ready` means only that a section's evidence projection has no unresolved
+routing blocker. It does not mean the SectionPlan is frozen, a generator is
+available, a draft passed pre-display review, or content is approved.
 
 ## Report Structure Agent
 
@@ -84,6 +104,11 @@ The higher agent produces schema-valid planning data, not prose. It:
 Historical frequency never overrides a standard obligation. Unknown scope is not
 the same as not applicable.
 
+Historical knowledge defines a stable general structure plus explicit variability.
+Every canonical section/block receives a current-evidence-based include or exclude
+decision. Accepted heading and format variants may differ from any single historical
+report. A target evaluation report and its exact structure are never planning inputs.
+
 ## Section Generation Agent
 
 For one frozen SectionPlan, the orchestrator verifies all hashes and runs:
@@ -98,7 +123,10 @@ For one frozen SectionPlan, the orchestrator verifies all hashes and runs:
 
 Agent types are structured, visual, narrative, hybrid, or approved standard
 template. Every generator release also requires one exact pre-display reviewer
-release. Structured sections normally use deterministic review; future narrative
+release. The generator and reviewer pin different projections from the same
+SectionKnowledgeBundle. The post-generation evaluator pins the evaluation projection
+from that bundle and may open target gold only after generation. Structured sections
+normally use deterministic review; future narrative
 reviewers may require a bounded LLM semantic check after deterministic blockers pass.
 Inspection and Maintenance Regime normally uses a standard template and does not
 require AI drafting.

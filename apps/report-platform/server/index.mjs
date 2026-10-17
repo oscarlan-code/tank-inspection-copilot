@@ -48,6 +48,9 @@ import {
   rebuildFactRecommendationKbIndex,
   searchFactRecommendationPairs,
 } from "./fact-recommendation-kb.mjs";
+import { loadMockPreparationEvaluation } from "./evals/mock-preparation/ui-projection.mjs";
+import { loadContentsClassificationEvaluation } from "./evals/contents-classification/ui-projection.mjs";
+import { ManualClassificationError, runManualContentsClassification } from "./evals/contents-classification/manual-evaluation.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const appRoot = join(__dirname, "..");
@@ -325,6 +328,40 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && pathname === "/api/v1/admin/evaluation-lab") {
       authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
       writeJson(response, 200, await reportStore.getEvaluationLabState());
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/v1/admin/mock-preparation-evaluation") {
+      authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
+      writeJson(response, 200, await loadMockPreparationEvaluation({
+        appRoot,
+        configuredRoot: process.env.REPORT_PLATFORM_MOCK_EVAL_CASE_ROOT,
+      }));
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/v1/admin/contents-classification-evaluation") {
+      authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
+      writeJson(response, 200, await loadContentsClassificationEvaluation({
+        appRoot,
+        configuredRoot: process.env.REPORT_PLATFORM_CLASSIFICATION_EVAL_ROOT,
+        blindedRoot: process.env.REPORT_PLATFORM_CLASSIFICATION_BLINDED_EVAL_ROOT,
+        datasetId: requestUrl.searchParams.get("dataset") ?? "current",
+      }));
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/v1/admin/contents-classification-evaluation/manual-test") {
+      authorizePlatformPermission(principal, REPORT_PERMISSIONS.SYSTEM_RL_MANAGE);
+      const body = await readJsonBody(request);
+      try {
+        writeJson(response, 200, await runManualContentsClassification({ text: body.text }));
+      } catch (error) {
+        if (error instanceof ManualClassificationError) {
+          throw new ApiError(error.statusCode, error.message, "manual_contents_classification_error");
+        }
+        throw error;
+      }
       return;
     }
 

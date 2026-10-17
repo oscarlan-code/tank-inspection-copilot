@@ -1,0 +1,29 @@
+{
+  "contractVersion": "inspection_app_capture_capability_v3",
+  "sourcePlatform": "laiq_field_android_v3_product_standard",
+  "supportedChannels": [
+    "structured_field",
+    "checklist_answer",
+    "measurement_summary",
+    "voice_note",
+    "typed_note",
+    "photo_with_finding_link",
+    "layout_map_entity_link",
+    "confirmed_report_side_input"
+  ],
+  "capabilities": {
+    "componentHierarchy": "roof_to_floor_layout_entities",
+    "multipleSectionUsesPerEvidence": true,
+    "voiceCapture": true,
+    "typedCapture": true,
+    "structuredMeasurements": true,
+    "photosLinkedToFindings": true,
+    "historicalReportKnowledgeOnDevice": false
+  },
+  "mediaPolicy": {
+    "fakeFindingPhotosAllowed": false,
+    "historicalEvaluationPhotoMayBeUsed": true,
+    "historicalEvaluationPhotoRequiresSourceProvenance": true,
+    "unresolvedPhotoReferenceBehavior": "retain_reference_and_exclude_media_from_generator_until_authorized_asset_is_resolved"
+  }
+}

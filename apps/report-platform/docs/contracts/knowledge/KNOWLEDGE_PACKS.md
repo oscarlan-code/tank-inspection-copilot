@@ -11,8 +11,22 @@ as current inspection evidence.
 | Pack | Consumer | Permitted contribution |
 | --- | --- | --- |
 | `ReportBlueprintPack` | Report Structure Agent | Compatible report families, common/conditional sections, ordering, repeated-section patterns, titles, tables, figures, and source provenance. |
-| `SectionPatternPack` | One Section Generation Agent release | Section-specific structure, terminology, format, wording patterns, and reviewed precedent cases. |
+| `SectionPatternPack` | One section release family | Section-specific structure, variability, terminology, format, wording patterns, and reviewed precedent cases. |
 | `StandardObligationPack` | Structure and section agents | Applicable obligations, methods, inputs, units, calculations, review prompts, clause/edition provenance, and unresolved applicability. |
+
+A frozen `SectionKnowledgeBundle` pins one `SectionPatternPack` and exposes
+role-specific projections to the Report Structure Agent, evaluation-only Mock
+Preparation Agent, Section Generation Agent, pre-display Reviewer, and
+post-generation Evaluator. All projections share one bundle ID and hash; each role
+receives only the knowledge needed for its decision. This prevents the five roles
+from learning inconsistent outlines or formats while preserving their different gold
+and evidence boundaries.
+
+The bundle must be consolidated from multiple compatible reports. It distinguishes
+common, conditional, optional, and rare patterns; records accepted heading and format
+variants; and never treats one report as the generic template. Runtime projections
+contain reviewed rules, placeholder patterns, terminology, and provenance rather than
+unrestricted raw report passages.
 
 Historical packs and standard packs remain separate. Historical frequency cannot
 create a standard requirement; missing historical precedent cannot remove one.
@@ -84,6 +98,7 @@ by inventing a value or silently choosing a historical example.
 ## Evaluation protection
 
 Exclude the target report, same asset/scenario lineage, alternate renditions,
-near-duplicates, validation/hidden gold, and post-cutoff sources before retrieval.
+near-duplicates, validation/hidden gold, and post-cutoff sources before building or
+retrieving a role projection.
 Evaluation opens sealed expected content only after generation. Record every
 retrieved source and pack hash in the run trace.

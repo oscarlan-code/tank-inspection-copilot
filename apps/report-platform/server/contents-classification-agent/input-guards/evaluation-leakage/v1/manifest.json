@@ -1,0 +1,25 @@
+{
+  "contractVersion": "evaluation_input_leakage_guard_manifest_v1",
+  "guardId": "evaluation-input-leakage-guard-v1",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "7dfe6901280b9becd158021b58b1dafb0ae652f43fdc3fb4ffb13c20802977c2"
+    },
+    {
+      "path": "policy.json",
+      "sha256": "6b8df473a06148af62536f891c3a20c7f0fe5e7a053995512c9d3a73192bb6fb"
+    },
+    {
+      "path": "runtime-output-schema.json",
+      "sha256": "b9afdcfaef0d41bb90113d421c0634f5d7d63529f9e23116b340cb5f2ba96d73"
+    },
+    {
+      "path": "guard.mjs",
+      "sha256": "3339b1b2c9d9c645fbcd0aabcf5121d68340cce21e7ea306366a0ea7c7f9e880"
+    }
+  ],
+  "bundleSha256": "0a00c0628a1582c7d68e7ec9837d9cd51274c3a37158955d6db6ee68328b4ab2"
+}

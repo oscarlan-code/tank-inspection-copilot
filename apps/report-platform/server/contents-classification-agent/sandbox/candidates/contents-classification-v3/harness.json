@@ -1,0 +1,73 @@
+{
+  "contractVersion": "contents_classification_harness_v3",
+  "candidateId": "contents-classification-v3",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "variables": {
+    "modelId": "gpt-5.6-sol",
+    "promptVersion": "classification_prompt_v3",
+    "outlineProfileId": "vertical-api653-inspection-report-v2",
+    "temperature": "fixed_by_model_adapter",
+    "repairAttempts": 1,
+    "outlineProfileSha256": "18f362df8f1da621a89f56961f27e33363dff99fb8276666038040352f3803cc",
+    "outlineManifestSha256": "ef6ae1fa93a9f72ac81bf787514a938363132344ed89e82ca04a16247cfd2f7d"
+  },
+  "datasets": {
+    "development": "separate_report_lineages",
+    "validation": "separate_report_lineages",
+    "heldOut": "sealed_report_lineages",
+    "allVariationsFromOneReportStayTogether": true
+  },
+  "requiredTests": [
+    "evaluation_input_leakage_guard",
+    "native_export_allowlist",
+    "gold_receipt_crosswalk_isolation",
+    "opaque_lineage_token",
+    "verbatim_narrative_leakage_rejection",
+    "frozen_outline_manifest_integrity",
+    "actual_android_export_only",
+    "input_hash_integrity",
+    "complete_native_collection_accounting",
+    "atomic_source_span_integrity",
+    "structured_deterministic_mapping",
+    "narrative_closed_book_classification",
+    "single_primary_narrative_route",
+    "deterministic_cross_reference_assignment",
+    "ambiguity_needs_review",
+    "protected_value_unit_polarity_identity_preservation",
+    "section_package_isolation",
+    "hidden_gold_rejection",
+    "held_out_lineage_exclusion",
+    "candidate_fingerprint_binding",
+    "worker_request_leakage_audit",
+    "independent_document_and_asset_lineage"
+  ],
+  "hardGates": {
+    "inputReceiptIntegrity": 1,
+    "nativeEvidenceDispositionCoverage": 1,
+    "protectedFactIntegrity": 1,
+    "criticalSectionRecall": 1,
+    "targetGoldExposure": 0,
+    "unsupportedCurrentFacts": 0,
+    "unreviewedNarrativeAssignmentsInPackages": 0,
+    "crossSectionPackageLeakage": 0,
+    "forbiddenExportMetadata": 0,
+    "reportSectionHintExposure": 0,
+    "verbatimSourceNarrativeLeakage": 0,
+    "unknownNativeExportFields": 0,
+    "evaluatorCrosswalkExposure": 0,
+    "protectedNativeEvidenceMutation": 0,
+    "mockTransportIdentifierExposure": 0
+  },
+  "qualityMetrics": [
+    "section_precision",
+    "section_recall",
+    "section_f1",
+    "block_accuracy",
+    "primary_route_accuracy",
+    "over_routing_rate",
+    "unresolved_rate",
+    "critical_miss_count"
+  ],
+  "promotionPerformedByHarness": false
+}

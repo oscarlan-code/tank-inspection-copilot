@@ -1,0 +1,210 @@
+{
+  "contractVersion": "inspection_report_section_knowledge_bundle_contract_v1",
+  "sectionId": "inspection-report",
+  "profileId": "vertical_tank_inspection_v1",
+  "status": "contract_defined_bundle_not_built",
+  "purpose": "Consolidate how compatible historical Section 4 reports are structured and written while keeping all current inspection facts outside the KB.",
+  "sourcePopulationRules": {
+    "minimumCompatibleReports": 10,
+    "minimumUniqueLineages": 10,
+    "allowedReportFamilies": [
+      "internal_external_api653",
+      "internal_inspection",
+      "external_inspection"
+    ],
+    "requiredDatasetRole": "knowledge_reference",
+    "approvedSourcesOnly": true,
+    "exactHashDuplicatesCollapsed": true,
+    "alternateRenditionsCollapsed": true,
+    "nearDuplicatesCollapsed": true,
+    "targetEvaluationLineagesExcluded": true,
+    "validationAndHeldOutLineagesExcluded": true,
+    "postCutoffSourcesExcluded": true,
+    "coverageSaturationRule": "Review reports until at least ten unique compatible lineages are included and two consecutive additional reports add no new canonical block, applicability condition, heading family or format family."
+  },
+  "requiredBundleFields": [
+    "contractVersion",
+    "bundleId",
+    "revision",
+    "status",
+    "profileId",
+    "sectionId",
+    "sourcePopulation",
+    "canonicalBlockCatalog",
+    "orderConstraints",
+    "formatFamilies",
+    "terminologyPatterns",
+    "narrativePatterns",
+    "crossReferencePatterns",
+    "variabilityModel",
+    "roleProjections",
+    "review",
+    "contentSha256"
+  ],
+  "knowledgeCategories": {
+    "canonicalBlockCatalog": [
+      "stable_component_block_id",
+      "observed_frequency",
+      "common_or_conditional_or_rare",
+      "applicability_conditions",
+      "accepted_heading_variants",
+      "allowed_format_family_ids",
+      "source_provenance"
+    ],
+    "formatFamilies": [
+      "paragraph_or_bullet_shape",
+      "finding_order",
+      "calculation_placement",
+      "measurement_summary_placement",
+      "figure_and_cross_reference_placement",
+      "page_and_export_style"
+    ],
+    "terminologyPatterns": [
+      "component_aliases",
+      "inspection_side_terms",
+      "location_terms",
+      "condition_and_severity_terms",
+      "negation_and_uncertainty_terms"
+    ],
+    "narrativePatterns": [
+      "reviewed_placeholder_sentence_patterns",
+      "finding_to_limitation_patterns",
+      "measurement_summary_patterns",
+      "prohibited_overclaim_patterns"
+    ],
+    "variabilityModel": [
+      "required_in_all_compatible_reports",
+      "conditional_on_scope_or_asset_configuration",
+      "optional_when_evidence_exists",
+      "rare_review_required",
+      "accepted_heading_and_format_variants"
+    ]
+  },
+  "roleProjections": {
+    "reportStructurePlanner": {
+      "mustReceive": [
+        "canonical_block_catalog",
+        "order_constraints",
+        "applicability_conditions",
+        "accepted_heading_variants",
+        "allowed_format_family_ids"
+      ],
+      "mayUseFor": [
+        "instantiate_current_report_blocks",
+        "select_supported_heading_variant",
+        "select_supported_format_family",
+        "record_include_exclude_decision_for_every_canonical_block"
+      ],
+      "mustNotReceive": [
+        "target_report_structure",
+        "target_report_text",
+        "validation_or_heldout_gold"
+      ]
+    },
+    "mockPreparationAgent": {
+      "mustReceive": [
+        "app_capture_capability_contract",
+        "canonical_block_coverage_taxonomy",
+        "component_and_terminology_patterns",
+        "capture_style_patterns",
+        "format_required_input_categories",
+        "coverage_requirements"
+      ],
+      "mayUseFor": [
+        "cover_the_evidence_categories_needed_by_each_applicable_report_block",
+        "represent_measurements_tables_photos_and_cross_references_through_supported_app_channels",
+        "map_reviewed_truth_facts_to_realistic_app_channels",
+        "vary_inspector_wording_and_capture_order",
+        "preserve_common_component_identity_and_relationships"
+      ],
+      "mustNotReceive": [
+        "target_expected_wording",
+        "target_report_format_as_a_generation_template",
+        "historical_recommendations_as_current_evidence"
+      ]
+    },
+    "sectionGenerator": {
+      "mustReceive": [
+        "frozen_report_plan",
+        "generation_projection",
+        "verified_current_evidence",
+        "applicable_standard_obligations"
+      ],
+      "mayUseFor": [
+        "section_structure",
+        "finding_order",
+        "terminology",
+        "format",
+        "bounded_narrative_patterns",
+        "cross_reference_patterns"
+      ],
+      "mustNotReceive": [
+        "raw_historical_sections",
+        "target_or_same_lineage_report",
+        "evaluation_gold",
+        "historical_current_facts"
+      ]
+    },
+    "preDisplayReviewer": {
+      "mustReceive": [
+        "frozen_report_plan",
+        "review_projection",
+        "verified_current_evidence",
+        "generated_section",
+        "applicable_standard_obligations"
+      ],
+      "mayUseFor": [
+        "accepted_structure_and_format_checks",
+        "terminology_checks",
+        "allowed_variation_checks",
+        "unsupported_deviation_detection"
+      ],
+      "mustNotReceive": [
+        "target_gold",
+        "target_report_text",
+        "historical_facts_as_current_facts"
+      ]
+    },
+    "postGenerationEvaluator": {
+      "mustReceive": [
+        "evaluation_projection",
+        "generated_section",
+        "pre_display_review",
+        "verified_current_evidence",
+        "sealed_target_gold_opened_after_generation"
+      ],
+      "mayUseFor": [
+        "generic_pattern_conformance",
+        "acceptable_variation_classification",
+        "target_meaning_recovery",
+        "target_format_similarity_as_one_reference",
+        "failure_stage_attribution"
+      ],
+      "mustReportSeparately": [
+        "current_evidence_fidelity",
+        "generic_kb_pattern_conformance",
+        "target_report_meaning_recovery",
+        "target_report_format_similarity",
+        "accepted_non_target_variation",
+        "leakage"
+      ]
+    }
+  },
+  "sharedBundleRule": {
+    "sameBundleIdAndHashForAllRoles": true,
+    "roleSpecificProjectionRequired": true,
+    "rawSourcePassagesIncludedAtRuntime": false,
+    "reviewedPlaceholderPatternsAllowed": true,
+    "oneReportMayDefineTheGenericOutline": false,
+    "historicalFrequencyMayCreateCurrentFact": false,
+    "standardObligationsRemainSeparate": true
+  },
+  "freezeRequirements": [
+    "source_population_and_lineage_exclusions_audited",
+    "canonical_blocks_and_variability_reviewed",
+    "heading_and_format_variants_have_multi_report_provenance",
+    "role_projections_reviewed_for_leakage",
+    "all_projection_hashes_and_bundle_hash_pinned",
+    "engineer_and_inspector_approval_recorded"
+  ]
+}

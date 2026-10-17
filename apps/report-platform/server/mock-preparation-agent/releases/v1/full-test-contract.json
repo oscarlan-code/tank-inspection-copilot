@@ -1,0 +1,80 @@
+{
+  "contractVersion": "mock_preparation_full_test_schema_v2",
+  "status": "candidate_protocol",
+  "agentRelease": "mock-preparation-agent-v1",
+  "productUseEnabled": false,
+  "casePolicy": {
+    "openBookPerCase": true,
+    "developmentValidationSplit": false,
+    "reason": "Mock preparation is evaluated against each case's own original report; dataset splits belong to later closed-book report-generation experiments."
+  },
+  "inputReadiness": {
+    "requiredPerCase": [
+      "case.json",
+      "source-receipt.json",
+      "source-index.json",
+      "source-blocks.jsonl",
+      "review/source-semantic-integrity-request.json",
+      "review/source-semantic-integrity-review.json",
+      "checklist-extraction.json",
+      "semantic-pairs.json",
+      "reviewed-case-plan.json",
+      "review/mock-preparation-gold-review.json",
+      "review/gold-review-manifest.json"
+    ],
+    "sourceSemanticIntegrity": "Every rendered source page and parsed block must pass the hash-bound source semantic-integrity review before historical semantic chunks are reused.",
+    "canonicalExtractionPolicy": "Reuse a hash-matching canonical extraction. Re-extract only when the cache is missing or a new case revision explicitly adopts a changed parser result.",
+    "goldApproval": "The manifest must approve and hash-bind the atomic ledger and note-composition mapping.",
+    "outputFreezeIsNotAnInput": true
+  },
+  "datasets": [
+    {
+      "id": "base-source-grounded",
+      "generator": "deterministic",
+      "sourceWordingAllowed": true
+    },
+    {
+      "id": "natural-field-speech",
+      "generator": "gpt-5.6-sol",
+      "sourceWordingAllowed": false
+    },
+    {
+      "id": "concise-field-shorthand",
+      "generator": "gpt-5.6-sol",
+      "sourceWordingAllowed": false
+    }
+  ],
+  "execution": {
+    "maximumAtomicFactsPerModelBatch": 20,
+    "preserveEvidenceGroupsWithinBatch": true,
+    "maximumRepairAttemptsAfterInitial": 2,
+    "stopOnInfrastructureFailure": true,
+    "continueAndRecordSemanticFailure": true,
+    "noPromptOrModelChangesWithinAQualificationRun": true
+  },
+  "preExportHardGates": {
+    "factAssignmentCoverage": 1,
+    "criticalFactPreservation": 1,
+    "measurementUnitPolarityLocationIntegrity": 1,
+    "unsupportedClaimCount": 0,
+    "maximumExactSourceWordSequenceForGeneratedVariations": 7
+  },
+  "postExportHardGates": {
+    "androidProductStoreRoundTripRate": 1,
+    "receiptHashIntegrity": 1,
+    "lineageCoverage": 1,
+    "independentOriginalReportReview": "pass",
+    "emulatorUiReview": "pass"
+  },
+  "review": {
+    "reviewAllFailures": true,
+    "stratifiedPassSampleRate": 0.1,
+    "minimumPassRowsPerEvidenceType": 5,
+    "finalCaseFreezeRequiresHumanDecision": true
+  },
+  "aggregation": {
+    "primary": "macro_average_by_source_report",
+    "secondary": "unit_and_evidence_type",
+    "showCountsWithRates": true
+  }
+}

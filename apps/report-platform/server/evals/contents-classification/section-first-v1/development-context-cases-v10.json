@@ -1,0 +1,210 @@
+{
+  "contractVersion": "contents_classification_development_context_cases_v1",
+  "datasetId": "classification-v10-controlled-development-20",
+  "datasetSplit": "development",
+  "evaluationRole": "controlled_context_development",
+  "sourceBasis": "engineered_app_style_fixtures_without_report_or_gold_labels_in_runtime_input",
+  "expectedAtomCount": 20,
+  "cases": [
+    {
+      "caseId": "dev10-001",
+      "voiceNote": "Plan five readings on each reachable roof plate; use the crawler at four compass positions with five readings on every shell course.",
+      "expectedAtoms": [
+        {
+          "text": "Plan five readings on each reachable roof plate",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "use the crawler at four compass positions with five readings on every shell course.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-002",
+      "voiceNote": "Recorded construction year is 1980; stored service is diesel.",
+      "expectedAtoms": [
+        {
+          "text": "Recorded construction year is 1980",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "stored service is diesel.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-003",
+      "voiceNote": "The outer floor projection shows coating loss; the portion below the access platform was not reachable.",
+      "expectedAtoms": [
+        {
+          "text": "The outer floor projection shows coating loss",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "foundation"
+          }
+        },
+        {
+          "text": "the portion below the access platform was not reachable.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "foundation"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-004",
+      "voiceNote": "The external roof drain sump is full of water; the component could not be checked visually.",
+      "expectedAtoms": [
+        {
+          "text": "The external roof drain sump is full of water",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        },
+        {
+          "text": "the component could not be checked visually.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-005",
+      "voiceNote": "The spiral stair landing has crevice corrosion; clean and recoat the item.",
+      "expectedAtoms": [
+        {
+          "text": "The spiral stair landing has crevice corrosion",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "access-structures"
+          }
+        },
+        {
+          "text": "clean and recoat the item.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-006",
+      "voiceNote": "Maximum shell out-of-plane deflection is 2.0 mm against a 2.5 mm limit; no dimensional repair is required.",
+      "expectedAtoms": [
+        {
+          "text": "Maximum shell out-of-plane deflection is 2.0 mm against a 2.5 mm limit",
+          "expectedUse": {
+            "sectionId": "shell-settlement",
+            "blockId": "measurements"
+          }
+        },
+        {
+          "text": "no dimensional repair is required.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-007",
+      "voiceNote": "UT used an Epoch flaw detector; calibration followed the AS block procedure.",
+      "expectedAtoms": [
+        {
+          "text": "UT used an Epoch flaw detector",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "equipment"
+          }
+        },
+        {
+          "text": "calibration followed the AS block procedure.",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-008",
+      "voiceNote": "The internal centre sump contains debris; the area could not be examined fully.",
+      "expectedAtoms": [
+        {
+          "text": "The internal centre sump contains debris",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "floor-internal"
+          }
+        },
+        {
+          "text": "the area could not be examined fully.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "floor-internal"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-009",
+      "voiceNote": "External shell coating is weathered; recoat it during the next maintenance period.",
+      "expectedAtoms": [
+        {
+          "text": "External shell coating is weathered",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        },
+        {
+          "text": "recoat it during the next maintenance period.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "dev10-010",
+      "voiceNote": "No previous internal inspection record was provided; the internal roof was outside the agreed work.",
+      "expectedAtoms": [
+        {
+          "text": "No previous internal inspection record was provided",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "inspection-history"
+          }
+        },
+        {
+          "text": "the internal roof was outside the agreed work.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "limitations"
+          }
+        }
+      ]
+    }
+  ]
+}

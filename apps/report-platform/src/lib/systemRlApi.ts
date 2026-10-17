@@ -66,10 +66,330 @@ export type SystemRlStatus = {
   policies: SystemRlPolicyStatus[];
 };
 
+export type AgentMonitoringStatus = "passed" | "blocked" | "awaiting" | "not_applicable";
+
+export type AgentRuleEvaluation = {
+  ruleId: string;
+  ruleVersion?: string | null;
+  description?: string | null;
+  verdict: "pass" | "fail" | "not_available" | "not_applicable";
+  observed?: unknown;
+  operator?: "eq" | "gte" | "lte" | "exists" | "all" | "none" | null;
+  expected?: unknown;
+  evidenceRefs?: string[];
+  explanation?: string | null;
+};
+
+export type AgentGraderIdentity = {
+  type: "deterministic" | "llm" | "human";
+  id: string;
+  version?: string | null;
+  modelId?: string | null;
+  rubricSha256?: string | null;
+};
+
+export type AgentPipelineTraceRef = {
+  name: string;
+  sha256?: string | null;
+  sourceSha256?: string | null;
+  artifactId?: string | null;
+  kind?: string | null;
+  schemaVersion?: string | null;
+  byteLength?: number | null;
+  visibility?: string | null;
+  redactionStatus?: string | null;
+  preview?: unknown;
+  previewTruncated?: boolean;
+};
+
+export type AgentPipelineTraceSpan = {
+  spanId: string;
+  parentSpanId: string | null;
+  phase: string;
+  sectionId: string | null;
+  actor: {
+    kind: "agent" | "deterministic_control" | "human_control";
+    role: string;
+    id: string;
+    releaseVersion?: string;
+    manifestSha256?: string;
+    configurationId?: string;
+    configurationSha256?: string;
+  };
+  status: AgentMonitoringStatus;
+  startedAtIso: string;
+  completedAtIso: string | null;
+  durationMs: number | null;
+  inputRefs: AgentPipelineTraceRef[];
+  outputRefs: AgentPipelineTraceRef[];
+  decision: {
+    code: string;
+    summary: string;
+    blockers?: string[];
+    warnings?: string[];
+  } | null;
+  counts: Record<string, number>;
+  model: {
+    providerCode: string;
+    modelId: string | null;
+    liveModelUsed: boolean;
+  } | null;
+  retrieval: {
+    mode: string;
+    keys: string[];
+  } | null;
+  outcomes?: {
+    execution: {
+      status: "completed" | "failed" | "pending" | "not_run";
+      explanation: string;
+    };
+    gate: {
+      status: "passed" | "blocked" | "pending" | "not_applicable";
+      explanation: string;
+    };
+    quality: {
+      status: "passed" | "failed" | "not_measured" | "not_applicable";
+      explanation: string;
+    };
+  };
+  configuration?: Record<string, unknown> | null;
+  ruleEvaluations?: AgentRuleEvaluation[];
+  grader?: AgentGraderIdentity | null;
+  runtime?: {
+    inputTokens?: number | null;
+    outputTokens?: number | null;
+    totalTokens?: number | null;
+    retryCount?: number | null;
+    attempt?: number | null;
+    attemptCount?: number | null;
+    tokenStatus?: string | null;
+    costUsd?: number | null;
+    providerRequestId?: string | null;
+  } | null;
+  toolCalls?: Array<{
+    name: string;
+    status: string;
+    argumentsPreview?: unknown;
+    resultPreview?: unknown;
+    durationMs?: number | null;
+    error?: string | null;
+  }>;
+  error?: { code?: string | null; message: string } | null;
+};
+
+export type AgentPipelineTrace = {
+  contractVersion: "agent_pipeline_trace_v1";
+  traceId: string;
+  evaluationCaseId: string;
+  datasetSplit: string;
+  reportProfileId: string;
+  executionMode: string;
+  startedAtIso: string;
+  completedAtIso: string;
+  durationMs: number;
+  spans: AgentPipelineTraceSpan[];
+};
+
+export type AgentEvidenceTraceSection = {
+  sectionId: string;
+  projectedRecordCount: number;
+  usedRecordCount: number;
+  issueCount: number;
+  accountability: {
+    status: string;
+    accounted: number | null;
+    total: number;
+    counts: Record<string, number>;
+    reason?: string;
+  };
+  records: Array<{
+    evidenceId: string;
+    sourceClass: string;
+    sourcePointer: string;
+    usedInGeneration: boolean;
+    issueCount: number;
+    generationDisposition: string | null;
+    label?: string | null;
+    preview?: unknown;
+    redactionStatus?: string | null;
+  }>;
+  claimLinks: Array<{
+    claimId: string;
+    sourceRecordIds: string[];
+    routedEvidenceIds: string[];
+  }>;
+  atomicLineage?: {
+    contractVersion: string;
+    caseId: string;
+    qualification: string;
+    segmentationPolicy: string;
+    counts: {
+      source: number;
+      evidence: number;
+      generated: number;
+      passedLinks: number;
+      failedLinks: number;
+    };
+    units: Array<{
+      unitId: string;
+      layer: "source" | "evidence" | "generated";
+      unitType: string;
+      semanticKey: string;
+      criticality: string;
+      contentPreview: string | null;
+      protectedFactCount: number;
+    }>;
+    links: Array<{
+      linkId: string;
+      stage: "source_to_mock" | "mock_to_generation";
+      fromUnitIds: string[];
+      toUnitIds: string[];
+      relation: string;
+      verdict: "pass" | "fail" | "not_available" | "not_applicable";
+      explanation: string;
+    }>;
+  };
+};
+
+export type AgentEvidenceTrace = {
+  contractVersion: "agent_evidence_trace_v1";
+  router: {
+    total: number;
+    routed: number;
+    excluded: number;
+    unresolved: number;
+    dispositionCoverage: number;
+  };
+  sections: AgentEvidenceTraceSection[];
+};
+
+export type SectionAgentEvaluationMatrixRow = {
+  metricId: string;
+  label: string;
+  sectionId: string | null;
+  phase: string;
+  class: "hard_gate" | "quality" | "diagnostic";
+  status: "pass" | "fail" | "not_available" | "not_applicable";
+  value: number | null;
+  numerator: number | null;
+  denominator: number | null;
+  criterion: { operator: "eq" | "gte" | "lte"; value: number } | null;
+  unit: string;
+  sourceSpanIds: string[];
+  evidenceRefs: string[];
+  notes: string[];
+  ruleEvaluations?: AgentRuleEvaluation[];
+  grader?: AgentGraderIdentity | null;
+};
+
+export type SectionAgentEvaluationMatrix = {
+  contractVersion: "section_agent_evaluation_matrix_v1";
+  evaluationCaseId: string;
+  traceId: string;
+  policy: {
+    hardGateRule: string;
+    scoreRule: string;
+  };
+  outcomes: {
+    runValidity: string;
+    displayDecision: string;
+    qualificationDecision: string;
+    promotionDecision: string;
+  };
+  summary: {
+    hardGateCount: number;
+    hardGatePassed: number;
+    hardGateFailed: number;
+    hardGateUnavailable: number;
+    qualityMeasured: number;
+    qualityUnavailable: number;
+  };
+  rows: SectionAgentEvaluationMatrixRow[];
+};
+
+export type AgentControlPlane = {
+  contractVersion: "agent_control_plane_snapshot_v1";
+  executionMode: string;
+  productEnabled: boolean;
+  promotionPerformed: boolean;
+  approvalStatus: string;
+  monitoringCoverage: {
+    actualAgentSpans: number;
+    unmonitoredActualAgents: number;
+    supportedAgentRoles: string[];
+    notRunInThisCase: string[];
+  };
+  outcomes: SectionAgentEvaluationMatrix["outcomes"];
+  controls: Array<{
+    spanId: string;
+    role: string;
+    id: string;
+    status: AgentMonitoringStatus;
+  }>;
+  bindings: Array<{
+    spanId: string;
+    sectionId: string | null;
+    role: string;
+    id: string;
+    releaseVersion: string;
+    manifestSha256: string;
+    configurationId?: string;
+    configurationSha256?: string;
+    status: AgentMonitoringStatus;
+  }>;
+};
+
+export type AgentMonitoringStatusSummary = {
+  execution: {
+    status: "completed" | "failed";
+    completedStages: number;
+    totalStages: number;
+    explanation: string;
+  };
+  gate: {
+    status: "passed" | "blocked";
+    displayDecision: string;
+    explanation: string;
+  };
+  quality: {
+    status: "passed" | "failed" | "not_measured";
+    measuredMetrics: number;
+    unavailableMetrics: number;
+    qualificationDecision: string;
+    explanation: string;
+  };
+};
+
+export type SectionAgentMonitoring = {
+  contractVersion: "section_agent_monitoring_v1";
+  trace: AgentPipelineTrace;
+  evidenceTrace: AgentEvidenceTrace;
+  evaluationMatrix: SectionAgentEvaluationMatrix;
+  controlPlane: AgentControlPlane;
+  artifactCatalog?: {
+    contractVersion: "agent_artifact_catalog_v1";
+    policy: {
+      immutable: boolean;
+      authorization: string;
+      contentRule: string;
+    };
+    artifacts: AgentPipelineTraceRef[];
+  };
+  statusSummary?: AgentMonitoringStatusSummary;
+};
+
 export type SystemRlHeldOutReview = {
   available: boolean;
   evaluationOnly?: boolean;
   generationBackend?: string;
+  evaluationDisplay?: {
+    banner: string;
+    subtitle: string;
+    unitLabel: string;
+    backendLabel: string;
+    evidenceMetricLabel?: string;
+    originalMode?: "text" | "source_pdf";
+  };
   sectionAgentEvaluation?: { reportCount: number; developmentReports: number; testReports: number; fieldCount: number; sectionLabel: string };
   sectionTitle?: string;
   sourceReportName?: string;
@@ -113,6 +433,7 @@ export type SystemRlHeldOutReview = {
   metrics?: { score: number | null; outcomeCode: string; requiredFactRecall: number | null; claimPrecision: number | null; protectedFactAccuracy: number | null; formatMatch: number | null; professionalAcceptability: number | null; goldContentCoverage: number | null; outputLengthBalance: number | null; hardFailure: boolean; hardFailureReasons: string[]; automatedReview?: { verdict: string; assessment: string; reasons: string[] }; evaluationPoints: Array<{ key: string; label: string; score: number; statusCode: string; notes?: string[] }> };
   promotionGate?: { eligible: boolean; reasons: string[]; sectionCount: number; passedSectionCount: number; thresholds: { requiredFactRecall: number; claimPrecision: number; protectedFactAccuracy: number } };
   createdAtIso?: string;
+  agentMonitoring?: SectionAgentMonitoring;
 };
 
 export async function loadSystemRlStatus(): Promise<SystemRlStatus> {

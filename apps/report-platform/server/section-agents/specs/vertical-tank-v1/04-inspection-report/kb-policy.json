@@ -10,16 +10,20 @@
     "exactSectionKey": "inspection-report",
     "exactSectionKeyOnly": true,
     "requiredDatasetSplit": "training",
-    "requiredEligibilityRole": "training_reference",
+    "requiredEligibilityRole": "knowledge_reference",
     "requiredApproval": true,
     "requiredProfile": "vertical_tank_inspection_v1"
   },
   "allowedUses": [
-    "component_order",
-    "finding_sentence_patterns",
+    "canonical_component_blocks",
+    "common_conditional_optional_and_rare_variation",
+    "component_order_constraints",
+    "accepted_heading_variants",
+    "format_families",
+    "finding_sentence_patterns_with_placeholders",
     "terminology_aliases",
     "cross_reference_patterns",
-    "format_patterns"
+    "evaluation_acceptance_boundaries"
   ],
   "forbiddenUses": [
     "current_tank_fact",
@@ -27,7 +31,11 @@
     "current_finding",
     "current_scope_decision",
     "current_test_result",
-    "automatic_approval"
+    "automatic_approval",
+    "target_report_structure",
+    "target_report_wording",
+    "single_report_as_generic_template",
+    "unreviewed_raw_historical_passage"
   ],
   "runtimeExclusions": [
     "target_report",
@@ -40,5 +48,16 @@
   ],
   "currentFactsFromHistoricalSources": false,
   "runtimeSnapshot": null,
-  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/04-inspection-report/pack-candidate.json"
+  "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/04-inspection-report/knowledge-bundle-candidate.json",
+  "bundleContract": "inspection_report_section_knowledge_bundle_contract_v1",
+  "minimumKnowledgeReferenceLineages": 10,
+  "coverageSaturationRequired": true,
+  "evaluationLineagesExcludedFromBundle": true,
+  "requiredRoleProjections": [
+    "reportStructurePlanner",
+    "mockPreparationAgent",
+    "sectionGenerator",
+    "preDisplayReviewer",
+    "postGenerationEvaluator"
+  ]
 }

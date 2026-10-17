@@ -26,7 +26,21 @@ Supporting files live under `docs/contracts/` so the project root stays lean.
 | Deployment | `platform/PRODUCT_CLOUD_ARCHITECTURE.md`, `platform/MAC_MINI_STAGING.md` |
 | Reporting | `reporting/GENERATED_CONTENT_CONTROL_SYSTEM.md`, `reporting/REPORT_SECTION_FORMAT_CONTRACT.md`, `reporting/LAYOUT_AND_EXPORT.md`, `reporting/FLOOR_CORROSION_MAP_PIPELINE.md` |
 | Knowledge | `knowledge/KNOWLEDGE_PACKS.md`, `knowledge/KB_CORPUS_INGESTION_ARCHITECTURE.md` |
-| Evaluation support | `evaluation/TRAINING_HARNESS_ARCHITECTURE.md`, `evaluation/RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md` |
+| Evaluation support | `evaluation/MOCK_PREPARATION_EVALUATION_UI.md`, `evaluation/SEMANTIC_UNIT_EVALUATION.md`, `evaluation/TRAINING_HARNESS_ARCHITECTURE.md`, `evaluation/RL_RETRIEVAL_OPTIMIZATION_ARCHITECTURE.md` |
+
+The mock-preparation candidate, release, archive, and cleanup lifecycle is defined
+in `server/mock-preparation-agent/README.md`. Editable candidates belong in its
+`sandbox/`; only qualified, hash-bound copies belong in `releases/`.
+
+The immutable agent-configuration and semantic-unit lineage contracts live under server/section-agents/evaluation-contracts/v1/. They bind model and prompt versions to every evaluated agent and derive the atomic source-to-mock and mock-to-generation matrix. PostgreSQL migration 052 stores these immutable snapshots and links.
+
+The shared preprocessing release and its executable contract live under
+`server/report-evidence-router/`. It sits between a pinned Android export and every
+section agent; it is not a section generator. Its exact immutable releases and
+product-disabled state are listed in `server/report-evidence-router/release-registry.json`.
+The shared all-agent trace and evaluation-matrix contract lives under
+`server/section-agents/observability/v1/`; it records execution without changing a
+frozen agent release or product state.
 
 Supporting contracts govern only their subsystem. They cannot change ReportPlan,
 section-agent, knowledge-authority, or promotion rules in the root contracts.
@@ -39,7 +53,7 @@ section-agent, knowledge-authority, or promotion rules in the root contracts.
   common spine, scope-dependent technical modules, and TK5452 integrated evaluation
   sequence for the rebuilt V1 ReportPlan. Roof configuration controls applicability
   and does not split the vertical-tank report family. General Tank Information v1
-  is frozen evidence; v2 is the first ReportPlan-bound evaluation candidate. Both
+  is frozen evidence; v3 is the current routed ReportPlan evaluation candidate. Both
   remain product-disabled. Their independent pre-display reviewers live under
   `server/section-agents/releases/<section-id>/reviewer/`; sealed-gold R&D evaluators live under
   `server/section-agents/releases/<section-id>/evaluator/`. Uniform per-section agent, KB and

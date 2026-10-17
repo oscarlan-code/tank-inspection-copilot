@@ -1,0 +1,72 @@
+{
+  "contractVersion": "contents_classification_release_manifest_v1",
+  "releaseId": "contents-classification-evaluation-v1",
+  "releaseVersion": "v1",
+  "candidateId": "contents-classification-v10",
+  "status": "qualified_evaluation_release",
+  "lifecycleState": "qualified_candidate",
+  "promotedFrom": "sandbox/candidates/contents-classification-v10",
+  "immutable": true,
+  "evaluationEnabled": true,
+  "productEnabled": false,
+  "generationEligible": false,
+  "humanReviewRequired": true,
+  "qualifiedCandidateFingerprintSha256": "f612872980fe52795930a879e36a05217b0bd3f0067f065ece1f9ff4a719690a",
+  "releaseRuntimeFingerprintSha256": "64f3e93d91bc0bf1c92b8afe095eacc844f3c01528b23e8c8f0f376656533181",
+  "qualificationBinding": "exact_candidate_bytes_with_audited_path_relocation",
+  "pathRelocationAudit": {
+    "decision": "passed",
+    "issues": [],
+    "changedDimension": "candidate_component_paths_only"
+  },
+  "portableCandidateSha256": "d8014e4a2439b4c59e6779d561fc35edb2695d1f1721f19196d9c7e6982dcbd0",
+  "candidateFiles": {
+    "README.md": "76ac62dbd41a5b14b2c3442781edd7991e8b96b135d675a4d89a137cf7e70448",
+    "agent-spec.json": "1d6229dabdc39fa23e2a776a35029d0456bce5d0cde5ac75a684bc5581d982eb",
+    "candidate-fingerprint.mjs": "bd0c42cc353316d6e34fae389164ca53422f18a7c17c73d673ac4ca7d66cf19b",
+    "classification-guard.mjs": "31817cccef99fa1c6a90a478da7e4db9d11527006c1567ddb7896bcaca44d309",
+    "classifier-prompt.md": "66a83d5c83bf0a5241a3aeac98f5991ee094043bc6a4604ab73d694d7c0c39a4",
+    "harness.json": "b4058118cd6abed20ccab76b3b807c604e705f16a728e82cb08c813de5a434b6",
+    "kb-policy.json": "4fb73401f45ccd39132054d29e0f7bc11c44216047717a56cb4edfc6576cca54",
+    "output-schema.json": "36e06c28e78e0a7f1a9c74961366aead9299a1b6883e3e7500c822d156e4528e",
+    "pipeline-contract.json": "24dedc906fd3f922162a13ac9b9c26688d395ca5a165c3cfc3f6f9fef6edd511",
+    "runtime.mjs": "705d783f0f634dccf8f9a0dac65bf570676a5d0d2832586f19b34ce0a550170f",
+    "runtime.test.mjs": "01e033065aca5ac90a2141fbe2f41b2b2d1b6762003e5a74e21fc7d0684c89f1"
+  },
+  "sharedDependencyComponents": [
+    {
+      "path": "server/contents-classification-agent/outline-profiles/vertical-api653-v6/outline-profile.json",
+      "sha256": "0b42a11b9304d5f62857febf53a0376bf8062452216ea14da8088f1235a89855"
+    },
+    {
+      "path": "server/contents-classification-agent/outline-profiles/vertical-api653-v6/outline-manifest.json",
+      "sha256": "ee10c9524d0b66ae2cd539cd6176f21944dd9041d55f869ed9e23b3f988abd58"
+    },
+    {
+      "path": "server/contents-classification-agent/atomizers/evidence-atomizer/v5/atomizer.mjs",
+      "sha256": "fe19ee25c86de53bbff844ff98f8659b96e08085b7e5ee1239430e5e66ba6249"
+    },
+    {
+      "path": "server/contents-classification-agent/input-guards/evaluation-leakage/v1/guard.mjs",
+      "sha256": "3339b1b2c9d9c645fbcd0aabcf5121d68340cce21e7ea306366a0ea7c7f9e880"
+    },
+    {
+      "path": "server/contents-classification-agent/input-guards/evaluation-leakage/v1/policy.json",
+      "sha256": "6b8df473a06148af62536f891c3a20c7f0fe5e7a053995512c9d3a73192bb6fb"
+    }
+  ],
+  "qualification": {
+    "releaseFile": "qualification.json",
+    "sha256": "778d712002f7ad95ce31fbe8bb062ea96359fa4ba51018d0f491d9962fcaf7ca",
+    "decision": "qualified_for_evaluation_release_human_review_required",
+    "hiddenTestDecision": "hidden_test_gate_passed"
+  },
+  "executionConfiguration": {
+    "modelId": "gpt-5.6-sol",
+    "promptVersion": "classification_prompt_v10",
+    "outlineProfileId": "vertical-api653-inspection-report-v6",
+    "atomizerId": "evidence-atomizer-v5",
+    "classificationGuardId": "classification-guard-v10"
+  },
+  "promotedAtIso": "2026-10-17T05:14:40.374Z"
+}

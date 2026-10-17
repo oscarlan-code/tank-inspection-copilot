@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "laiq://report-platform/atomic-report-evaluation-case-v1",
+  "title": "Atomic report evaluation case",
+  "type": "object",
+  "required": [
+    "contractVersion", "caseId", "lineageId", "datasetSplit", "section",
+    "segmentationPolicy", "agentConfigurationRefs", "units", "links",
+    "sectionAssessment", "caseSha256"
+  ],
+  "properties": {
+    "contractVersion": { "const": "atomic_report_evaluation_case_v1" },
+    "caseId": { "type": "string", "minLength": 1 },
+    "lineageId": { "type": "string", "minLength": 1 },
+    "datasetSplit": { "enum": ["development", "validation", "hidden_test"] },
+    "section": {
+      "type": "object",
+      "required": ["profileId", "sectionId", "title"]
+    },
+    "segmentationPolicy": { "const": "semantic_obligation_v1" },
+    "agentConfigurationRefs": { "type": "array", "minItems": 1 },
+    "units": { "type": "array", "minItems": 3 },
+    "links": { "type": "array" },
+    "sectionAssessment": {
+      "type": "object",
+      "required": ["format", "coherence"]
+    },
+    "caseSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

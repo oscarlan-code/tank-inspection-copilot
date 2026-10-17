@@ -1,0 +1,30 @@
+{
+  "contractVersion": "inspection_report_full_section_candidate_controls_v2",
+  "experimentId": "inspection-report-full-section-v2-candidate-a",
+  "sectionId": "inspection-report",
+  "sectionTitle": "4 INSPECTION REPORT",
+  "candidate": "A",
+  "productEnabled": false,
+  "promotionPerformed": false,
+  "generatorRepeatsPerCase": 2,
+  "calibrationCases": [
+    "inspection-report-calibration-01",
+    "inspection-report-calibration-02"
+  ],
+  "roleProjectionBindings": {
+    "generator": "sectionGenerator",
+    "preDisplayReviewer": "preDisplayReviewer",
+    "postGenerationEvaluator": "postGenerationEvaluator"
+  },
+  "goldVisibility": {
+    "generator": false,
+    "preDisplayReviewer": false,
+    "postGenerationEvaluator": true,
+    "evaluatorOpensAfterGeneration": true
+  },
+  "model": "gpt-5.6-sol",
+  "reasoningEffort": "medium",
+  "automaticPromptMutation": false,
+  "automaticGoldRelabelling": false,
+  "automaticPromotion": false
+}

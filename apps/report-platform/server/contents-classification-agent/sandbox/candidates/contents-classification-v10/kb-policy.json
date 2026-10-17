@@ -1,0 +1,21 @@
+{
+  "contractVersion": "contents_classification_kb_policy_v1",
+  "allowed": [
+    "reviewed_vertical_outline_profile",
+    "approved_component_glossary",
+    "approved_component_aliases_and_relationships",
+    "approved_section_and_block_definitions",
+    "classification_examples_excluding_target_and_related_lineages"
+  ],
+  "prohibited": [
+    "target_original_report",
+    "target_gold_labels",
+    "raw_historical_values_as_current_facts",
+    "raw_historical_recommendations_as_current_actions",
+    "same_case_or_near_duplicate_cases",
+    "validation_or_held_out_examples_during_development",
+    "mutable_latest_KB"
+  ],
+  "unknownPolicy": "Preserve original wording and source span; emit needs_review without guessing.",
+  "retrievalPurpose": "Terminology and classification pattern only; never current report content."
+}

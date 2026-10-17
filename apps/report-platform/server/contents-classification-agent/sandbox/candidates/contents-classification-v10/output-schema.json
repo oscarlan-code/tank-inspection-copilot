@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contents_classification_output_v10",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "candidateId",
+    "inputPackageHash",
+    "outlineProfileHash",
+    "evidenceAtoms",
+    "classificationAssignments",
+    "unresolvedItems",
+    "classificationManifest"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "contents_classification_output_v10"
+    },
+    "candidateId": {
+      "const": "contents-classification-v10"
+    },
+    "inputPackageHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outlineProfileHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evidenceAtoms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidenceId",
+          "sourcePointer",
+          "kind",
+          "originalValue"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string"
+          },
+          "sourcePointer": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "originalValue": {},
+          "sourceSpan": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "context": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "classificationAssignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidenceId",
+          "decisionState",
+          "sectionDecision",
+          "blockDecision",
+          "uses"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string"
+          },
+          "decisionState": {
+            "enum": [
+              "deterministic",
+              "reviewed",
+              "needs_review",
+              "excluded",
+              "not_run"
+            ]
+          },
+          "sectionDecision": {
+            "type": "object",
+            "required": [
+              "state",
+              "sectionId",
+              "confidence"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "deterministic",
+                  "proposed",
+                  "reviewed",
+                  "unresolved",
+                  "excluded",
+                  "not_run"
+                ]
+              },
+              "sectionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "blockDecision": {
+            "type": "object",
+            "required": [
+              "state",
+              "blockId",
+              "confidence"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "deterministic",
+                  "proposed",
+                  "reviewed",
+                  "unresolved",
+                  "excluded",
+                  "not_run"
+                ]
+              },
+              "blockId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "uses": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "unresolvedItems": {
+      "type": "array"
+    },
+    "classificationManifest": {
+      "type": "object"
+    }
+  }
+}

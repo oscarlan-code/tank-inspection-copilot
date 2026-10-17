@@ -1,0 +1,86 @@
+{
+  "contractVersion": "contents_classification_pipeline_v3",
+  "status": "evaluation_runtime_implemented_section_packages_pending",
+  "stages": [
+    {
+      "order": 1,
+      "stageId": "android-productstore-export",
+      "actor": "deterministic_input_guard",
+      "input": [
+        "v3_product_export.json",
+        "android-export-receipt.json"
+      ],
+      "output": "authenticatedImmutableExport",
+      "goldAccess": false
+    },
+    {
+      "order": 2,
+      "stageId": "evaluation-input-leakage-guard",
+      "actor": "deterministic_evaluator_boundary",
+      "input": [
+        "authenticatedImmutableExport",
+        "androidExportReceipt",
+        "evaluatorPrivateLineageSecret",
+        "optionalEvaluatorPrivateTruthTextUnits"
+      ],
+      "output": [
+        "sealedCleanEvaluationPackage",
+        "safeRuntimeReceipt",
+        "evaluatorPrivateCrosswalk"
+      ],
+      "goldAccess": "evaluator_private_for_detection_and_binding_only",
+      "goldMayReachRuntimeOutput": false,
+      "implementation": "input-guards/evaluation-leakage/v1/guard.mjs"
+    },
+    {
+      "order": 3,
+      "stageId": "evidence-atomizer",
+      "actor": "deterministic_tool",
+      "input": "sealedCleanEvaluationPackage",
+      "output": "sourceLinkedEvidenceAtoms",
+      "goldAccess": false,
+      "implementation": "atomizers/evidence-atomizer/v5/atomizer.mjs"
+    },
+    {
+      "order": 4,
+      "stageId": "contents-classification-agent",
+      "actor": "hybrid_deterministic_and_bounded_llm",
+      "input": [
+        "sourceLinkedEvidenceAtoms",
+        "reviewedOutlineProfile",
+        "approvedClassificationKnowledge"
+      ],
+      "output": "primaryRouteClassificationProposals",
+      "goldAccess": false
+    },
+    {
+      "order": 5,
+      "stageId": "classification-guard",
+      "actor": "deterministic_guard_plus_authorized_review",
+      "input": [
+        "sourceLinkedEvidenceAtoms",
+        "primaryRouteClassificationProposals"
+      ],
+      "output": "sealedClassificationDecisions",
+      "goldAccess": false
+    },
+    {
+      "order": 6,
+      "stageId": "section-evidence-packages",
+      "actor": "deterministic_projector",
+      "input": [
+        "sealedClassificationDecisions",
+        "reviewedSectionSelection"
+      ],
+      "output": "isolatedSectionEvidencePackages",
+      "goldAccess": false
+    }
+  ],
+  "postRunEvaluator": {
+    "agentId": "classification-gold-evaluator",
+    "goldAccess": true,
+    "cannotModifyRuntimeOutput": true,
+    "cannotFeedSectionGenerator": true,
+    "implementation": "../../evals/contents-classification/evaluator.mjs"
+  }
+}

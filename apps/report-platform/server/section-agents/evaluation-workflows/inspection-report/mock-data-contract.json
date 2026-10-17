@@ -1,0 +1,289 @@
+{
+  "contractVersion": "inspection_report_mock_data_contract_v3",
+  "sectionId": "inspection-report",
+  "status": "active_pre_generation_contract",
+  "sourceDispositions": [
+    {
+      "code": "required_current_fact",
+      "meaning": "A current observation, limitation, configuration fact, reviewed assessment or selected result that the Section 4 output must recover.",
+      "mustMapTo": "one_or_more_current_evidence_records"
+    },
+    {
+      "code": "gold_structure_reference",
+      "meaning": "A target-report heading, ordering or format unit retained only for post-generation evaluator comparison.",
+      "mustMapTo": "evaluator_only_gold_structure_reference"
+    },
+    {
+      "code": "deterministic_content",
+      "meaning": "A heading, table, calculation, reference or compiled statement owned by a pinned deterministic component.",
+      "mustMapTo": "deterministic_input_or_compiler_obligation"
+    },
+    {
+      "code": "recommendation_route",
+      "meaning": "An action or repair proposal routed to the recommendation agent and excluded from Section 4 generation input.",
+      "mustMapTo": "linked_section_5_obligation"
+    },
+    {
+      "code": "cross_reference",
+      "meaning": "A reference that must resolve to an included detail, figure, photo or attachment.",
+      "mustMapTo": "report_plan_reference_target"
+    },
+    {
+      "code": "boilerplate_metadata",
+      "meaning": "Repeated page furniture, confidentiality text or document metadata outside Section 4 content.",
+      "mustMapTo": "reviewed_exclusion_reason"
+    },
+    {
+      "code": "reviewed_out_of_scope",
+      "meaning": "Content intentionally excluded under the active Section 4 contract.",
+      "mustMapTo": "reviewer_identity_reason_and_timestamp"
+    }
+  ],
+  "inputSeparation": {
+    "targetOriginalReport": {
+      "allowedConsumers": [
+        "truth_case_builder",
+        "mock_preparation_agent",
+        "independent_mock_reviewer",
+        "post_generation_evaluator_after_generation"
+      ],
+      "prohibitedConsumers": [
+        "report_structure_agent",
+        "section_generation_agent",
+        "pre_display_reviewer",
+        "knowledge_bundle_builder_for_this_case"
+      ]
+    },
+    "reviewedNormalizedTruth": {
+      "allowedConsumers": [
+        "mock_preparation_agent",
+        "interpretation_evaluator"
+      ],
+      "containsOriginalNarrative": false
+    },
+    "sectionKnowledgeBundle": {
+      "allowedConsumers": [
+        "report_structure_agent",
+        "mock_preparation_agent",
+        "section_generation_agent",
+        "pre_display_reviewer",
+        "post_generation_evaluator"
+      ],
+      "containsCurrentFacts": false,
+      "containsTargetLineage": false,
+      "roleSpecificProjectionRequired": true
+    }
+  },
+  "truthCase": {
+    "requiredFields": [
+      "case_id",
+      "lineage_id",
+      "dataset_split",
+      "source_report_hash",
+      "knowledge_bundle_id",
+      "knowledge_bundle_hash",
+      "reviewed_obligation_inventory_hash",
+      "evidence_records",
+      "deterministic_inputs",
+      "capture_variants"
+    ],
+    "evidenceRecordRequiredFields": [
+      "evidence_id",
+      "source_obligation_ids",
+      "component_entity",
+      "component_block",
+      "inspection_side",
+      "location",
+      "polarity",
+      "condition",
+      "severity_or_extent",
+      "uncertainty",
+      "values_and_units",
+      "capture_channel",
+      "source_span",
+      "section_uses"
+    ],
+    "oneEvidenceMayServeMultipleSections": true,
+    "originalCapturePreservedAlongsideNormalizedRecord": true,
+    "originalReportSentenceStoredInEvidenceRecord": false
+  },
+  "mockPreparationAgent": {
+    "inputs": [
+      "complete_target_original_report_and_reviewed_source_obligation_inventory",
+      "reviewed_normalized_truth_without_original_narrative",
+      "mock_preparation_projection",
+      "versioned_app_capture_capability_contract"
+    ],
+    "outputs": [
+      "complete_mock_app_export",
+      "six_capture_variants",
+      "truth_to_capture_trace",
+      "unsupported_app_capability_findings"
+    ],
+    "knowledgeUses": [
+      "canonical_block_coverage_taxonomy",
+      "common_component_taxonomy",
+      "terminology_aliases",
+      "format_required_input_categories",
+      "realistic_capture_channel_patterns",
+      "typical_inspector_note_variation",
+      "coverage_and_relationship_patterns"
+    ],
+    "prohibitedUses": [
+      "copy_target_report_sentence",
+      "imitate_target_report_format_inside_app_notes",
+      "add_fact_from_historical_frequency",
+      "include_expected_report_wording",
+      "turn_historical_recommendation_into_current_evidence"
+    ],
+    "accessMode": "open_book_target_source",
+    "purposeOfTargetSourceAccess": [
+      "extract_current_case_facts",
+      "check_report_wide_completeness",
+      "preserve_exact_structured_values_and_relationships",
+      "identify_app_schema_and_external_artifact_gaps"
+    ]
+  },
+  "captureChannels": [
+    "structured_field",
+    "checklist_answer",
+    "measurement_summary",
+    "voice_note",
+    "typed_note",
+    "photo_with_finding_link",
+    "layout_map_entity_link",
+    "confirmed_report_side_input"
+  ],
+  "preparationRules": {
+    "structuredFactsMayKeepExactValuesUnitsIdentifiersAndGeometry": true,
+    "narrativeMustBeRewrittenAsPracticalInspectorCapture": true,
+    "historicalNarrativeSentenceReuseAllowed": false,
+    "fakeFindingPhotosAllowed": false,
+    "authorizedHistoricalFindingPhotosMayBeReusedWithProvenance": true,
+    "recommendationsIncludedInGeneratorInput": false,
+    "unsupportedHistoricalFactsMayFillMissingCurrentEvidence": false,
+    "unknownMayBeConvertedToSatisfactory": false,
+    "missingAppCapabilityMustBeExplicit": true,
+    "targetOriginalReportMayDriveMockFactAndEvidenceCoverage": true,
+    "targetOriginalReportMayDefineGenericOutlineOrGeneratorPolicy": false,
+    "genericKnowledgeBundleMayDriveCoverageTaxonomy": true
+  },
+  "captureVariantSet": [
+    "ordered_voice_summary",
+    "terse_field_shorthand",
+    "disordered_multi_component_capture",
+    "spoken_disfluency_and_self_correction",
+    "fragmented_checklist_and_note_mix",
+    "terminology_aliases_with_explicit_negation_and_uncertainty"
+  ],
+  "coverage": {
+    "sourceUnitDispositionCoverage": "reviewed_source_units / all_source_units",
+    "requiredFactToEvidenceCoverage": "required_obligations_with_current_evidence / all_required_current_fact_obligations",
+    "deterministicInputCoverage": "deterministic_obligations_with_complete_inputs / all_deterministic_obligations",
+    "requiredThreshold": 1,
+    "partialSampleMayQualifyGeneration": false
+  },
+  "generatorInput": {
+    "included": [
+      "target_blind_frozen_report_plan",
+      "verified_current_evidence_records",
+      "reviewed_deterministic_results",
+      "resolved_cross_references",
+      "generation_projection_from_frozen_section_knowledge_bundle",
+      "applicable_standard_obligation_pack"
+    ],
+    "excluded": [
+      "original_historical_section_text",
+      "target_gold_structure_reference",
+      "expected_report_wording",
+      "source_disposition_labels",
+      "gold_evaluator_annotations",
+      "current_recommendations",
+      "validation_and_heldout_gold",
+      "same_lineage_historical_retrieval"
+    ]
+  },
+  "manualPreparationSequence": [
+    "freeze_multi_report_section_knowledge_bundle_from_disjoint_knowledge_corpus",
+    "review_every_target_source_unit_and_freeze_the_gold_denominator",
+    "normalize_atomic_truth_while_preserving_open_book_source_access_for_mock_preparation",
+    "generate_complete_app_like_capture_from_the_full_target_source_and_reviewed_truth_using_mock_preparation_projection",
+    "link_each_capture_and_normalized_record_to_source_obligation_ids",
+    "create_six_capture_variants_from_the_same_truth_case",
+    "qualify_interpretation_before_report_planning",
+    "build_target_blind_report_plan_from_current_evidence_and_structure_projection",
+    "audit_all_role_inputs_before_preparing_generation_requests"
+  ],
+  "mockExport": {
+    "contractVersion": "inspection_report_mock_app_export_v2",
+    "requiredFields": [
+      "contract_version",
+      "case_id",
+      "lineage_id",
+      "dataset_split",
+      "knowledge_bundle_id",
+      "knowledge_bundle_hash",
+      "mock_preparation_projection_id",
+      "variants",
+      "generator_input"
+    ],
+    "variantRequiredFields": [
+      "variant_id",
+      "truth_case_id",
+      "variant_family",
+      "capture_records"
+    ],
+    "captureRecordRequiredFields": [
+      "capture_id",
+      "capture_channel",
+      "source_obligation_ids",
+      "raw_text",
+      "structured_value",
+      "provenance"
+    ],
+    "sameTruthCaseForAllVariants": true,
+    "minimumVariants": 6
+  },
+  "reportPlan": {
+    "contractVersion": "inspection_report_evaluation_report_plan_v2",
+    "requiredFields": [
+      "contractVersion",
+      "status",
+      "profileId",
+      "sectionId",
+      "sectionTitle",
+      "knowledgeBundleId",
+      "knowledgeBundleSha256",
+      "targetGoldStructureUsed",
+      "applicabilityDecisions",
+      "blocks"
+    ],
+    "blockRequiredFields": [
+      "order",
+      "blockId",
+      "displayHeading",
+      "formatFamilyId",
+      "ownership",
+      "applicabilityEvidenceIds"
+    ],
+    "rules": {
+      "statusMustBe": "frozen",
+      "targetGoldStructureUsedMustBe": false,
+      "everyCanonicalBlockRequiresApplicabilityDecision": true,
+      "includedBlocksMustFollowBundleOrderConstraints": true,
+      "displayHeadingMustBeAcceptedBundleVariant": true,
+      "formatFamilyMustBeAllowedByBundle": true,
+      "configurationSpecificHeadingAllowedInsideCanonicalBlock": true
+    }
+  },
+  "goldStructureReference": {
+    "purpose": "Preserve the target report's actual headings, component order and formats for evaluator comparison only.",
+    "generatorInputAllowed": false,
+    "reportStructureAgentInputAllowed": false,
+    "mockPreparationAgentAccess": "open_book_for_source_coverage_and_source_to_app_mapping_only",
+    "preDisplayReviewerInputAllowed": false,
+    "postGenerationEvaluatorAccess": "after_generation_only",
+    "exactTargetMatchRequired": false,
+    "reason": "Each report may use an accepted variation of the shared general outline."
+  }
+}

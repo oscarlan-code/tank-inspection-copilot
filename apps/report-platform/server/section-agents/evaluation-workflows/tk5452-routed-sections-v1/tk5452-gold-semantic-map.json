@@ -1,0 +1,149 @@
+{
+  "contractVersion": "reviewed_gold_semantic_map_v1",
+  "sourceReportSha256": "871d8770a5667bdbc3f0623a3a2e3ace54abcaf07acbd27017610ec24407de92",
+  "reviewStatus": "evaluation_fixture",
+  "sections": {
+    "scope-of-inspection": {
+      "sourcePageNumber": 4,
+      "outlineBlockId": "inspection-activities",
+      "units": [
+        {
+          "semanticKey": "scope.roof.thickness_measurements",
+          "claimId": "roof-ut",
+          "sourceOrder": 1,
+          "text": "To carry out thickness measurements on roof plates with a minimum of five (5) readings per plate, wherever access, safety and surface conditions permit.",
+          "protectedFacts": [
+            { "factId": "roof-target", "key": "target", "value": "roof_plates", "unitCode": null },
+            { "factId": "roof-min-readings", "key": "minimumReadingsPerPlate", "value": 5, "unitCode": null },
+            { "factId": "roof-access-condition", "key": "accessSafetySurfaceCondition", "value": true, "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.shell.thickness_measurements",
+          "claimId": "shell-ut",
+          "sourceOrder": 2,
+          "text": "To carry out side wall inspection utilizing an Ultrasonic Crawler or another allowed suitable method at four compass points with a minimum of five readings per strake.",
+          "protectedFacts": [
+            { "factId": "shell-target", "key": "target", "value": "shell", "unitCode": null },
+            { "factId": "shell-crawler-method", "key": "crawlerOrSuitableAlternative", "value": true, "unitCode": null },
+            { "factId": "shell-compass-points", "key": "compassPointCount", "value": 4, "unitCode": null },
+            { "factId": "shell-min-readings", "key": "minimumReadingsPerCourse", "value": 5, "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.floor.mfl_map",
+          "claimId": "floor-mfl",
+          "sourceOrder": 3,
+          "text": "To carry out a Magnetic Flux Leakage (MFLmap) inspection supported by an ultrasonic continuous corrosion scan of the floor plates.",
+          "protectedFacts": [
+            { "factId": "mfl-target", "key": "target", "value": "floor_plates", "unitCode": null },
+            { "factId": "mfl-method", "key": "method", "value": "mfl_map", "unitCode": null },
+            { "factId": "mfl-ut-support", "key": "continuousUtSupport", "value": true, "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.floor.edge_scan",
+          "claimId": "floor-edge-ut",
+          "sourceOrder": 4,
+          "text": "To carry out a continuous corrosion scan of the 100 mm band around the tank periphery and areas where access to the MFLmap is restricted.",
+          "protectedFacts": [
+            { "factId": "edge-band-width", "key": "bandWidth", "value": 100, "unitCode": "mm" },
+            { "factId": "edge-mfl-restricted", "key": "includesMflRestrictedAreas", "value": true, "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.floor.sump_measurements",
+          "claimId": "sump-ut",
+          "sourceOrder": 5,
+          "text": "To carry out thickness measurements of the tank bottom sump.",
+          "protectedFacts": [
+            { "factId": "sump-target", "key": "target", "value": "tank_bottom_sump", "unitCode": null },
+            { "factId": "sump-method", "key": "method", "value": "thickness_measurements", "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.floor.bscan",
+          "claimId": "floor-bscan",
+          "sourceOrder": 6,
+          "text": "To carry out Ultrasonic B-Scan Inspection (sampling) on selected areas on the floor.",
+          "protectedFacts": [
+            { "factId": "bscan-target", "key": "target", "value": "selected_floor_areas", "unitCode": null },
+            { "factId": "bscan-method", "key": "method", "value": "ultrasonic_b_scan", "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.nozzles_piping.spot_ut",
+          "claimId": "nozzle-piping-ut",
+          "sourceOrder": 7,
+          "text": "To carry out Ultrasonic Spot Measurements on internal and external nozzles and pipings within the tank.",
+          "protectedFacts": [
+            { "factId": "nozzle-target", "key": "target", "value": "internal_external_nozzles_and_piping", "unitCode": null },
+            { "factId": "nozzle-location", "key": "pipingContext", "value": "within_tank", "unitCode": null },
+            { "factId": "nozzle-method", "key": "method", "value": "ultrasonic_spot_measurements", "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.visual.general",
+          "claimId": "visual",
+          "sourceOrder": 8,
+          "text": "To carry out a general visual inspection and record any condition which may be detrimental to the tank's serviceability.",
+          "protectedFacts": [
+            { "factId": "visual-method", "key": "generalVisualInspection", "value": true, "unitCode": null },
+            { "factId": "visual-record-condition", "key": "recordDetrimentalConditions", "value": true, "unitCode": null }
+          ]
+        },
+        {
+          "semanticKey": "scope.deliverable.assessment",
+          "claimId": "api-assessment",
+          "sourceOrder": 9,
+          "text": "To compile a full report showing readings and locations, reviewed against API 653, with Engineering Integrity Assessment and comments included.",
+          "protectedFacts": [
+            { "factId": "report-deliverable", "key": "deliverable", "value": "full_report", "unitCode": null },
+            { "factId": "report-reading-locations", "key": "readingLocationsIncluded", "value": true, "unitCode": null },
+            { "factId": "report-api-653", "key": "api653Review", "value": true, "unitCode": null },
+            { "factId": "report-eia", "key": "engineeringIntegrityAssessment", "value": true, "unitCode": null },
+            { "factId": "report-comments", "key": "commentsIncluded", "value": true, "unitCode": null }
+          ]
+        }
+      ]
+    },
+    "general-tank-information": {
+      "sourcePageNumber": 6,
+      "outlineBlockId": "tank-information-fields",
+      "units": [
+        { "key": "client", "label": "Client", "value": "Shell Eastern Petroleum Pte Ltd" },
+        { "key": "clientRepresentative", "label": "Client Representative", "value": "George Wong" },
+        { "key": "tankNumber", "label": "Tank Number", "value": "5452" },
+        { "key": "location", "label": "Location", "value": "Pulau Bukom" },
+        { "key": "yearBuilt", "label": "Year Built", "value": "1972" },
+        { "key": "fieldLeaseName", "label": "Field/Lease Name", "value": "Shell Bukom" },
+        { "key": "manufacturer", "label": "Original Manufacturer", "value": "Not Provided" },
+        { "key": "heightM", "label": "Height", "value": 3.048, "displayValue": "3.048 m", "unitCode": "m" },
+        { "key": "constructionStandard", "label": "Original Construction Std", "value": "None" },
+        { "key": "serviceHeight", "label": "Service Height", "value": 2.438, "displayValue": "2.438 m", "unitCode": "m" },
+        { "key": "materialSpecification", "label": "Material Spec.", "value": "Unknown Carbon Steel" },
+        { "key": "diameterM", "label": "Diameter", "value": 3.048, "displayValue": "3.048 m", "unitCode": "m" },
+        { "key": "shellConstruction", "label": "Construction (Shell)", "value": "Butt welded" },
+        { "key": "shellPlateThickness", "label": "1st–2nd str", "value": 6.0, "displayValue": "6.0 mm", "unitCode": "mm" },
+        { "key": "productStored", "label": "Product Stored", "value": "15% Ammonium Hydroxide" },
+        { "key": "drawingReference", "label": "Drawing Ref", "value": "BKM 72/0085" },
+        { "key": "specificGravity", "label": "Specific Gravity", "value": "0.88 - 0.957" },
+        { "key": "roofType", "label": "Roof Type", "value": "Fixed Cone" },
+        { "key": "designTemperature", "label": "Design Temp.", "value": 50, "displayValue": "50 °C", "unitCode": "degC" },
+        { "key": "internalPressure", "label": "Internal Pres.", "value": "-" },
+        { "key": "shellCourseCount", "label": "Total Shell Course", "value": 2 },
+        { "key": "floorPlateCount", "label": "Total Floor Plates", "value": 4 },
+        { "key": "roofPlateCount", "label": "Total Roof Plates", "value": 9 },
+        { "key": "floorPlateThickness", "label": "Floor Plate Thickness", "value": 6, "displayValue": "6 mm", "unitCode": "mm" },
+        { "key": "windGirder", "label": "Wind Girder", "value": "No" },
+        { "key": "annularPlateCount", "label": "Total Annular Plates", "value": "None" },
+        { "key": "insulated", "label": "Insulated", "value": "No" },
+        { "key": "annularPlateThickness", "label": "Annular Plate Thickness", "value": "Not Applicable" },
+        { "key": "stiffener", "label": "Stiffener", "value": "No" },
+        { "key": "externalHistory", "label": "External", "value": "Not Provided" },
+        { "key": "internalHistory", "label": "Internal", "value": "Not Provided" },
+        { "key": "bottomHistory", "label": "Bottom", "value": "Not Provided" }
+      ]
+    }
+  }
+}

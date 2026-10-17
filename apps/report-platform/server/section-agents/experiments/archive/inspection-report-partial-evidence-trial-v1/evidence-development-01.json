@@ -1,0 +1,262 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-development-01",
+  "datasetSplit": "development",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_ae941a71373872c0c0b6",
+    "sourceCaseId": "canonical_case_007f143b2ea023ca5398",
+    "sourceSha256": "871d8770a5667bdbc3f0623a3a2e3ace54abcaf07acbd27017610ec24407de92",
+    "datasetGroupKey": "asset:internal_external_api653:5452",
+    "reportFamily": "internal_external_api653",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "foundation",
+    "shell-external",
+    "roof-external",
+    "shell-appurtenances"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "West floor projection has about 450 mm of light edge corrosion plus failed coating. Projection width is roughly two and a half inches, so the three-inch B-scan buggy could not run. Shell checked from ground: paint failed around the manhole, spot rust at north and south, and UT was 6.00 to 6.38 mm, above calculated minimum. Roof has scattered paint failure, light corrosion under the curb-angle edge, and spot UT 3.96 to 4.48 mm. South S4 two-inch nozzle has about 0.5 mm internal attack at six o’clock."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "W floor proj: minor LE corr ~450 mm; coating failed/minor corr. Width 2.5 in, B-scan not done, buggy needs 3 in. Ext shell visual from GL; MH area coating fail; N/S spot rust; UT 6.00-6.38 mm > calc min. Ext roof scattered coating fail; curb underside LE minor corr; spot UT 3.96-4.48 mm. S4 2 in south nozzle internal 6 o’clock minor corr ~0.5 mm."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Roof readings 3.96–4.48 mm and scattered coating breakdown; curb angle underside edge lightly corroded. S4 south two-inch nozzle, inside at six o’clock, about half-millimetre minor corrosion. Back at the foundation: west projection coating failed and the leading edge has minor corrosion for roughly 450 mm. Couldn’t B-scan because projection is 2.5 inches and buggy needs 3. Shell was viewed from ground; manhole area paint failure, north/south spot rust, 6.00–6.38 mm and above calculated minimum."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "Start with shell—actually foundation first. West floor projection: light leading-edge corrosion over about 450 millimetres, and local coating failure with light corrosion. No B-scan; the ledge is only 2.5 inches, equipment needs 3. Shell external from ground, coating loss at the manhole and spot rust north and south. Shell UT six point zero zero to six point three eight millimetres, all over the calculated minimum. Roof coating failed in scattered spots; minor edge corrosion beneath curb angle; UT three point nine six to four point four eight. S4 is the two-inch south nozzle: internal corrosion at six o’clock, about 0.5 millimetre."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Foundation / W projection / edge corrosion minor / 450 mm. W projection coating failed, minor corrosion. B-scan: NO—2.5 in width versus 3 in required. Shell ext: ground visual. Manhole zone coating fail. N + S spot rust. Shell UT 6.00–6.38 mm, above calc minimum. Roof ext: scattered coating failure; curb angle underside leading edge minor corrosion; spot UT 3.96–4.48 mm. Shell appurtenance: S4, 2 in, south, internal 6 o’clock, ~0.5 mm minor corrosion."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Civil note: west floor projection shows minor leading-edge corrosion for around 450 mm and failed coating with minor corrosion. We could not run B-scan because the projection is 2.5 inches and the buggy needs 3. Shell note: inspected externally at ground level; coating failure around manhole, spot rust north and south, thickness 6.00–6.38 mm and above calculated minimum. Roof note: scattered coating failure, minor corrosion at curb-angle underside edge, spot readings 3.96–4.48 mm. Nozzle note: south S4 two-inch nozzle has about 0.5 mm internal corrosion at six o’clock."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-foundation-west-edge-corrosion",
+      "componentBlock": "foundation",
+      "component": "floor projection",
+      "location": "west sector leading edge",
+      "polarity": "observed",
+      "condition": "minor corrosion",
+      "qualifier": "approximately 450 mm in length",
+      "protectedTerms": [
+        "west",
+        "leading edge",
+        "minor corrosion",
+        "450 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_ed5170dc1e474cb74886ae3a",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-foundation-west-coating",
+      "componentBlock": "foundation",
+      "component": "floor projection",
+      "location": "west sector",
+      "polarity": "observed",
+      "condition": "coating failure with minor corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "west",
+        "coating failure",
+        "minor corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_c2a4210f467c2f0df360369d",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-foundation-bscan-limitation",
+      "componentBlock": "foundation",
+      "component": "floor projection",
+      "location": null,
+      "polarity": "not_performed",
+      "condition": "UT B-scan could not be performed",
+      "qualifier": "projection width approximately 2.5 inches; buggy requires at least 3 inches",
+      "protectedTerms": [
+        "B-scan",
+        "not",
+        "2.5 inches",
+        "3 inches"
+      ],
+      "sourceReference": {
+        "blockId": "block_b749347e0ef33ea3cc1b7c61",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-external-access",
+      "componentBlock": "shell-external",
+      "component": "external shell",
+      "location": null,
+      "polarity": "inspected",
+      "condition": "visual inspection",
+      "qualifier": "from ground level",
+      "protectedTerms": [
+        "external shell",
+        "ground"
+      ],
+      "sourceReference": {
+        "blockId": "block_2fa712c922a6128f3e0bb3e3",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-external-coating",
+      "componentBlock": "shell-external",
+      "component": "external shell",
+      "location": "at and around the manhole",
+      "polarity": "observed",
+      "condition": "coating failure",
+      "qualifier": null,
+      "protectedTerms": [
+        "external shell",
+        "manhole",
+        "coating failure"
+      ],
+      "sourceReference": {
+        "blockId": "block_1c0c880d1505349ea9d9056e",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-external-rust",
+      "componentBlock": "shell-external",
+      "component": "external shell",
+      "location": "north and south sectors",
+      "polarity": "observed",
+      "condition": "spot rusting",
+      "qualifier": null,
+      "protectedTerms": [
+        "north",
+        "south",
+        "spot rusting"
+      ],
+      "sourceReference": {
+        "blockId": "block_dd33964f99ab73e3e7fbb785",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-external-ut",
+      "componentBlock": "shell-external",
+      "component": "external shell plates",
+      "location": null,
+      "polarity": "measured",
+      "condition": "remaining thickness ranged from 6.00 mm to 6.38 mm",
+      "qualifier": "reviewed assessment: all readings were above the calculated minimum thickness",
+      "protectedTerms": [
+        "6.00 mm",
+        "6.38 mm",
+        "above",
+        "calculated minimum"
+      ],
+      "sourceReference": {
+        "blockId": "block_2916dcbbe455dff23bfe8b05",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-roof-external-coating",
+      "componentBlock": "roof-external",
+      "component": "external roof plates",
+      "location": null,
+      "polarity": "observed",
+      "condition": "scattered coating failures",
+      "qualifier": null,
+      "protectedTerms": [
+        "external roof",
+        "scattered",
+        "coating failure"
+      ],
+      "sourceReference": {
+        "blockId": "block_12ecda3e205744584f230bdb",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-roof-curb-angle",
+      "componentBlock": "roof-external",
+      "component": "curb angle underside",
+      "location": "leading edge",
+      "polarity": "observed",
+      "condition": "minor corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "curb angle",
+        "underside",
+        "leading edge",
+        "minor corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_e07f28a8ab5a00c5df503b16",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-roof-external-ut",
+      "componentBlock": "roof-external",
+      "component": "external roof plates",
+      "location": null,
+      "polarity": "measured",
+      "condition": "spot UT remaining thickness ranged from 3.96 mm to 4.48 mm",
+      "qualifier": null,
+      "protectedTerms": [
+        "spot UT",
+        "3.96 mm",
+        "4.48 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_60d502150788323cbefcc40a",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-shell-nozzle-s4",
+      "componentBlock": "shell-appurtenances",
+      "component": "2-inch shell nozzle S4",
+      "location": "south sector, internal surface at 6 o’clock",
+      "polarity": "observed",
+      "condition": "minor corrosion",
+      "qualifier": "approximately 0.5 mm",
+      "protectedTerms": [
+        "S4",
+        "2-inch",
+        "south",
+        "internal",
+        "6 o’clock",
+        "minor corrosion",
+        "0.5 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_4215898396dfff85bbd2e392",
+        "page": 8
+      }
+    }
+  ]
+}

@@ -1,0 +1,269 @@
+{
+  "contractVersion": "api653_report_obligations_v1",
+  "profileId": "vertical-api653-inspection-report-v4",
+  "purpose": "Paraphrased section/block coverage map for classification design; it is not a substitute for the licensed standard or an API compliance certificate.",
+  "localReviewedSource": {
+    "path": "/Users/oscar/Public/irs/Codes/API 653 5th Ed (Nov 2014), Add 1 (Apr 2018), Add 2 (May 2020).pdf",
+    "sha256": "5c36d9e8b202db206ce48d54a869311ff904d4f49b9f7a48490e40677ffd4ea2",
+    "edition": "Fifth Edition, November 2014",
+    "includedRevisions": [
+      "Addendum 1, April 2018",
+      "Addendum 2, May 2020"
+    ],
+    "reviewedClauses": [
+      "6.7",
+      "6.8",
+      "6.9.1",
+      "6.9.2",
+      "6.9.3",
+      "6.10",
+      "Annex C"
+    ],
+    "reviewedPhysicalPdfPages": [
+      49,
+      50,
+      51,
+      125,
+      130
+    ]
+  },
+  "currentEditionCheck": {
+    "checkedAt": "2026-10-15",
+    "officialEffectivitySource": "https://www.api.org/-/media/Files/Certification/ICP/ICP-Certification-Programs/653/2026%20files/March%202026_653_Publications%20Effectivity%20sheet_final.pdf",
+    "currentReference": "API 653 Fifth Edition with Addenda 1, 2 and 3 and Errata 1 and 2",
+    "localSourceGap": [
+      "Addendum 3, November 2023",
+      "Errata 2, February 2025"
+    ],
+    "productComplianceEligible": false,
+    "requiredBeforeProductUse": "Obtain the licensed current revisions and have a qualified domain reviewer reconcile any changes affecting this profile."
+  },
+  "reportContentObligations": [
+    {
+      "id": "api653-6.9.2-a",
+      "summary": "Record inspection date or dates.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "inspection-details"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-b",
+      "summary": "Identify the inspection type.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "inspection-details"
+        },
+        {
+          "sectionId": "scope-of-inspection",
+          "blockId": "identity"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-c",
+      "summary": "State the inspection scope and identify uninspected areas with reasons.",
+      "uses": [
+        {
+          "sectionId": "scope-of-inspection",
+          "blockId": "scope"
+        },
+        {
+          "sectionId": "scope-of-inspection",
+          "blockId": "limitations"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-d",
+      "summary": "Describe the tank.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "identity"
+        },
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "configuration"
+        },
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "design-data"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-e",
+      "summary": "Identify inspected components, their condition and deficiencies.",
+      "uses": [
+        {
+          "sectionId": "inspection-report",
+          "blockId": "inspection-extent"
+        },
+        {
+          "sectionId": "inspection-report",
+          "blockId": "deficiencies"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-f",
+      "summary": "Record inspection methods, tests and results.",
+      "uses": [
+        {
+          "sectionId": "test-information",
+          "blockId": "methods"
+        },
+        {
+          "sectionId": "test-information",
+          "blockId": "results"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-g",
+      "summary": "Report bottom and shell corrosion rates when established.",
+      "uses": [
+        {
+          "sectionId": "corrosion-rate-and-remaining-life-assessment",
+          "blockId": "corrosion-rates"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-h",
+      "summary": "Include settlement measurements and analysis when performed.",
+      "uses": [
+        {
+          "sectionId": "shell-settlement",
+          "blockId": "measurements"
+        },
+        {
+          "sectionId": "shell-settlement",
+          "blockId": "graph"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-i",
+      "summary": "Provide recommendations.",
+      "uses": [
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "recommendations"
+        },
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "basis"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-j",
+      "summary": "Identify the authorized inspector and certification/sign-off information.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "inspector-certification"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.2-k",
+      "summary": "Attach or reference pertinent drawings, photographs and NDE records.",
+      "uses": [
+        {
+          "sectionId": "photographs",
+          "blockId": "photographs"
+        },
+        {
+          "sectionId": "test-information",
+          "blockId": "results"
+        },
+        {
+          "sectionId": "floor-plate-layout",
+          "blockId": "layout"
+        }
+      ]
+    }
+  ],
+  "recommendationObligations": [
+    {
+      "id": "api653-6.9.3-action",
+      "summary": "Recommendations identify the proposed action and the condition addressed.",
+      "uses": [
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "recommendations"
+        },
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "basis"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.9.3-timing",
+      "summary": "Where applicable, recommendations capture timing, monitoring or inspection interval.",
+      "uses": [
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "timing-and-monitoring"
+        },
+        {
+          "sectionId": "repair-recommendations",
+          "blockId": "inspection-interval-basis"
+        },
+        {
+          "sectionId": "corrosion-rate-and-remaining-life-assessment",
+          "blockId": "inspection-interval"
+        }
+      ]
+    }
+  ],
+  "recordContext": [
+    {
+      "id": "api653-6.8-construction",
+      "summary": "Preserve available construction information.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "design-data"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.8-inspection-history",
+      "summary": "Preserve inspection history.",
+      "uses": [
+        {
+          "sectionId": "general-tank-information",
+          "blockId": "inspection-history"
+        }
+      ]
+    },
+    {
+      "id": "api653-6.8-repair-history",
+      "summary": "Preserve repair and alteration history when available.",
+      "uses": [
+        {
+          "sectionId": "inspection-maintenance-regime",
+          "blockId": "history"
+        }
+      ]
+    }
+  ],
+  "annexC": {
+    "classification": "informative_sample_checklist_guidance",
+    "normativeReportSection": false,
+    "uses": [
+      {
+        "sectionId": "tank-inspection-checklist",
+        "blockId": "checklist"
+      }
+    ]
+  }
+}

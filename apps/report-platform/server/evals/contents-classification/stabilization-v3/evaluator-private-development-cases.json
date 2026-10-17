@@ -1,0 +1,127 @@
+{
+  "contractVersion": "contents_classification_development_cases_v1",
+  "datasetId": "classification-v3-boundary-development-20",
+  "evaluationOnly": true,
+  "cases": [
+    {
+      "caseId": "dev_001",
+      "text": "Under API 650, the shell nozzle reinforcing pads should have rounded corners with the required minimum radius.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" },
+      "pattern": "explicit_action_over_basis"
+    },
+    {
+      "caseId": "dev_002",
+      "text": "The API 650 radius requirement is the technical basis for evaluating shell nozzle reinforcing pads.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "basis" },
+      "pattern": "basis_without_action"
+    },
+    {
+      "caseId": "dev_003",
+      "text": "Monitor the minor buckling at the northwest side of shell course five during the next inspection interval.",
+      "expectedUse": { "sectionId": "repair-recommendations", "blockId": "timing-and-monitoring" },
+      "pattern": "monitoring_instruction"
+    },
+    {
+      "caseId": "dev_004",
+      "text": "The earth point attached to the external shell was in satisfactory condition.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-appurtenances" },
+      "pattern": "earth_point_shell_attachment"
+    },
+    {
+      "caseId": "dev_005",
+      "text": "The earthing conductor at the ring foundation was loose.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" },
+      "pattern": "earthing_foundation"
+    },
+    {
+      "caseId": "dev_006",
+      "text": "The ultrasonic calibration procedure followed AS 2083.",
+      "expectedUse": { "sectionId": "test-information", "blockId": "methods" },
+      "pattern": "calibration_procedure"
+    },
+    {
+      "caseId": "dev_007",
+      "text": "A V1 calibration block was used with the ultrasonic flaw detector.",
+      "expectedUse": { "sectionId": "test-information", "blockId": "equipment" },
+      "pattern": "physical_calibration_equipment"
+    },
+    {
+      "caseId": "dev_008",
+      "text": "The tank was built in 1977.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" },
+      "pattern": "year_built"
+    },
+    {
+      "caseId": "dev_009",
+      "text": "The service height is 12.4 metres.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" },
+      "pattern": "service_height"
+    },
+    {
+      "caseId": "dev_010",
+      "text": "The shell courses are butt welded.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" },
+      "pattern": "shell_construction"
+    },
+    {
+      "caseId": "dev_011",
+      "text": "Several pipe supports were perforated.",
+      "expectedUse": null,
+      "pattern": "missing_pipe_support_location"
+    },
+    {
+      "caseId": "dev_012",
+      "text": "The original manufacturer was Chiyoda Corporation.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" },
+      "pattern": "manufacturer_field_preserved"
+    },
+    {
+      "caseId": "dev_013",
+      "text": "The drawing reference is OL-33020.",
+      "expectedUse": null,
+      "pattern": "drawing_subject_missing"
+    },
+    {
+      "caseId": "dev_014",
+      "text": "The tank construction drawing reference is OL-33020.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" },
+      "pattern": "drawing_subject_preserved"
+    },
+    {
+      "caseId": "dev_015",
+      "text": "Overlapping repair patches were observed on the external shell in the south-southwest sector.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-external" },
+      "pattern": "patch_component_preserved"
+    },
+    {
+      "caseId": "dev_016",
+      "text": "The applicable acceptance criterion is API 653, fourth edition.",
+      "expectedUse": null,
+      "pattern": "acceptance_test_context_missing"
+    },
+    {
+      "caseId": "dev_017",
+      "text": "The shell ultrasonic thickness acceptance criterion is API 653, fourth edition.",
+      "expectedUse": { "sectionId": "test-information", "blockId": "methods" },
+      "pattern": "acceptance_test_context_preserved"
+    },
+    {
+      "caseId": "dev_018",
+      "text": "The tank was built in 1969.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" },
+      "pattern": "construction_fact_split"
+    },
+    {
+      "caseId": "dev_019",
+      "text": "The tank was re-bottomed in 2007.",
+      "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" },
+      "pattern": "repair_history_split"
+    },
+    {
+      "caseId": "dev_020",
+      "text": "Pipe supports in the diked area were perforated.",
+      "expectedUse": { "sectionId": "inspection-report", "blockId": "diked-area" },
+      "pattern": "pipe_support_location_preserved"
+    }
+  ]
+}

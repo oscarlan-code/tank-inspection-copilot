@@ -1,0 +1,33 @@
+{
+  "contractVersion": "section_agent_spec_v3",
+  "agentId": "general_tank_information",
+  "releaseVersion": "general_tank_information_v3",
+  "profileId": "vertical_tank_inspection_v1",
+  "section": { "order": 3, "sectionId": "general-tank-information", "title": "3 GENERAL TANK INFORMATION" },
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "executionContract": "section_agent_execution_v1",
+  "evidenceContract": "section_agent_evidence_snapshot_v1",
+  "projectionContract": "section_evidence_projection_v2",
+  "resultContract": "section_agent_result_v1",
+  "generationMode": "deterministic_routed_labelled_fields",
+  "promptPolicy": "disabled",
+  "fieldOrder": [
+    "client", "clientRepresentative", "tankNumber", "location", "yearBuilt", "fieldLeaseName",
+    "manufacturer", "heightM", "constructionStandard", "serviceHeight", "materialSpecification", "diameterM",
+    "shellConstruction", "productStored", "drawingReference", "specificGravity", "roofType", "designTemperature",
+    "internalPressure", "shellCourseCount", "floorPlateCount", "roofPlateCount", "floorPlateThickness", "windGirder",
+    "annularPlateCount", "insulated", "annularPlateThickness", "stiffener", "externalHistory", "internalHistory", "bottomHistory"
+  ],
+  "requiredFields": ["client", "tankNumber", "location", "heightM", "diameterM", "shellCourseCount"],
+  "evidenceDispositionStates": ["rendered", "corroborating", "delegated"],
+  "approvalBlockers": [
+    "missing_required_identity", "duplicate_or_conflicting_routed_field", "dimension_or_unit_conflict",
+    "unreviewed_projection", "unknown_routed_field", "unaccounted_routed_evidence"
+  ],
+  "prohibitedBehavior": [
+    "raw_export_bypass", "manual_supplement_relabelling", "ai_generation", "runtime_retrieval",
+    "inferred_missing_value", "silent_evidence_omission", "automatic_approval"
+  ],
+  "renderer": { "documentContract": "report_document_v2", "format": "paired-fields" }
+}

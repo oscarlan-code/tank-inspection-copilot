@@ -1,0 +1,69 @@
+{
+  "pilotId": "semantic-judge-pilot-v1",
+  "goldRevision": 2,
+  "purpose": "Validate the semantic judge on a small balanced set before any scale-up.",
+  "variants": [
+    "concise-field",
+    "natural-sequence"
+  ],
+  "units": [
+    {
+      "sourceUnitId": "source-unit-src-p009-b0262-obs-15",
+      "caseType": "preserved_metadata_dependent",
+      "expectedSemanticVerdict": "preserved",
+      "expectedIntegrityVerdict": "fail",
+      "reason": "External-roof identity and the UT range are preserved, but the evidence adds an unsupported claim that individual readings are stored in roof UT rows."
+    },
+    {
+      "sourceUnitId": "source-unit-src-p009-b0259-obs-13",
+      "caseType": "preserved_sibling_context",
+      "expectedSemanticVerdict": "preserved",
+      "expectedIntegrityVerdict": "pass",
+      "reason": "The roof coating condition is preserved; curb-angle facts in the same note are supported by sibling gold."
+    },
+    {
+      "sourceUnitId": "source-unit-src-p007-b0214-obs-05",
+      "caseType": "missing_spatial_relationship",
+      "expectedSemanticVerdict": "partial",
+      "expectedIntegrityVerdict": "fail",
+      "reason": "The mock retains the numbers but loses that they apply within two inches of the shell-to-floor weld."
+    },
+    {
+      "sourceUnitId": "source-unit-src-p008-b0244-obs-09",
+      "caseType": "missing_component_attributes",
+      "expectedSemanticVerdict": "partial",
+      "expectedIntegrityVerdict": "fail",
+      "reason": "The mock omits the two-inch nozzle size and minor-corrosion characterization."
+    },
+    {
+      "sourceUnitId": "source-unit-src-p007-b0201-obs-01",
+      "caseType": "weakened_condition",
+      "expectedSemanticVerdict": "partial",
+      "expectedIntegrityVerdict": "fail",
+      "reason": "Disconnected does not fully preserve dismantled and removed."
+    },
+    {
+      "sourceUnitId": "source-unit-src-p013-b0410-rec-01",
+      "caseType": "unsupported_action_addition",
+      "expectedSemanticVerdict": "preserved",
+      "expectedIntegrityVerdict": "fail",
+      "reason": "Recoating is preserved, but surface preparation is an additional recommendation action."
+    }
+  ],
+  "gate": {
+    "requiredExactJudgments": 12,
+    "allowScaleOnlyWhenAllExpectedJudgmentsMatch": true,
+    "nextScaleIfPassed": "15 units across three variants",
+    "nextActionIfFailed": "Revise the evaluator contract and repeat this same frozen pilot."
+  },
+  "adjudications": [
+    {
+      "sourceUnitId": "source-unit-src-p009-b0262-obs-15",
+      "previousExpectedIntegrityVerdict": "pass",
+      "revisedExpectedIntegrityVerdict": "fail",
+      "reason": "The source unit, sibling semantic gold and supplied metadata do not establish that individual readings are stored in roof UT rows. The statement is an unsupported addition in both tested voice variants.",
+      "basis": "human review of the frozen source/output pair after the evaluator disagreement",
+      "changesEvaluatorInput": false
+    }
+  ]
+}

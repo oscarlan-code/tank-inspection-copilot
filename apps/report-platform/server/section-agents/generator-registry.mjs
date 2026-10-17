@@ -28,6 +28,14 @@ export const SECTION_AGENT_RELEASES = deepFreeze({
     rootUrl: new URL('./releases/general-tank-information/generator/v2/', import.meta.url).href,
     manifestSha256: '1f8a904ab31719c836888600a401ad919b62bba100d564c9b32a292390bfce9b',
   },
+  general_tank_information_v3: {
+    agentId: 'general_tank_information',
+    version: 'general_tank_information_v3',
+    sectionId: 'general-tank-information',
+    reportProfileIds: ['vertical_tank_inspection_v1'],
+    rootUrl: new URL('./releases/general-tank-information/generator/v3/', import.meta.url).href,
+    manifestSha256: 'fa5c283036433fa6b9df53dd7c9369b695f3ff377b894575806fd75c097e7366',
+  },
 });
 
 export function resolveSectionAgentRelease({ releaseVersion, sectionId, reportProfileId }) {
@@ -49,7 +57,7 @@ export async function runSectionAgent({ sectionAgentVersion, executionMode, sect
   if (executionMode !== 'evaluation') throw new Error('This section agent awaits review before product promotion.');
   const release = Object.hasOwn(SECTION_AGENT_RELEASES, sectionAgentVersion) ? SECTION_AGENT_RELEASES[sectionAgentVersion] : null;
   if (!release || release.sectionId !== sectionId) throw new Error('Unsupported section agent or section.');
-  if (['general_tank_information_v2', 'scope_of_inspection_v1'].includes(sectionAgentVersion)) {
+  if (['general_tank_information_v2', 'general_tank_information_v3', 'scope_of_inspection_v1'].includes(sectionAgentVersion)) {
     throw new Error('This release requires a frozen ReportPlan and SectionPlan.');
   }
   return runFrozenSectionAgent({ release, executionMode, sectionId, reportState });

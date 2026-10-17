@@ -1,0 +1,226 @@
+{
+  "contractVersion": "section_full_fidelity_evaluation_workflow_v3",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "inspection-report",
+  "sectionTitle": "4 INSPECTION REPORT",
+  "status": "report_mock_sources_indexed_android_exports_not_frozen",
+  "productEnabled": false,
+  "generationReady": false,
+  "knowledgeCorpus": {
+    "purpose": "Learn the common outline, conditional variation, terminology, narrative and format patterns from multiple compatible reports.",
+    "minimumCompatibleReports": 10,
+    "minimumUniqueLineages": 10,
+    "separateFromEvaluationCases": true,
+    "targetReportMayContribute": false,
+    "validationOrHeldOutMayContribute": false,
+    "output": "frozen_section_knowledge_bundle_with_role_specific_projections"
+  },
+  "cohort": {
+    "reportWideAndroidMockCorpus": {
+      "caseCount": 12,
+      "mockPipelineSplit": "none_all_cases_reviewed_against_their_original_report",
+      "sectionExperimentAssignment": "assigned_later_without_changing_frozen_mock_packages",
+      "captureVariantsPerLineage": 6,
+      "androidPackageType": "v3_product_export",
+      "androidSchemaVersion": 3,
+      "sourceReportsPerCase": 1,
+      "unitOfReuse": "one_frozen_complete_inspection_case_shared_by_all_section_agents"
+    },
+    "splitUnit": "source_report_asset_scenario_lineage",
+    "sameLineageAcrossKnowledgeAndEvaluationAllowed": false,
+    "sameLineageAcrossEvaluationSplitsAllowed": false
+  },
+  "stages": [
+    {
+      "order": 1,
+      "stageId": "multi-report-knowledge-consolidation",
+      "owner": "knowledge_pack_preparation",
+      "input": "approved_compatible_knowledge_reference_reports",
+      "output": "frozen_section_knowledge_bundle",
+      "goldVisible": false,
+      "exitGates": [
+        "minimum_ten_unique_compatible_lineages",
+        "coverage_saturation_reviewed",
+        "common_conditional_optional_and_rare_patterns_distinguished",
+        "role_specific_projections_share_one_bundle_hash",
+        "evaluation_lineages_excluded"
+      ]
+    },
+    {
+      "order": 2,
+      "stageId": "report-wide-source-obligation-inventory",
+      "owner": "android_report_mock_builder",
+      "input": "complete_historical_report_all_pages_and_canonical_source_blocks",
+      "output": "reviewed_report_wide_source_obligation_inventory",
+      "goldVisible": true,
+      "exitGates": [
+        "every_source_block_is_linked_to_an_obligation_or_excluded_with_reason",
+        "all_required_current_facts_have_component_location_side_polarity_uncertainty_and_value_requirements",
+        "all_exclusions_have_reviewed_reasons",
+        "layout_drawings_tables_photos_recommendations_and_limitations_are_inventoried"
+      ]
+    },
+    {
+      "order": 3,
+      "stageId": "android-capture-round-trip-and-independent-review",
+      "owner": "android_report_mock_builder_and_independent_mock_reviewer",
+      "input": "complete_target_original_report_reviewed_report_wide_source_inventory_android_v3_contract_and_six_voice_surfaces",
+      "output": "frozen_complete_v3_product_export_case",
+      "goldVisible": true,
+      "targetSourceVisibility": [
+        "android_report_mock_builder",
+        "independent_mock_reviewer"
+      ],
+      "exitGates": [
+        "all_six_variants_exported_by_android_product_store",
+        "all_195_checklist_items_rated_with_source_support",
+        "source_layouts_visually_verified",
+        "finding_photos_are_real_source_report_images",
+        "structured_truth_is_identical_across_voice_variants",
+        "independent_mock_review_passed",
+        "freeze_hash_manifest_verified"
+      ]
+    },
+    {
+      "order": 4,
+      "stageId": "section-evidence-projection",
+      "owner": "evidence_preprocessor_and_section_classifier",
+      "input": "one_frozen_complete_android_export_variant",
+      "output": "traceable_section_projection_and_normalized_observations",
+      "goldVisible": false,
+      "targetSourceVisible": false,
+      "exitGates": [
+        "every_projected_record_retains_global_evidence_id",
+        "one_evidence_record_may_support_multiple_sections",
+        "no_section_specific_mock_truth_is_created",
+        "source_report_and_gold_are_not_generation_inputs",
+        "source_sha_and_asset_lineage_are_excluded_from_retrieval"
+      ]
+    },
+    {
+      "order": 5,
+      "stageId": "capture-variation-qualification",
+      "owner": "interpretation_evaluation",
+      "input": "six_capture_variants_from_one_truth_case",
+      "output": "verified_normalized_observation_snapshot",
+      "goldVisible": true,
+      "exitGates": [
+        "truth_equivalence_or_expected_clarification_for_every_variant",
+        "protected_values_and_relationships_are_preserved",
+        "no_unresolved_material_ambiguity"
+      ]
+    },
+    {
+      "order": 6,
+      "stageId": "target-blind-report-plan",
+      "owner": "report_structure_agent_and_reviewer",
+      "input": "verified_current_snapshot_scope_asset_configuration_report_blueprint_and_structure_projection",
+      "output": "frozen_evaluation_report_plan",
+      "goldVisible": false,
+      "exitGates": [
+        "target_gold_structure_was_not_read",
+        "every_canonical_block_has_a_supported_include_or_exclude_decision",
+        "included_blocks_follow_bundle_order_constraints",
+        "headings_and_formats_are_accepted_bundle_variants",
+        "deterministic_and_narrative_ownership_declared"
+      ]
+    },
+    {
+      "order": 7,
+      "stageId": "generation",
+      "owner": "section_generation_agent",
+      "input": "same_verified_snapshot_report_plan_generation_projection_and_standard_pack_for_every_candidate",
+      "output": "candidate_section_document",
+      "goldVisible": false,
+      "exitGates": [
+        "two_repeat_runs_completed",
+        "request_contains_no_target_report_text_or_structure",
+        "target_same_lineage_validation_and_heldout_sources_are_excluded"
+      ]
+    },
+    {
+      "order": 8,
+      "stageId": "pre-display-review",
+      "owner": "independent_section_reviewer",
+      "input": "current_evidence_report_plan_review_projection_standard_pack_and_candidate_section",
+      "output": "blocked_needs_attention_or_ready_for_review",
+      "goldVisible": false,
+      "exitGates": [
+        "required_obligation_recall",
+        "supported_claim_precision",
+        "protected_fact_and_relationship_accuracy",
+        "bundle_structure_format_and_allowed_variation_conformance",
+        "deterministic_content_accuracy",
+        "no_recommendation_or_gold_leakage"
+      ]
+    },
+    {
+      "order": 9,
+      "stageId": "post-generation-gold-evaluation",
+      "owner": "independent_gold_evaluator",
+      "input": "evaluation_projection_sealed_original_candidate_section_current_evidence_report_plan_and_pre_display_review",
+      "output": "separated_evidence_pattern_target_and_inspector_scores",
+      "goldVisible": true,
+      "exitGates": [
+        "semantic_recovery_scored_against_complete_reviewed_obligations",
+        "generic_kb_pattern_conformance_scored_separately",
+        "target_format_similarity_treated_as_one_reference",
+        "acceptable_non_target_variation_recorded",
+        "differences_classified_by_pipeline_stage",
+        "inspector_review_recorded"
+      ]
+    }
+  ],
+  "candidateProtocol": {
+    "slots": ["A", "B", "C", "D", "E", "F"],
+    "developmentCandidates": ["A", "B", "C", "D"],
+    "validationCandidate": "E",
+    "conditionalValidationRepairCandidate": "F",
+    "heldOutOpens": "once_after_final_candidate_is_frozen",
+    "infrastructureChangeBehavior": "invalidate_prior_results_and_restart_at_candidate_a",
+    "knowledgeBundleChangeBehavior": "new_bundle_hash_new_release_candidate_and_restart_at_candidate_a",
+    "automaticPromptMutation": false,
+    "automaticGoldRelabelling": false,
+    "automaticPromotion": false
+  },
+  "requiredMetrics": {
+    "preGeneration": [
+      "knowledge_source_population_qualification",
+      "knowledge_evaluation_lineage_separation",
+      "source_unit_disposition_coverage",
+      "required_fact_to_evidence_coverage",
+      "deterministic_input_coverage",
+      "capture_variant_truth_equivalence",
+      "target_blind_report_plan_conformance",
+      "leakage_findings"
+    ],
+    "postGeneration": [
+      "required_obligation_recall",
+      "supported_claim_precision",
+      "protected_fact_accuracy",
+      "entity_location_side_accuracy",
+      "polarity_uncertainty_accuracy",
+      "generic_kb_pattern_conformance",
+      "target_report_meaning_recovery",
+      "target_report_format_similarity",
+      "accepted_non_target_variation",
+      "cross_run_semantic_stability",
+      "inspector_review_outcome"
+    ]
+  },
+  "hardGates": {
+    "minimumKnowledgeLineages": 10,
+    "knowledgeEvaluationLineageOverlap": 0,
+    "sourceUnitDispositionCoverage": 1.0,
+    "requiredFactToEvidenceCoverage": 1.0,
+    "deterministicInputCoverage": 1.0,
+    "protectedFactAccuracy": 1.0,
+    "entityLocationSideAccuracy": 1.0,
+    "polarityUncertaintyAccuracy": 1.0,
+    "reportPlanBundleConformance": 1.0,
+    "unsupportedCurrentClaims": 0,
+    "leakageFindings": 0,
+    "renderReviewRequired": true,
+    "inspectorReviewRequired": true
+  }
+}

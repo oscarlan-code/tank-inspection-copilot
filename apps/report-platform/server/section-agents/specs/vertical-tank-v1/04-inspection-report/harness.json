@@ -25,6 +25,29 @@
       "purpose": "Measure narrative quality and stability without confounding note interpretation."
     }
   },
+  "preGenerationQualification": {
+    "sourceUnitDispositionRequired": true,
+    "allowedDispositions": [
+      "required_current_fact",
+      "gold_structure_reference",
+      "deterministic_content",
+      "recommendation_route",
+      "cross_reference",
+      "boilerplate_metadata",
+      "reviewed_out_of_scope"
+    ],
+    "sourceObligationCoverageRequired": 1,
+    "requiredFactToEvidenceCoverageRequired": 1,
+    "deterministicInputCoverageRequired": 1,
+    "reviewedExclusionCoverageRequired": 1,
+    "narrativeSourceSentenceReuseAllowed": false,
+    "generationBlockedUntilQualified": true,
+    "targetGoldStructureMayDriveReportPlan": false,
+    "reportPlanBundleBlockConformanceRequired": 1,
+    "reportPlanAcceptedHeadingConformanceRequired": 1,
+    "reportPlanAcceptedFormatConformanceRequired": 1,
+    "everyCanonicalBlockApplicabilityDecisionRequired": true
+  },
   "robustnessProtocol": {
     "scenarioInvariant": "The underlying observation truth, entities, measurements and source links remain unchanged within a variant family.",
     "variantFamilies": [
@@ -55,13 +78,27 @@
   "boundedRsiPilot": {
     "enabled": true,
     "meaning": "offline_bounded_release_improvement",
-    "maximumCandidateIterations": 3,
+    "maximumCandidateIterations": 6,
+    "candidateSlots": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F"
+    ],
     "pilotCohort": {
-      "developmentLineages": 3,
+      "totalLineages": 6,
+      "developmentLineages": 4,
       "validationLineages": 1,
       "sealedHeldOutLineages": 1,
       "variantsPerLineage": 6,
-      "maximumRunsPerCandidate": 30
+      "developmentPercent": 66.7,
+      "validationPercent": 16.7,
+      "heldOutPercent": 16.7,
+      "interpretationCases": 36,
+      "generatorRepeatsPerReport": 2,
+      "maximumDevelopmentGeneratorRunsPerCandidate": 8
     },
     "feedbackRecord": [
       "failure_class",
@@ -90,16 +127,22 @@
       "wording_only_difference_with_stable_meaning": "no_change_required"
     },
     "iterationFlow": [
+      "qualify_complete_source_obligation_inventory",
+      "qualify_complete_mock_export",
+      "qualify_interpretation_variants",
       "freeze_baseline_candidate",
       "run_development_variants",
       "cluster_failures_by_root_cause_stage",
       "prepare_reviewable_candidate_diff",
       "register_new_candidate_version",
       "run_full_development_regression",
-      "run_validation_without_tuning",
-      "open_sealed_held_out_only_for_final_comparison",
+      "freeze_candidate_e_and_run_validation",
+      "if_validation_fails_create_candidate_f_and_rerun_development_and_validation",
+      "freeze_final_candidate_before_opening_held_out",
+      "open_sealed_held_out_once_for_final_comparison",
       "require_engineer_and_inspector_review"
     ],
+    "baselineRestartRule": "Any change to source obligations, mock export, ReportPlan, normalizer, reviewer, renderer or metrics invalidates prior model results and restarts at Candidate A.",
     "optimizerMayRead": [
       "development_inputs",
       "development_gold_after_generation",
@@ -137,7 +180,13 @@
     "unapproved_draft",
     "kb_snapshot_hash_integrity",
     "dependency_tamper_rejection",
-    "cross_agent_isolation"
+    "cross_agent_isolation",
+    "knowledge_bundle_minimum_population",
+    "knowledge_evaluation_lineage_separation",
+    "role_projection_hash_binding",
+    "target_gold_structure_exclusion",
+    "report_plan_bundle_conformance",
+    "accepted_non_target_variation"
   ],
   "metrics": [
     "critical_integrity_blockers",
@@ -152,13 +201,19 @@
     "output_length_variance",
     "format_export_readiness",
     "inspector_review_outcome",
-    "leakage_findings"
+    "leakage_findings",
+    "knowledge_source_population_qualification",
+    "knowledge_evaluation_lineage_overlap",
+    "generic_kb_pattern_conformance",
+    "target_report_meaning_recovery",
+    "target_report_format_similarity",
+    "accepted_non_target_variation"
   ],
   "freezeGates": {
     "criticalIntegrityBlockers": 0,
-    "protectedFactAccuracy": 1.0,
-    "entityLocationSideAccuracy": 1.0,
-    "polarityUncertaintyAccuracy": 1.0,
+    "protectedFactAccuracy": 1,
+    "entityLocationSideAccuracy": 1,
+    "polarityUncertaintyAccuracy": 1,
     "unsupportedCurrentClaims": 0,
     "criticalClarificationMisses": 0,
     "crossVariantSemanticStabilityMinimum": 0.95,
@@ -166,8 +221,20 @@
     "renderReviewRequired": true,
     "inspectorReviewRequired": true,
     "manifestAndDependencyHashesPinned": true,
-    "standardObligationPackPinned": true
+    "standardObligationPackPinned": true,
+    "knowledgeEvaluationLineageOverlap": 0,
+    "reportPlanBundleConformance": 1
   },
   "promotionPerformedByHarness": false,
-  "existingHarnessReferences": []
+  "existingHarnessReferences": [],
+  "knowledgeQualification": {
+    "minimumKnowledgeReferenceLineages": 10,
+    "coverageSaturationRequired": true,
+    "evaluationLineageOverlapAllowed": 0,
+    "sameBundleHashForAllRoles": true,
+    "roleSpecificProjectionRequired": true,
+    "rawSourcePassagesAtRuntimeAllowed": false,
+    "targetReportMayDefineGenericOutline": false,
+    "standardPackRemainsSeparate": true
+  }
 }

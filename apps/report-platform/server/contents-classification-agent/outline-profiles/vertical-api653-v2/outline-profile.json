@@ -1,0 +1,463 @@
+{
+  "contractVersion": "vertical_api653_outline_profile_v2",
+  "profileId": "vertical-api653-inspection-report-v2",
+  "status": "frozen_for_r_and_d_evaluation",
+  "productEnabled": false,
+  "purpose": "Define the canonical section/block label space used by evidence classification; it does not create the report table of contents.",
+  "sourceBasis": {
+    "reviewedProfilePath": "docs/design/vertical-tank-inspection-v1.json",
+    "reviewedProfileSha256": "2a8a2e5c93c46551545657bbf048e1f195c6c6a06ec8b378db442a483c599dab",
+    "verticalReportsReviewed": 69,
+    "commonCoreCrossSectionReports": 16,
+    "commonCoreSections": 7,
+    "standardContext": "API 653 inspection-report family using a pinned local fifth-edition source through Addendum 2; product compliance remains blocked pending licensed review of later current-edition changes",
+    "historicalOutlineEvidencePath": "historical-outline-evidence.json",
+    "api653ObligationsPath": "api653-report-obligations.json",
+    "outlineReviewPath": "outline-review.json",
+    "broadKbEntriesReviewed": 166,
+    "broadKbUniqueSourceFiles": 162,
+    "broadKbExtractedSections": 6633,
+    "broadKbExtractedChunks": 14393
+  },
+  "rules": {
+    "classificationBeforeFinalToc": true,
+    "reportStructureAgentOwnsFinalToc": true,
+    "multiSectionLabelsAllowed": true,
+    "sectionAndBlockRequiredForEveryRoutedUse": true,
+    "unknownOrAmbiguous": "needs_review",
+    "historicalFrequencyDoesNotProveApplicability": true,
+    "emptyConditionalSectionsEmitted": false,
+    "evaluationVocabularyFrozen": true,
+    "productUseRequiresCurrentStandardReview": true,
+    "informativeChecklistCannotCreateNormativeObligation": true,
+    "corrosionRateAndRemainingLifeRequireVerifiedInputsAndCalculation": true
+  },
+  "routingDefinitions": {
+    "purpose": "Resolve section/block boundaries for evidence classification. These definitions do not create report facts or select the final table of contents.",
+    "generalTankInformation": {
+      "identity": [
+        "client",
+        "client representative",
+        "job number",
+        "tank number",
+        "inspection or completion date",
+        "location",
+        "field or lease name"
+      ],
+      "configuration": [
+        "year built",
+        "service height",
+        "tank dimensions",
+        "roof type",
+        "manufacturer"
+      ],
+      "design-data": [
+        "shell joint or construction type",
+        "construction standard",
+        "material specification",
+        "design pressure",
+        "design temperature",
+        "specific gravity",
+        "stored product",
+        "drawing reference with its subject"
+      ],
+      "inspection-history": [
+        "previous inspection",
+        "repair or alteration history",
+        "re-bottoming history"
+      ],
+      "compoundClaimRule": "Split a construction fact and a later repair, alteration, inspection, or re-bottoming event into separate atoms before classification."
+    },
+    "recommendations": {
+      "explicitActionPrecedence": "An explicit proposed action routes to repair-recommendations/recommendations even when the same claim cites an API clause or other technical basis.",
+      "basisOnly": "Use repair-recommendations/basis only when the claim explains justification and contains no proposed action.",
+      "monitoring": "An explicit instruction to monitor, recheck, or reassess routes to repair-recommendations/timing-and-monitoring."
+    },
+    "inspectionComponents": {
+      "earthPointAttachedToShell": "inspection-report/shell-appurtenances",
+      "foundationOrEarthingSystemWithoutShellAttachment": "inspection-report/foundation",
+      "pipeSupportInDikedArea": "inspection-report/diked-area",
+      "pipeSupportAttachedToShell": "inspection-report/shell-appurtenances"
+    },
+    "testInformation": {
+      "calibrationStandardOrProcedure": "test-information/methods",
+      "namedInstrumentOrCalibrationBlock": "test-information/equipment",
+      "acceptanceCriterion": "test-information/methods when the governing test or structured test-field context is preserved; otherwise needs_review"
+    },
+    "missingContext": {
+      "componentOrLocation": "Return zero uses with needs_review when the component or location changes the owner and cannot be resolved from the atom metadata.",
+      "drawingReference": "A drawing number requires its subject or structured field provenance.",
+      "manufacturer": "Preserve the field cue and value; a generic organization noun is insufficient."
+    }
+  },
+  "sections": [
+    {
+      "canonicalOrder": 1,
+      "sectionId": "scope-of-inspection",
+      "title": "SCOPE OF INSPECTION",
+      "class": "common_core",
+      "outputMode": "evidence_bound_narrative_and_scope_list",
+      "blocks": [
+        "identity",
+        "scope",
+        "methods",
+        "limitations",
+        "references"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 2,
+      "sectionId": "inspection-maintenance-regime",
+      "title": "INSPECTION AND MAINTENANCE REGIME",
+      "class": "common_core",
+      "outputMode": "approved_controlled_template_ai_disabled",
+      "blocks": [
+        "history",
+        "regime",
+        "limitations"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 3,
+      "sectionId": "general-tank-information",
+      "title": "GENERAL TANK INFORMATION",
+      "class": "common_core",
+      "outputMode": "deterministic_labelled_fields",
+      "blocks": [
+        "identity",
+        "configuration",
+        "design-data",
+        "inspection-history",
+        "inspection-details",
+        "inspector-certification"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 4,
+      "sectionId": "inspection-report",
+      "title": "INSPECTION REPORT",
+      "class": "common_core",
+      "outputMode": "evidence_bound_component_findings",
+      "blocks": [
+        "inspection-extent",
+        "diked-area",
+        "foundation",
+        "shell-external",
+        "shell-appurtenances",
+        "access-structures",
+        "roof-external",
+        "roof-appurtenances",
+        "roof-internal",
+        "shell-internal",
+        "floor-internal",
+        "deficiencies",
+        "assessment-summaries",
+        "inspection-implication"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 5,
+      "sectionId": "repair-recommendations",
+      "title": "REPAIR RECOMMENDATIONS / API 653 ASSESSMENT",
+      "class": "common_core",
+      "outputMode": "inspector_approved_actions",
+      "blocks": [
+        "recommendations",
+        "basis",
+        "timing-and-monitoring",
+        "inspection-interval-basis",
+        "limitations"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 6,
+      "sectionId": "test-information",
+      "title": "TEST INFORMATION",
+      "class": "common_core",
+      "outputMode": "deterministic_test_records_with_bounded_wording",
+      "blocks": [
+        "methods",
+        "equipment",
+        "results",
+        "limitations"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": 7,
+      "sectionId": "tank-inspection-checklist",
+      "title": "TANK INSPECTION CHECKLIST",
+      "class": "common_core",
+      "outputMode": "deterministic_native_checklist_grid",
+      "blocks": [
+        "legend",
+        "checklist",
+        "notes"
+      ],
+      "applicability": "review_required_for_report_plan"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "roof-plate-thickness-measurements",
+      "title": "ROOF PLATE THICKNESS MEASUREMENTS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "layout-reference"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "roof-nozzle-reinforcement-pad-thickness-measurements",
+      "title": "ROOF NOZZLE & REINFORCEMENT PAD THICKNESS MEASUREMENTS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "layout-reference"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "roof-plate-layout",
+      "title": "ROOF PLATE LAYOUT",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "layout",
+        "legend",
+        "references"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "minimum-shell-thickness-calculations",
+      "title": "MINIMUM SHELL THICKNESS CALCULATIONS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "inputs",
+        "calculations",
+        "limitations"
+      ],
+      "currentEvidenceSource": "report_platform_calculation",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "shell-plate-thickness-measurements",
+      "title": "SHELL PLATE THICKNESS MEASUREMENTS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "layout-reference"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "shell-nozzle-reinforcement-pad-thickness-measurements",
+      "title": "SHELL NOZZLE & REINFORCEMENT PAD THICKNESS MEASUREMENTS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "layout-reference"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "shell-plate-layout",
+      "title": "SHELL PLATE LAYOUT",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "layout",
+        "legend",
+        "references"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "shell-settlement",
+      "title": "SHELL SETTLEMENT",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "graph",
+        "limitations"
+      ],
+      "currentEvidenceSource": "conditional_native_input",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "corrosion-rate-and-remaining-life-assessment",
+      "title": "CORROSION RATE AND REMAINING LIFE ASSESSMENT",
+      "class": "conditional_technical",
+      "outputMode": "verified_calculation_and_reviewed_assessment",
+      "blocks": [
+        "basis",
+        "inputs",
+        "corrosion-rates",
+        "remaining-life",
+        "inspection-interval",
+        "limitations"
+      ],
+      "currentEvidenceSource": "report_platform_calculation_from_confirmed_historical_and_current_measurements",
+      "applicability": "when_required_inputs_are_available_and_assessment_is_in_scope"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "photographs",
+      "title": "PHOTOGRAPHS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "photographs",
+        "captions",
+        "references"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "floor-plate-layout",
+      "title": "FLOOR PLATE LAYOUT WITH PLATE NUMBERING SYSTEM",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "layout",
+        "legend",
+        "aliases"
+      ],
+      "currentEvidenceSource": "app_export",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "tru-flux-interpretation-guidelines",
+      "title": "GUIDELINES FOR THE INTERPRETATION OF THE TRU-FLUX DATA SHEETS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "controlled-guidance",
+        "references"
+      ],
+      "currentEvidenceSource": "external_controlled_source",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "mfl-plate-maps",
+      "title": "MFL PLATE MAPS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "external-document",
+        "plate-map",
+        "references"
+      ],
+      "currentEvidenceSource": "external_pdf_upload",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "floor-corrosion-plan",
+      "title": "FLOOR PLATE CORROSION PLAN",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "layout",
+        "corrosion-overlay",
+        "legend"
+      ],
+      "currentEvidenceSource": "external_mfl_plus_layout",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "b-scan-profiles",
+      "title": "B-SCAN PROFILES",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "external-document",
+        "profiles",
+        "references"
+      ],
+      "currentEvidenceSource": "external_pdf_upload",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "tank-piping-spot-thickness-measurements",
+      "title": "TANK PIPING SPOT THICKNESS MEASUREMENTS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "basis",
+        "measurements",
+        "layout-reference"
+      ],
+      "currentEvidenceSource": "conditional_native_input",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "tank-piping-layout",
+      "title": "TANK PIPING LAYOUT",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "layout",
+        "legend",
+        "references"
+      ],
+      "currentEvidenceSource": "conditional_native_input",
+      "applicability": "scope_method_input_and_release_dependent"
+    },
+    {
+      "canonicalOrder": null,
+      "sectionId": "floor-plate-individual-platemaps",
+      "title": "FLOOR PLATE INDIVIDUAL PLATEMAPS",
+      "class": "conditional_technical",
+      "outputMode": "native_or_deterministic",
+      "blocks": [
+        "external-document",
+        "plate-map",
+        "references"
+      ],
+      "currentEvidenceSource": "external_pdf_upload",
+      "applicability": "scope_method_input_and_release_dependent"
+    }
+  ],
+  "evaluationEnabled": true,
+  "frozenAt": "2026-10-15T00:00:00+08:00"
+}

@@ -1,0 +1,266 @@
+{
+  "contractVersion": "contents_classification_voice_note_cases_v1",
+  "datasetId": "classification-v9-hidden-raw-notes-20",
+  "datasetSplit": "hidden_test",
+  "evaluationRole": "final_hidden_qualification",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 20,
+  "cases": [
+    {
+      "caseId": "v9_hidden_note_001",
+      "lineageId": "asset:pacific-energy-swp-ltd:be51",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2",
+      "sourcePage": 4,
+      "sourceText": "Take at least five readings per accessible roof plate. Use an ultrasonic crawler at four compass points with at least five readings per strake.",
+      "voiceNote": "Take five or more readings from each roof plate that can be reached; run the ultrasonic crawler at four compass positions with at least five readings on every shell course.",
+      "expectedAtoms": [
+        {
+          "text": "Take five or more readings from each roof plate that can be reached",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        },
+        {
+          "text": "run the ultrasonic crawler at four compass positions with at least five readings on every shell course.",
+          "expectedUse": {
+            "sectionId": "scope-of-inspection",
+            "blockId": "methods"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_002",
+      "lineageId": "asset:pacific-energy-swp-ltd:be51",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1971 (Estimated). Product Stored: Jet A1.",
+      "voiceNote": "Build year is recorded as about 1971; service product is Jet A1.",
+      "expectedAtoms": [
+        {
+          "text": "Build year is recorded as about 1971",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "configuration"
+          }
+        },
+        {
+          "text": "service product is Jet A1.",
+          "expectedUse": {
+            "sectionId": "general-tank-information",
+            "blockId": "design-data"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_003",
+      "lineageId": "asset:pacific-energy-swp-ltd:be51",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2",
+      "sourcePage": 7,
+      "sourceText": "No standing water observed within the bund area. Earth grounding point attached to the tank North was satisfactory; the South one had perforation.",
+      "voiceNote": "Bund was dry with no standing water; the south grounding point fixed to the vessel is perforated.",
+      "expectedAtoms": [
+        {
+          "text": "Bund was dry with no standing water",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "diked-area"
+          }
+        },
+        {
+          "text": "the south grounding point fixed to the vessel is perforated.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-appurtenances"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_004",
+      "lineageId": "asset:pacific-energy-swp-ltd:be51",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2",
+      "sourcePage": 8,
+      "sourceText": "The external shell structure was visibly sound. Minor pitting up to about 1 mm was evident on the first shell course west sector.",
+      "voiceNote": "Outside wall structure looks sound overall; west side of the first course has minor pits up to roughly 1 mm.",
+      "expectedAtoms": [
+        {
+          "text": "Outside wall structure looks sound overall",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        },
+        {
+          "text": "west side of the first course has minor pits up to roughly 1 mm.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_005",
+      "lineageId": "asset:pacific-energy-swp-ltd:be51",
+      "sourceReport": "19PE1-7 TK BE 51 Internal & External Inspection Report.pdf",
+      "sourceSha256": "ebf1f46fcc0942e4d79ba3fc34d2ef0c4b3993e2f493aea4e53ddb03cb397dd2",
+      "sourcePage": 13,
+      "sourceText": "Blast, prepare and recoat the support bases and hold-down bolts. Replace the firewater line attached to the shell.",
+      "voiceNote": "Blast the support bases and hold-down bolts before recoating; replace the firewater pipe connected to the vessel wall.",
+      "expectedAtoms": [
+        {
+          "text": "Blast the support bases and hold-down bolts before recoating",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        },
+        {
+          "text": "replace the firewater pipe connected to the vessel wall.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_006",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca",
+      "sourcePage": 5,
+      "sourceText": "Floor projection was approximately 135 mm wide. The projection under the manhole access platform was not accessible for inspection.",
+      "voiceNote": "Outer bottom-plate projection is about 135 mm wide; the part below the manhole platform could not be accessed.",
+      "expectedAtoms": [
+        {
+          "text": "Outer bottom-plate projection is about 135 mm wide",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "foundation"
+          }
+        },
+        {
+          "text": "the part below the manhole platform could not be accessed.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "foundation"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_007",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca",
+      "sourcePage": [
+        5,
+        6
+      ],
+      "sourceText": "Shell external was visually inspected from ground. Several shell-mounted stairway treads were welded within shell plate butt-welded joints.",
+      "voiceNote": "I viewed the outside wall from ground level; several stair treads are welded across the plate butt joints.",
+      "expectedAtoms": [
+        {
+          "text": "I viewed the outside wall from ground level",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "shell-external"
+          }
+        },
+        {
+          "text": "several stair treads are welded across the plate butt joints.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "access-structures"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_008",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca",
+      "sourcePage": [
+        6,
+        7
+      ],
+      "sourceText": "Moderate ponding was observed on the roof deck. The roof drain sump was flooded and visual inspection was not possible.",
+      "voiceNote": "There is moderate water ponding on the deck; the drain sump is flooded so I could not inspect it visually.",
+      "expectedAtoms": [
+        {
+          "text": "There is moderate water ponding on the deck",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        },
+        {
+          "text": "the drain sump is flooded so I could not inspect it visually.",
+          "expectedUse": {
+            "sectionId": "inspection-report",
+            "blockId": "roof-external"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_009",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca",
+      "sourcePage": 16,
+      "sourceText": "Inspect the floor projection under the manhole access platform. Recoat the weathered external shell paint.",
+      "voiceNote": "Inspect the projection below the manhole platform; recoat the weathered paint on the outside wall.",
+      "expectedAtoms": [
+        {
+          "text": "Inspect the projection below the manhole platform",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        },
+        {
+          "text": "recoat the weathered paint on the outside wall.",
+          "expectedUse": {
+            "sectionId": "repair-recommendations",
+            "blockId": "recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "v9_hidden_note_010",
+      "lineageId": "asset:shell-eastern-petroleum-pte-ltd:28",
+      "sourceReport": "20SE1-1 Shell Bukom TK 28 Internal Inspection Report.pdf",
+      "sourceSha256": "eaefc87f259b27fa129e0ca592b14facd98a940f0836d34f200a76e1830faeca",
+      "sourcePage": 20,
+      "sourceText": "Flaw Detector: Epoch 4 (S/N IRS 3167). Calibration Standard: A.S. 2083 Calibration Blocks and Their Method of Use in Ultrasonic Testing.",
+      "voiceNote": "Used the Epoch 4 unit IRS 3167; calibration followed the prescribed AS 2083 ultrasonic block procedure.",
+      "expectedAtoms": [
+        {
+          "text": "Used the Epoch 4 unit IRS 3167",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "equipment"
+          }
+        },
+        {
+          "text": "calibration followed the prescribed AS 2083 ultrasonic block procedure.",
+          "expectedUse": {
+            "sectionId": "test-information",
+            "blockId": "methods"
+          }
+        }
+      ]
+    }
+  ]
+}

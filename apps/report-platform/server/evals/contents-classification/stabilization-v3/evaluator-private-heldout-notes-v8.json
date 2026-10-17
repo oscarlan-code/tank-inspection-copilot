@@ -1,0 +1,140 @@
+{
+  "contractVersion": "contents_classification_voice_note_cases_v1",
+  "datasetId": "classification-v8-heldout-raw-notes-20",
+  "datasetSplit": "validation",
+  "evaluationRole": "held_out_end_to_end_validation",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "expectedAtomCount": 20,
+  "cases": [
+    {
+      "caseId": "v8_note_001",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 4,
+      "sourceText": "Take at least five readings per accessible roof plate. Use an ultrasonic crawler at four compass points with at least five readings per strake.",
+      "voiceNote": "Take at least five UT points on every roof plate we can access; run the shell crawler at four compass positions with five or more readings per strake.",
+      "expectedAtoms": [
+        { "text": "Take at least five UT points on every roof plate we can access", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } },
+        { "text": "run the shell crawler at four compass positions with five or more readings per strake.", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_002",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1970; Roof Type: Fixed Cone Roof",
+      "voiceNote": "The recorded construction year is 1970, and the roof type is fixed cone.",
+      "expectedAtoms": [
+        { "text": "The recorded construction year is 1970", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } },
+        { "text": "the roof type is fixed cone.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_003",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 7,
+      "sourceText": "Site drain contained minor debris and standing water. Tank shoulder concrete had minor cracks.",
+      "voiceNote": "The site drain contains a little debris and standing water; the concrete tank shoulder has minor cracking.",
+      "expectedAtoms": [
+        { "text": "The site drain contains a little debris and standing water", "expectedUse": { "sectionId": "inspection-report", "blockId": "diked-area" } },
+        { "text": "the concrete tank shoulder has minor cracking.", "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_004",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 7,
+      "sourceText": "Edge projection coating failed with light leading-edge corrosion. Earth point attached to tank shell was satisfactory.",
+      "voiceNote": "The external floor projection has coating failure and light edge corrosion; the earth point fixed to the shell is satisfactory.",
+      "expectedAtoms": [
+        { "text": "The external floor projection has coating failure and light edge corrosion", "expectedUse": { "sectionId": "inspection-report", "blockId": "foundation" } },
+        { "text": "the earth point fixed to the shell is satisfactory.", "expectedUse": { "sectionId": "inspection-report", "blockId": "shell-appurtenances" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_005",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 10,
+      "sourceText": "Roof internal was inspected from tank bottom. Roof underside was uncoated with general surface corrosion.",
+      "voiceNote": "I viewed the roof interior from the tank bottom; the roof underside is uncoated with general surface corrosion.",
+      "expectedAtoms": [
+        { "text": "I viewed the roof interior from the tank bottom", "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-internal" } },
+        { "text": "the roof underside is uncoated with general surface corrosion.", "expectedUse": { "sectionId": "inspection-report", "blockId": "roof-internal" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_006",
+      "lineageId": "asset:pacific-energy-swp-ltd:v9",
+      "sourceReport": "22PE1-3 TK V9 Internal & External Inspection Report.pdf",
+      "sourceSha256": "1fa41dcdabd924c6364ff91d714d1bd01d1ac75f99aee147237b58ffe62f181a",
+      "sourcePage": 11,
+      "sourceText": "MFL and UT backup showed most bottom plate areas at 7.5 to 9.5 mm. Centre sump contained debris and was not adequately cleaned.",
+      "voiceNote": "Floor MFL with UT backup shows 7.5 to 9.5 mm over most bottom plates; the centre sump still contains debris and was not cleaned well enough for full inspection.",
+      "expectedAtoms": [
+        { "text": "Floor MFL with UT backup shows 7.5 to 9.5 mm over most bottom plates", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } },
+        { "text": "the centre sump still contains debris and was not cleaned well enough for full inspection.", "expectedUse": { "sectionId": "inspection-report", "blockId": "floor-internal" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_007",
+      "lineageId": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289",
+      "sourcePage": 4,
+      "sourceText": "Perform roundness inspection on the tank shell. Perform shell settlement survey at 12 evenly spaced stations.",
+      "voiceNote": "Measure shell roundness at the specified rings and stations; survey settlement at twelve evenly spaced positions around the shell.",
+      "expectedAtoms": [
+        { "text": "Measure shell roundness at the specified rings and stations", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } },
+        { "text": "survey settlement at twelve evenly spaced positions around the shell.", "expectedUse": { "sectionId": "scope-of-inspection", "blockId": "methods" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_008",
+      "lineageId": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 2002; Product Stored: Condensate and water",
+      "voiceNote": "The tank was constructed in 2002; stored service is condensate and water.",
+      "expectedAtoms": [
+        { "text": "The tank was constructed in 2002", "expectedUse": { "sectionId": "general-tank-information", "blockId": "configuration" } },
+        { "text": "stored service is condensate and water.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "design-data" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_009",
+      "lineageId": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289",
+      "sourcePage": 6,
+      "sourceText": "Previous Inspection History - External: Not Provided; Internal: Not Provided; Bottom: Not Provided",
+      "voiceNote": "There is no supplied external inspection history; earlier internal and bottom inspection records are also unavailable.",
+      "expectedAtoms": [
+        { "text": "There is no supplied external inspection history", "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" } },
+        { "text": "earlier internal and bottom inspection records are also unavailable.", "expectedUse": { "sectionId": "general-tank-information", "blockId": "inspection-history" } }
+      ]
+    },
+    {
+      "caseId": "v8_note_010",
+      "lineageId": "asset:petronas-carigali-sdn-bhd:t-4680",
+      "sourceReport": "16RS1-2 - TK 4680 Survey Inspection Report (Ria Report Format).pdf",
+      "sourceSha256": "4816884856b477ca600541bc138b156a22c5e80c8535766e3b8fe9adc7146289",
+      "sourcePage": [8, 17],
+      "sourceText": "Maximum out-of-plane deflection was 2.062 mm against Smax 2.533 mm. No repairs were needed for the dimensional condition.",
+      "voiceNote": "Maximum shell out-of-plane deflection is 2.062 mm against a 2.533 mm limit; no dimensional repair is required from these survey results.",
+      "expectedAtoms": [
+        { "text": "Maximum shell out-of-plane deflection is 2.062 mm against a 2.533 mm limit", "expectedUse": { "sectionId": "shell-settlement", "blockId": "measurements" } },
+        { "text": "no dimensional repair is required from these survey results.", "expectedUse": { "sectionId": "repair-recommendations", "blockId": "recommendations" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "contractVersion": "contents_classification_release_registry_v1",
+  "entries": [
+    {
+      "releaseId": "contents-classification-evaluation-v1",
+      "releaseVersion": "v1",
+      "candidateId": "contents-classification-v10",
+      "releasePath": "releases/evaluation/v1",
+      "manifestSha256": "5417a26d315ca4b31962414a0af94104e8432c8cebc3603bdd6f90c824677a0a",
+      "qualifiedCandidateFingerprintSha256": "f612872980fe52795930a879e36a05217b0bd3f0067f065ece1f9ff4a719690a",
+      "releaseRuntimeFingerprintSha256": "64f3e93d91bc0bf1c92b8afe095eacc844f3c01528b23e8c8f0f376656533181",
+      "executionModes": [
+        "evaluation"
+      ],
+      "humanReviewRequired": true,
+      "productEnabled": false
+    }
+  ]
+}

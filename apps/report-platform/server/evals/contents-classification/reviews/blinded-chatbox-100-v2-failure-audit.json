@@ -1,0 +1,153 @@
+{
+  "contractVersion": "contents_classification_failure_audit_v1",
+  "evaluationOnly": true,
+  "datasetId": "blinded-chatbox-100-v2",
+  "predictionHash": "4c2c88350d6ca4dec793934f78d0998a55107e9485543989f6a6f28138dd9107",
+  "resultHash": "978ca93b0e47bb8c50b12aa2e7dbb5848c08773000bedc1ab74401ae9bc3f362",
+  "auditDate": "2026-10-16",
+  "auditState": "engineering_triage_complete_gold_unchanged",
+  "scoreAdjustmentApplied": false,
+  "summary": {
+    "mismatchRows": 19,
+    "uniqueIssueGroups": 14,
+    "goldLabelReview": 6,
+    "outlineBoundary": 6,
+    "inputContextLoss": 6,
+    "classifierError": 1
+  },
+  "rows": [
+    {
+      "challengeId": "challenge_003",
+      "category": "input_context_loss",
+      "issueGroupId": "mixed-year-built-and-rebottom-history",
+      "rationale": "One sentence combines original construction data with a later re-bottoming event, but the evaluator permits only one block.",
+      "recommendedAction": "Split construction year and re-bottoming history into separate atoms before classification."
+    },
+    {
+      "challengeId": "challenge_004",
+      "category": "gold_label_review",
+      "issueGroupId": "completed-repair-marking-status",
+      "rationale": "The sentence reports that repair locations were already marked; it does not directly propose a repair action.",
+      "recommendedAction": "Ask the domain reviewer whether this is inspection extent/status evidence rather than a repair recommendation."
+    },
+    {
+      "challengeId": "challenge_008",
+      "category": "outline_boundary",
+      "issueGroupId": "service-height-boundary",
+      "rationale": "Service height can reasonably be read as either physical configuration or design/operating data.",
+      "recommendedAction": "Define service height explicitly in one General Tank Information block and add it to the outline glossary."
+    },
+    {
+      "challengeId": "challenge_010",
+      "category": "input_context_loss",
+      "issueGroupId": "acceptance-criterion-without-test-context",
+      "rationale": "The standalone sentence names an acceptance standard but does not say which test it governs, making Scope references and Test Information methods both plausible.",
+      "recommendedAction": "Preserve the test name or structured field context when converting an acceptance-criterion record into voice evidence."
+    },
+    {
+      "challengeId": "challenge_013",
+      "category": "outline_boundary",
+      "issueGroupId": "shell-construction-boundary",
+      "rationale": "Butt-welded shell construction fits both configuration and design-data under the current profile.",
+      "recommendedAction": "Assign shell joint/construction type to one canonical block and state that rule in the outline profile."
+    },
+    {
+      "challengeId": "challenge_020",
+      "category": "classifier_error",
+      "issueGroupId": "action-overweighted-as-basis",
+      "rationale": "The sentence contains an explicit 'should' action. The classifier routed it to basis because it also cites API 650.",
+      "recommendedAction": "Add a development rule that an explicit proposed action takes priority over its cited technical basis."
+    },
+    {
+      "challengeId": "challenge_024",
+      "category": "outline_boundary",
+      "issueGroupId": "year-built-boundary",
+      "rationale": "Year built is treated as configuration by the gold label but is also a conventional design-data field.",
+      "recommendedAction": "Choose a canonical block for year built and apply it consistently to gold data and the classifier glossary."
+    },
+    {
+      "challengeId": "challenge_026",
+      "category": "outline_boundary",
+      "issueGroupId": "year-built-boundary",
+      "rationale": "Year built is treated as configuration by the gold label but is also a conventional design-data field.",
+      "recommendedAction": "Choose a canonical block for year built and apply it consistently to gold data and the classifier glossary."
+    },
+    {
+      "challengeId": "challenge_035",
+      "category": "outline_boundary",
+      "issueGroupId": "shell-construction-boundary",
+      "rationale": "Butt-welded shell construction fits both configuration and design-data under the current profile.",
+      "recommendedAction": "Assign shell joint/construction type to one canonical block and state that rule in the outline profile."
+    },
+    {
+      "challengeId": "challenge_038",
+      "category": "input_context_loss",
+      "issueGroupId": "pipe-support-location-missing",
+      "rationale": "The sentence says only that pipe supports were perforated; it omits whether the supports are in the diked area or attached to the shell.",
+      "recommendedAction": "Require component location or parent layout identity in the mock voice atom."
+    },
+    {
+      "challengeId": "challenge_039",
+      "category": "gold_label_review",
+      "issueGroupId": "monitoring-recommendation-specificity",
+      "rationale": "The operative instruction is to monitor buckling, so timing-and-monitoring is more specific than the generic recommendations block.",
+      "recommendedAction": "Ask the domain reviewer whether the gold block should be timing-and-monitoring."
+    },
+    {
+      "challengeId": "challenge_048",
+      "category": "input_context_loss",
+      "issueGroupId": "manufacturer-value-generalized-away",
+      "rationale": "The rephrase changed a named manufacturer into the generic phrase 'a corporation', removing the useful field value.",
+      "recommendedAction": "Preserve the manufacturer value or replace it with a stable neutral alias while retaining the Original Manufacturer field cue."
+    },
+    {
+      "challengeId": "challenge_049",
+      "category": "input_context_loss",
+      "issueGroupId": "patch-component-missing",
+      "rationale": "Area 1 and a compass location do not establish whether the overlapping patches belong to the shell or floor.",
+      "recommendedAction": "Preserve the component identity when rephrasing localized patch observations."
+    },
+    {
+      "challengeId": "challenge_050",
+      "category": "gold_label_review",
+      "issueGroupId": "earth-point-component-route",
+      "rationale": "The sentence explicitly describes an earth point attached to the shell, while the gold label routes it to foundation.",
+      "recommendedAction": "Confirm whether earthing points are canonically foundation items or shell appurtenances, then correct the shared gold rule."
+    },
+    {
+      "challengeId": "challenge_069",
+      "category": "gold_label_review",
+      "issueGroupId": "earth-point-component-route",
+      "rationale": "The sentence explicitly describes an earth point attached to the shell, while the gold label routes it to foundation.",
+      "recommendedAction": "Confirm whether earthing points are canonically foundation items or shell appurtenances, then correct the shared gold rule."
+    },
+    {
+      "challengeId": "challenge_077",
+      "category": "outline_boundary",
+      "issueGroupId": "shell-construction-boundary",
+      "rationale": "Butt-welded shell construction fits both configuration and design-data under the current profile.",
+      "recommendedAction": "Assign shell joint/construction type to one canonical block and state that rule in the outline profile."
+    },
+    {
+      "challengeId": "challenge_080",
+      "category": "input_context_loss",
+      "issueGroupId": "drawing-subject-missing",
+      "rationale": "A drawing number without its subject can be report design data or a scope/reference document.",
+      "recommendedAction": "Preserve the drawing subject or originating structured field when creating the mock voice atom."
+    },
+    {
+      "challengeId": "challenge_082",
+      "category": "gold_label_review",
+      "issueGroupId": "calibration-standard-route",
+      "rationale": "A calibration standard describes the testing method or governing procedure rather than the equipment itself.",
+      "recommendedAction": "Ask the domain reviewer whether the gold block should be Test Information methods."
+    },
+    {
+      "challengeId": "challenge_089",
+      "category": "gold_label_review",
+      "issueGroupId": "earth-point-component-route",
+      "rationale": "The sentence explicitly describes an earth point attached to the shell, while the gold label routes it to foundation.",
+      "recommendedAction": "Confirm whether earthing points are canonically foundation items or shell appurtenances, then correct the shared gold rule."
+    }
+  ]
+}

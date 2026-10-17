@@ -1,0 +1,35 @@
+{
+  "packageType": "v3_product_export",
+  "schemaVersion": 3,
+  "unitProfile": {"thicknessUnit":"mm"},
+  "inspectionId": "router-fixture-1",
+  "inspectionRecord": {
+    "client": "Example Client",
+    "tankNumber": "T-101",
+    "location": "Example Yard",
+    "diameterM": 10,
+    "heightM": 12,
+    "shellCourseCount": 3,
+    "generalTankInformation": {
+      "client": "Example Client",
+      "tankNumber": "T-101",
+      "location": "Example Yard",
+      "jobNo": "JOB-101",
+      "clientRepresentative": "Example Representative",
+      "materialSpec": "Carbon Steel",
+      "previousExternal": "Not provided"
+    }
+  },
+  "inspectionChecklistItems": [
+    {"inspectionId":"router-fixture-1","sectionKey":"shell_external","sectionTitle":"Shell External","itemNumber":7,"itemPrompt":"External shell condition","ratingKey":"3","ratingLabel":"Action Required"}
+  ],
+  "utMeasurements": [
+    {"inspectionId":"router-fixture-1","itemKey":"shell:course:1:lane:n","targetKey":"shell","itemLabel":"Course 1 North","itemKind":"LAYOUT_REGION","measured":true,"value1":6.2,"value2":6.1}
+  ],
+  "voiceNotes": [
+    {"inspectionId":"router-fixture-1","voiceNoteId":"voice-1","relativePath":"fixture/voice-1.m4a","screenKey":"checklist","cardKey":"checklist_item","fieldKey":"checklist_item_note","itemKey":"checklist:7","transcriptStatus":"ready","transcriptText":"Observation: Coating is locally broken near the north manway. Recommended action: Prepare and recoat the affected area."}
+  ],
+  "attachments": [
+    {"inspectionId":"router-fixture-1","attachmentId":"audio-1","findingId":"checklist","kind":"voice_audio","relativePath":"fixture/voice-1.m4a","displayName":"voice-1.m4a","mediaType":"audio/mp4","fileExists":true}
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "contractVersion": "source_mock_semantic_matrix_v1",
+  "caseId": "example-case",
+  "semanticUnits": [
+    {
+      "sourceUnitId": "source-unit-shell-coating-01",
+      "semanticKey": "shell.external.coating_condition",
+      "unitType": "observation",
+      "criticality": "required",
+      "appCapability": "capturable",
+      "sourceObligationIds": [
+        "source-block-101",
+        "source-block-102"
+      ],
+      "protectedFacts": {
+        "entity": "shell",
+        "inspectionSide": "external",
+        "location": "north side",
+        "polarity": "present",
+        "condition": "local coating failure",
+        "uncertainty": "none"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "variantId": "concise-field",
+      "rows": [
+        {
+          "sourceUnitId": "source-unit-shell-coating-01",
+          "mockEvidenceRefs": [
+            "findings/0/voiceTranscript"
+          ],
+          "semanticVerdict": "preserved",
+          "integrityVerdict": "pass",
+          "unsupportedAdditionCount": 0,
+          "reviewed": true,
+          "grader": {
+            "type": "human",
+            "id": "independent-mock-reviewer",
+            "version": "1.0.0"
+          },
+          "explanation": "The note uses field wording while preserving component, side, location, condition and polarity."
+        }
+      ]
+    }
+  ]
+}

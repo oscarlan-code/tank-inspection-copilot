@@ -1,0 +1,113 @@
+{
+  "contractVersion": "contents_classification_qualification_record_v1",
+  "candidateId": "contents-classification-v10",
+  "candidateFingerprintSha256": "f612872980fe52795930a879e36a05217b0bd3f0067f065ece1f9ff4a719690a",
+  "atomizerId": "evidence-atomizer-v5",
+  "evaluationRole": "final_hidden_qualification",
+  "executionPolicy": "single_hidden_run_no_tuning_on_result",
+  "evaluationPolicy": "strict_section_route_tolerant_within_section_block_v1",
+  "gates": {
+    "maximumWrongSectionRouteCount": 0,
+    "minimumSectionRoutePrecision": 1,
+    "minimumAutomaticSectionCoverage": 0.95,
+    "minimumCriticalSectionRecall": 1,
+    "minimumBlockExactAccuracy": 0.9
+  },
+  "stages": {
+    "development": {
+      "datasetId": "classification-v10-controlled-development-20",
+      "decision": "development_gate_passed",
+      "metrics": {
+        "total": 20,
+        "routedSectionCount": 20,
+        "correctSectionCount": 20,
+        "wrongSectionRouteCount": 0,
+        "sectionAbstentionCount": 0,
+        "sectionRoutePrecision": 1,
+        "automaticSectionCoverage": 1,
+        "sectionAccuracy": 1,
+        "criticalSectionCount": 10,
+        "criticalSectionRecall": 1,
+        "blockExactCount": 18,
+        "blockExactAccuracy": 0.9,
+        "blockReviewCount": 0,
+        "blockReviewRate": 0
+      }
+    },
+    "validation": {
+      "datasetId": "classification-v10-validation-context-20",
+      "decision": "validation_gate_passed",
+      "metrics": {
+        "total": 20,
+        "routedSectionCount": 20,
+        "correctSectionCount": 20,
+        "wrongSectionRouteCount": 0,
+        "sectionAbstentionCount": 0,
+        "sectionRoutePrecision": 1,
+        "automaticSectionCoverage": 1,
+        "sectionAccuracy": 1,
+        "criticalSectionCount": 10,
+        "criticalSectionRecall": 1,
+        "blockExactCount": 19,
+        "blockExactAccuracy": 0.95,
+        "blockReviewCount": 0,
+        "blockReviewRate": 0
+      },
+      "reportLineages": 2
+    },
+    "hiddenTest": {
+      "datasetId": "classification-v10-hidden-context-20",
+      "decision": "hidden_test_gate_passed",
+      "metrics": {
+        "total": 20,
+        "routedSectionCount": 20,
+        "correctSectionCount": 20,
+        "wrongSectionRouteCount": 0,
+        "sectionAbstentionCount": 0,
+        "sectionRoutePrecision": 1,
+        "automaticSectionCoverage": 1,
+        "sectionAccuracy": 1,
+        "criticalSectionCount": 12,
+        "criticalSectionRecall": 1,
+        "blockExactCount": 19,
+        "blockExactAccuracy": 0.95,
+        "blockReviewCount": 0,
+        "blockReviewRate": 0
+      },
+      "reportLineages": 2
+    }
+  },
+  "decision": "qualified_for_evaluation_release_human_review_required",
+  "leakageDecision": "passed",
+  "classificationGuardDecision": "passed",
+  "productEnabled": false,
+  "generationEligible": false,
+  "releaseConstraints": [
+    "All LLM classification proposals require human review before section evidence packages become generation eligible.",
+    "A wrong section remains a blocking failure; block uncertainty may remain inside the correct section for human review.",
+    "Candidate, atomizer, prompt, outline profile, model assignment, evaluator, and gates remain fingerprint-pinned.",
+    "Any behavior change requires a new candidate and new untouched validation and hidden-test lineages."
+  ],
+  "toleratedBlockDifferences": [
+    {
+      "caseId": "hidden10-003",
+      "sectionId": "inspection-report",
+      "expectedBlockId": "shell-appurtenances",
+      "predictedBlockId": "foundation",
+      "assessment": "Correct section retained; within-section block difference is inside the predeclared tolerance and remains reviewable."
+    }
+  ],
+  "artifacts": {
+    "developmentEvaluationPath": ".local/contents-classification-eval/section-first/contents-classification-v10/development-context-20/evaluation.json",
+    "developmentEvaluationSha256": "ac5a4f7149ae044e3e4a8bb6c34a83fd2780ab5cb11052f75f9ff5d52b14d9cf",
+    "validationEvaluationPath": ".local/contents-classification-eval/section-first/contents-classification-v10/validation-context-20/evaluation.json",
+    "validationEvaluationSha256": "df6df11a55441e5824b2442fc9e8e7356889cf8b3bbe08f6894d7f80fd1ca6c2",
+    "hiddenEvaluationPath": ".local/contents-classification-eval/section-first/contents-classification-v10/hidden-context-20/evaluation.json",
+    "hiddenEvaluationSha256": "d6ddc947ef08166c16459e11debe6489093849df6234269526016b06a804e5a5",
+    "hiddenRequestPreviewPath": ".local/contents-classification-eval/section-first/contents-classification-v10/hidden-context-20/request-preview.json",
+    "hiddenRequestPreviewSha256": "99bd5d1200f061f81d46c6d9175e7f793666d4f0872f48f4ee05d1da2a9f12d6",
+    "hiddenClassificationPath": ".local/contents-classification-eval/section-first/contents-classification-v10/hidden-context-20/classification.json",
+    "hiddenClassificationSha256": "5999192c1343fde5b92d36a8d6b7d89ef1e5b2d7cb80841cf05cf4ff29794cbd"
+  },
+  "recordedAtIso": "2026-10-16T23:54:09.699Z"
+}

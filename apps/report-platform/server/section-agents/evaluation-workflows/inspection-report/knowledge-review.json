@@ -1,0 +1,121 @@
+{
+  "contractVersion": "inspection_report_knowledge_review_v1",
+  "status": "engineering_review_complete_inspector_review_pending",
+  "profileId": "vertical_tank_inspection_v1",
+  "sectionId": "inspection-report",
+  "reviewedCandidateMemberSetSha256": "1c27b8103ba9935ad7debb97f82847e19d82b66318ce58d99516e5f9c19ff6bf",
+  "reviewedUnknownHeadingSetSha256": "447d2772b54b5ecd609b9179a7dced3612df57b5b2aeb43cf4227b3805d34b7e",
+  "reviewedAt": "2026-09-28T00:00:00.000Z",
+  "reviewer": {
+    "identity": "codex-engineering-assistant",
+    "authority": "engineering_workflow_calibration_only",
+    "inspectorApproval": "pending"
+  },
+  "headingPolicy": {
+    "acceptedCandidateHeadings": "all_sanitized_candidate_headings_except_explicit_exclusions",
+    "explicitExclusions": {
+      "floor-internal": [
+        "FLOOR INTERNAL (DISH SHAPED END CAP)"
+      ]
+    },
+    "valueBearingHeadingsRequirePlaceholders": true,
+    "unmappedHeadingDecision": "noncanonical_detail_heading_or_parser_noise",
+    "unmappedHeadingTextMayEnterBundle": false
+  },
+  "canonicalBlocks": [
+    {
+      "blockId": "diked-area",
+      "order": 1,
+      "variability": "conditional",
+      "preferredDisplayHeading": "DIKED AREA",
+      "applicability": "Include when containment, surroundings or drainage are within current scope and supported by current evidence."
+    },
+    {
+      "blockId": "foundation",
+      "order": 2,
+      "variability": "common",
+      "preferredDisplayHeading": "FOUNDATION",
+      "applicability": "Include when foundation or settlement-effect observations are within current scope and supported by current evidence."
+    },
+    {
+      "blockId": "shell-external",
+      "order": 3,
+      "variability": "common",
+      "preferredDisplayHeading": "SHELL EXTERNAL",
+      "applicability": "Include when the external shell was inspected or a current external shell limitation must be reported."
+    },
+    {
+      "blockId": "shell-appurtenances",
+      "order": 4,
+      "variability": "common",
+      "preferredDisplayHeading": "SHELL APPURTENANCES",
+      "applicability": "Include when shell nozzles, manways or fittings were inspected or have a current limitation."
+    },
+    {
+      "blockId": "access-structures",
+      "order": 5,
+      "variability": "common",
+      "preferredDisplayHeading": "ACCESS STRUCTURE",
+      "applicability": "Include when stairs, ladders, platforms or handrails were inspected or have a current limitation."
+    },
+    {
+      "blockId": "roof-external",
+      "order": 6,
+      "variability": "common",
+      "preferredDisplayHeading": "ROOF EXTERNAL",
+      "applicability": "Include when an external roof surface was inspected or its access limitation must be reported; select a configuration-supported heading."
+    },
+    {
+      "blockId": "roof-appurtenances",
+      "order": 7,
+      "variability": "conditional",
+      "preferredDisplayHeading": "ROOF APPURTENANCES",
+      "applicability": "Include when roof openings, nozzles, vents, gauge poles or related fittings are present in current evidence."
+    },
+    {
+      "blockId": "roof-internal",
+      "order": 8,
+      "variability": "conditional",
+      "preferredDisplayHeading": "ROOF INTERNAL",
+      "applicability": "Include when the roof underside or internal supports were inspected, or when their current inaccessibility is material."
+    },
+    {
+      "blockId": "shell-internal",
+      "order": 9,
+      "variability": "common",
+      "preferredDisplayHeading": "SHELL INTERNAL",
+      "applicability": "Include when the internal shell was inspected or a current internal-shell limitation must be reported."
+    },
+    {
+      "blockId": "floor-internal",
+      "order": 10,
+      "variability": "common",
+      "preferredDisplayHeading": "FLOOR INTERNAL",
+      "applicability": "Include when the floor, annular area, sump or shell-to-floor region was inspected or has a current limitation."
+    },
+    {
+      "blockId": "assessment-summaries",
+      "order": 11,
+      "variability": "common_when_approved_results_exist",
+      "preferredDisplayHeading": "CALCULATED CORROSION RATE",
+      "applicability": "Include only reviewed deterministic calculations or approved assessment summaries with complete protected inputs and units."
+    }
+  ],
+  "nestedPatternReview": {
+    "acceptedFamilies": [
+      "component_detail_subheading",
+      "location_or_strake_subheading",
+      "measurement_result_intro",
+      "before_after_repair_calculation_group",
+      "photo_figure_or_sketch_cross_reference"
+    ],
+    "currentValuesMayComeFromHistoricalPatterns": false,
+    "rawHistoricalSentencesMayEnterRuntimeProjection": false
+  },
+  "releaseDecision": {
+    "bundleMayBeFrozenForWorkflowCalibration": true,
+    "qualifiesGeneratorRelease": false,
+    "qualifiesProductPromotion": false,
+    "remainingApproval": "independent_inspector_review"
+  }
+}

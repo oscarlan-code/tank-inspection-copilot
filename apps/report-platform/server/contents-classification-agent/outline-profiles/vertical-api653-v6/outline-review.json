@@ -1,0 +1,75 @@
+{
+  "contractVersion": "vertical_outline_review_record_v6",
+  "profileId": "vertical-api653-inspection-report-v6",
+  "reviewedAt": "2026-10-16T00:00:00+08:00",
+  "reviewer": "codex-outline-audit-v6",
+  "reviewerType": "engineering_artifact_review",
+  "decision": "approved_for_classification_evaluation_with_product_blocker",
+  "evaluationUseApproved": true,
+  "productUseApproved": false,
+  "humanDomainApprovalRecorded": false,
+  "scope": [
+    "classification section vocabulary",
+    "section block vocabulary",
+    "multi-label classification target space",
+    "historical and standard evidence traceability",
+    "reviewed routing ownership definitions"
+  ],
+  "notApproved": [
+    "final per-report table of contents",
+    "API compliance certification",
+    "product runtime routing",
+    "section prose generation"
+  ],
+  "decisions": {
+    "commonCoreSections": {
+      "status": "approved_for_evaluation",
+      "count": 7
+    },
+    "conditionalTechnicalSections": {
+      "status": "approved_for_evaluation",
+      "count": 18
+    },
+    "sectionAliases": {
+      "status": "approved_for_evaluation_from_reviewed_KB"
+    },
+    "blockDefinitions": {
+      "status": "approved_for_evaluation"
+    },
+    "currentEvidenceSources": {
+      "status": "approved_with_runtime_capability_checks"
+    },
+    "knownExclusions": {
+      "status": "approved",
+      "items": [
+        "empty conditional sections",
+        "invented current facts",
+        "target gold at runtime",
+        "automatic use of external MFL or B-scan PDFs without authenticated upload"
+      ]
+    },
+    "routingDefinitions": {
+      "status": "approved_for_evaluation_pending_domain_adjudication_of_flagged_gold_labels",
+      "changes": [
+        "missing_inspection_history_status",
+        "completed_component_access_limitation",
+        "external_floor_projection_ownership",
+        "side_sump_and_attached_internal_piping_ownership",
+        "shell_settlement_measurement_ownership"
+      ]
+    }
+  },
+  "productBlocker": {
+    "id": "api653-current-revision-gap",
+    "status": "open",
+    "reason": "The reviewed local API 653 source stops at Addendum 2, while the official 2026 effectivity sheet also lists Addendum 3 and Errata 2.",
+    "closeCondition": "Licensed current revisions are reviewed by a qualified domain reviewer and the outline obligations are reconciled."
+  },
+  "freeze": {
+    "immutable": true,
+    "changePolicy": "Create vertical-api653-v7 for later semantic changes; do not edit this v6 after acceptance except to repair a demonstrable integrity defect.",
+    "sectionCount": 25,
+    "commonCoreCount": 7,
+    "conditionalTechnicalCount": 18
+  }
+}

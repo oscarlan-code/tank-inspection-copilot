@@ -1,0 +1,15 @@
+{
+  "contractVersion": "section_evaluation_agent_spec_v1",
+  "evaluatorId": "section_evaluator",
+  "releaseVersion": "evaluator_v2",
+  "sectionId": "general-tank-information",
+  "profileId": "vertical_tank_inspection_v1",
+  "generatorReleaseVersion": "general_tank_information_v3",
+  "reviewerReleaseVersion": "reviewer_v2",
+  "goldPolicy": "sealed_and_opened_after_generation",
+  "semanticJudge": "injected_bounded_llm",
+  "deterministicFallback": "awaiting_semantic_judge",
+  "affectsUserVisibility": false,
+  "canApprove": false,
+  "canPromote": false
+}

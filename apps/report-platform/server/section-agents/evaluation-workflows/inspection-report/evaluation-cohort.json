@@ -1,0 +1,95 @@
+{
+  "contractVersion": "inspection_report_evaluation_cohort_v2",
+  "status": "frozen",
+  "sectionId": "inspection-report",
+  "splitUnit": "source_report_asset_scenario_lineage",
+  "frozenAt": "2026-09-28T00:00:00.000Z",
+  "knowledgeExclusions": {
+    "lineageIds": [
+      "asset:internal_external_api653:5452",
+      "asset:external_inspection:1",
+      "asset:internal_inspection:151",
+      "asset:internal_external_api653:vu1",
+      "asset:internal_external_api653:465",
+      "asset:external_inspection:ra-2"
+    ],
+    "sourceSha256s": [
+      "871d8770a5667bdbc3f0623a3a2e3ace54abcaf07acbd27017610ec24407de92",
+      "e1e1017ddf33f56d655089217f1ad45e88ba52ec2e57f54f007e29ef2d2721cf",
+      "6b7bc848372883866738172c393f82dc36b8e2b69f4603f25e23d22f44a693ab",
+      "8b6ceba0dba5c3c11c14aced928b5ebaf3737bf17186f8babb0737cea7a42211",
+      "21d5bf891ce6fcde1fbda5f96b22308dd9c925fedb098010bcd0051d7cd046bf",
+      "f0cdf705658f0c7bebf3b9e5e3cb050683d0b02f355dfe27ac14f3e3ea32290f"
+    ]
+  },
+  "cases": [
+    {
+      "caseId": "inspection-report-calibration-01",
+      "split": "development",
+      "workflowCalibration": true,
+      "lineageId": "asset:internal_external_api653:5452",
+      "reportFamily": "internal_external_api653",
+      "sourceDocumentId": "canonical_kba_ae941a71373872c0c0b6",
+      "sourceCaseId": "canonical_case_007f143b2ea023ca5398",
+      "sourceSha256": "871d8770a5667bdbc3f0623a3a2e3ace54abcaf07acbd27017610ec24407de92"
+    },
+    {
+      "caseId": "inspection-report-calibration-02",
+      "split": "development",
+      "workflowCalibration": true,
+      "lineageId": "asset:external_inspection:1",
+      "reportFamily": "external_inspection",
+      "sourceDocumentId": "canonical_kba_ffe000f2481b65d68847",
+      "sourceCaseId": "canonical_case_f5f7c2c49900aa1900d1",
+      "sourceSha256": "e1e1017ddf33f56d655089217f1ad45e88ba52ec2e57f54f007e29ef2d2721cf"
+    },
+    {
+      "caseId": "inspection-report-development-03",
+      "split": "development",
+      "workflowCalibration": false,
+      "lineageId": "asset:internal_inspection:151",
+      "reportFamily": "internal_inspection",
+      "sourceDocumentId": "canonical_kba_c669992cc1f9bddefe54",
+      "sourceCaseId": "canonical_case_609866e72a73189baa79",
+      "sourceSha256": "6b7bc848372883866738172c393f82dc36b8e2b69f4603f25e23d22f44a693ab"
+    },
+    {
+      "caseId": "inspection-report-development-04",
+      "split": "development",
+      "workflowCalibration": false,
+      "lineageId": "asset:internal_external_api653:vu1",
+      "reportFamily": "internal_external_api653",
+      "sourceDocumentId": "canonical_kba_1a0033370bc405066e41",
+      "sourceCaseId": "canonical_case_8b0829386bf94ac68b57",
+      "sourceSha256": "8b6ceba0dba5c3c11c14aced928b5ebaf3737bf17186f8babb0737cea7a42211"
+    },
+    {
+      "caseId": "inspection-report-validation-01",
+      "split": "validation",
+      "workflowCalibration": false,
+      "lineageId": "asset:internal_external_api653:465",
+      "reportFamily": "internal_external_api653",
+      "sourceDocumentId": "canonical_kba_46d82c5ba5edfba6a0b0",
+      "sourceCaseId": "canonical_case_ef1ce252b870954b9580",
+      "sourceSha256": "21d5bf891ce6fcde1fbda5f96b22308dd9c925fedb098010bcd0051d7cd046bf"
+    },
+    {
+      "caseId": "inspection-report-heldout-01",
+      "split": "heldout",
+      "workflowCalibration": false,
+      "lineageId": "asset:external_inspection:ra-2",
+      "reportFamily": "external_inspection",
+      "sourceDocumentId": "canonical_kba_b62c8abe80ceba7be60f",
+      "sourceCaseId": "canonical_case_ab60b05acae52c4ded8c",
+      "sourceSha256": "f0cdf705658f0c7bebf3b9e5e3cb050683d0b02f355dfe27ac14f3e3ea32290f"
+    }
+  ],
+  "rules": {
+    "allVariantsRemainInOneSplit": true,
+    "sameLineageAcrossSplitsAllowed": false,
+    "sameLineageInKnowledgeBundleAllowed": false,
+    "validationGoldOpensDuringTuning": false,
+    "heldoutGoldOpens": "once_after_final_candidate_is_frozen",
+    "oldPartialEvidenceArtifactsQualify": false
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "contractVersion": "report_evidence_router_kb_policy_v1",
+  "runtimeRetrieval": "bounded_optional_for_voice_proposals_only",
+  "allowed": [
+    "approved_component_glossary",
+    "approved_component_aliases_and_relationships",
+    "frozen_report_plan_section_and_block_contracts"
+  ],
+  "prohibited": [
+    "raw_historical_report_passages_as_current_evidence",
+    "target_report_or_target_section",
+    "validation_or_held_out_gold",
+    "same_case_or_near_duplicate_case",
+    "historical_values_or_recommendations_as_current_facts"
+  ],
+  "proposalPolicy": "Model output is a review proposal. It cannot become a generation input without a reviewed routing decision.",
+  "unknownPolicy": "Keep original wording and create a clarification item. Do not infer identity, unit, polarity, severity or applicability."
+}

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contents_classification_output_v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "candidateId",
+    "inputPackageHash",
+    "outlineProfileHash",
+    "evidenceAtoms",
+    "classificationAssignments",
+    "unresolvedItems",
+    "classificationManifest"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "contents_classification_output_v3"
+    },
+    "candidateId": {
+      "const": "contents-classification-v3"
+    },
+    "inputPackageHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outlineProfileHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evidenceAtoms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidenceId",
+          "sourcePointer",
+          "kind",
+          "originalValue"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string"
+          },
+          "sourcePointer": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "originalValue": {},
+          "sourceSpan": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "classificationAssignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidenceId",
+          "uses",
+          "decisionState"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string"
+          },
+          "decisionState": {
+            "enum": [
+              "deterministic",
+              "reviewed",
+              "needs_review",
+              "excluded",
+              "not_run"
+            ]
+          },
+          "uses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sectionId",
+                "blockId",
+                "role",
+                "method"
+              ],
+              "properties": {
+                "sectionId": {
+                  "type": "string"
+                },
+                "blockId": {
+                  "type": "string"
+                },
+                "role": {
+                  "enum": [
+                    "required_structured",
+                    "required_narrative",
+                    "supporting",
+                    "cross_reference"
+                  ]
+                },
+                "method": {
+                  "enum": [
+                    "deterministic",
+                    "llm_proposal",
+                    "llm_proposal_reviewed"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "unresolvedItems": {
+      "type": "array"
+    },
+    "classificationManifest": {
+      "type": "object"
+    }
+  }
+}

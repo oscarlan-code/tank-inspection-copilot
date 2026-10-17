@@ -1,0 +1,293 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-development-04",
+  "datasetSplit": "development",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_1a0033370bc405066e41",
+    "sourceCaseId": "canonical_case_8b0829386bf94ac68b57",
+    "sourceSha256": "8b6ceba0dba5c3c11c14aced928b5ebaf3737bf17186f8babb0737cea7a42211",
+    "datasetGroupKey": "asset:internal_external_api653:vu1",
+    "reportFamily": "internal_external_api653",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "diked-area",
+    "foundation",
+    "shell-external",
+    "shell-appurtenances",
+    "access-structure",
+    "roof-external",
+    "roof-appurtenances",
+    "roof-internal",
+    "shell-internal",
+    "floor-internal"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "No proper drainage; the low point beside the tank holds water. Concrete ring-beam batter has local spalls and cracks. Edge plate has general pits up to 3 mm and perforated edges in places; MPI on shell-to-bottom weld found no cracks. External shell butt-weld zones have coating breakdown, scale and corrosion after poor prep. Some nozzle flanges and fasteners are scaled/corroded, though nozzle condition is fairly satisfactory overall. Stair top has no safety bar or chain. Roof lap joints and nozzle pad areas show coating failure, scale and corrosion after poor prep. Two Varec attachment nozzles are corroded and broken. Roof underside corrosion is limited to center plate. Internal shell coating is deteriorated with product residue. Plate 1.3 MFL indication confirmed by A-scan: underside corrosion, 3 mm remaining; other indications were topside pits up to 4.5 mm. Sump coating is poor at welds and center has an isolated 4 mm topside pit."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "No proper drain; low point holds water. Ring-beam batter local spall/cracks. Edge plate pits to ~3 mm + some edge perforation; shell/bottom weld MPI no cracks. Ext shell butt welds coating fail/corr/scale, poor prep. Nozzle flanges + fasteners local corr/scale, overall fairly satisfactory. Stair top no drop bar/chain. Roof laps + nozzle pads coating fail/corr/scale. 2 Varec attachment nozzles corroded/broken. Roof underside: center plate corr only. Int shell coating deteriorated + product residue. Floor plate 1.3 MFL/A-scan underside corr, 3 mm remaining; other highs = topside pits to 4.5. Sump weld coating poor + isolated center pit ~4 mm."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Sump has failed coating by welds and one center topside pit about 4 mm. Floor plate 1.3 MFL was confirmed by A-scan as underside corrosion with 3 mm left; other high signals were topside pits to 4.5 mm. Internal shell coating deteriorated with residue. Roof underside clean except center plate corrosion; two Varec attachment nozzles corroded and broken. Roof laps/nozzle pads have failed coating, corrosion and scale from weak prep; stair top lacks bar or chain. Shell nozzles overall fairly satisfactory but some flanges and fasteners scaled/corroded. External shell butt-weld zones similarly show failed coating and scale. Edge plate pits up to 3 mm with some perforated edges; MPI found no weld cracks. Batter slope is cracked/spalled and the low point has standing water with no proper drain."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "At the bund, no proper site drain; water sits permanently in the low spot. Foundation concrete batter—tank is on a ring beam—has a few cracks and spalls. Edge plate pitting to about 3 mm and edge perforations in places. MPI of shell-to-bottom welds showed no cracks. Shell butt-weld areas have coating failure, corrosion and scaling from poor preparation. Nozzles broadly okay, fairly satisfactory, but flange faces and bolts/nuts have local scale and corrosion. No safety chain or drop bar at stair top. Roof lap welds and nozzle pads have the same coating and scale issue. Two Varec gauge attachment nozzles are broken and corroded. Under roof, corrosion only at center plate. Internal shell coating has deteriorated with product residue. MFL on plate 1.3 verified by A-scan: underside corrosion, 3 mm remaining; other indications were topside pits to 4.5. Sump center pit about 4 mm and coating failed near welds."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Drainage: none proper / standing water at low point. Foundation: ring beam batter spalls + cracks. Edge plate: general pitting <=3 mm; edge perforation local; MPI shell-bottom weld = no cracks. Shell ext butt-welds: coating fail / corr / scale / poor prep. Shell nozzles: overall fairly satisfactory; flange + fastener corr/scale local. Stair top: no safety bar/chain. Roof laps + nozzle pads: coating fail/corr/scale. Varec attachment nozzles x2: corroded/broken. Roof underside: center plate corr only. Shell inside: coating deterioration + product residue. Floor plate 1.3: MFL + A-scan, underside corr, 3 mm remaining; other highs topside pits to 4.5 mm. Sump: coating fail at welds + isolated center pit ~4 mm."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Civil: no proper drainage and permanent standing water at low point; concrete batter on ring beam has localized cracking/spalling; edge plate pits to 3 mm with some perforation, while MPI found no shell-bottom weld cracks. Shell: butt-weld zones have coating loss, corrosion and scale; nozzle flanges/fasteners have local corrosion, overall fairly satisfactory. Access: no safety drop bar or chain at stair top. Roof: coating failure/corrosion at laps and nozzle pads; two Varec nozzles broken/corroded; underside corrosion only at center plate. Internal: shell coating deteriorated with residue. Floor: plate 1.3 MFL confirmed by A-scan at 3 mm remaining underside corrosion; other signals were topside pits to 4.5 mm. Sump coating failed near welds and one center pit is about 4 mm."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-drainage-low-point",
+      "componentBlock": "diked-area",
+      "component": "site drainage",
+      "location": "low point near tank",
+      "polarity": "observed",
+      "condition": "no proper drainage and permanent standing water",
+      "qualifier": null,
+      "protectedTerms": [
+        "no proper drainage",
+        "low point",
+        "standing water"
+      ],
+      "sourceReference": {
+        "blockId": "block_99ad1508a8ab5c3ed37fe66c",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-foundation-spalling",
+      "componentBlock": "foundation",
+      "component": "concrete batter slope",
+      "location": null,
+      "polarity": "observed",
+      "condition": "localized spalling and cracking",
+      "qualifier": "tank is seated on a concrete ring beam",
+      "protectedTerms": [
+        "concrete ring beam",
+        "batter slope",
+        "spalling",
+        "cracking"
+      ],
+      "sourceReference": {
+        "blockId": "block_f43786b5716fc59b04900b03",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-edge-plate-pitting",
+      "componentBlock": "foundation",
+      "component": "edge protection plate",
+      "location": null,
+      "polarity": "observed",
+      "condition": "general pitting up to approximately 3 mm with edge perforation in places",
+      "qualifier": "MPI of shell-to-bottom weld found no cracks",
+      "protectedTerms": [
+        "3 mm",
+        "perforation",
+        "MPI",
+        "no cracks"
+      ],
+      "sourceReference": {
+        "blockId": "block_3b59816abcb521181fbb3862",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-weld-corrosion",
+      "componentBlock": "shell-external",
+      "component": "external shell butt-weld areas",
+      "location": null,
+      "polarity": "observed",
+      "condition": "coating failure, corrosion and scale after inadequate surface preparation",
+      "qualifier": null,
+      "protectedTerms": [
+        "butt-weld",
+        "coating failure",
+        "corrosion",
+        "scale"
+      ],
+      "sourceReference": {
+        "blockId": "block_b427fbdeff7be4f993ae7b4d",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-nozzle-scaling",
+      "componentBlock": "shell-appurtenances",
+      "component": "shell nozzle flanges and fasteners",
+      "location": null,
+      "polarity": "observed",
+      "condition": "localized corrosion and scaling",
+      "qualifier": "overall nozzle condition fairly satisfactory",
+      "protectedTerms": [
+        "fairly satisfactory",
+        "flange",
+        "fasteners",
+        "corrosion",
+        "scaling"
+      ],
+      "sourceReference": {
+        "blockId": "block_6f14bba8c5b672076aaf8dec",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-stair-drop-bar",
+      "componentBlock": "access-structure",
+      "component": "staircase top end",
+      "location": null,
+      "polarity": "not_present",
+      "condition": "safety drop bar or chain",
+      "qualifier": null,
+      "protectedTerms": [
+        "staircase",
+        "not present",
+        "safety drop bar",
+        "chain"
+      ],
+      "sourceReference": {
+        "blockId": "block_a74b796729ed11d827aa1e48",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-roof-lap-corrosion",
+      "componentBlock": "roof-external",
+      "component": "roof lap welds and nozzle reinforcement areas",
+      "location": null,
+      "polarity": "observed",
+      "condition": "coating failure with corrosion and scale after inadequate preparation",
+      "qualifier": null,
+      "protectedTerms": [
+        "lap welds",
+        "reinforcement",
+        "coating failure",
+        "corrosion",
+        "scale"
+      ],
+      "sourceReference": {
+        "blockId": "block_5afc3f6c21a6e49a919e3a1f",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-varec-nozzles-broken",
+      "componentBlock": "roof-appurtenances",
+      "component": "two Varec gauge attachment nozzles",
+      "location": null,
+      "polarity": "observed",
+      "condition": "corroded and broken",
+      "qualifier": null,
+      "protectedTerms": [
+        "two",
+        "Varec",
+        "corroded",
+        "broken"
+      ],
+      "sourceReference": {
+        "blockId": "block_c83cc16c382ae4d276e916bd",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-roof-underside-center",
+      "componentBlock": "roof-internal",
+      "component": "roof plate underside",
+      "location": "center plate",
+      "polarity": "observed",
+      "condition": "corrosion at center plate only",
+      "qualifier": "no corrosion observed elsewhere on the underside",
+      "protectedTerms": [
+        "center plate",
+        "corrosion",
+        "no corrosion",
+        "elsewhere"
+      ],
+      "sourceReference": {
+        "blockId": "block_a565ba523b3da03cf506f204",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-shell-internal-coating",
+      "componentBlock": "shell-internal",
+      "component": "internal shell plates",
+      "location": null,
+      "polarity": "observed",
+      "condition": "coating deterioration with product residue",
+      "qualifier": null,
+      "protectedTerms": [
+        "internal shell",
+        "coating deterioration",
+        "product residue"
+      ],
+      "sourceReference": {
+        "blockId": "block_3fb61d6ba592bf0d687ff621",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-floor-mfl-a-scan",
+      "componentBlock": "floor-internal",
+      "component": "floor plate 1.3",
+      "location": null,
+      "polarity": "measured",
+      "condition": "MFL indication was confirmed by UT A-scan as underside corrosion with 3 mm remaining thickness",
+      "qualifier": "other high MFL indications corresponded to topside pits up to 4.5 mm",
+      "protectedTerms": [
+        "MFL",
+        "A-scan",
+        "plate 1.3",
+        "underside",
+        "3 mm",
+        "4.5 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_83f98f9fb46fbf0535475391",
+        "page": 11
+      }
+    },
+    {
+      "evidenceId": "obs-sump-pit",
+      "componentBlock": "floor-internal",
+      "component": "internal floor sump",
+      "location": "center",
+      "polarity": "observed",
+      "condition": "coating deterioration near welds and an isolated topside pit approximately 4 mm deep",
+      "qualifier": null,
+      "protectedTerms": [
+        "sump",
+        "welds",
+        "isolated",
+        "4 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_7f068f82fca94f1de286e4d5",
+        "page": 11
+      }
+    }
+  ]
+}

@@ -39,7 +39,11 @@ Super Admin subsystem. It is separate from the live inspector report workflow.
 | **Answerability Map** | Classification of which facts may come from the app, voice, report-side input, deterministic tools, precedent, standards, judgment, or hidden gold only. | answerability labels |
 | **Capture Variant Builder** | Creates reproducible inspector-capture scenarios from an approved Truth Case. | capture simulator |
 | **Capture Variant** | One versioned scenario representing how an inspector might capture the same truth through structured data, voice, notes, photos, and omissions. | synthetic variant |
-| **App Round Trip** | Materializes a Capture Variant through the LAIQ inspection app and production V3 upload/import path. | app export round trip |
+| **Mock Preparation Agent** | The controlled agent that converts approved truth facts into Capture Variants for the Android product export contract. It is separate from report generation. | mock generator |
+| **App Round Trip** | Materializes a Capture Variant through the approved LAIQ inspection app export/import contract. | app export round trip |
+| **Agent Release** | One immutable, hash-bound version of an agent's instructions, model settings, schemas, code and declared knowledge inputs. | agent version |
+| **Contract/Schema Revision** | The version of a machine interface used by an agent. It does not identify the agent release. | contract version |
+| **Qualification Case** | A reviewed Truth Case used to test a candidate. An asset label such as Tank V4 identifies the source asset, not an agent release. | test report, validation case |
 | **Historical Gold Report** | The original approved report used to construct a Truth Case. | gold report |
 | **Hidden Gold** | The Historical Gold Report while it is sealed from generation and used only after generation for evaluation. | evaluation gold |
 | **Gold Firewall** | Retrieval and prompt controls that prevent matching or future gold evidence from reaching generation. | retrieval firewall |
@@ -62,6 +66,11 @@ Gold** only for the sealed evaluation answer.
 
 Use **Capture Variant Builder** for the tool/workspace and **Capture Variant**
 for one generated scenario.
+
+Use **Mock Preparation Agent v1** for the current immutable R&D release identity.
+State contract/schema revisions and Qualification Case identifiers separately.
+Never use the Android product version or a tank identifier as the Mock Preparation
+Agent release number.
 
 Use **Policy Optimization** for the learning process and **Policy Registry** for
 the UI that displays, promotes, and rolls back policy versions. Do not label the

@@ -1,0 +1,248 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-development-02",
+  "datasetSplit": "development",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_ffe000f2481b65d68847",
+    "sourceCaseId": "canonical_case_f5f7c2c49900aa1900d1",
+    "sourceSha256": "e1e1017ddf33f56d655089217f1ad45e88ba52ec2e57f54f007e29ef2d2721cf",
+    "datasetGroupKey": "asset:external_inspection:1",
+    "reportFamily": "external_inspection",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "diked-area",
+    "foundation",
+    "shell-external",
+    "shell-appurtenances",
+    "access-structure",
+    "roof-external",
+    "roof-appurtenances"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "Tank sits low and there is no proper bund wall. Bitumen around the foundation is breaking down and leaving gaps, so water could reach the floor underside. At five dug-out shell-bottom points, each roughly 250 mm by 250 mm, there is light scale, about 1–2 mm loss and slight rivet-head corrosion. Shell coating is flaking over the whole shell with surface corrosion; crawler UT remained above calculated minimum. S2 eight-inch nozzle has a heavy riveted pad with no tell-tales. Ladder is sound but coating has failed with light corrosion. Nineteen roof rivets are missing, mostly by the curb angle; roof coating is weathered and corroded. R5 has weathered coating and what looks like product staining, though the roof nozzles are otherwise satisfactory."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "Low ground, no proper bund. Foundation bitumen deteriorated/gaps—possible water to underside. Five exposed shell-bottom spots ~250 x 250 mm: minor scale, 1-2 mm loss, rivet heads slightly corroded. Whole shell coating flaking/surface corr; crawler UT satisfactory and above calc min. S2 8 in pad thick + riveted, no tell-tales. Ladder sound; coating fail/light corr. Roof: 19 missing rivets mostly curb; full roof weathered/surface corr. R5 weathered + possible product stain; other roof nozzles satisfactory."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Roof first: nineteen rivets missing mainly near curb angle, and weathered coating with surface corrosion across the roof. R5 looks product-stained with weathered paint; other roof nozzles okay. Ladder structurally sound but has coating loss and light corrosion. S2 eight-inch pad is thick and riveted, no tell-tale holes. Shell crawler readings are satisfactory above calculated minimum, but whole shell paint is flaking. Five 250 mm excavations show minor scale, 1 to 2 mm loss and some rivet-head attack. Foundation bitumen gaps may admit water. Tank is on low ground with no proper bund."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "Dike—tank is low, and I couldn’t identify a proper bund wall. The bitumen seal, sorry the bitumen cover, is badly aged with gaps around the perimeter; possible water entry below the floor. Five small excavations, roughly 250 millimetres wide and deep, expose minor scaling and one to two millimetres metal loss, plus slight corrosion on rivet heads. Shell coating is flaking generally, but crawler UT is satisfactory and over calculated minimum. Eight-inch S2 pad is thick, riveted and has no tell-tale holes. Ladder sound with coating failure and slight corrosion. Roof has nineteen missing rivets near the curb and general weathering/corrosion. R5 shows possible product stain and weathered paint; other roof nozzles satisfactory."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Dike: low ground / no bund wall. Foundation: bitumen deteriorated + gaps / possible underside water ingress. Shell bottom: 5 excavated spots, ~250 mm wide/deep, light scale, 1–2 mm loss, rivet heads slight corrosion. Shell coating: entire surface flaking/corroding. Shell UT crawler: satisfactory, above calculated minimum. S2 8 in pad: thick, riveted, no tell-tales. Ladder: sound / coating fail / slight corr. Roof: 19 rivets missing mainly curb; entire coating weathered + surface corr. R5: coating weathered, apparent product stain; nozzles otherwise satisfactory."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Site note: low-lying tank and no proper bund. Civil note: failed bitumen with perimeter gaps creates possible underside water path. Shell note: five 250 mm excavations show minor scaling, 1–2 mm loss and slightly corroded rivet heads; the whole coating is flaking, although crawler UT is satisfactory and above calculated minimum. Appurtenance note: S2 eight-inch reinforcement is thick, riveted, and lacks tell-tales. Access note: ladder is sound with failed coating and slight corrosion. Roof note: 19 missing rivets mainly at curb angle and general coating weathering with surface corrosion. R5 has possible product stain; roof nozzles otherwise satisfactory."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-dike-low-ground-no-bund",
+      "componentBlock": "diked-area",
+      "component": "diked area",
+      "location": null,
+      "polarity": "observed",
+      "condition": "tank is on low ground without a proper bund wall",
+      "qualifier": null,
+      "protectedTerms": [
+        "low ground",
+        "without",
+        "bund wall"
+      ],
+      "sourceReference": {
+        "blockId": "block_992bc771718a77f857165d12",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-foundation-bitumen-gap",
+      "componentBlock": "foundation",
+      "component": "bitumen cover",
+      "location": "foundation perimeter",
+      "polarity": "observed",
+      "condition": "deterioration and gaps",
+      "qualifier": "possible water ingress to the floor underside",
+      "protectedTerms": [
+        "bitumen",
+        "gaps",
+        "water ingress",
+        "floor underside"
+      ],
+      "sourceReference": {
+        "blockId": "block_140ab5e58e7a136d6fa64508",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-shell-exposed-areas",
+      "componentBlock": "shell-external",
+      "component": "shell bottom and rivets",
+      "location": "five excavated locations",
+      "polarity": "observed",
+      "condition": "minor scale, 1 mm to 2 mm metal loss and slight rivet-head corrosion",
+      "qualifier": "each exposed location approximately 250 mm wide and deep",
+      "protectedTerms": [
+        "five",
+        "250 mm",
+        "1 mm",
+        "2 mm",
+        "rivet"
+      ],
+      "sourceReference": {
+        "blockId": "block_469ffc1e1290960add9e3c0c",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-shell-coating-general",
+      "componentBlock": "shell-external",
+      "component": "external shell coating",
+      "location": "entire shell",
+      "polarity": "observed",
+      "condition": "deteriorated and flaking with surface corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "entire shell",
+        "flaking",
+        "surface corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_a2a9d801a25f430377c29ee6",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-shell-ut-assessment",
+      "componentBlock": "shell-external",
+      "component": "external shell plates",
+      "location": null,
+      "polarity": "measured",
+      "condition": "UT crawler readings were above calculated minimum thickness",
+      "qualifier": "assessment satisfactory",
+      "protectedTerms": [
+        "UT crawler",
+        "above",
+        "calculated minimum",
+        "satisfactory"
+      ],
+      "sourceReference": {
+        "blockId": "block_476bf5fddf93e8d3a6d2e0a8",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-shell-nozzle-s2-pad",
+      "componentBlock": "shell-appurtenances",
+      "component": "8-inch shell nozzle S2 reinforcement plate",
+      "location": null,
+      "polarity": "observed",
+      "condition": "thick riveted reinforcement plate without tell-tale holes",
+      "qualifier": null,
+      "protectedTerms": [
+        "S2",
+        "8-inch",
+        "riveted",
+        "without",
+        "tell-tale"
+      ],
+      "sourceReference": {
+        "blockId": "block_af8dc10564386ac0cfe4fa74",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-ladder-coating",
+      "componentBlock": "access-structure",
+      "component": "roof access ladder",
+      "location": null,
+      "polarity": "observed",
+      "condition": "structurally sound with coating failure and slight corrosion along the ladder",
+      "qualifier": null,
+      "protectedTerms": [
+        "ladder",
+        "sound",
+        "coating failure",
+        "slight corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_ff4932cc3c3c31f950d32148",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-roof-missing-rivets",
+      "componentBlock": "roof-external",
+      "component": "roof rivets",
+      "location": "mainly along curb angle",
+      "polarity": "observed",
+      "condition": "missing at 19 locations",
+      "qualifier": null,
+      "protectedTerms": [
+        "19",
+        "missing",
+        "curb angle"
+      ],
+      "sourceReference": {
+        "blockId": "block_a48f19837af77fedc86f2910",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-roof-weathering",
+      "componentBlock": "roof-external",
+      "component": "roof plate coating",
+      "location": "entire roof",
+      "polarity": "observed",
+      "condition": "weathered with surface corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "entire roof",
+        "weathered",
+        "surface corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_10289c862193e16d25224170",
+        "page": 10
+      }
+    },
+    {
+      "evidenceId": "obs-roof-manhole-r5-stain",
+      "componentBlock": "roof-appurtenances",
+      "component": "roof manhole R5",
+      "location": null,
+      "polarity": "observed",
+      "condition": "weathered coating and apparent product staining",
+      "qualifier": "general nozzle condition otherwise satisfactory",
+      "protectedTerms": [
+        "R5",
+        "weathered",
+        "product stain",
+        "satisfactory"
+      ],
+      "sourceReference": {
+        "blockId": "block_7f77f92bc675f65ada3d0e3d",
+        "page": 11
+      }
+    }
+  ]
+}

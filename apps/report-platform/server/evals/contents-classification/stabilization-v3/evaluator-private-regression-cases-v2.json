@@ -1,0 +1,401 @@
+{
+  "contractVersion": "contents_classification_regression_cases_v2",
+  "datasetId": "classification-v4-regression-30",
+  "datasetSplit": "validation",
+  "goldReviewStatus": "engineering_reviewed_domain_review_pending",
+  "sourcePolicy": "Three API 653 report lineages assigned to validation by content_family_stratified_asset_lineage_70_15_15_v1; none appears in the v3 development set or the earlier nine-report robustness source list.",
+  "cases": [
+    {
+      "caseId": "val_001",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 4,
+      "sourceText": "To carry out thickness measurements on roof plates with a minimum of five (5) readings per plate (Wherever access and surface condition permit).",
+      "classifierInput": "Roof plates: take at least five thickness readings on each plate wherever access and the surface allow.",
+      "expectedUse": {
+        "sectionId": "scope-of-inspection",
+        "blockId": "scope"
+      }
+    },
+    {
+      "caseId": "val_002",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 4,
+      "sourceText": "To carry out side wall inspection utilizing an Ultrasonic Crawler at four (4) compass points with a minimum of five (5) readings per strake.",
+      "classifierInput": "Use the UT crawler on the side wall at four compass positions, with no fewer than five readings per strake.",
+      "expectedUse": {
+        "sectionId": "scope-of-inspection",
+        "blockId": "methods"
+      }
+    },
+    {
+      "caseId": "val_003",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1971 (Estimated)",
+      "classifierInput": "Build year is estimated as 1971.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_004",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 6,
+      "sourceText": "Service Height: 9.14 m for Assessment",
+      "classifierInput": "Use a service height of 9.14 m for the assessment.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_005",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 6,
+      "sourceText": "Construction (Shell): Butt-welded",
+      "classifierInput": "The shell courses are butt welded.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "design-data"
+      }
+    },
+    {
+      "caseId": "val_006",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 7,
+      "sourceText": "Pipework and supports were found to have experienced coating failure with subsequent corrosion on some areas.",
+      "classifierInput": "Some of the pipework and supports around the bund have failed coating with corrosion underneath.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "diked-area"
+      }
+    },
+    {
+      "caseId": "val_007",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 7,
+      "sourceText": "Two (2) Earth grounding points were attached to the tank; one on the North which was found broken and another one on the South.",
+      "classifierInput": "There are two tank earth points; the north one is broken and the south one remains in place.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      }
+    },
+    {
+      "caseId": "val_008",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 8,
+      "sourceText": "Fire water pipe attached to the shell plate on the West Sector beside the Varec Gauge was found perforated.",
+      "classifierInput": "West side beside the Varec gauge: the firewater pipe fixed to the shell plate is perforated.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      }
+    },
+    {
+      "caseId": "val_009",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 13,
+      "sourceText": "Fire water pipe found perforated should be replaced.",
+      "classifierInput": "Replace the perforated firewater pipe.",
+      "expectedUse": {
+        "sectionId": "repair-recommendations",
+        "blockId": "recommendations"
+      }
+    },
+    {
+      "caseId": "val_010",
+      "lineageId": "asset:pacific-energy-swp-ltd:be2",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b",
+      "sourcePage": 17,
+      "sourceText": "Calibration Standard: A.S. 2083 Calibration Blocks and Their Method of Use in Ultrasonic Testing",
+      "classifierInput": "The ultrasonic calibration procedure follows AS 2083 for calibration blocks and their use.",
+      "expectedUse": {
+        "sectionId": "test-information",
+        "blockId": "methods"
+      }
+    },
+    {
+      "caseId": "val_011",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1973",
+      "classifierInput": "Tank construction year: 1973.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_012",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 6,
+      "sourceText": "Service Height: 3.6 m",
+      "classifierInput": "Service level is 3.6 metres high.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_013",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 7,
+      "sourceText": "No plinth seal was found install on the edge projection plate.",
+      "classifierInput": "No plinth seal is installed along the floor edge projection.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      }
+    },
+    {
+      "caseId": "val_014",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 7,
+      "sourceText": "Earthing points were found to have been wrapped with greased fabric tape. Labeled as tested in March 2015 with a resistance of 4 ohms.",
+      "classifierInput": "Foundation earthing points are wrapped in greased fabric tape and marked as tested in March 2015 at 4 ohms.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "foundation"
+      }
+    },
+    {
+      "caseId": "val_015",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 8,
+      "sourceText": "All shell nozzles over 2 inches were found to have re-enforcing pads attached, however none contain tell tale holes, therefore have not been pressure tested.",
+      "classifierInput": "Shell nozzles above 2 inches have reinforcement pads, but none has a tell-tale hole and the pads were not pressure tested.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      }
+    },
+    {
+      "caseId": "val_016",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 9,
+      "sourceText": "Scattered topside pittings were evident on the roof with a maximum depth of approximately 2 mm as measured by pit gauge.",
+      "classifierInput": "Scattered roof topside pits measured up to about 2 mm deep with the pit gauge.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "roof-external"
+      }
+    },
+    {
+      "caseId": "val_017",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 10,
+      "sourceText": "Isolated spot coating failure with subsequent surface corrosion spotted on the 1st course adjacent to floor plate 3.1c.",
+      "classifierInput": "Inside shell course 1 beside floor plate 3.1c, one isolated coating failure has surface corrosion below it.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-internal"
+      }
+    },
+    {
+      "caseId": "val_018",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 13,
+      "sourceText": "Severely corroded pipe supports should be replaced.",
+      "classifierInput": "Replace the pipe supports that are severely corroded.",
+      "expectedUse": {
+        "sectionId": "repair-recommendations",
+        "blockId": "recommendations"
+      }
+    },
+    {
+      "caseId": "val_019",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 14,
+      "sourceText": "Routine In-Service Inspection should be carried out at least monthly to monitor closely the external condition of the tank.",
+      "classifierInput": "Check the external tank condition in service at least once each month.",
+      "expectedUse": {
+        "sectionId": "repair-recommendations",
+        "blockId": "timing-and-monitoring"
+      }
+    },
+    {
+      "caseId": "val_020",
+      "lineageId": "asset:pacific-islands-energy:ra3",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80",
+      "sourcePage": 16,
+      "sourceText": "Flaw Detector: Epoch 4 (S/N IRS 3167)",
+      "classifierInput": "UT instrument used: Epoch 4 flaw detector, serial IRS 3167.",
+      "expectedUse": {
+        "sectionId": "test-information",
+        "blockId": "equipment"
+      }
+    },
+    {
+      "caseId": "val_021",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 6,
+      "sourceText": "Year Built: 1985",
+      "classifierInput": "Recorded build year is 1985.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_022",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 6,
+      "sourceText": "Service Height: Not Provided",
+      "classifierInput": "No service-height value was supplied.",
+      "expectedUse": {
+        "sectionId": "general-tank-information",
+        "blockId": "configuration"
+      }
+    },
+    {
+      "caseId": "val_023",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 8,
+      "sourceText": "Shell Nozzles S1 (2 inches) and S2 (6 inches) neck thicknesses did not seem to comply with API 650 Table 5.6a Column 3.",
+      "classifierInput": "Shell nozzle necks S1 at 2 inches and S2 at 6 inches appear below the API 650 Table 5.6a column 3 requirement.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "shell-appurtenances"
+      }
+    },
+    {
+      "caseId": "val_024",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 9,
+      "sourceText": "Spiral stairway attached to TK 2 was found corroded and broken on many locations.",
+      "classifierInput": "The spiral stairs connected to TK 2 are corroded and broken at several points.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "access-structures"
+      }
+    },
+    {
+      "caseId": "val_025",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 9,
+      "sourceText": "Tank roof seemed to be reconstructed judging from the roof plates weldments, however no confirmation was provided from the Tank Owner.",
+      "classifierInput": "The roof plate welds suggest the roof was rebuilt, but the owner has not confirmed this.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "roof-external"
+      }
+    },
+    {
+      "caseId": "val_026",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 10,
+      "sourceText": "3 inch nozzle R3 was not able to be assessed by Ultrasonic Testing due to the uneven surface and contour of the nozzle.",
+      "classifierInput": "UT could not assess the 3-inch roof nozzle R3 because its surface and contour are uneven.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "roof-appurtenances"
+      }
+    },
+    {
+      "caseId": "val_027",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 11,
+      "sourceText": "The entire roof supporting structure was viewed from the floor. Condition was found to be satisfactory with no visible mechanical damage evident.",
+      "classifierInput": "From floor level, the internal roof supports looked satisfactory with no visible mechanical damage.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "roof-internal"
+      }
+    },
+    {
+      "caseId": "val_028",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 11,
+      "sourceText": "A mechanical dent was found measuring approximately 25 mm in diameter on Plate 2.6.",
+      "classifierInput": "Floor plate 2.6 has a mechanical dent roughly 25 mm across.",
+      "expectedUse": {
+        "sectionId": "inspection-report",
+        "blockId": "floor-internal"
+      }
+    },
+    {
+      "caseId": "val_029",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 14,
+      "sourceText": "Acceptance Criteria: API 653 4th Ed, April 2009",
+      "classifierInput": "For the shell ultrasonic thickness test, use API 653 fourth edition, April 2009 as the acceptance criterion.",
+      "expectedUse": {
+        "sectionId": "test-information",
+        "blockId": "methods"
+      }
+    },
+    {
+      "caseId": "val_030",
+      "lineageId": "asset:pacific-energy-swp-ltd:5",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb",
+      "sourcePage": 14,
+      "sourceText": "Calibration Standard: A.S. 2083 Calibration Blocks and Their Method of Use in Ultrasonic Testing",
+      "classifierInput": "Ultrasonic calibration followed AS 2083 for the blocks and their method of use.",
+      "expectedUse": {
+        "sectionId": "test-information",
+        "blockId": "methods"
+      }
+    }
+  ],
+  "evaluationRole": "post_failure_regression_not_held_out",
+  "derivedFrom": "classification-v3-validation-30"
+}

@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outputs"],
+  "properties": {
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sourceUnitId",
+          "purpose",
+          "captureText",
+          "clarificationRequired",
+          "clarificationReason"
+        ],
+        "properties": {
+          "sourceUnitId": { "type": "string" },
+          "purpose": {
+            "type": "string",
+            "enum": ["observation", "recommended_action", "context"]
+          },
+          "captureText": { "type": "string" },
+          "clarificationRequired": { "type": "boolean" },
+          "clarificationReason": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "contractVersion": "section_review_knowledge_policy_v1",
+  "sectionId": "general-tank-information",
+  "currentFactAuthority": [
+    "pinned_app_revision",
+    "confirmed_report_side_input",
+    "confirmed_same_asset_history"
+  ],
+  "historicalKbUse": [
+    "format_pattern_check",
+    "field_order_check",
+    "terminology_check"
+  ],
+  "historicalKbCannot": [
+    "supply_current_value",
+    "replace_missing_value",
+    "override_current_evidence"
+  ],
+  "runtimeRetrieval": "disabled",
+  "goldAccess": "prohibited"
+}

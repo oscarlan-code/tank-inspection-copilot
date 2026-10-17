@@ -1,0 +1,56 @@
+{
+  "contractVersion": "contents_classification_agent_spec_v1",
+  "agentId": "contents-classification-agent",
+  "candidateId": "contents-classification-v1",
+  "status": "evaluation_candidate",
+  "productEnabled": false,
+  "goal": "Assign source-linked Android evidence atoms to one or more canonical report section/block uses without writing report content or using target gold.",
+  "outlineProfile": "outline-profiles/vertical-api653-v1/outline-profile.json",
+  "runtimeKnowledge": [
+    "reviewed_outline_profile",
+    "Android_export_API_contract",
+    "approved_component_glossary",
+    "approved_section_aliases",
+    "lineage_excluded_classification_examples"
+  ],
+  "runtimeForbidden": [
+    "target_original_report",
+    "target_gold_labels",
+    "evaluator_feedback",
+    "same_case_or_near_duplicate_historical_passages",
+    "report_prose_generation",
+    "final_table_of_contents_selection",
+    "automatic_review_approval"
+  ],
+  "classificationModes": {
+    "structured": "deterministic_API_path_mapping",
+    "narrative": "bounded_LLM_proposal",
+    "ambiguous": "needs_review"
+  },
+  "multiLabel": true,
+  "requiredOutput": [
+    "evidenceAtoms",
+    "classificationAssignments",
+    "unresolvedItems",
+    "classificationManifest"
+  ],
+  "outlineProfileBinding": {
+    "profileId": "vertical-api653-inspection-report-v1",
+    "profileSha256": "a7a2363c8c4328b9a6f5fd46ec2307711eff5d37f54e621a7948122f1c973b93",
+    "manifestPath": "outline-profiles/vertical-api653-v1/outline-manifest.json",
+    "manifestSha256": "cba18fbf8ce500fadc8d4549453cfcc68c6d0a9c5e97f31764d6f56291b78e23",
+    "requiredStatus": "frozen_for_r_and_d_evaluation"
+  },
+  "inputGuard": {
+    "guardId": "evaluation-input-leakage-guard-v1",
+    "path": "input-guards/evaluation-leakage/v1/guard.mjs",
+    "requiredDecision": "passed",
+    "runtimeInput": "sealed_classification_input_v1",
+    "evaluatorCrosswalkAccessibleToClassifier": false
+  },
+  "atomizer": {
+    "atomizerId": "evidence-atomizer-v1",
+    "path": "atomizers/evidence-atomizer/v1/atomizer.mjs",
+    "narrativeRule": "exact_source_spans_only"
+  }
+}

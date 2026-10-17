@@ -1,0 +1,271 @@
+{
+  "contractVersion": "inspection_report_trial_evidence_v1",
+  "caseId": "inspection-report-rsi-development-03",
+  "datasetSplit": "development",
+  "evaluationOnly": true,
+  "sourceBasis": {
+    "sourceReportId": "canonical_kba_c669992cc1f9bddefe54",
+    "sourceCaseId": "canonical_case_609866e72a73189baa79",
+    "sourceSha256": "6b7bc848372883866738172c393f82dc36b8e2b69f4603f25e23d22f44a693ab",
+    "datasetGroupKey": "asset:internal_inspection:151",
+    "reportFamily": "internal_inspection",
+    "sectionId": "inspection-report",
+    "sameReportGoldAvailableToGenerator": false,
+    "originalReportSentToGenerator": false,
+    "preparationMethod": "Selected historical facts were converted into structured app records and six practical inspector-note variants without copying source narrative into generator input."
+  },
+  "componentOrder": [
+    "diked-area",
+    "foundation",
+    "shell-appurtenances",
+    "roof-external",
+    "roof-internal",
+    "floor-internal"
+  ],
+  "noteVariants": [
+    {
+      "variantId": "ordered-summary",
+      "style": "ordered voice summary",
+      "text": "Minor washout at the north, northeast and southwest dike wall. Floor-projection edge has moderate to severe corrosion; east tell-tale pipe is severely corroded. Southwest manhole pad tell-tale is plugged and non-compliant. Northwest three-inch nozzle has a temporary clamp and the internal neck is perforated at six o’clock. Northeast curb-angle underside has local coating failure; roof internal is coated but rusting. Floor has scattered 1–5 mm topside pits and three holes—two on plate 2.1, one on 3.3. Four-inch periphery band reads 5.0–6.1 mm. Sump lip 12.21–12.50, base 10.68, middle 10.74–11.70 mm; only spot readings at base because coating weakened signal. Random floor projection UT is 3–5 mm."
+    },
+    {
+      "variantId": "terse-shorthand",
+      "style": "terse field shorthand",
+      "text": "Dike washout minor N/NE/SW. Floor proj LE mod-severe corr; east tell-tale pipe severe corr. SW MH pad tell-tale plugged/non-compliant. NW 3 in nozzle temp clamp; internal neck perforated at 6 o’clock. NE curb underside local coating fail. Roof inside coated + rusting. Floor topside pits 1-5 mm + 3 holes: 2 at 2.1, 1 at 3.3. 4 in periphery UT 5.0-6.1. Sump lip 12.21-12.50, base 10.68, between 10.74-11.70 mm; base spot only due coating attenuation. Projection random UT 3-5 mm."
+    },
+    {
+      "variantId": "disordered-note",
+      "style": "disordered capture",
+      "text": "Floor projection spot UT came back 3 to 5 mm. Sump values: lip 12.21–12.50, base 10.68 and in-between 10.74–11.70 mm; base coating meant spot readings only. Floor has three holes, two at 2.1 and one at 3.3, with 1–5 mm topside pitting; the four-inch perimeter band is 5.0–6.1 mm. Roof inside is coated and rusting; northeast curb underside has local paint failure. Northwest three-inch nozzle is temporarily clamped and perforated internally at six. Southwest manhole tell-tale is plugged/non-compliant. East tell-tale pipe badly corroded, projection edge moderate to severe, and minor dike washout at N, NE and SW."
+    },
+    {
+      "variantId": "spoken-corrections",
+      "style": "spoken note with correction",
+      "text": "Dike wall has minor washout at north, northeast and southwest. At foundation, floor projection leading edge is moderate to severely corroded, and east tell-tale pipe is severe. On appurtenances—the southwest manhole reinforcement hole is plugged, not compliant. Northwest three-inch nozzle has a temporary clamp; the internal neck, at six o’clock, is perforated. Roof curb underside, northeast, local coating failure. Inside roof is coated but rusting. Floor: pits one to five millimetres and three holes—correction, two holes plate 2.1, one plate 3.3. Four-inch peripheral strip 5.0 to 6.1 mm. Sump lip 12.21 to 12.50, base 10.68, middle 10.74 to 11.70; base was spot only because coating attenuated signal. Projection random UT 3 to 5."
+    },
+    {
+      "variantId": "fragmented-checklist",
+      "style": "fragmented checklist note",
+      "text": "Dike N/NE/SW: minor washout. Foundation projection edge: moderate-severe corr. East tell-tale pipe: severe corr. SW manhole tell-tale: plugged / non-compliant. NW 3 in nozzle: temp clamp; inside neck perforated at 6 o’clock. Roof curb underside NE: local coating fail. Roof internal: coated, rusting. Floor: 1–5 mm topside pits; 3 holes (2 x plate 2.1, 1 x plate 3.3). Periphery 4 in band UT 5.0–6.1 mm. Sump: lip 12.21–12.50 / base 10.68 / intermediate 10.74–11.70 mm; base spot only. Projection UT random 3–5 mm."
+    },
+    {
+      "variantId": "component-handoff",
+      "style": "multi-inspector handoff",
+      "text": "Civil: dike has minor washout north, northeast and southwest; projection leading edge moderate-to-severe corrosion and east tell-tale pipe severe corrosion. Nozzles: southwest manhole tell-tale plugged/non-compliant; northwest 3-inch neck temporarily clamped and perforated internally at six o’clock. Roof: northeast curb underside local coating failure; internal roof coated with rusting. Floor: scattered 1–5 mm pits and three holes, two at plate 2.1 and one at 3.3. Four-inch peripheral band 5.0–6.1 mm. Sump readings: lip 12.21–12.50, base 10.68, middle 10.74–11.70 mm; base spot readings only due coating. Projection random UT 3–5 mm."
+    }
+  ],
+  "observations": [
+    {
+      "evidenceId": "obs-dike-washout",
+      "componentBlock": "diked-area",
+      "component": "dike wall",
+      "location": "north, northeast and southwest",
+      "polarity": "observed",
+      "condition": "minor washout",
+      "qualifier": null,
+      "protectedTerms": [
+        "north",
+        "northeast",
+        "southwest",
+        "minor washout"
+      ],
+      "sourceReference": {
+        "blockId": "block_55c15bcc50bb3929ff1d852b",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-projection-edge-corrosion",
+      "componentBlock": "foundation",
+      "component": "floor projection",
+      "location": "leading edge",
+      "polarity": "observed",
+      "condition": "moderate to severe corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "floor projection",
+        "leading edge",
+        "moderate",
+        "severe"
+      ],
+      "sourceReference": {
+        "blockId": "block_425c039137a78b97b4e501fd",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-telltale-pipe-corrosion",
+      "componentBlock": "foundation",
+      "component": "tell-tale pipe",
+      "location": "east sector",
+      "polarity": "observed",
+      "condition": "severe corrosion",
+      "qualifier": null,
+      "protectedTerms": [
+        "tell-tale pipe",
+        "east",
+        "severe corrosion"
+      ],
+      "sourceReference": {
+        "blockId": "block_e79a93433bce575c92c90fb4",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-manhole-telltale-plugged",
+      "componentBlock": "shell-appurtenances",
+      "component": "manhole reinforcement tell-tale hole",
+      "location": "southwest sector",
+      "polarity": "observed",
+      "condition": "plugged and recorded as non-compliant",
+      "qualifier": null,
+      "protectedTerms": [
+        "manhole",
+        "tell-tale",
+        "southwest",
+        "plugged",
+        "non-compliant"
+      ],
+      "sourceReference": {
+        "blockId": "block_e47768754570a77c6e2b068c",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-nozzle-temporary-clamp",
+      "componentBlock": "shell-appurtenances",
+      "component": "3-inch nozzle neck",
+      "location": "northwest sector, internal surface at 6 o’clock",
+      "polarity": "observed",
+      "condition": "temporary clamp with a perforated internal nozzle neck",
+      "qualifier": null,
+      "protectedTerms": [
+        "3-inch",
+        "northwest",
+        "temporary clamp",
+        "perforated",
+        "internal",
+        "6 o’clock"
+      ],
+      "sourceReference": {
+        "blockId": "block_27615b2796e08de33b11f1a4",
+        "page": 7
+      }
+    },
+    {
+      "evidenceId": "obs-curb-angle-paint",
+      "componentBlock": "roof-external",
+      "component": "curb angle underside",
+      "location": "northeast sector",
+      "polarity": "observed",
+      "condition": "localized coating failure",
+      "qualifier": null,
+      "protectedTerms": [
+        "curb angle",
+        "underside",
+        "northeast",
+        "localized",
+        "coating failure"
+      ],
+      "sourceReference": {
+        "blockId": "block_74a19a8b0c9eaaf6cf5fe4cb",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-roof-internal-rusting",
+      "componentBlock": "roof-internal",
+      "component": "roof internal",
+      "location": null,
+      "polarity": "observed",
+      "condition": "coated surface with rusting",
+      "qualifier": null,
+      "protectedTerms": [
+        "roof internal",
+        "coated",
+        "rusting"
+      ],
+      "sourceReference": {
+        "blockId": "block_89fd64fc305ffd79e4dadf39",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-floor-pitting-holes",
+      "componentBlock": "floor-internal",
+      "component": "floor plates",
+      "location": null,
+      "polarity": "observed",
+      "condition": "scattered topside pitting from 1 mm to 5 mm deep and three holes",
+      "qualifier": "two holes on plate 2.1 and one on plate 3.3",
+      "protectedTerms": [
+        "1 mm",
+        "5 mm",
+        "three holes",
+        "plate 2.1",
+        "plate 3.3"
+      ],
+      "sourceReference": {
+        "blockId": "block_3e9a642aa4e40b8db3a1223f",
+        "page": 8
+      }
+    },
+    {
+      "evidenceId": "obs-floor-periphery-ut",
+      "componentBlock": "floor-internal",
+      "component": "four-inch floor-periphery band",
+      "location": null,
+      "polarity": "measured",
+      "condition": "remaining thickness ranged from 5.0 mm to 6.1 mm",
+      "qualifier": null,
+      "protectedTerms": [
+        "four-inch",
+        "5.0 mm",
+        "6.1 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_9b959363f0cc42c34fcac404",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-sump-ut",
+      "componentBlock": "floor-internal",
+      "component": "disk-shaped sump",
+      "location": null,
+      "polarity": "measured",
+      "condition": "sump lip 12.21 mm to 12.50 mm, base 10.68 mm, intermediate area 10.74 mm to 11.70 mm",
+      "qualifier": "base coating attenuated the UT signal, so only spot readings were possible there",
+      "protectedTerms": [
+        "12.21 mm",
+        "12.50 mm",
+        "10.68 mm",
+        "10.74 mm",
+        "11.70 mm",
+        "spot readings"
+      ],
+      "sourceReference": {
+        "blockId": "block_69e5448615c8d481d0f7ee69",
+        "page": 9
+      }
+    },
+    {
+      "evidenceId": "obs-projection-ut",
+      "componentBlock": "floor-internal",
+      "component": "floor projection",
+      "location": "random locations",
+      "polarity": "measured",
+      "condition": "remaining thickness ranged from 3 mm to 5 mm",
+      "qualifier": null,
+      "protectedTerms": [
+        "floor projection",
+        "3 mm",
+        "5 mm"
+      ],
+      "sourceReference": {
+        "blockId": "block_33321f05ea79683ce16d72be",
+        "page": 9
+      }
+    }
+  ]
+}

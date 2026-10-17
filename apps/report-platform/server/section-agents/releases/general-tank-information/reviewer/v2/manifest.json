@@ -1,0 +1,39 @@
+{
+  "contractVersion": "section_review_agent_release_v1",
+  "reviewerId": "section_reviewer",
+  "releaseId": "reviewer_v2",
+  "supportedReportProfiles": [
+    "vertical_tank_inspection_v1"
+  ],
+  "supportedSectionIds": [
+    "general-tank-information"
+  ],
+  "supportedGenerator": {
+    "releaseVersion": "general_tank_information_v3",
+    "manifestSha256": "fa5c283036433fa6b9df53dd7c9369b695f3ff377b894575806fd75c097e7366"
+  },
+  "status": "evaluation_candidate",
+  "productionEnabled": false,
+  "executionModes": [
+    "evaluation"
+  ],
+  "reviewContract": "section_review_execution_v1",
+  "resultContract": "section_review_result_v1",
+  "reviewMode": "deterministic_pre_display_guard",
+  "goldAllowed": false,
+  "reviewerInstructions": "reviewer-instructions.md",
+  "reviewerSpec": "reviewer-spec.json",
+  "knowledgeReviewPolicy": "knowledge-review-policy.json",
+  "harness": "harness.json",
+  "entryPoint": "server/reviewer.mjs",
+  "entryExport": "reviewGeneralTankInformation",
+  "files": {
+    "README.md": "e162e26ad9a8238e2bc6483899ec3044bf0796bdf91bf1de5708cbfe90f4e595",
+    "harness.json": "0cb32021638564d4565fb02561763b6400fa624d46a1fc38844f78c570b232b5",
+    "knowledge-review-policy.json": "565b697e85b2941f7871b2ddf864df8b5752f950bec4e385e6dae05080bc16e6",
+    "reviewer-instructions.md": "163d389ea6b8609757041513d3dad8a4319e83440ff85e89139087407b7bf76c",
+    "reviewer-spec.json": "aa257772f4d016a83d8e2733346108c373c5328a1811f6539f1696219f4291ec",
+    "server/reviewer.mjs": "9aef12676a91a5669cd49bdb92272380b38168691fb45c95c42e4352268f581c"
+  },
+  "agentRole": "reviewer"
+}

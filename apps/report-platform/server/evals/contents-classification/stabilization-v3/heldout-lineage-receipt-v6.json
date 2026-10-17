@@ -1,0 +1,24 @@
+{
+  "contractVersion": "contents_classification_heldout_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:bumitech-inspection-services-sdn-bhd-petronas-dagangan-bhd:t5103a",
+      "corpusReportId": "corpus_report_d0c3619023d91745",
+      "sourceReport": "14BT1-1 TK T5103A Tank Survey.pdf",
+      "sourceSha256": "1b62bc9116a8525cf53b624aece0e3a7bca104dd5de32e1a641dae9a7fa57e8f"
+    },
+    {
+      "assetLineageKey": "asset:pacific-petroleum-company:5",
+      "corpusReportId": "corpus_report_5b134c825866d4f9",
+      "sourceReport": "16PP1-1 Port Vila TK 5 Internal & External Inspection with Post Repair Inspection Report.pdf",
+      "sourceSha256": "013cceda9b11f99b7b8e2ec0b082b5b52a987031c7577eaa55d8ff1550a0ab37"
+    }
+  ],
+  "developmentOverlap": false,
+  "regressionLineageOverlap": false,
+  "priorHeldoutLineageOverlap": false
+}

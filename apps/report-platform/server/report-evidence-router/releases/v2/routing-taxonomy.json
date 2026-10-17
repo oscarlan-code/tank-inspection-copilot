@@ -1,0 +1,17 @@
+{
+  "contractVersion": "report_evidence_routing_taxonomy_v1",
+  "recordKinds": [
+    "identity", "scope", "measurement", "checklist_response", "observation",
+    "voice_claim", "geometry", "attachment", "manual_confirmation", "legacy_capture"
+  ],
+  "claimTypes": ["identity", "scope", "method", "observation", "measurement_summary", "recommendation", "limitation", "reference"],
+  "useRoles": ["required_structured", "required_narrative", "supporting", "cross_reference"],
+  "dispositions": ["routed", "excluded", "needs_review"],
+  "explicitExclusions": {
+    "voice_media_source_only": "Audio remains provenance for a routed transcript and is not report content.",
+    "duplicate_source_representation": "A canonical retained record already represents this source.",
+    "outside_selected_report_plan": "Evidence is retained but the reviewed ReportPlan excludes its destination.",
+    "non_report_operational_metadata": "Operational metadata has no report content purpose."
+  },
+  "protectedProperties": ["source_pointer", "native_record_id", "original_text", "value", "unit", "polarity", "uncertainty", "entity", "location", "row_order", "attachment_link"]
+}

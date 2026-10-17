@@ -19,84 +19,79 @@
       "requiredWhen": "always"
     },
     {
-      "blockId": "inspection-extent",
-      "content": "Short extent and material access limitations needed to interpret findings.",
-      "format": "short_qualified_paragraph",
-      "requiredWhen": "when_needed"
-    },
-    {
       "blockId": "diked-area",
       "content": "Supported containment, surroundings and drainage observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "foundation",
       "content": "Supported foundation and observed settlement-effect findings.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "shell-external",
       "content": "External shell, coating, weld and deformation findings with locations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "shell-appurtenances",
       "content": "Supported nozzle, manway and shell-fitting observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "access-structures",
       "content": "Supported stair, ladder, platform and handrail observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "roof-external",
       "content": "Configuration-specific external roof observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "roof-appurtenances",
       "content": "Supported roof opening, nozzle, vent and fitting observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_applicable"
     },
     {
       "blockId": "roof-internal",
       "content": "Supported roof underside and internal support observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_inspected"
     },
     {
       "blockId": "shell-internal",
       "content": "Supported internal shell, weld and coating observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_inspected"
     },
     {
       "blockId": "floor-internal",
       "content": "Supported floor, annular area, sump and shell-to-floor observations.",
-      "format": "component_subheading_and_paragraphs",
+      "format": "report_plan_selected_allowed_format_family",
       "requiredWhen": "when_inspected"
     },
     {
       "blockId": "assessment-summaries",
       "content": "Only reviewed selected quantitative or assessment summaries with exact protected values.",
-      "format": "qualified_summary",
+      "format": "report_plan_selected_deterministic_assessment_format",
       "requiredWhen": "when_approved"
-    },
-    {
-      "blockId": "inspection-implication",
-      "content": "A reviewed synthesis of material findings and limitations.",
-      "format": "short_qualified_paragraph",
-      "requiredWhen": "when_supported"
     }
   ],
+  "outputBlockPolicy": {
+    "catalogSource": "frozen_section_knowledge_bundle",
+    "includeExcludeDecisionSource": "target_blind_frozen_report_plan",
+    "displayHeadingAndFormatSource": "accepted_bundle_variants",
+    "allSupportedBlocksRequiredInEveryReport": false,
+    "unobservedBlockRequiresNewReviewedBundleVersion": true
+  },
   "authorizedInputs": [
     "component_bound_findings",
     "checklist_observations",
@@ -118,9 +113,17 @@
     "historical_finding_as_current_fact",
     "invented_satisfactory_condition",
     "automatic_fitness_for_service_conclusion",
-    "full_measurement_table_as_prose"
+    "full_measurement_table_as_prose",
+    "use_target_report_structure_as_report_plan",
+    "use_single_historical_report_as_template",
+    "read_reviewer_or_evaluator_gold_projection"
   ],
   "kbPolicyFile": "kb-policy.json",
   "harnessFile": "harness.json",
-  "frozenReleaseReference": null
+  "frozenReleaseReference": null,
+  "knowledgeInputs": {
+    "sectionKnowledgeBundle": "one_frozen_bundle_with_generation_projection",
+    "standardObligationPack": "separate_pinned_applicable_pack",
+    "targetReportGoldAllowed": false
+  }
 }

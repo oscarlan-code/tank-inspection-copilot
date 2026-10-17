@@ -1,0 +1,15 @@
+{
+  "contractVersion": "mock_semantic_grader_release_v1",
+  "releaseId": "mock-semantic-grader-v2.1.0",
+  "graderId": "sealed-gold-semantic-judge",
+  "modelId": "gpt-5.6-sol",
+  "promptVersion": "2.0.0",
+  "reasoningEffort": "high",
+  "defaultBatchSize": 1,
+  "maximumBatchSize": 25,
+  "minimumAutoPassConfidence": 0.9,
+  "calibrationPilotId": "semantic-judge-pilot-v1",
+  "calibrationRequiredBeforeScale": true,
+  "lowConfidenceAction": "human_review",
+  "failureAction": "human_review"
+}

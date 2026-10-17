@@ -1,0 +1,30 @@
+{
+  "contractVersion": "contents_classification_validation_lineage_receipt_v1",
+  "splitPolicy": "content_family_stratified_asset_lineage_70_15_15_v1",
+  "taxonomyVersionId": "report_taxonomy_content_v1",
+  "sourceManifestSha256": "b40df3f68b5b2f1a8c14edf128b75e1dd46ce68239bc6fc7611e7723bfe50464",
+  "datasetSplit": "validation",
+  "lineages": [
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:be2",
+      "corpusReportId": "corpus_report_1b3925f386f16a59",
+      "sourceReport": "19PE1-6 TK BE 2 Internal & External Inspection Report.pdf",
+      "sourceSha256": "7e0bbfd2c317669cf51be6f571359171751dbdff3024b6f181ce727e300ac49b"
+    },
+    {
+      "assetLineageKey": "asset:pacific-islands-energy:ra3",
+      "corpusReportId": "corpus_report_76c3f20d070c229e",
+      "sourceReport": "15PIE1-3 TK RA 3 Internal & External Inspection Report.pdf",
+      "sourceSha256": "cede209b2111360ff3b4e05158192a277efe3560eca9ced221790b2418e53a80"
+    },
+    {
+      "assetLineageKey": "asset:pacific-energy-swp-ltd:5",
+      "corpusReportId": "corpus_report_f4adbfc0b207e7c3",
+      "sourceReport": "18PE2-4 TK 5 Internal & External Inspection Report.pdf",
+      "sourceSha256": "6b353dcf529bbc4e79c6a09da6f61778591975d6565e95f18d20ce2a11fc10fb"
+    }
+  ],
+  "developmentOverlap": false,
+  "earlierRobustnessSourceNameOverlap": false,
+  "notes": "The earlier 100-row run included 22PE1-4, which the same split manifest assigns to validation. That earlier run remains a robustness result and is not used as promotion evidence."
+}

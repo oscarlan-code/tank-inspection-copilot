@@ -1,0 +1,66 @@
+{
+  "contractVersion": "inspection_report_calibration_inventory_review_v1",
+  "status": "engineering_review_complete_inspector_review_pending",
+  "reviewerIdentity": "codex-engineering-assistant",
+  "reviewedAt": "2026-09-28T00:00:00.000Z",
+  "authority": "workflow_calibration_only",
+  "acceptAllUnchangedProvisionalDispositions": true,
+  "cases": {
+    "inspection-report-calibration-01": {
+      "datasetSplit": "development",
+      "overrides": []
+    },
+    "inspection-report-calibration-02": {
+      "datasetSplit": "development",
+      "overrides": [
+        {
+          "sourceBlockId": "block_142ec5c40db11b190ce213ee",
+          "reviewedDisposition": "required_current_fact",
+          "reason": "The statement records the observed foundation and site condition; the reference to API 650 does not make it a recommendation."
+        },
+        {
+          "sourceBlockId": "block_395720ba980569956009e089",
+          "reviewedDisposition": "required_current_fact",
+          "reason": "The absence of a nameplate is a current observation; the standards reference is contextual."
+        },
+        {
+          "sourceBlockId": "block_488aab1e2852331c2d518983",
+          "reviewedDisposition": "boilerplate_metadata",
+          "reason": "The navigation label is page furniture and contains no inspection observation."
+        },
+        {
+          "sourceBlockId": "block_72523643d9a4b220fa21f020",
+          "reviewedDisposition": "boilerplate_metadata",
+          "reason": "The navigation label is page furniture and contains no inspection observation."
+        },
+        {
+          "sourceBlockId": "block_b8323ebe7c8648db1ce44a5e",
+          "reviewedDisposition": "boilerplate_metadata",
+          "reason": "The navigation label is page furniture and contains no inspection observation."
+        },
+        {
+          "sourceBlockId": "block_d6adcdc1dd9733b31712df1e",
+          "reviewedDisposition": "boilerplate_metadata",
+          "reason": "The navigation label is page furniture and contains no inspection observation."
+        },
+        {
+          "sourceBlockId": "block_ace2fcb6703e17bb24923e0d",
+          "reviewedDisposition": "deterministic_content",
+          "reason": "The isolated value is a technical assessment criterion fragment, not an observed current condition.",
+          "componentBlockOverride": "roof-external",
+          "normalizationOverride": {
+            "inputType": "criteria_value_fragment",
+            "normalizedData": ["0.09 inch in any 100 in²"],
+            "summaryLabel": "Allowable local out-of-plane distortion criterion fragment",
+            "requiresDeterministicCompiler": true
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "inspectorApproval": "pending",
+    "releaseQualificationAllowed": false,
+    "productPromotionAllowed": false
+  }
+}

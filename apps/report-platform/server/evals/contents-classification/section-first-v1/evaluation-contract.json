@@ -1,0 +1,50 @@
+{
+  "contractVersion": "contents_classification_section_first_evaluation_v1",
+  "purpose": "Measure safe section routing separately from optional within-section block precision.",
+  "evaluationUnit": "one source-linked evidence atom",
+  "frozenBeforeValidation": true,
+  "sectionRules": {
+    "wrongSectionRoute": "hard_failure",
+    "sectionAbstention": "safe_but_reduces_automatic_section_coverage",
+    "routedSectionPrecision": 1,
+    "minimumAutomaticSectionCoverage": 0.95,
+    "criticalSectionRecall": 1
+  },
+  "blockRules": {
+    "minimumExactAccuracy": 0.9,
+    "uncertainBlockWithinCorrectSection": "allowed_for_human_review_but_not_generation_eligible",
+    "wrongBlockWithinCorrectSection": "quality_failure_not_cross_section_safety_failure"
+  },
+  "hardGates": {
+    "wrongSectionRouteCount": 0,
+    "sectionRoutePrecision": 1,
+    "minimumAutomaticSectionCoverage": 0.95,
+    "criticalSectionRecall": 1,
+    "minimumBlockExactAccuracy": 0.9,
+    "targetGoldExposure": 0,
+    "crossSectionPackageLeakage": 0,
+    "unreviewedNarrativeAssignmentsInGenerationPackages": 0
+  },
+  "requiredMetrics": [
+    "wrongSectionRouteCount",
+    "sectionRoutePrecision",
+    "automaticSectionCoverage",
+    "criticalSectionRecall",
+    "blockExactAccuracy",
+    "blockReviewRate"
+  ],
+  "qualificationRule": "All hard gates must pass. Block uncertainty may enter human review only; it cannot enter generation.",
+  "productEnabled": false,
+  "criticalSectionIds": [
+    "general-tank-information",
+    "scope-of-inspection",
+    "repair-recommendations",
+    "roof-plate-thickness-measurements",
+    "roof-nozzle-reinforcement-pad-thickness-measurements",
+    "shell-plate-thickness-measurements",
+    "shell-nozzle-reinforcement-pad-thickness-measurements",
+    "shell-settlement",
+    "minimum-shell-thickness-calculations",
+    "corrosion-rate-and-remaining-life-assessment"
+  ]
+}

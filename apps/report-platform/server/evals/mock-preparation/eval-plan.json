@@ -1,0 +1,111 @@
+{
+  "frameworkVersion": "openai_style_agent_eval_v1",
+  "agent": {
+    "id": "mock-preparation-agent",
+    "role": "mock_preparation_agent",
+    "goal": "Convert reviewed source semantic units from one complete historical report into evidence that conforms to the approved Android product export contract while preserving inspection meaning and expressing narrative as varied, realistic inspector capture."
+  },
+  "dataset": {
+    "unit": "complete_report_lineage",
+    "source": "android_v3_report_mock_corpus",
+    "splitPolicy": "Keep every voice variant from one report and asset in the same downstream split.",
+    "requiredArtifacts": [
+      "source-inventory.json",
+      "semantic-pairs.json",
+      "evidence-lineage.json",
+      "build-receipt.json",
+      "review/deterministic-review.json",
+      "review/app-export-audit-<variant>.json",
+      "review/independent-review.json",
+      "freeze-manifest.json",
+      "eval-candidate.json"
+    ]
+  },
+  "candidateControl": {
+    "baselineLabel": "Candidate A",
+    "oneVariablePerCandidate": true,
+    "allowedChangedVariables": [
+      "baseline",
+      "prompt",
+      "model",
+      "mock-preparation-policy",
+      "materializer-code",
+      "android-export-schema"
+    ],
+    "alwaysLocked": [
+      "source-report-hash",
+      "source-obligation-denominator",
+      "lineage",
+      "voice-variant-set",
+      "grader-definitions"
+    ]
+  },
+  "graders": [
+    {
+      "id": "candidate-configuration",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "The agent release, code commit, model, prompt and single changed variable are pinned."
+    },
+    {
+      "id": "source-segmentation",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "Every required raw source obligation is represented by one or more source semantic units; independent review validates their correctness separately."
+    },
+    {
+      "id": "source-to-mock-coverage",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "Every capturable source semantic unit links to one or more authentic app evidence records in every required voice variant."
+    },
+    {
+      "id": "semantic-meaning-alignment",
+      "type": "llm_or_human",
+      "gate": "hard",
+      "criterion": "Each linked app evidence set preserves the source unit's meaning despite changes in wording, ordering or grouping."
+    },
+    {
+      "id": "truth-integrity",
+      "type": "deterministic_and_semantic",
+      "gate": "hard",
+      "criterion": "Protected values, units, entity, location, polarity, uncertainty and relationships remain correct and no unsupported fact is added."
+    },
+    {
+      "id": "variation-robustness",
+      "type": "aggregate",
+      "gate": "hard",
+      "criterion": "The worst voice variant preserves every required semantic unit; diversity itself is diagnostic rather than a quality target."
+    },
+    {
+      "id": "app-export-authenticity",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "Every required voice variant was exported through Android ProductStore and has a valid receipt."
+    },
+    {
+      "id": "app-contract-preservation",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "Checklist answers, General Tank Information fields and the app-owned thickness unit survive every export."
+    },
+    {
+      "id": "narrative-independence",
+      "type": "deterministic",
+      "gate": "hard",
+      "criterion": "No exported inspector narrative copies a prohibited source-report phrase."
+    },
+    {
+      "id": "independent-source-review",
+      "type": "human",
+      "gate": "hard",
+      "criterion": "An independent reviewer confirms semantic completeness against the original report and the reviewed bytes are frozen."
+    }
+  ],
+  "decisionRule": {
+    "qualified": "All hard graders pass.",
+    "failed": "At least one completed hard grader fails.",
+    "incomplete": "At least one required hard grader has not run.",
+    "noAverageOverride": "A high aggregate score cannot compensate for a missing or contradicted critical semantic unit."
+  }
+}

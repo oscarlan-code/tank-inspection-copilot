@@ -1,0 +1,29 @@
+{
+  "contractVersion": "mock_preparation_release_manifest_v1",
+  "releaseId": "mock-preparation-agent-v1",
+  "promotedFrom": "sandbox/candidates/mock-preparation-v1",
+  "candidateFiles": {
+    "README.md": "2fd97914a3b0082f808a74822d88c1c9e5d4d32d0ebb958f778d5bf5344d39b7",
+    "agent-spec.json": "c9a67f57bb3a8e50a6bf4fa4378fc7717d6e2a6feff88c119738c3781c3c730d",
+    "harness.json": "691161409f8b3073140f0febaa6c1db4285835ef3e0e94302cf30a11e17fc007",
+    "full-test-contract.json": "90f655ee9672e71cbc9c59e50baf3ac30c5834989169f1a65c66e8f8d7c28941",
+    "prompt.md": "cec92184a592831837c91e12f44e20865ed6b2b302d5902aead94c3480ad0859",
+    "reviewer-prompt.md": "8fc12995c90ea22a0c306740957fcebb48bc23b3b28df735edd61e7d1ed4ffb5",
+    "prepare-full-case.mjs": "f10d6229d01d8c733444904e5eedcbe7e745b591b303e1a05145dace41e9c10d",
+    "prepare-full-case.test.mjs": "d8c9ac7bad9fcc6d56d90e58e501087bf73a64df4d891db72c5488367e05c0c5"
+  },
+  "aggregateSha256": "47088d39a136c7ac7d7c06e1a3bc3c5f997afef1122f2ba5f9115e3c3c6e65d0",
+  "qualification": {
+    "caseId": "mock-b34ab927d6545293005c",
+    "sourceSha256": "86ebfbd32c186f8b6570cb38ddc60e5b8d640868bfd2c58a8d19e51ea2a33ebe",
+    "generationDecision": "pass",
+    "androidDecision": "pass",
+    "fullReportDecision": "approved",
+    "independentReviewDecision": "pass",
+    "frozen": true,
+    "candidateBinding": "naming_only_migration"
+  },
+  "promotedAtIso": "2026-10-15T03:13:27.810Z",
+  "immutable": true,
+  "productUseEnabled": false
+}

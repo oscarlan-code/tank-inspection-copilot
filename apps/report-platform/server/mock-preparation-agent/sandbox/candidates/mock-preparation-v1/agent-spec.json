@@ -1,0 +1,23 @@
+{
+  "agentId": "mock-preparation-agent",
+  "release": "v1",
+  "status": "evaluation_candidate",
+  "goal": "Create complete source-grounded mock narrative evidence for the approved Android product export contract from a human-approved atomic gold ledger without changing inspection truth.",
+  "modelId": "gpt-5.6-sol",
+  "openBookSourceAccess": true,
+  "productUseEnabled": false,
+  "reportGenerationEnabled": false,
+  "llmOwnedUnitTypes": [
+    "observation",
+    "recommendation",
+    "scope_fact",
+    "test_method"
+  ],
+  "forbidden": [
+    "using report-generation agents or report-section routing",
+    "inventing or changing a fact, action, measurement, unit, location, relationship, condition, limitation or recommendation",
+    "writing directly to an Android export",
+    "treating an output-case freeze as an input prerequisite",
+    "using post-export evaluator labels during generation"
+  ]
+}
