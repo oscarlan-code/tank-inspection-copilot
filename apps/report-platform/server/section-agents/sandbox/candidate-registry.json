@@ -1,0 +1,17 @@
+{
+  "contractVersion": "section_agent_sandbox_registry_v1",
+  "productEnabled": false,
+  "entries": [
+    {
+      "candidateId": "general-tank-information-candidate-a",
+      "sectionId": "general-tank-information",
+      "reportProfileId": "vertical_tank_inspection_v1",
+      "status": "sandbox_candidate",
+      "candidatePath": "candidates/general-tank-information/candidate-a",
+      "manifestSha256": "c4469afb16432ce12f0af482f4ae312759d3997e26bfb38a2bb71b217ab32135",
+      "executionModes": ["evaluation"],
+      "productEnabled": false
+    }
+  ]
+}
+

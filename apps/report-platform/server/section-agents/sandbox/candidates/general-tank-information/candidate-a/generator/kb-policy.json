@@ -1,0 +1,13 @@
+{
+  "contractVersion": "section_kb_policy_candidate_v2",
+  "candidateId": "general-tank-information-candidate-a",
+  "sectionId": "general-tank-information",
+  "knowledgeBundleId": "general-tank-information-knowledge-candidate-a",
+  "mode": "frozen_structure_projection_no_runtime_retrieval",
+  "runtimeRetrievalEnabled": false,
+  "currentFactsFromHistoricalSources": false,
+  "allowedUses": ["section title", "field order", "paired-field format", "accepted missing-value presentation"],
+  "forbiddenUses": ["current tank fact", "current measurement", "current finding", "current history", "automatic approval"],
+  "lineageExclusions": ["target report", "same asset or scenario", "alternate rendition", "near duplicate", "validation gold", "hidden test gold", "post-cutoff source"]
+}
+

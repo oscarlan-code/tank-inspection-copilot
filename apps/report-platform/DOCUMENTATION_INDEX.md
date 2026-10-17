@@ -37,7 +37,9 @@ The immutable agent-configuration and semantic-unit lineage contracts live under
 The active shared preprocessing release and its executable contract live under
 `server/contents-classification-agent/`. It guards and atomizes a pinned Android
 export, classifies section/block uses, requires authorized review, and emits
-hash-sealed `section_evidence_package_v1` inputs for future section agents. Its
+hash-sealed `section_evidence_package_v1` inputs for section agents. General Tank
+Information Candidate A is the first sandbox consumer under
+`server/section-agents/sandbox/`. Its
 exact evaluation release remains product-disabled. The former
 `server/report-evidence-router/` is archived in place for saved-run reproduction;
 its registry blocks new workflows by default.
@@ -47,8 +49,8 @@ frozen agent release or product state.
 
 The checked-in executable workflow index lives under `server/report-workflow/`.
 Its audit reconciles the active mock-preparation release, classifier release,
-outline profile, section-package handoff, planned generation stages, and archived
-router state.
+outline profile, section-package handoff, package-bound sandbox candidate, planned
+product stages, and archived router state.
 
 Supporting contracts govern only their subsystem. They cannot change ReportPlan,
 section-agent, knowledge-authority, or promotion rules in the root contracts.

@@ -17,9 +17,12 @@ section.
 - Scope of Inspection v1 and General Tank Information v1–v3 remain evaluation
   evidence. Their routed TK5452 path is historical compatibility and does not define
   the input contract for future section agents.
-- The Report Structure Agent, package-bound section-generator releases, durable plan
-  stores, Report Integrator, PDF parity, and product promotion registry remain to be
-  built.
+- General Tank Information Candidate A is the first executable sandbox agent on the
+  current `section_evidence_package_v1` handoff. Its minimum package-bound plan,
+  deterministic generator, no-gold pre-display reviewer and structured-gold
+  evaluator are implemented. Qualification and immutable release remain pending.
+- The higher Report Structure Agent, package-bound immutable releases, durable plan
+  store, Report Integrator, PDF parity, and product promotion registry remain to be built.
 - No report-generation model, KB policy, or section agent is currently promoted
   through the rebuilt pipeline.
 
@@ -70,6 +73,13 @@ cases. Original report sections remained evaluator-only and were opened after
 generation. The fixtures are reconstructed app-shaped records; actual-device export
 and independent inspector review remain outstanding. One generic contract fixture
 remains for routing and blocker tests; it is not counted as qualification evidence.
+
+`general-tank-information-candidate-a` is the clean package-bound rebuild under
+`server/section-agents/sandbox/`. It consumes the reviewed classifier package rather
+than the archived router snapshot. Its historical bundle contributes only the title,
+31-field order and paired-field format; current values and units come only from the
+package. The focused contract suite passes, but this is scaffold validation rather
+than 10+1 report qualification or product promotion.
 
 Both implemented generators now resolve to exact review releases under
 `server/section-agents/releases/<section-id>/reviewer/`. A generated draft is exposed only after its reviewer

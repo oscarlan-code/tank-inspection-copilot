@@ -24,9 +24,15 @@ Shared runtime files:
 - `codex-gold-judge.mjs`: explicit optional live-LLM adapter for R&D evaluation only.
 - `specs/vertical-tank-v1/`: planned section contracts; a specification is not an executable release.
 - `test-fixtures/`: generic contract fixtures, not qualification evidence.
+- `sandbox/`: mutable, evaluation-only candidates that consume the current package
+  handoff before qualification and immutable release creation.
 
 Current executable families are `scope-of-inspection` and
 `general-tank-information`. All releases remain evaluation-only. A future generator
 without an exact reviewer fails before presentation; a generator/reviewer pair
 without an exact evaluator cannot run sealed-gold evaluation. There is no `latest`
 or legacy-generator fallback.
+
+`sandbox/candidates/general-tank-information/candidate-a/` is the first executable
+`section_evidence_package_v1` consumer. It is intentionally absent from the frozen
+release registries and product routing.

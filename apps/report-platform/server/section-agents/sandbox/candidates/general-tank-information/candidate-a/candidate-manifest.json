@@ -1,0 +1,58 @@
+{
+  "contractVersion": "section_agent_sandbox_candidate_v1",
+  "candidateId": "general-tank-information-candidate-a",
+  "sectionId": "general-tank-information",
+  "reportProfileId": "vertical_tank_inspection_v1",
+  "status": "sandbox_candidate",
+  "executionModes": ["evaluation"],
+  "productEnabled": false,
+  "generator": {
+    "id": "general-tank-information-generator-candidate-a",
+    "entryPoint": "generator/server/generator.mjs",
+    "entryExport": "generateGeneralTankInformation"
+  },
+  "reviewer": {
+    "id": "general-tank-information-reviewer-candidate-a",
+    "entryPoint": "reviewer/server/reviewer.mjs",
+    "entryExport": "reviewGeneralTankInformation"
+  },
+  "evaluator": {
+    "id": "general-tank-information-evaluator-candidate-a",
+    "entryPoint": "evaluator/server/evaluator.mjs",
+    "entryExport": "evaluateGeneralTankInformation"
+  },
+  "knowledgeBundle": {
+    "id": "general-tank-information-knowledge-candidate-a",
+    "path": "generator/section-knowledge-bundle.json"
+  },
+  "standardObligationPack": {
+    "id": "general-tank-information-api653-boundary-candidate-a",
+    "path": "generator/standard-obligation-pack.json"
+  },
+  "files": {
+    "README.md": "b0fe5ba039679812369ffec0a82a8ec0a377bf92f601dbcb4a811a4c098ab732",
+    "candidate.test.mjs": "df507532aa7e6d7606f51efb2b648e9055d4788ae902ee3a0b60bdf67dc99ac7",
+    "evaluator/evaluator-instructions.md": "40b349fc0a6de09893f5ab415621b19a998dcb0ea19257d47aa1662045cebd5a",
+    "evaluator/evaluator-spec.json": "3ccab06ac1314839486cf9843a9dce93ec67a63f0bd3f18f80d540a8006e3846",
+    "evaluator/harness.json": "31586e24f7ce5f43afd27f82c3c7d98d1d738363a5c6b39216e801e616d8b90b",
+    "evaluator/rubric.json": "51331985c23cc65d4f225ac94ee3996bae0af26d56a960cdd05dbf0208963b10",
+    "evaluator/server/evaluator.mjs": "35a4193fce548290bafa2bd2064f3e56748a56552ecda41cdb6adb5e601a93be",
+    "generator/agent-instructions.md": "9c3190be6d00c08bc593713fcc847f62467903441b2c015d55f26b04cbaf7b9f",
+    "generator/agent-spec.json": "f3775c2b59585d1fac9b87f53f807c36c9485f2fbe33d5117b026b2c1db2922e",
+    "generator/format-contract.json": "bb52c9348c67a8b5b9224450b3a252e0c32caba137978be3f0a487535c29f796",
+    "generator/harness.json": "2212e80f16e148bf38cd292b892239d58ca3a779a8d8b6d79e1e8a117162c997",
+    "generator/input-schema.json": "f09fb414ec693d63c9c52fc0ea7622ae027eee2574b63e80cd50e4b6dd79e29d",
+    "generator/kb-policy.json": "3522f8ea149aa196a24284f089518a840a10fce4302a277dde984c9206eb7b84",
+    "generator/output-schema.json": "73d9eb2c90793e6355717436e64d31473a052f724c41c067696c0470888c6bed",
+    "generator/section-knowledge-bundle.json": "8452a1c6e8537afd230f57ba73a0d940ffdcbdb189bec3b028e42e098ab7bfaf",
+    "generator/server/field-contract.mjs": "4928887af29c3271e6e2d265a3759e8b0b5a8a3f7240babf127974be02f16b45",
+    "generator/server/generator.mjs": "d87e4f38bc8ccc092bb8762ac5dcfdd54e7361ae398c3b577586ed51273a406a",
+    "generator/server/report-document.mjs": "316a3c00899ef9051a29dcdd48af78f5b7afe49c0d5de4909f736aff6e33b857",
+    "generator/standard-obligation-pack.json": "2f4d4c2f9d3be10502549da834a8ace7f278a3a17a070e4bcd26192f401b8b9a",
+    "reviewer/harness.json": "939cfcf2a3b2634a2622b7432868cea57b724f657a39485ccb1b9e843408c94c",
+    "reviewer/reviewer-instructions.md": "62a22605e1acd559b72bdd9aa8324fb07a870e9468a92a951657d9a4c11f21d1",
+    "reviewer/reviewer-spec.json": "50e2f454f45bc50b81ca91528932567fd95c1f28e374ca4b05b047be61028f31",
+    "reviewer/server/reviewer.mjs": "1b16a8bdadb235c7e1f215e212b9032f4bc7f9460f9a2adb9fd75a6bc06b070f"
+  }
+}
+

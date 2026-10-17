@@ -1,0 +1,18 @@
+{
+  "contractVersion": "section_reviewer_candidate_harness_v1",
+  "candidateId": "general-tank-information-candidate-a",
+  "requiredChecks": [
+    "exact generator and plan binding",
+    "gold absent",
+    "generator gate passed",
+    "title and paired format exact",
+    "31 body fields exactly once",
+    "value and unit unchanged",
+    "all package evidence dispositioned",
+    "support-only data absent from body",
+    "model and retrieval disabled",
+    "draft remains unapproved"
+  ],
+  "failureAction": "block user visibility"
+}
+

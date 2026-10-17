@@ -1,0 +1,16 @@
+{
+  "contractVersion": "general_information_evaluator_rubric_v1",
+  "hardGates": {
+    "protectedFieldAccuracy": 1,
+    "supportedClaimPrecision": 1,
+    "criticalIntegrityFailures": 0,
+    "goldLeakageFindings": 0
+  },
+  "qualityDimensions": [
+    "expectedFieldRecall",
+    "renderedFormatAlignment",
+    "inspectorAcceptance"
+  ],
+  "exactWordingTarget": false
+}
+

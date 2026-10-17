@@ -1,7 +1,7 @@
 {
   "contractVersion": "report_generation_workflow_scaffold_v1",
   "workflowId": "vertical-tank-report-r-and-d-v1",
-  "status": "pre_generation_evaluation_ready",
+  "status": "section_generation_sandbox_ready",
   "productEnabled": false,
   "entryPaths": {
     "evaluation": [
@@ -52,12 +52,17 @@
     {
       "order": 6,
       "stageId": "report-structure-and-plan",
-      "state": "planned"
+      "implementation": "server/report-plans/package-bound-section-plan.mjs",
+      "state": "minimum_evaluation_contract_implemented",
+      "limitation": "The higher Report Structure Agent and durable plan store remain planned."
     },
     {
       "order": 7,
       "stageId": "section-generation-and-pre-display-review",
-      "state": "planned_new_package_bound_releases"
+      "candidateId": "general-tank-information-candidate-a",
+      "implementation": "server/section-agents/sandbox/candidates/general-tank-information/candidate-a",
+      "state": "sandbox_candidate_implemented",
+      "qualificationState": "not_qualified_or_promoted"
     },
     {
       "order": 8,
@@ -71,10 +76,14 @@
     "outlineProfile": "vertical-api653-inspection-report-v6",
     "atomizer": "evidence-atomizer-v5"
   },
+  "activeSandboxCandidates": {
+    "generalTankInformation": "general-tank-information-candidate-a"
+  },
   "generationHandoff": {
     "contractVersion": "section_evidence_package_v1",
     "requiresHumanReview": true,
     "requiresExactClassifierRelease": true,
+    "nextConsumer": "general-tank-information-candidate-a",
     "productGenerationEligible": false
   },
   "historicalCompatibility": [
@@ -90,13 +99,14 @@
     }
   ],
   "nextBuild": {
-    "objective": "Create the first new section generator release against section_evidence_package_v1.",
-    "requiredBeforeImplementation": [
-      "freeze_section_outline_and_format",
-      "freeze_section_knowledge_bundle",
-      "define_section_evidence_completeness_gate",
-      "define_generator_and_pre_display_reviewer_contracts",
-      "freeze_lineage_split_evaluation_dataset"
+    "objective": "Qualify General Tank Information Candidate A before creating an immutable evaluation release.",
+    "requiredBeforePromotion": [
+      "freeze_development_validation_and_held_out_lineages",
+      "run_ten_development_and_one_untouched_report",
+      "complete_source_obligation_coverage",
+      "review_browser_and_export_rendering",
+      "record_inspector_domain_review",
+      "copy_exact_candidate_bytes_to_an_immutable_evaluation_release"
     ]
   }
 }

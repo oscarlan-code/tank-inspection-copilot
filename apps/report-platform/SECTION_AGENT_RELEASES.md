@@ -6,9 +6,11 @@ Every generated section uses one explicit immutable release. **Scope of Inspecti
 and General Tank Information** now have implemented agent families. Scope v1 and
 General Information v3 are historical routed ReportPlan evaluation candidates;
 General Information v1 is frozen qualification evidence. They predate the current
-`section_evidence_package_v1` input. All future generator releases must bind that
-reviewed package contract. All other section agents, durable plan storage, report
-integration, and product routing remain future work.
+`section_evidence_package_v1` input. General Information Candidate A is the first
+executable package-bound sandbox rebuild; it is not an immutable release and cannot
+be used by product routing. All future releases must bind the reviewed package
+contract. All other section agents, durable plan storage, report integration, and
+product routing remain future work.
 
 The previous shared generator is legacy and is never a fallback or extension point.
 
@@ -123,6 +125,22 @@ nine delegated. It has exact reviewer-v2 and evaluator-v2 bindings and is retain
 for historical evaluation compatibility after the router archive. It must not be
 copied as the input architecture for a new generator release. It remains
 evaluation-only.
+
+## General Tank Information Candidate A
+
+Candidate A lives under `server/section-agents/sandbox/` and does not modify v1–v3.
+It binds the exact classifier package hash and review seal into a minimum evaluation
+ReportPlan and SectionPlan, then runs a deterministic 31-field compiler and an
+independent no-gold reviewer. Job/date/inspector remain report-header metadata;
+roof-presence flags and insulation distance remain traceable support inputs and are
+not printed as descriptive tank facts. A sealed structured-gold evaluator opens only
+after the reviewer passes.
+
+The focused scaffold suite covers the real classifier handoff, package tampering,
+required fields, conflicts, explicit units including inches, output escaping,
+evidence disposition and product-mode rejection. Candidate A still requires frozen
+lineage splits, 10+1 historical replay, rendered export comparison and inspector
+review before it can be copied into an immutable evaluation release.
 
 ## Scope of Inspection v1
 
