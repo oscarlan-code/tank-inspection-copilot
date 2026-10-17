@@ -57,6 +57,27 @@ export REPORT_PLATFORM_S3_SECRET_ACCESS_KEY=laiq_local_object_password
 npm run api
 ```
 
+## Isolated Local Test Database
+
+Repository guardrails must not depend on recovering credentials from an existing
+developer or staging container. The checked-in `compose.test.yaml` starts a separate
+loopback-only PostgreSQL 17 + pgvector service on port `55433` with explicit
+test-only credentials and a temporary in-memory data directory.
+
+From the repository root:
+
+```bash
+npm --prefix apps/report-platform run test-env:up
+npm --prefix apps/report-platform run test-env:status
+npm --prefix apps/report-platform run guardrails:standard:test-env
+npm --prefix apps/report-platform run test-env:down
+```
+
+The wrapper exports `REPORT_PLATFORM_TEST_DATABASE_URL` only to the command it runs.
+Audits create and remove isolated PostgreSQL schemas. This environment contains no
+product or staging data and must never be bound beyond loopback.
+For an isolated API session, run `npm --prefix apps/report-platform run api:test-env`.
+
 ## Commercial Scale Target
 
 - up to 200 report-platform users

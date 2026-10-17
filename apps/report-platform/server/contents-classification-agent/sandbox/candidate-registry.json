@@ -1,0 +1,22 @@
+{
+  "contractVersion": "contents_classification_candidate_archive_v1",
+  "activeCandidateId": null,
+  "promotedRelease": {
+    "candidateId": "contents-classification-v10",
+    "releaseId": "contents-classification-evaluation-v1",
+    "status": "promoted_frozen_source"
+  },
+  "candidates": [
+    { "candidateId": "contents-classification-v1", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v2", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v3", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v4", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v5", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v6", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v7", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v8", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v9", "status": "superseded_experiment" },
+    { "candidateId": "contents-classification-v10", "status": "promoted_frozen_source" }
+  ],
+  "retentionReason": "Candidate bytes and historical evaluation runners are retained for release provenance and experiment reproduction; new workflow execution resolves the immutable evaluation release instead."
+}

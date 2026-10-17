@@ -1,0 +1,17 @@
+services:
+  postgres-test:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: laiq_report_platform_test
+      POSTGRES_PASSWORD: laiq_report_platform_test_only
+      POSTGRES_USER: laiq_report_platform_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laiq_report_platform_test -d laiq_report_platform_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "127.0.0.1:${REPORT_PLATFORM_TEST_DATABASE_PORT:-55433}:5432"
+    restart: "no"
+    tmpfs:
+      - /var/lib/postgresql/data

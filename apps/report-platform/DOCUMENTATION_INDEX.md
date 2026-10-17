@@ -45,6 +45,11 @@ The shared all-agent trace and evaluation-matrix contract lives under
 `server/section-agents/observability/v1/`; it records execution without changing a
 frozen agent release or product state.
 
+The checked-in executable workflow index lives under `server/report-workflow/`.
+Its audit reconciles the active mock-preparation release, classifier release,
+outline profile, section-package handoff, planned generation stages, and archived
+router state.
+
 Supporting contracts govern only their subsystem. They cannot change ReportPlan,
 section-agent, knowledge-authority, or promotion rules in the root contracts.
 

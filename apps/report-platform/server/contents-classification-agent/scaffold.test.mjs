@@ -10,7 +10,7 @@ const readJson = async (path) => JSON.parse(await readFile(resolve(ROOT, path), 
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 test('pipeline has a pre-runtime leakage boundary followed by four closed-book runtime stages', async () => {
-  const pipeline = await readJson('sandbox/candidates/contents-classification-v2/pipeline-contract.json');
+  const pipeline = await readJson('releases/evaluation/v1/pipeline-contract.json');
   assert.deepEqual(pipeline.stages.map((item) => item.stageId), [
     'android-productstore-export','evaluation-input-leakage-guard','evidence-atomizer',
     'contents-classification-agent','classification-guard','section-evidence-packages']);
@@ -23,7 +23,7 @@ test('pipeline has a pre-runtime leakage boundary followed by four closed-book r
 });
 
 test('outline profile is bound to the reviewed 69-report vertical profile', async () => {
-  const outline = await readJson('outline-profiles/vertical-api653-v1/outline-profile.json');
+  const outline = await readJson('outline-profiles/vertical-api653-v6/outline-profile.json');
   const reportPlatformRoot = process.env.REPORT_PLATFORM_ROOT
     ? resolve(process.env.REPORT_PLATFORM_ROOT) : resolve(ROOT, '../..');
   const sourcePath = resolve(reportPlatformRoot, 'docs/design/vertical-tank-inspection-v1.json');
@@ -45,11 +45,11 @@ test('outline profile is bound to the reviewed 69-report vertical profile', asyn
   }
 });
 
-test('candidate is product-disabled and target-gold blind', async () => {
+test('active evaluation release is product-disabled and target-gold blind', async () => {
   const [spec, kb, harness] = await Promise.all([
-    readJson('sandbox/candidates/contents-classification-v2/agent-spec.json'),
-    readJson('sandbox/candidates/contents-classification-v2/kb-policy.json'),
-    readJson('sandbox/candidates/contents-classification-v2/harness.json')]);
+    readJson('releases/evaluation/v1/agent-spec.json'),
+    readJson('releases/evaluation/v1/kb-policy.json'),
+    readJson('releases/evaluation/v1/harness.json')]);
   assert.equal(spec.productEnabled, false);
   assert(spec.runtimeForbidden.includes('target_original_report'));
   assert(spec.runtimeForbidden.includes('target_gold_labels'));
@@ -69,11 +69,11 @@ test('evaluator can open gold only after classification and cannot feed generati
 
 test('frozen outline manifest and API 653 mapping are internally consistent', async () => {
   const [profile, obligations, review, manifest, spec] = await Promise.all([
-    readJson('outline-profiles/vertical-api653-v1/outline-profile.json'),
-    readJson('outline-profiles/vertical-api653-v1/api653-report-obligations.json'),
-    readJson('outline-profiles/vertical-api653-v1/outline-review.json'),
-    readJson('outline-profiles/vertical-api653-v1/outline-manifest.json'),
-    readJson('sandbox/candidates/contents-classification-v2/agent-spec.json')
+    readJson('outline-profiles/vertical-api653-v6/outline-profile.json'),
+    readJson('outline-profiles/vertical-api653-v6/api653-report-obligations.json'),
+    readJson('outline-profiles/vertical-api653-v6/outline-review.json'),
+    readJson('outline-profiles/vertical-api653-v6/outline-manifest.json'),
+    readJson('releases/evaluation/v1/agent-spec.json')
   ]);
   const sectionBlocks = new Map(profile.sections.map((section) => [section.sectionId, new Set(section.blocks)]));
   for (const obligation of obligations.reportContentObligations) {
@@ -88,16 +88,16 @@ test('frozen outline manifest and API 653 mapping are internally consistent', as
   assert.equal(review.productUseApproved, false);
   assert.equal(manifest.immutable, true);
   assert.equal(spec.outlineProfileBinding.profileSha256,
-    sha256(await readFile(resolve(ROOT, 'outline-profiles/vertical-api653-v1/outline-profile.json'))));
+    sha256(await readFile(resolve(ROOT, 'outline-profiles/vertical-api653-v6/outline-profile.json'))));
   assert.equal(spec.outlineProfileBinding.manifestSha256,
-    sha256(await readFile(resolve(ROOT, 'outline-profiles/vertical-api653-v1/outline-manifest.json'))));
+    sha256(await readFile(resolve(ROOT, 'outline-profiles/vertical-api653-v6/outline-manifest.json'))));
 });
 
 
-test('classifier candidate requires the sealed leakage-guard package', async () => {
+test('active evaluation release requires the sealed leakage-guard package', async () => {
   const [spec, harness, policy] = await Promise.all([
-    readJson('sandbox/candidates/contents-classification-v2/agent-spec.json'),
-    readJson('sandbox/candidates/contents-classification-v2/harness.json'),
+    readJson('releases/evaluation/v1/agent-spec.json'),
+    readJson('releases/evaluation/v1/harness.json'),
     readJson('input-guards/evaluation-leakage/v1/policy.json')
   ]);
   assert.equal(spec.inputGuard.requiredDecision, 'passed');
@@ -110,4 +110,22 @@ test('classifier candidate requires the sealed leakage-guard package', async () 
   assert.equal(harness.hardGates.mockTransportIdentifierExposure, 0);
   assert.equal(policy.rules.blockedInputProducesRuntimePackage, false);
   assert.equal(policy.rules.crosswalkIsEvaluatorOnly, true);
+});
+
+test('candidate and outline registries expose only the promoted release inputs as current', async () => {
+  const [candidates, outlines, releases] = await Promise.all([
+    readJson('sandbox/candidate-registry.json'),
+    readJson('outline-profiles/registry.json'),
+    readJson('release-registry.json'),
+  ]);
+  assert.equal(candidates.activeCandidateId, null);
+  assert.equal(candidates.promotedRelease.candidateId, 'contents-classification-v10');
+  assert.equal(candidates.promotedRelease.releaseId, 'contents-classification-evaluation-v1');
+  assert(candidates.candidates.filter((item) => /^contents-classification-v[1-9]$/.test(item.candidateId))
+    .every((item) => item.status === 'superseded_experiment'));
+  assert.equal(outlines.activeEvaluationProfileId, 'vertical-api653-inspection-report-v6');
+  assert.equal(outlines.productProfileId, null);
+  assert(outlines.profiles.filter((item) => item.directory !== 'vertical-api653-v6')
+    .every((item) => item.status === 'superseded_evaluation_artifact'));
+  assert(releases.entries.some((item) => item.releaseId === candidates.promotedRelease.releaseId));
 });

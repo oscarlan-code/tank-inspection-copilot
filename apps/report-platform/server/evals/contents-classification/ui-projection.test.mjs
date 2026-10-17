@@ -30,7 +30,7 @@ test('projects the sealed blinded challenge without exposing report identities o
   const root = await mkdtemp(join(tmpdir(), 'classification-ui-blinded-'));
   const result = {
     datasetHash: 'a'.repeat(64), predictionHash: 'b'.repeat(64), resultHash: 'c'.repeat(64),
-    modelId: 'gpt-5.6-sol', classifierCandidateId: 'contents-classification-v2',
+    modelId: 'gpt-5.6-sol', classifierCandidateId: 'contents-classification-v10',
     summary: { n: 1, sectionPass: 1, sectionAccuracy: 1, exactPass: 1, exactAccuracy: 1, unrouted: 0 },
     rows: [{ challengeId: 'challenge_001', kind: 'measurement', rephrasedText: 'Roof plate 1 measured 4.8 mm.',
       expectedUse: { sectionId: 'roof-plate-thickness-measurements', blockId: 'measurements' },

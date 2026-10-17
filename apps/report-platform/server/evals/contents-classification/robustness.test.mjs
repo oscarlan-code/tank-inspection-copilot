@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assertIndependentLineage, auditRequestPreview, datasetRole } from './robustness.mjs';
 
-const candidateFingerprint = { candidateId: 'contents-classification-v2', sha256: 'f'.repeat(64) };
+const candidateFingerprint = { candidateId: 'contents-classification-v10', sha256: 'f'.repeat(64) };
 const preview = () => ({ goldIncluded: false, evaluatorCrosswalkIncluded: false, originalReportIncluded: false,
-  classifierCandidateId: 'contents-classification-v2', candidateFingerprintSha256: 'f'.repeat(64),
+  classifierCandidateId: 'contents-classification-v10', candidateFingerprintSha256: 'f'.repeat(64),
   requests: [{ prompt: 'Current evidence only.', schema: { type: 'object' } }] });
 
 test('accepts a different report and asset lineage', () => {

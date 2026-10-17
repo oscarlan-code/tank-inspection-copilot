@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCandidateFingerprint } from '../../contents-classification-agent/sandbox/candidates/contents-classification-v2/candidate-fingerprint.mjs';
+import { buildCandidateFingerprint } from '../../contents-classification-agent/releases/evaluation/v1/candidate-fingerprint.mjs';
 import { assertIndependentLineage, auditRequestPreview, datasetRole } from './robustness.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

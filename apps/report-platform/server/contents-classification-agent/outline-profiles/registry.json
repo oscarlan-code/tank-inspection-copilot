@@ -1,0 +1,13 @@
+{
+  "contractVersion": "contents_classification_outline_registry_v1",
+  "activeEvaluationProfileId": "vertical-api653-inspection-report-v6",
+  "productProfileId": null,
+  "profiles": [
+    { "directory": "vertical-api653-v1", "profileId": "vertical-api653-inspection-report-v1", "status": "superseded_evaluation_artifact" },
+    { "directory": "vertical-api653-v2", "profileId": "vertical-api653-inspection-report-v2", "status": "superseded_evaluation_artifact" },
+    { "directory": "vertical-api653-v3", "profileId": "vertical-api653-inspection-report-v3", "status": "superseded_evaluation_artifact" },
+    { "directory": "vertical-api653-v4", "profileId": "vertical-api653-inspection-report-v4", "status": "superseded_evaluation_artifact" },
+    { "directory": "vertical-api653-v5", "profileId": "vertical-api653-inspection-report-v5", "status": "superseded_evaluation_artifact" },
+    { "directory": "vertical-api653-v6", "profileId": "vertical-api653-inspection-report-v6", "status": "active_evaluation_profile" }
+  ]
+}

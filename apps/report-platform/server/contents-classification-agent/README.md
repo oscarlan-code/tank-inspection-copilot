@@ -33,9 +33,11 @@ change that run or become generator input.
 ## Active files
 
 - `outline-profiles/vertical-api653-v6/`: frozen 25-section evaluation vocabulary.
+- `outline-profiles/registry.json`: v6 is the only active evaluation profile; v1–v5 are retained historical artifacts.
 - `input-guards/evaluation-leakage/v1/`: deterministic pre-runtime leakage boundary.
 - `atomizers/evidence-atomizer/v5/`: exact atoms plus same-note context for referent resolution.
 - `sandbox/candidates/contents-classification-v10/`: retained qualified source candidate.
+- `sandbox/candidate-registry.json`: v1–v9 are superseded experiments and v10 is retained only as the promoted release source.
 - `releases/evaluation/v1/`: immutable evaluation release.
 - `release-registry.json` and `release-registry.mjs`: exact server-owned release binding and execution interface.
 - `evaluation-pathway.mjs`: Android export guard, v5 atomization, exact release execution, authorized review sealing, and section-package projection.

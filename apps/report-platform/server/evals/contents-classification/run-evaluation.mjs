@@ -4,10 +4,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { guardEvaluationInput, __test as leakageTest } from '../../contents-classification-agent/input-guards/evaluation-leakage/v1/guard.mjs';
-import { atomizeEvidence } from '../../contents-classification-agent/atomizers/evidence-atomizer/v1/atomizer.mjs';
-import { classifyEvidence, narrativeOutputSchema, narrativePrompt } from '../../contents-classification-agent/sandbox/candidates/contents-classification-v2/runtime.mjs';
-import { buildCandidateFingerprint } from '../../contents-classification-agent/sandbox/candidates/contents-classification-v2/candidate-fingerprint.mjs';
-import { guardClassification } from '../../contents-classification-agent/sandbox/candidates/contents-classification-v2/classification-guard.mjs';
+import { atomizeEvidence } from '../../contents-classification-agent/atomizers/evidence-atomizer/v5/atomizer.mjs';
+import { classifyEvidence, narrativeOutputSchema, narrativePrompt } from '../../contents-classification-agent/releases/evaluation/v1/runtime.mjs';
+import { buildCandidateFingerprint } from '../../contents-classification-agent/releases/evaluation/v1/candidate-fingerprint.mjs';
+import { guardClassification } from '../../contents-classification-agent/releases/evaluation/v1/classification-guard.mjs';
 import { buildAtomGold } from './atom-gold-builder.mjs';
 import { evaluateClassification } from './evaluator.mjs';
 
@@ -59,7 +59,7 @@ async function main() {
     rawExportSha256: leakageTest.sha256(exportBytes), rawExportByteSize: exportBytes.byteLength, referenceTextUnits });
   assert.equal(leakage.decision, 'passed', `Input leakage guard blocked ${leakage.evaluatorCrosswalk.blockingIssues.length} issue(s).`);
   const atomization = atomizeEvidence({ sealedInput: leakage.sealedInput });
-  const outline = await readJson(path.join(APP_ROOT, 'server', 'contents-classification-agent', 'outline-profiles', 'vertical-api653-v1', 'outline-profile.json'));
+  const outline = await readJson(path.join(APP_ROOT, 'server', 'contents-classification-agent', 'outline-profiles', 'vertical-api653-v6', 'outline-profile.json'));
   const candidateFingerprint = buildCandidateFingerprint();
   const narrativeAtoms = atomization.evidenceAtoms.filter((item) => item.kind === 'voice_narrative');
   const batches = [];
@@ -69,7 +69,8 @@ async function main() {
     goldIncluded: false, evaluatorCrosswalkIncluded: false, originalReportIncluded: false,
     runtimeInputs: ['sealed Android evidence atoms', 'reviewed 25-section outline profile'],
     batchCount: batches.length, atomCount: atomization.evidenceAtoms.length, narrativeAtomCount: narrativeAtoms.length,
-    outlineProfileId: outline.profileId, classifierCandidateId: 'contents-classification-v2', promptVersion: 'classification_prompt_v2',
+    outlineProfileId: outline.profileId, classifierCandidateId: candidateFingerprint.candidateId,
+    classifierReleaseId: 'contents-classification-evaluation-v1', promptVersion: 'classification_prompt_v10',
     candidateFingerprintSha256: candidateFingerprint.sha256,
     requests: batches.map((batch, index) => ({ batchNumber: index + 1,
       prompt: narrativePrompt(batch), schema: narrativeOutputSchema(batch.map((item) => item.evidenceId)) })) };
@@ -143,9 +144,9 @@ async function main() {
   sourceBlocks, acceptedDataset, atomicFactLedger, variantId: options.variant });
   const evaluation = evaluateClassification({ classification: sealedClassification, guardResult: classificationGuard, rawExport: exportPackage,
     atomGold, variantId: options.variant });
-  const result = { ...evaluation, runId: `classification-${options.variant}-v2`, generatedAtIso: new Date().toISOString(),
+  const result = { ...evaluation, runId: `classification-${options.variant}-evaluation-v1`, generatedAtIso: new Date().toISOString(),
     runMode: options.live ? 'live' : 'preflight',
-    classifier: { candidateId: sealedClassification.candidateId, modelId,
+    classifier: { releaseId: 'contents-classification-evaluation-v1', candidateId: sealedClassification.candidateId, modelId,
       promptVersion: sealedClassification.classificationManifest.promptVersion,
       candidateFingerprintSha256: candidateFingerprint.sha256 },
     report: { label: caseInfo.source?.sourcePath?.split('/').at(-1) ?? semanticPairs.caseId,

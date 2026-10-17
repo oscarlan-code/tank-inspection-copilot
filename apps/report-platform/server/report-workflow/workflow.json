@@ -1,0 +1,102 @@
+{
+  "contractVersion": "report_generation_workflow_scaffold_v1",
+  "workflowId": "vertical-tank-report-r-and-d-v1",
+  "status": "pre_generation_evaluation_ready",
+  "productEnabled": false,
+  "entryPaths": {
+    "evaluation": [
+      "reviewed_historical_truth_case",
+      "mock-preparation-agent-v1",
+      "android-productstore-round-trip"
+    ],
+    "live": [
+      "inspector-capture",
+      "android-productstore-export"
+    ],
+    "convergenceBoundary": "authenticated_android_export_and_receipt"
+  },
+  "stages": [
+    {
+      "order": 1,
+      "stageId": "android-export-input-guard",
+      "implementation": "server/contents-classification-agent/input-guards/evaluation-leakage/v1/guard.mjs",
+      "state": "implemented_evaluation"
+    },
+    {
+      "order": 2,
+      "stageId": "evidence-atomizer",
+      "releaseId": "evidence-atomizer-v5",
+      "implementation": "server/contents-classification-agent/atomizers/evidence-atomizer/v5/atomizer.mjs",
+      "state": "implemented_evaluation"
+    },
+    {
+      "order": 3,
+      "stageId": "contents-classification",
+      "releaseId": "contents-classification-evaluation-v1",
+      "implementation": "server/contents-classification-agent/releases/evaluation/v1",
+      "state": "qualified_evaluation_release"
+    },
+    {
+      "order": 4,
+      "stageId": "classification-review",
+      "implementation": "server/contents-classification-agent/evaluation-pathway.mjs",
+      "state": "implemented_evaluation"
+    },
+    {
+      "order": 5,
+      "stageId": "section-evidence-packages",
+      "contractVersion": "section_evidence_package_v1",
+      "implementation": "server/contents-classification-agent/evaluation-pathway.mjs",
+      "state": "implemented_evaluation"
+    },
+    {
+      "order": 6,
+      "stageId": "report-structure-and-plan",
+      "state": "planned"
+    },
+    {
+      "order": 7,
+      "stageId": "section-generation-and-pre-display-review",
+      "state": "planned_new_package_bound_releases"
+    },
+    {
+      "order": 8,
+      "stageId": "report-integration-approval-and-export",
+      "state": "planned"
+    }
+  ],
+  "activeEvaluationReleases": {
+    "mockPreparation": "mock-preparation-agent-v1",
+    "contentsClassification": "contents-classification-evaluation-v1",
+    "outlineProfile": "vertical-api653-inspection-report-v6",
+    "atomizer": "evidence-atomizer-v5"
+  },
+  "generationHandoff": {
+    "contractVersion": "section_evidence_package_v1",
+    "requiresHumanReview": true,
+    "requiresExactClassifierRelease": true,
+    "productGenerationEligible": false
+  },
+  "historicalCompatibility": [
+    {
+      "subsystem": "report-evidence-router",
+      "state": "archived_evaluation_only",
+      "activeForNewWork": false
+    },
+    {
+      "subsystem": "minimum-report-plan-with-section-agent-evidence-snapshot-v1",
+      "state": "historical_tk5452_compatibility",
+      "activeForNewWork": false
+    }
+  ],
+  "nextBuild": {
+    "objective": "Create the first new section generator release against section_evidence_package_v1.",
+    "requiredBeforeImplementation": [
+      "freeze_section_outline_and_format",
+      "freeze_section_knowledge_bundle",
+      "define_section_evidence_completeness_gate",
+      "define_generator_and_pre_display_reviewer_contracts",
+      "freeze_lineage_split_evaluation_dataset"
+    ]
+  }
+}

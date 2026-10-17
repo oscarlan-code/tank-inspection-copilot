@@ -182,6 +182,13 @@ For report-platform changes run:
 apps/report-platform/scripts/report-platform-guardrails.sh --standard
 ```
 
+When no reviewed local runtime `.env` is present, run the same gate through the
+isolated test database instead of recovering credentials from another environment:
+
+```bash
+npm --prefix apps/report-platform run guardrails:standard:test-env
+```
+
 The standard gate covers build, architecture, generation logic, the frozen General
 Information agent, PostgreSQL storage, object upload, durable artifacts, leakage,
 and API hardening. Add the focused real integration check for the changed subsystem.

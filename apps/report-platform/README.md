@@ -11,15 +11,15 @@ section.
   approval, evaluation, and DOCX export exist as a V1 Beta baseline.
 - The previous shared report generator is legacy read/comparison support. Do not add
   new generation behavior or use it as a fallback.
-- Two section-agent families are executable: Scope of Inspection v1 and General
-  Tank Information v2 use the deterministic ReportPlan-bound evaluation route.
-  General Tank Information v1 remains frozen qualification evidence. None is
-  product-enabled.
-- The minimum in-memory ReportPlan/SectionPlan execution contract now supports
-  these two sections. Each has an independent frozen pre-display reviewer and a
-  separate post-generation gold evaluator. The Report Structure Agent, durable plan
-  stores, remaining section agents, Report Integrator, PDF parity, and promotion
-  registry remain to be built.
+- Mock Preparation Agent v1 and Contents Classification evaluation v1 are immutable
+  R&D releases. Classification uses the input guard, Evidence Atomizer v5, reviewed
+  vertical outline v6, and human-sealed `section_evidence_package_v1` outputs.
+- Scope of Inspection v1 and General Tank Information v1–v3 remain evaluation
+  evidence. Their routed TK5452 path is historical compatibility and does not define
+  the input contract for future section agents.
+- The Report Structure Agent, package-bound section-generator releases, durable plan
+  stores, Report Integrator, PDF parity, and product promotion registry remain to be
+  built.
 - No report-generation model, KB policy, or section agent is currently promoted
   through the rebuilt pipeline.
 
@@ -27,11 +27,15 @@ section.
 
 ```text
 immutable app import
-  -> canonical evidence and entities
+  -> input/leakage guard
+  -> Evidence Atomizer v5
+  -> Contents Classification evaluation v1
+  -> authorized classification review
+  -> sealed Section Evidence Packages
   -> historical ReportBlueprintPack + applicable StandardObligationPack
   -> Report Structure Agent
   -> reviewed ReportPlan and table of contents
-  -> evidence classification and frozen SectionPlans
+  -> package-bound frozen SectionPlans
   -> exact immutable Section Generation Agents
   -> independent pre-display Section Review Agents (no gold)
   -> evidence / historical-pattern / standard validation
@@ -94,7 +98,8 @@ Information folders now have executable candidates; the other five remain planne
   original/evidence/generated comparisons.
 
 These services may be reused by the rebuilt generator after their inputs and outputs
-are bound to the new immutable contracts.
+are bound to the new immutable contracts. The checked-in executable status index is
+`server/report-workflow/workflow.json`.
 
 ## Development
 
@@ -114,6 +119,13 @@ npm --prefix apps/report-platform run architecture:audit
 npm --prefix apps/report-platform run section-agent:general-info:audit
 npm --prefix apps/report-platform run section-agent:scope:v1:audit
 apps/report-platform/scripts/report-platform-guardrails.sh --standard
+```
+
+Run the same standard gate against the isolated loopback-only PostgreSQL test
+environment without creating a personal `.env`:
+
+```bash
+npm --prefix apps/report-platform run guardrails:standard:test-env
 ```
 
 Internal staging commands are documented in
