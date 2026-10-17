@@ -5,7 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomizeEvidence } from './atomizers/evidence-atomizer/v5/atomizer.mjs';
 import { guardEvaluationInput } from './input-guards/evaluation-leakage/v1/guard.mjs';
-import { executeContentsClassificationRelease, guardReviewedContentsClassificationRelease } from './release-registry.mjs';
+import {
+  executeContentsClassificationRelease,
+  guardReviewedContentsClassificationRelease,
+  resolveContentsClassificationRelease,
+} from './release-registry.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUTLINE = JSON.parse(await readFile(path.join(HERE, 'outline-profiles/vertical-api653-v6/outline-profile.json'), 'utf8'));
@@ -13,8 +17,8 @@ const SECTIONS = new Map(OUTLINE.sections.map((section) => [section.sectionId, n
 const RELEASE_ID = 'contents-classification-evaluation-v1';
 const RUN_CONTRACT = 'contents_classification_evaluation_run_v1';
 const REVIEW_CONTRACT = 'sealed_classification_decisions_v1';
-const PACKAGE_CONTRACT = 'section_evidence_package_v1';
-const BUNDLE_CONTRACT = 'section_evidence_package_bundle_v1';
+export const SECTION_EVIDENCE_PACKAGE_CONTRACT = 'section_evidence_package_v1';
+export const SECTION_EVIDENCE_PACKAGE_BUNDLE_CONTRACT = 'section_evidence_package_bundle_v1';
 const FORBIDDEN_RUNTIME_KEYS = new Set([
   'gold', 'hiddenGold', 'validationGold', 'expectedSection', 'expectedBlock', 'referenceAnswer',
   'referenceTextUnits', 'evaluatorCrosswalk', 'originalReport', 'sourceReportPage',
@@ -280,7 +284,7 @@ export function buildSectionEvidencePackages({ sealedDecisions, reviewedSectionS
     const byBlock = Object.fromEntries([...new Set(evidenceRecords.map((record) => record.blockId))].sort()
       .map((blockId) => [blockId, evidenceRecords.filter((record) => record.blockId === blockId).map((record) => record.evidenceId)]));
     const evidencePackage = {
-      contractVersion: PACKAGE_CONTRACT, executionMode: 'evaluation', sectionId,
+      contractVersion: SECTION_EVIDENCE_PACKAGE_CONTRACT, executionMode: 'evaluation', sectionId,
       inputPackageHash: sealedDecisions.inputPackageHash,
       classifierReleaseBinding: clone(sealedDecisions.releaseBinding),
       sealedDecisionsSha256: sealedDecisions.sealedDecisionsSha256,
@@ -292,7 +296,7 @@ export function buildSectionEvidencePackages({ sealedDecisions, reviewedSectionS
     return evidencePackage;
   });
   const bundle = {
-    contractVersion: BUNDLE_CONTRACT, executionMode: 'evaluation',
+    contractVersion: SECTION_EVIDENCE_PACKAGE_BUNDLE_CONTRACT, executionMode: 'evaluation',
     inputPackageHash: sealedDecisions.inputPackageHash,
     classifierReleaseBinding: clone(sealedDecisions.releaseBinding),
     sealedDecisionsSha256: sealedDecisions.sealedDecisionsSha256,
@@ -303,6 +307,78 @@ export function buildSectionEvidencePackages({ sealedDecisions, reviewedSectionS
   assertNoEvaluatorOnlyData(bundle);
   bundle.bundleSha256 = pathwaySha256(bundle);
   return deepFreeze(bundle);
+}
+
+function validateClassifierBinding(binding) {
+  const release = resolveContentsClassificationRelease({
+    releaseId: binding?.releaseId,
+    executionMode: 'evaluation',
+  });
+  for (const key of ['manifestSha256', 'qualifiedCandidateFingerprintSha256', 'releaseRuntimeFingerprintSha256']) {
+    assert.equal(binding?.[key], release[key], `Section evidence package has an invalid classifier ${key}.`);
+  }
+}
+
+export function validateSectionEvidencePackage(evidencePackage, { sectionId = null } = {}) {
+  assert.equal(evidencePackage?.contractVersion, SECTION_EVIDENCE_PACKAGE_CONTRACT,
+    'A reviewed section evidence package is required.');
+  assertHashEnvelope(evidencePackage, 'packageSha256', 'Section evidence package');
+  assert.equal(evidencePackage.executionMode, 'evaluation', 'Only the qualified evaluation pathway is available.');
+  assert.equal(evidencePackage.humanReviewComplete, true, 'Section evidence package has not completed human review.');
+  assert.equal(evidencePackage.status, 'ready_for_section_agent_evaluation', 'Section evidence package is not ready.');
+  assert.equal(evidencePackage.evaluationSectionAgentEligible, true, 'Section evidence package is not evaluation eligible.');
+  assert.equal(evidencePackage.productGenerationEligible, false, 'Product generation must remain disabled.');
+  assert.equal(evidencePackage.productEnabled, false, 'Product execution must remain disabled.');
+  assert.match(String(evidencePackage.inputPackageHash ?? ''), /^[a-f0-9]{64}$/, 'Input package hash is invalid.');
+  assert.match(String(evidencePackage.sealedDecisionsSha256 ?? ''), /^[a-f0-9]{64}$/, 'Review seal hash is invalid.');
+  validateClassifierBinding(evidencePackage.classifierReleaseBinding);
+  if (sectionId !== null) assert.equal(evidencePackage.sectionId, sectionId, 'Section evidence package is for another section.');
+  validateRoute(evidencePackage.sectionId, Object.keys(evidencePackage.byBlock ?? {})[0] ?? '');
+  assert(Array.isArray(evidencePackage.evidenceRecords) && evidencePackage.evidenceRecords.length > 0,
+    'Section evidence package has no reviewed evidence.');
+  const evidenceIds = new Set();
+  for (const record of evidencePackage.evidenceRecords) {
+    requiredText(record.evidenceId, 'Evidence ID');
+    if (evidenceIds.has(record.evidenceId)) throw new Error(`Duplicate evidence record ${record.evidenceId}.`);
+    evidenceIds.add(record.evidenceId);
+    validateRoute(evidencePackage.sectionId, record.blockId);
+    assert.match(String(record.evidenceSha256 ?? ''), /^[a-f0-9]{64}$/, `Evidence ${record.evidenceId} hash is invalid.`);
+    assert((evidencePackage.byBlock[record.blockId] ?? []).includes(record.evidenceId),
+      `Evidence ${record.evidenceId} is absent from its block index.`);
+  }
+  for (const [blockId, ids] of Object.entries(evidencePackage.byBlock)) {
+    validateRoute(evidencePackage.sectionId, blockId);
+    assert(Array.isArray(ids) && ids.length > 0, `Block ${blockId} has no evidence IDs.`);
+    for (const evidenceId of ids) assert(evidenceIds.has(evidenceId), `Block ${blockId} references unknown evidence ${evidenceId}.`);
+  }
+  assertNoEvaluatorOnlyData(evidencePackage);
+  return true;
+}
+
+export function validateSectionEvidencePackageBundle(bundle) {
+  assert.equal(bundle?.contractVersion, SECTION_EVIDENCE_PACKAGE_BUNDLE_CONTRACT,
+    'A reviewed section evidence package bundle is required.');
+  assertHashEnvelope(bundle, 'bundleSha256', 'Section evidence package bundle');
+  assert.equal(bundle.executionMode, 'evaluation', 'Only the qualified evaluation pathway is available.');
+  assert.equal(bundle.status, 'ready_for_section_agent_evaluation', 'Section evidence bundle is not ready.');
+  assert.equal(bundle.evaluationSectionAgentEligible, true, 'Section evidence bundle is not evaluation eligible.');
+  assert.equal(bundle.productGenerationEligible, false, 'Product generation must remain disabled.');
+  assert.equal(bundle.productEnabled, false, 'Product execution must remain disabled.');
+  validateClassifierBinding(bundle.classifierReleaseBinding);
+  assert(Array.isArray(bundle.packages) && bundle.packages.length === bundle.packageCount,
+    'Section evidence package count does not match the bundle.');
+  assert.deepEqual(bundle.packages.map((item) => item.sectionId), bundle.reviewedSectionSelection,
+    'Section evidence package selection does not match the bundle.');
+  for (const evidencePackage of bundle.packages) {
+    validateSectionEvidencePackage(evidencePackage, { sectionId: evidencePackage.sectionId });
+    assert.equal(evidencePackage.inputPackageHash, bundle.inputPackageHash, 'Package input does not match its bundle.');
+    assert.equal(evidencePackage.sealedDecisionsSha256, bundle.sealedDecisionsSha256,
+      'Package review seal does not match its bundle.');
+    assert.deepEqual(evidencePackage.classifierReleaseBinding, bundle.classifierReleaseBinding,
+      'Package classifier binding does not match its bundle.');
+  }
+  assertNoEvaluatorOnlyData(bundle);
+  return true;
 }
 
 export const __test = { assertNoEvaluatorOnlyData, buildReviewQueue, canonicalize, validateRoute };

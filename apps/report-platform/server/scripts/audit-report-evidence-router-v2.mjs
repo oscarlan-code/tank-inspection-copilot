@@ -95,8 +95,13 @@ assert.equal(conflict.sectionEvidenceProjections['shell-plate-thickness-measurem
 
 const registry = JSON.parse(await readFile(path.resolve(release, '../../release-registry.json'), 'utf8'));
 assert.equal(registry.productReleaseId, null, 'router release must remain product-disabled');
-assert(registry.releases.some((entry) => entry.releaseId === 'report-evidence-router_v1' && entry.status === 'frozen_evaluation_candidate'));
-assert(registry.releases.some((entry) => entry.releaseId === 'report-evidence-router_v2' && entry.supersedes === 'report-evidence-router_v1'));
+assert.equal(registry.archiveStatus, 'historical_evaluation_only');
+assert.equal(registry.replacement.releaseId, 'contents-classification-evaluation-v1');
+assert(registry.releases.some((entry) => entry.releaseId === 'report-evidence-router_v1'
+  && entry.status === 'archived_evaluation_artifact' && entry.activeForNewWork === false));
+assert(registry.releases.some((entry) => entry.releaseId === 'report-evidence-router_v2'
+  && entry.status === 'archived_evaluation_artifact' && entry.activeForNewWork === false
+  && entry.supersedes === 'report-evidence-router_v1'));
 
 const manifest = JSON.parse(await readFile(path.join(release, 'manifest.json'), 'utf8'));
 assert.equal(manifest.releaseId, 'report-evidence-router_v2');

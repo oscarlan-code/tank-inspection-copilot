@@ -41,14 +41,17 @@ not.
 
 | Step | Agent | Status |
 | --- | --- | --- |
-| 1 | Mock Preparation Agent | Implemented here |
-| 2 | Mock Reviewer | Next |
-| 3 | Report Evidence Routing Agent | Later |
+| 1 | Mock Preparation Agent | Immutable R&D release v1 |
+| 2 | Mock Preparation evaluator/reviewer | Implemented; human review remains authoritative |
+| 3 | Contents Classification Agent | Qualified evaluation release v1; reviewed package output |
 | 4 | Report Structure Agent | Later |
 | 5 | Section Generation Agent | Later, one section at a time |
 | 6 | Pre-display Review Agent | Later |
 | 7 | Post-generation Gold Evaluator | Later |
 | 8 | Report Integrator | Later |
+
+The former Report Evidence Routing Agent is archived for saved TK5452 evaluation
+reproduction and is not part of this sequence.
 
 Run Step 1 against a private Android mock-corpus case:
 

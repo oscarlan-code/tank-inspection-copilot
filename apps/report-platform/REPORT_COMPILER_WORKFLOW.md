@@ -10,24 +10,47 @@ Scope of Inspection and General Tank Information have frozen evaluation candidat
 The Report Structure Agent, durable stores/interfaces, remaining agents, integrator,
 and product routing are not yet implemented.
 
+Mock Preparation Agent v1 and Contents Classification evaluation v1 are the current
+qualified R&D inputs to future section-generation work. The former Report Evidence
+Routing Agent is archived for historical evaluation reproduction and is not an
+active pipeline stage.
+
 ## Pipeline
 
+The R&D mock pathway and the live inspector pathway meet at the authenticated
+Android export boundary:
+
 ```text
-1. Authenticate and pin one app import revision
-2. Run the exact Report Evidence Routing Agent release: normalize evidence, resolve
-   physical entities, preserve source spans, and review multi-section uses
-3. Build reviewed ReportBlueprintPack, SectionKnowledgeBundles, and StandardObligationPack
-4. Create, review, and freeze ReportPlan / table of contents
-5. Reconcile the reviewed ReportPlan with routed uses and explicit exclusions
-6. Freeze one evidence projection and SectionPlan per section instance
-7. Resolve the exact immutable section-agent release
-8. Compile deterministic content and allowed narrative
-9. Run the exact independent pre-display Section Review Agent without gold
-10. Validate current evidence, historical pattern, and standard obligations
-11. Expose only `ready_for_review` unapproved drafts
-12. Integrate SectionDocuments into one ReportDocument
-13. Inspector edits and approves exact revisions
-14. Render/export selected approved content
+R&D only: historical report -> reviewed Truth Case -> Mock Preparation Agent v1
+         -> Android ProductStore round trip --+
+                                                  |
+Live: inspector capture -> Android ProductStore export --+
+                                                        v
+guard -> atomize -> classify -> human review -> Section Evidence Packages
+      -> ReportPlan / SectionPlans -> section generation and review
+```
+
+The historical report, truth labels, and mock-generation prompt stay outside the
+classification and report-generation runtime. An opaque lineage link is retained
+only for the post-run evaluator.
+
+```text
+1. Authenticate and pin one exact Android app-export revision and receipt
+2. Apply the input/leakage guard and create source-linked atoms with Evidence Atomizer v5
+3. Run exact Contents Classification evaluation v1; review every model proposal and unresolved record
+4. Seal reviewed decisions and project isolated `section_evidence_package_v1` packages
+5. Build reviewed ReportBlueprintPack, SectionKnowledgeBundles, and StandardObligationPack
+6. Create, review, and freeze ReportPlan / table of contents
+7. Reconcile ReportPlan applicability with available section packages and explicit exclusions
+8. Freeze one SectionPlan per section instance and bind its exact evidence-package hash
+9. Resolve the exact immutable section-agent release
+10. Compile deterministic content and allowed narrative
+11. Run the exact independent pre-display Section Review Agent without gold
+12. Validate current evidence, historical pattern, and standard obligations
+13. Expose only `ready_for_review` unapproved drafts
+14. Integrate SectionDocuments into one ReportDocument
+15. Inspector edits and approves exact revisions
+16. Render/export selected approved content
 ```
 
 ## Core contracts
@@ -35,6 +58,7 @@ and product routing are not yet implemented.
 | Contract | Purpose |
 | --- | --- |
 | `EvidenceRecord` / `Entity` | Canonical current evidence with source, identity, value/unit, polarity, uncertainty, and relationships. |
+| `SectionEvidencePackage` | Hash-sealed, human-reviewed, section-isolated current evidence produced by the exact classifier release. |
 | `ReportBlueprintPack` | Reviewed compatible historical report structures and provenance. |
 | `SectionKnowledgeBundle` | One multi-report SectionPatternPack with target-blind role projections for planning, mock preparation, generation, review, and evaluation. |
 | `StandardObligationPack` | Reviewed applicable obligations for a pinned standard and edition. |
@@ -74,17 +98,19 @@ One evidence record may have several reviewed uses:
 Supporting evidence is available to the agent but is not appended to customer
 report text automatically.
 
-The versioned `report-evidence-router` is the sole shared preprocessing boundary.
-It emits an evidence ledger, section projections, a routing review and a hash
-manifest. Native structured records use deterministic rules. A bounded model may
-propose interpretation for voice or ambiguous narrative, but a proposal is never a
-generation input until an authorized review decision confirms its entity, block,
-role and uncertainty. Voice audio is retained as transcript provenance and is not
-separately rendered as report content.
+The Contents Classification pathway is the sole active shared preprocessing
+boundary. It verifies the exact Android bytes and receipt, rejects evaluation-label
+leakage, emits source-linked evidence atoms, applies deterministic structured-data
+rules, and uses a bounded model only for narrative classification. Every model
+proposal requires authorized human approval, correction, or exclusion before the
+pathway seals decisions and creates section-isolated evidence packages. Voice audio
+is retained as transcript provenance and is not separately rendered as report
+content.
 
-`routing_ready` means only that a section's evidence projection has no unresolved
-routing blocker. It does not mean the SectionPlan is frozen, a generator is
-available, a draft passed pre-display review, or content is approved.
+`ready_for_section_agent_evaluation` means only that classification review is
+complete and the package passed integrity checks. It does not mean the ReportPlan or
+SectionPlan is frozen, a generator is available, a draft passed pre-display review,
+or content is approved. Product generation remains disabled.
 
 ## Report Structure Agent
 

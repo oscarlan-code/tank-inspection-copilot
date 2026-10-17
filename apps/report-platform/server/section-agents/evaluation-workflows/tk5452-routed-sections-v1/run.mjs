@@ -361,6 +361,7 @@ export async function runTk5452RoutedSectionsEvaluation({
   const routerReleaseBinding = await getReportEvidenceRouterBinding({
     releaseId: ROUTER_RELEASE_ID,
     executionMode: 'evaluation',
+    allowArchived: true,
   });
   const routerManifestSha256 = await manifestSha256(RELEASE_MANIFEST_URLS.router);
   invariant(routerReleaseBinding.releaseId === ROUTER_RELEASE_ID

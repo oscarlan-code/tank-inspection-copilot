@@ -1,0 +1,22 @@
+{
+  "contractVersion": "archived_agent_subsystem_v1",
+  "agentId": "report-evidence-router",
+  "archiveStatus": "historical_evaluation_only",
+  "activeForNewWork": false,
+  "productEnabled": false,
+  "reason": "Superseded by the qualified contents-classification pathway with a leakage guard, Evidence Atomizer v5, closed-book section/block classification, authorized human review, and isolated section evidence packages.",
+  "replacement": {
+    "agentId": "contents-classification-agent",
+    "releaseId": "contents-classification-evaluation-v1",
+    "outputContract": "section_evidence_package_v1"
+  },
+  "retention": {
+    "releases": [
+      "report-evidence-router_v1",
+      "report-evidence-router_v2"
+    ],
+    "purpose": "Reproduce saved historical evaluations and verify frozen manifest hashes.",
+    "newExecutionPolicy": "blocked_by_default",
+    "historicalExecutionOverride": "allowArchived: true"
+  }
+}

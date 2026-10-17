@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+// Historical Report Evidence Router compatibility only. New section-agent releases
+// consume section_evidence_package_v1 and validate it at the classifier boundary.
+
 export const SECTION_EVIDENCE_SNAPSHOT_CONTRACT = 'section_agent_evidence_snapshot_v1';
 const ROUTING_CONTRACT = 'report_evidence_routing_v2';
 const PROJECTION_CONTRACT = 'section_evidence_projection_v2';

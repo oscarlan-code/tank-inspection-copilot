@@ -5,6 +5,9 @@ import {
   validateSectionEvidenceSnapshot,
 } from './section-evidence-snapshot.mjs';
 
+// Historical TK5452 compatibility contract. New section-agent releases must bind
+// reviewed section_evidence_package_v1 inputs from Contents Classification v1.
+
 export const REPORT_PLAN_CONTRACT = 'report_plan_v1';
 export const SECTION_PLAN_CONTRACT = 'section_plan_execution_v1';
 export const FIRST_REPORT_PROFILE = 'vertical_tank_inspection_v1';

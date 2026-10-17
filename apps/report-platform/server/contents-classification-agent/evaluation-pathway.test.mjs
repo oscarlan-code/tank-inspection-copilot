@@ -7,6 +7,8 @@ import {
   ContentsClassificationPathwayBlockedError,
   runContentsClassificationEvaluationPathway,
   sealContentsClassificationReview,
+  validateSectionEvidencePackage,
+  validateSectionEvidencePackageBundle,
 } from './evaluation-pathway.mjs';
 
 const fixtureUrl = new URL('../report-evidence-router/releases/v2/test-fixtures/android-export.json', import.meta.url);
@@ -99,6 +101,7 @@ test('projects reviewed evidence into isolated evaluation-only section packages'
   assert.equal(bundle.productGenerationEligible, false);
   assert.equal(bundle.productEnabled, false);
   for (const evidencePackage of bundle.packages) {
+    assert.equal(validateSectionEvidencePackage(evidencePackage, { sectionId: evidencePackage.sectionId }), true);
     assert(evidencePackage.evidenceRecords.length > 0);
     assert(evidencePackage.evidenceRecords.every((record) => Object.hasOwn(evidencePackage.byBlock, record.blockId)));
     assert(evidencePackage.evidenceRecords.every((record) => {
@@ -106,6 +109,21 @@ test('projects reviewed evidence into isolated evaluation-only section packages'
       return assignment.uses.some((use) => use.sectionId === evidencePackage.sectionId && use.blockId === record.blockId);
     }));
   }
+  assert.equal(validateSectionEvidencePackageBundle(bundle), true);
+});
+
+test('rejects changed, cross-section, and product-enabled generation handoffs', async () => {
+  const { runtimeRun } = await runFixture();
+  const sealed = await sealContentsClassificationReview({ runtimeRun, decisions: approveAll(runtimeRun), reviewer });
+  const selected = [...new Set(sealed.reviewedClassification.classificationAssignments
+    .flatMap((assignment) => assignment.uses.map((use) => use.sectionId)))];
+  const bundle = buildSectionEvidencePackages({ sealedDecisions: sealed, reviewedSectionSelection: selected });
+  const evidencePackage = structuredClone(bundle.packages[0]);
+  const wrongSection = evidencePackage.sectionId === 'general-tank-information'
+    ? 'inspection-report' : 'general-tank-information';
+  assert.throws(() => validateSectionEvidencePackage(evidencePackage, { sectionId: wrongSection }), /another section/);
+  evidencePackage.productGenerationEligible = true;
+  assert.throws(() => validateSectionEvidencePackage(evidencePackage), /changed after sealing/);
 });
 
 test('supports a reviewer correction while preserving the source atom', async () => {

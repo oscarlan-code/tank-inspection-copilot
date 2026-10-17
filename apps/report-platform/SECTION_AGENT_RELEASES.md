@@ -4,9 +4,11 @@
 
 Every generated section uses one explicit immutable release. **Scope of Inspection
 and General Tank Information** now have implemented agent families. Scope v1 and
-General Information v3 are routed ReportPlan evaluation candidates; General
-Information v1 is frozen qualification evidence. All other section agents, durable
-plan storage, report integration, and product routing remain future work.
+General Information v3 are historical routed ReportPlan evaluation candidates;
+General Information v1 is frozen qualification evidence. They predate the current
+`section_evidence_package_v1` input. All future generator releases must bind that
+reviewed package contract. All other section agents, durable plan storage, report
+integration, and product routing remain future work.
 
 The previous shared generator is legacy and is never a fallback or extension point.
 
@@ -117,7 +119,9 @@ product promotion.
 
 V3 consumes the reviewed router-v2 section projection and explicitly dispositions
 all 43 projected records in the TK5452 case: 31 rendered, three corroborating, and
-nine delegated. It has exact reviewer-v2 and evaluator-v2 bindings and remains
+nine delegated. It has exact reviewer-v2 and evaluator-v2 bindings and is retained
+for historical evaluation compatibility after the router archive. It must not be
+copied as the input architecture for a new generator release. It remains
 evaluation-only.
 
 ## Scope of Inspection v1

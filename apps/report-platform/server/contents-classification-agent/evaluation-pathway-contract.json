@@ -3,6 +3,9 @@
   "releaseId": "contents-classification-evaluation-v1",
   "executionMode": "evaluation",
   "productEnabled": false,
+  "workflowRole": "active_pre_generation_evaluation_boundary",
+  "supersedesForNewWork": "report-evidence-router",
+  "outputContract": "section_evidence_package_v1",
   "stages": [
     { "order": 1, "stageId": "android-export-input-guard", "input": "raw Android ProductStore export plus authenticated export receipt", "output": "sealed clean evaluation input" },
     { "order": 2, "stageId": "evidence-atomizer-v5", "input": "sealed clean evaluation input", "output": "source-linked evidence atoms" },

@@ -43,5 +43,6 @@ change that run or become generator input.
 - `../evals/contents-classification/section-first-v1/`: independent development, validation and hidden qualification.
 
 Reviewed section packages may feed section-agent evaluation. They remain explicitly
-ineligible for product generation. The existing `report-evidence-router` remains
-unchanged, and product routing remains off.
+ineligible for product generation. This pathway supersedes `report-evidence-router`
+for all new work; that subsystem is archived in place for historical evaluation
+reproduction. Product routing remains off.

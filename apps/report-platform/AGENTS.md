@@ -64,9 +64,11 @@ features, or fallbacks to them.
 - Missing evidence, agent, standard basis, tool, or renderer remains visible. Never
   call the legacy generator as a substitute.
 
-General Tank Information v1 remains frozen qualification evidence. V2 is the first
-ReportPlan/SectionPlan-bound evaluation candidate. Both remain product-disabled.
-Do not describe outlines or saved multi-section experiments as implemented agents.
+General Tank Information v1 remains frozen qualification evidence. V2/V3 and the
+TK5452 routed workflow remain historical evaluation compatibility. Future section
+agents must consume reviewed `section_evidence_package_v1` inputs from Contents
+Classification evaluation v1. All remain product-disabled. Do not describe outlines
+or saved multi-section experiments as implemented agents.
 
 ## Evidence and AI
 

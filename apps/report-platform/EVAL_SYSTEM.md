@@ -102,17 +102,23 @@ Run this track before section generation. All variants must recover the same rev
 truth records or produce the expected clarification. Only the verified normalized
 snapshot enters the generation track.
 
-### Evidence-routing qualification
+### Contents-classification qualification
 
-Run the frozen Report Evidence Routing Agent against the complete canonical app
-export before section generation. Measure disposition coverage, protected-value and
-unit preservation, entity resolution, atomic-claim/source-span accuracy, multi-label
-section/block accuracy, observation/recommendation linkage, and clarification
-precision. Unreviewed model proposals must have zero influence on section projections.
-Every retained record must be routed or explicitly excluded; unresolved evidence
-blocks the affected section and remains visible in the review artifact.
-The `routing_ready` state measures only this evidence-routing gate. It is not a
-generation, pre-display review, inspector approval or export outcome.
+Run the exact frozen Contents Classification release against the complete canonical
+Android app export before section generation. Measure input/receipt integrity,
+leakage rejection, protected-value and unit preservation, atom/source-span accuracy,
+strict section accuracy, tolerant block accuracy, multi-label recall/precision,
+observation/recommendation linkage, and clarification precision. Gold labels remain
+behind the evaluator boundary. Unreviewed model proposals have zero influence on
+section packages. Every retained record is classified, explicitly excluded, or held
+in the blocking review queue.
+
+After authorized review, validate the exact classifier binding, review seal,
+package hash, section isolation, block index, and evidence hashes. The
+`ready_for_section_agent_evaluation` state measures only this classification gate;
+it is not a generation, pre-display review, inspector approval, or export outcome.
+The archived Report Evidence Routing Agent is tested only for historical
+reproducibility.
 
 ### Section generation and pre-display review
 
@@ -145,7 +151,7 @@ The minimum matrix scores source-unit disposition coverage, required source-to-e
 ### All-agent monitoring and evaluation matrix
 
 Every executed agent and deterministic control writes the shared
-`section_agent_monitoring_v1` contract. It covers the evidence router, ReportPlan
+`section_agent_monitoring_v1` contract. It covers the classifier pathway, ReportPlan
 orchestrator, section generator, pre-display reviewer, post-generation evaluator,
 and later the Report Structure Agent and Report Integrator. The mock-data pipeline
 uses the same contract in its own runs. Components that did not execute are marked

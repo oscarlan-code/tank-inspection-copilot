@@ -34,10 +34,13 @@ in `server/mock-preparation-agent/README.md`. Editable candidates belong in its
 
 The immutable agent-configuration and semantic-unit lineage contracts live under server/section-agents/evaluation-contracts/v1/. They bind model and prompt versions to every evaluated agent and derive the atomic source-to-mock and mock-to-generation matrix. PostgreSQL migration 052 stores these immutable snapshots and links.
 
-The shared preprocessing release and its executable contract live under
-`server/report-evidence-router/`. It sits between a pinned Android export and every
-section agent; it is not a section generator. Its exact immutable releases and
-product-disabled state are listed in `server/report-evidence-router/release-registry.json`.
+The active shared preprocessing release and its executable contract live under
+`server/contents-classification-agent/`. It guards and atomizes a pinned Android
+export, classifies section/block uses, requires authorized review, and emits
+hash-sealed `section_evidence_package_v1` inputs for future section agents. Its
+exact evaluation release remains product-disabled. The former
+`server/report-evidence-router/` is archived in place for saved-run reproduction;
+its registry blocks new workflows by default.
 The shared all-agent trace and evaluation-matrix contract lives under
 `server/section-agents/observability/v1/`; it records execution without changing a
 frozen agent release or product state.
@@ -53,8 +56,9 @@ section-agent, knowledge-authority, or promotion rules in the root contracts.
   common spine, scope-dependent technical modules, and TK5452 integrated evaluation
   sequence for the rebuilt V1 ReportPlan. Roof configuration controls applicability
   and does not split the vertical-tank report family. General Tank Information v1
-  is frozen evidence; v3 is the current routed ReportPlan evaluation candidate. Both
-  remain product-disabled. Their independent pre-display reviewers live under
+  is frozen evidence; v3 is a historical routed ReportPlan evaluation candidate.
+  Future releases use `section_evidence_package_v1`. All remain product-disabled.
+  Their independent pre-display reviewers live under
   `server/section-agents/releases/<section-id>/reviewer/`; sealed-gold R&D evaluators live under
   `server/section-agents/releases/<section-id>/evaluator/`. Uniform per-section agent, KB and
   harness specifications for sections 1–7 live under

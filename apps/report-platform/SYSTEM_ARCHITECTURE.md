@@ -13,8 +13,9 @@ The platform converts an immutable LAIQ inspection-app revision into an editable
 traceable inspection report and exports only approved content.
 
 ```text
-LAIQ app -> authenticated import -> Report Evidence Routing Agent -> ReportPlan
-         -> frozen section projections / SectionPlans -> Section Agents -> pre-display Section Review Agents
+LAIQ app -> authenticated import -> input/leakage guard -> Evidence Atomizer
+         -> Contents Classification Agent -> reviewed Section Evidence Packages
+         -> ReportPlan / SectionPlans -> Section Agents -> pre-display Section Review Agents
          -> ReportDocument -> inspector approval -> DOCX/PDF
          -> shared traces, evidence accountability, evaluation matrix, and control-plane audit
 ```
@@ -95,11 +96,14 @@ historical practice, then traceable reviewed judgment.
 Imported evidence is append-only. Editing creates derived report state and never
 changes the pinned inspection revision.
 
-The shared `report-evidence-router` release owns normalization, atomic claim
-extraction, physical-entity resolution and reviewed multi-section uses. Deterministic
-app records follow rules; a model may propose terminology or destinations for voice
-claims, but only reviewed decisions enter a frozen section projection. Each source
-record is routed, explicitly excluded, or retained in a blocking review queue.
+The shared Contents Classification pathway owns the input/leakage guard, Evidence
+Atomizer, physical-entity preservation, section/block classification, reviewed
+multi-section uses, and isolated `section_evidence_package_v1` outputs.
+Deterministic app records follow rules; a model may propose labels for narrative
+evidence, but only authorized reviewed decisions enter a section package. Each
+source record is classified, explicitly excluded, or retained in a blocking review
+queue. Future section generators consume this contract. The former
+`report-evidence-router` is retained only to reproduce historical evaluations.
 
 ## Platform boundaries
 
@@ -126,19 +130,22 @@ are indexed under `docs/contracts/`.
 | Historical/standards ingestion and review | Baseline exists; immutable pack builders pending |
 | Previous shared generator and 32-section outline | Legacy comparison only |
 | Report Structure Agent and durable ReportPlan store | Planned; minimum two-section contract is executable |
-| Report Evidence Routing Agent | V1 frozen evaluation evidence; V2 evaluation successor; product-disabled |
+| Mock Preparation Agent | V1 immutable R&D release for historical-report-to-app-export evaluation; product-disabled |
+| Contents Classification Agent | Evaluation v1 qualified; reviewed section packages available; product-disabled |
+| Archived Report Evidence Routing Agent | Historical TK5452 reproduction only; blocked for new work |
 | Scope of Inspection agent | V1 ReportPlan-bound evaluation candidate |
-| General Tank Information agent | V1 frozen evidence; V3 routed ReportPlan evaluation candidate |
+| General Tank Information agent | V1 frozen evidence; V3 historical routed evaluation candidate; new package-bound release pending |
 | Other section agents | Not implemented |
-| Shared all-agent monitoring | V1 evaluation contract; router/generator/reviewer/evaluator tracing active for TK5452 |
+| Shared all-agent monitoring | V1 evaluation contract; classifier/generator/reviewer/evaluator expansion pending |
 | Report Integrator and product promotion registry | Planned |
 | PDF export and cloud production deployment | Planned |
 
 Scope of Inspection and General Tank Information are the implemented and evaluated agent families.
-Both now have independent pre-display reviewer releases and post-generation sealed-gold
-evaluator releases. Scope v1 and General Information v3 exercise the routed plan path;
-General Information v1 remains frozen evidence. All are evaluation-only and cannot
-enter product routing.
+Both now have independent pre-display reviewer releases and post-generation
+sealed-gold evaluator releases. Scope v1 and General Information v3 preserve the
+historical routed-plan experiment; General Information v1 remains frozen evidence.
+A new release must adopt the current section-evidence package before future
+generation qualification. All are evaluation-only and cannot enter product routing.
 
 ## Hard invariants
 
