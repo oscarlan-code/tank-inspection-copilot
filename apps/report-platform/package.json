@@ -139,7 +139,7 @@
     "contents-classification:pathway:audit": "node --test server/contents-classification-agent/evaluation-pathway.test.mjs",
     "section-agent:package-bound:candidate:b:audit": "node --test server/section-agents/sandbox/candidates/general-tank-information/candidate-b/candidate.test.mjs",
     "section-agent:package-bound:candidate:a:audit": "node --test server/section-agents/sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs",
-    "section-agent:general-info:workflow:audit": "node --test server/section-agents/evaluation-workflows/general-tank-information-v1/workflow.test.mjs"
+    "section-agent:general-info:workflow:audit": "node --test server/section-agents/evaluation-workflows/general-tank-information-v1/workflow.test.mjs server/experiments/general-information-candidate-b-review-backend.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",

@@ -14620,3 +14620,22 @@ button:disabled {
   .classification-outcome-chart, .classification-type-bars > button { grid-template-columns: 1fr; }
   .classification-type-counts { grid-column: 1; }
 }
+
+.eval-section-workflow-eval {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #cbd9e6;
+  border-radius: 12px;
+  background: #f8fbfd;
+}
+.eval-section-workflow-eval > .eval-live-feedback { margin: 0; }
+.eval-section-workflow-eval > details { border: 1px solid #d3dfe9; border-radius: 9px; background: #fff; }
+.eval-section-workflow-eval > details > summary { padding: 12px 14px; color: #244e6f; font-weight: 850; cursor: pointer; }
+.eval-workflow-table-wrap { max-height: 480px; overflow: auto; border-top: 1px solid #d3dfe9; }
+.eval-workflow-table-wrap table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.eval-workflow-table-wrap th { position: sticky; top: 0; padding: 9px 11px; color: #536a7e; background: #eaf0f5; text-align: left; }
+.eval-workflow-table-wrap td { padding: 9px 11px; border-top: 1px solid #e1e8ee; vertical-align: top; }
+.eval-workflow-table-wrap tbody tr:nth-child(even) td { background: #f8fafc; }
+.eval-workflow-table-wrap td:last-child strong { color: #136044; }

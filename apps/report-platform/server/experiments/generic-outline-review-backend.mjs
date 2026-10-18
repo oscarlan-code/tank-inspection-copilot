@@ -11,6 +11,10 @@ import { OBSERVATION_CASES } from './kb-observation-comparison.mjs';
 import { loadObservationKbReview } from './kb-observation-review-backend.mjs';
 import { GENERAL_INFORMATION_REVIEW_SOURCES, loadGeneralInformationReview } from './general-information-review-backend.mjs';
 import {
+  GENERAL_INFORMATION_CANDIDATE_B_CASE,
+  loadGeneralInformationCandidateBReview,
+} from './general-information-candidate-b-review-backend.mjs';
+import {
   TK5452_OBSERVED_SECTION_CASE,
   TK5452_ROUTED_SECTION_CASE,
   TK5452_ROUTED_SECTION_SOURCE,
@@ -32,6 +36,11 @@ export class GenericOutlineReviewError extends Error {
 }
 const DEFAULT_CASE = 'eval-generic-syn025-v3-tk5452';
 const SOURCES = {
+  [GENERAL_INFORMATION_CANDIDATE_B_CASE]: {
+    revision: 'candidate-b-sandbox-smoke-v1',
+    generalInformationCandidateB: true,
+    label: 'Section 3 · Candidate B · sandbox contract smoke',
+  },
   [TK5452_OBSERVED_SECTION_CASE]: {
     revision: 'routed-section-agents-observed-v1',
     routedSectionAgents: true,
@@ -115,6 +124,13 @@ export function matchesGenericOutlineReviewCase(id) {
 /** Authentication/authorization stays with the existing admin API caller. */
 export async function loadGenericOutlineHeldOutReview({ evaluationCaseId = DEFAULT_CASE, sectionId = 'identity', evalRunId = null } = {}) {
   const source = sourceFor(evaluationCaseId);
+  if (source.generalInformationCandidateB) {
+    try { return await loadGeneralInformationCandidateBReview({ evaluationCaseId, sectionId, evalRunId }); }
+    catch (error) {
+      if ([404, 409].includes(error.statusCode)) throw failure(error.statusCode, error.message, 'general_information_candidate_b_review_invalid');
+      throw error;
+    }
+  }
   if (source.routedSectionAgents) {
     try { return await loadTk5452RoutedSectionReview({ evaluationCaseId, sectionId, evalRunId }); }
     catch (error) {

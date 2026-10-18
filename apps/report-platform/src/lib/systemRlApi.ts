@@ -389,6 +389,18 @@ export type SystemRlHeldOutReview = {
     backendLabel: string;
     evidenceMetricLabel?: string;
     originalMode?: "text" | "source_pdf";
+    originalColumnLabel?: string;
+    generationColumnLabel?: string;
+    evidenceColumnLabel?: string;
+    referenceLabel?: string;
+  };
+  sectionWorkflowEvaluation?: {
+    candidateId: string;
+    workflowStatus: string;
+    qualificationStatus: string;
+    guardDecision: string;
+    atomicRows: Array<{ unitId: string; key: string; expectedValue: unknown; actualValue: unknown; status: string; sourceEvidenceIds: string[] }>;
+    sectionAssessment: Record<string, { status: string; grader: string; explanation: string }>;
   };
   sectionAgentEvaluation?: { reportCount: number; developmentReports: number; testReports: number; fieldCount: number; sectionLabel: string };
   sectionTitle?: string;
