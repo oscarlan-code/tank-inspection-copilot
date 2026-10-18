@@ -38,7 +38,7 @@ The active shared preprocessing release and its executable contract live under
 `server/contents-classification-agent/`. It guards and atomizes a pinned Android
 export, classifies section/block uses, requires authorized review, and emits
 hash-sealed `section_evidence_package_v1` inputs for section agents. General Tank
-Information Candidate A is the first sandbox consumer under
+Information Candidate B is the active sandbox consumer; Candidate A is retained as the first-iteration regression baseline under
 `server/section-agents/sandbox/`. Its
 exact evaluation release remains product-disabled. The former
 `server/report-evidence-router/` is archived in place for saved-run reproduction;

@@ -31,7 +31,7 @@ export async function verifySandboxCandidate(args) {
   const candidate = resolveSandboxCandidate(args);
   const rootUrl = new URL(`${candidate.candidatePath}/`, import.meta.url);
   const manifestBytes = await readFile(new URL('candidate-manifest.json', rootUrl));
-  if (sha256(manifestBytes) !== candidate.manifestSha256) throw new Error('Sandbox candidate manifest changed. Update Candidate A explicitly.');
+  if (sha256(manifestBytes) !== candidate.manifestSha256) throw new Error('Sandbox candidate manifest changed. Register a new candidate iteration explicitly.');
   const manifest = JSON.parse(manifestBytes);
   if (manifest.contractVersion !== 'section_agent_sandbox_candidate_v1'
       || manifest.candidateId !== candidate.candidateId

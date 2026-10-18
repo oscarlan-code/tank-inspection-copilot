@@ -2,7 +2,7 @@
   "contractVersion": "section_kb_policy_candidate_v1",
   "profileId": "vertical_tank_inspection_v1",
   "sectionId": "general-tank-information",
-  "packId": "general-tank-information-knowledge-candidate-a",
+  "packId": "general-tank-information-knowledge-candidate-b",
   "status": "sandbox_candidate_reference",
   "mode": "frozen_structure_projection_no_runtime_retrieval",
   "governedSource": {
@@ -38,6 +38,6 @@
     "post_cutoff_source"
   ],
   "currentFactsFromHistoricalSources": false,
-  "runtimeSnapshot": "general-tank-information-knowledge-candidate-a",
+  "runtimeSnapshot": "general-tank-information-knowledge-candidate-b",
   "candidateInventoryPath": ".local/section-pattern-packs/vertical-tank-common-core-v1/03-general-tank-information/pack-candidate.json"
 }

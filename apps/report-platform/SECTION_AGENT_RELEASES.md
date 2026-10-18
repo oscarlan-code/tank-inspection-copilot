@@ -6,8 +6,8 @@ Every generated section uses one explicit immutable release. **Scope of Inspecti
 and General Tank Information** now have implemented agent families. Scope v1 and
 General Information v3 are historical routed ReportPlan evaluation candidates;
 General Information v1 is frozen qualification evidence. They predate the current
-`section_evidence_package_v1` input. General Information Candidate A is the first
-executable package-bound sandbox rebuild; it is not an immutable release and cannot
+`section_evidence_package_v1` input. General Information Candidate B is the active
+executable package-bound sandbox iteration; Candidate A remains the pinned first-iteration regression baseline; it is not an immutable release and cannot
 be used by product routing. All future releases must bind the reviewed package
 contract. All other section agents, durable plan storage, report integration, and
 product routing remain future work.
@@ -126,20 +126,22 @@ for historical evaluation compatibility after the router archive. It must not be
 copied as the input architecture for a new generator release. It remains
 evaluation-only.
 
-## General Tank Information Candidate A
+## General Tank Information package-bound Candidates A–B
 
-Candidate A lives under `server/section-agents/sandbox/` and does not modify v1–v3.
+Candidates A and B live under `server/section-agents/sandbox/` and do not modify v1–v3. Candidate A is the pinned first iteration. Candidate B is the active controlled revision.
 It binds the exact classifier package hash and review seal into a minimum evaluation
 ReportPlan and SectionPlan, then runs a deterministic 31-field compiler and an
 independent no-gold reviewer. Job/date/inspector remain report-header metadata;
 roof-presence flags and insulation distance remain traceable support inputs and are
 not printed as descriptive tank facts. A sealed structured-gold evaluator opens only
-after the reviewer passes.
+after the reviewer passes. Candidate B reports atomic field results separately from
+automated whole-section structure/coherence, and rejects an artifact changed after
+the independent pre-display review.
 
 The focused scaffold suite covers the real classifier handoff, package tampering,
 required fields, conflicts, explicit units including inches, output escaping,
-evidence disposition and product-mode rejection. Candidate A still requires frozen
-lineage splits, 10+1 historical replay, rendered export comparison and inspector
+evidence disposition, product-mode rejection and post-review tampering. Candidate B still requires frozen
+current ProductStore lineage splits, 10+1 replay, rendered export comparison and inspector
 review before it can be copied into an immutable evaluation release.
 
 ## Scope of Inspection v1

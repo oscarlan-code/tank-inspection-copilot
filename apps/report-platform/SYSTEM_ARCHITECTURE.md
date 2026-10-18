@@ -102,7 +102,7 @@ multi-section uses, and isolated `section_evidence_package_v1` outputs.
 Deterministic app records follow rules; a model may propose labels for narrative
 evidence, but only authorized reviewed decisions enter a section package. Each
 source record is classified, explicitly excluded, or retained in a blocking review
-queue. The General Tank Information Candidate A sandbox consumes this contract;
+queue. The General Tank Information Candidate B sandbox consumes this contract; Candidate A remains a pinned regression baseline;
 future section releases will use the same handoff. The former
 `report-evidence-router` is retained only to reproduce historical evaluations.
 
@@ -135,7 +135,7 @@ are indexed under `docs/contracts/`.
 | Contents Classification Agent | Evaluation v1 qualified; reviewed section packages available; product-disabled |
 | Archived Report Evidence Routing Agent | Historical TK5452 reproduction only; blocked for new work |
 | Scope of Inspection agent | V1 ReportPlan-bound evaluation candidate |
-| General Tank Information agent | Package-bound Candidate A executable in sandbox; qualification and immutable release pending |
+| General Tank Information agent | Package-bound Candidate B active in sandbox; Candidate A retained for regression; qualification and immutable release pending |
 | Other section agents | Not implemented |
 | Shared all-agent monitoring | V1 evaluation contract; classifier/generator/reviewer/evaluator expansion pending |
 | Report Integrator and product promotion registry | Planned |
@@ -145,9 +145,9 @@ Scope of Inspection and General Tank Information are the implemented and evaluat
 Both now have independent pre-display reviewer releases and post-generation
 sealed-gold evaluator releases. Scope v1 and General Information v3 preserve the
 historical routed-plan experiment; General Information v1 remains frozen evidence.
-General Information Candidate A is the first sandbox implementation to adopt the
+General Information Candidate B is the active sandbox implementation on the
 current section-evidence package, with a package-bound plan, deterministic generator,
-independent no-gold reviewer and sealed structured-gold evaluator. It is not yet a
+independent no-gold reviewer, atomic evaluator, whole-section automated evaluator and post-review integrity check. It is not yet a
 qualified immutable release. All are evaluation-only and cannot enter product routing.
 
 ## Hard invariants

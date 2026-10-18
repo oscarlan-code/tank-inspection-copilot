@@ -1,0 +1,28 @@
+{
+  "contractVersion": "section_generator_candidate_harness_v1",
+  "candidateId": "general-tank-information-candidate-b",
+  "executionMode": "evaluation",
+  "productEnabled": false,
+  "currentExecutableChecks": [
+    "real contents-classification pathway handoff",
+    "exact package and plan binding",
+    "31-field deterministic render",
+    "header and support evidence disposition",
+    "required-field and unit blocking",
+    "alias conflict blocking",
+    "HTML escaping",
+    "no gold/model/prompt/retrieval",
+    "pre-display reviewer gate",
+    "post-generation structured gold check"
+  ],
+  "qualificationStillRequired": [
+    "freeze development, validation and held-out lineages",
+    "10 development plus one untouched report replay",
+    "complete source-obligation coverage",
+    "rendered browser and export review",
+    "inspector/domain review",
+    "immutable release manifest",
+    "separate product canary approval"
+  ]
+}
+

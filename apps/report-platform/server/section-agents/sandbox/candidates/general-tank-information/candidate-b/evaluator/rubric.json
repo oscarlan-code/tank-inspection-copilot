@@ -1,0 +1,32 @@
+{
+  "contractVersion": "general_information_evaluator_rubric_v2",
+  "hardGates": {
+    "protectedFieldAccuracy": 1,
+    "supportedClaimPrecision": 1,
+    "criticalIntegrityFailures": 0,
+    "goldLeakageFindings": 0,
+    "structuralFormatAlignment": 1,
+    "wholeSectionCoherence": 1
+  },
+  "qualityDimensions": [
+    "expectedFieldRecall",
+    "renderedFormatAlignment",
+    "inspectorAcceptance"
+  ],
+  "exactWordingTarget": false,
+  "evaluationLayers": {
+    "atomic": [
+      "protectedFieldAccuracy",
+      "expectedFieldRecall",
+      "supportedClaimPrecision"
+    ],
+    "wholeSectionAutomated": [
+      "structuralFormatAlignment",
+      "wholeSectionCoherence"
+    ],
+    "wholeSectionHuman": [
+      "renderedFormatAlignment",
+      "inspectorAcceptance"
+    ]
+  }
+}

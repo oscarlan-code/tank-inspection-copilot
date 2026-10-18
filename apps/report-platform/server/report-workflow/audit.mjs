@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,7 +39,7 @@ const [mockRelease, classifierRegistry, classifierContract, routerArchive, route
   readJson('server/report-evidence-router/release-registry.json'),
   readJson('server/contents-classification-agent/outline-profiles/vertical-api653-v6/outline-manifest.json'),
   readJson('server/section-agents/sandbox/candidate-registry.json'),
-  readJson('server/section-agents/sandbox/candidates/general-tank-information/candidate-a/candidate-manifest.json'),
+  readJson(`${workflow.stages[6].implementation}/candidate-manifest.json`),
   readJson('server/section-agents/specs/vertical-tank-v1/scaffold-registry.json'),
   readJson('server/section-agents/specs/vertical-tank-v1/development-protocol.json'),
 ]);
@@ -79,7 +80,8 @@ const candidate = sectionCandidateRegistry.entries.find((entry) => entry.candida
 assert(candidate, 'Workflow sandbox candidate is absent from the exact candidate registry.');
 assert.equal(candidate.productEnabled, false);
 assert.equal(candidate.status, 'sandbox_candidate');
-assert.equal(candidate.manifestSha256, 'c4469afb16432ce12f0af482f4ae312759d3997e26bfb38a2bb71b217ab32135');
+assert.equal(candidate.manifestSha256, createHash('sha256').update(await readFile(path.join(APP_ROOT, workflow.stages[6].implementation, 'candidate-manifest.json'))).digest('hex'));
+assert.equal(workflow.stages[6].implementedCandidateId, candidate.candidateId);
 assert.equal(sectionCandidateManifest.candidateId, candidate.candidateId);
 assert.equal(sectionCandidateManifest.productEnabled, false);
 assert.equal(workflow.generationHandoff.nextConsumer, candidate.candidateId);

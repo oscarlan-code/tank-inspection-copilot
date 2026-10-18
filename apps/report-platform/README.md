@@ -17,7 +17,7 @@ section.
 - Scope of Inspection v1 and General Tank Information v1–v3 remain evaluation
   evidence. Their routed TK5452 path is historical compatibility and does not define
   the input contract for future section agents.
-- General Tank Information Candidate A is the first executable sandbox agent on the
+- General Tank Information Candidate B is the active executable sandbox agent on the
   current `section_evidence_package_v1` handoff. Its minimum package-bound plan,
   deterministic generator, no-gold pre-display reviewer and structured-gold
   evaluator are implemented. Qualification and immutable release remain pending.
@@ -74,11 +74,11 @@ generation. The fixtures are reconstructed app-shaped records; actual-device exp
 and independent inspector review remain outstanding. One generic contract fixture
 remains for routing and blocker tests; it is not counted as qualification evidence.
 
-`general-tank-information-candidate-a` is the clean package-bound rebuild under
+`general-tank-information-candidate-b` is the current package-bound sandbox iteration under
 `server/section-agents/sandbox/`. It consumes the reviewed classifier package rather
 than the archived router snapshot. Its historical bundle contributes only the title,
 31-field order and paired-field format; current values and units come only from the
-package. The focused contract suite passes, but this is scaffold validation rather
+package. Candidate A remains the pinned first-iteration regression baseline. Candidate B adds atomic and whole-section automated results plus post-review artifact integrity. The focused contract suites pass, but this is scaffold validation rather
 than 10+1 report qualification or product promotion.
 
 Both implemented generators now resolve to exact review releases under

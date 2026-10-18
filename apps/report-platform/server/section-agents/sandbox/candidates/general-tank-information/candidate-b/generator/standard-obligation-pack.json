@@ -1,0 +1,16 @@
+{
+  "contractVersion": "standard_obligation_pack_candidate_v1",
+  "packId": "general-tank-information-api653-boundary-candidate-b",
+  "sectionId": "general-tank-information",
+  "standardFamily": "API 653",
+  "status": "sandbox_reviewed_boundary",
+  "clauseSpecificLayoutClaim": false,
+  "obligations": [
+    "Preserve the identified tank and inspection context supplied by current evidence.",
+    "Preserve explicit engineering units; do not infer or convert missing units.",
+    "Keep unknown or unavailable design data visible for review."
+  ],
+  "currentFactsFromStandards": false,
+  "technicalDecisionAuthority": false
+}
+

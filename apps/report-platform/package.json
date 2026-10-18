@@ -101,7 +101,7 @@
     "section-agent:common-core:audit": "node ./server/scripts/audit-common-core-agent-specs.mjs",
     "section-agent:reviewers:audit": "node server/scripts/audit-section-agent-reviewers.mjs",
     "section-agent:evaluators:audit": "node server/scripts/audit-section-agent-evaluators.mjs",
-    "section-agent:package-bound:candidate:audit": "node --test server/section-agents/sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs",
+    "section-agent:package-bound:candidate:audit": "npm run section-agent:package-bound:candidate:a:audit && npm run section-agent:package-bound:candidate:b:audit && npm run section-agent:general-info:workflow:audit",
     "section-agent:atomic-eval:v1:audit": "node server/section-agents/evaluation-contracts/v1/audit.mjs",
     "section-agent:observability:v1:audit": "node server/section-agents/observability/v1/audit.mjs",
     "section-agent:inspection-report:eval:audit": "node server/section-agents/evaluation-workflows/inspection-report/audit.mjs",
@@ -136,7 +136,10 @@
     "mock-preparation:full-report:build": "node server/evals/mock-preparation/build-full-report-qualification.mjs",
     "contents-classification:leakage-guard:audit": "node --test server/contents-classification-agent/input-guards/evaluation-leakage/v1/guard.test.mjs && node server/contents-classification-agent/input-guards/evaluation-leakage/v1/audit.mjs",
     "contents-classification:release:audit": "node --test server/contents-classification-agent/promote-candidate.test.mjs server/contents-classification-agent/release-registry.test.mjs && node server/contents-classification-agent/audit-release.mjs",
-    "contents-classification:pathway:audit": "node --test server/contents-classification-agent/evaluation-pathway.test.mjs"
+    "contents-classification:pathway:audit": "node --test server/contents-classification-agent/evaluation-pathway.test.mjs",
+    "section-agent:package-bound:candidate:b:audit": "node --test server/section-agents/sandbox/candidates/general-tank-information/candidate-b/candidate.test.mjs",
+    "section-agent:package-bound:candidate:a:audit": "node --test server/section-agents/sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs",
+    "section-agent:general-info:workflow:audit": "node --test server/section-agents/evaluation-workflows/general-tank-information-v1/workflow.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",

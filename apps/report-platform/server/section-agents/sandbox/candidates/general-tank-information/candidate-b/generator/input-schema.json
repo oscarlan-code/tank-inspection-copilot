@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "laiq://section-agents/general-tank-information/candidate-b/input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "executionMode", "productEnabled", "reportPlan", "sectionPlan", "sectionEvidencePackage"],
+  "properties": {
+    "contractVersion": { "const": "package_bound_section_generation_execution_v1" },
+    "executionMode": { "const": "evaluation" },
+    "productEnabled": { "const": false },
+    "reportPlan": { "type": "object" },
+    "sectionPlan": { "type": "object" },
+    "sectionEvidencePackage": {
+      "type": "object",
+      "required": ["contractVersion", "sectionId", "packageSha256", "humanReviewComplete"],
+      "properties": {
+        "contractVersion": { "const": "section_evidence_package_v1" },
+        "sectionId": { "const": "general-tank-information" },
+        "humanReviewComplete": { "const": true },
+        "productGenerationEligible": { "const": false }
+      }
+    }
+  }
+}
+

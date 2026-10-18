@@ -1,0 +1,26 @@
+{
+  "contractVersion": "section_generator_candidate_spec_v1",
+  "candidateId": "general-tank-information-candidate-b",
+  "generatorId": "general-tank-information-generator-candidate-b",
+  "sectionId": "general-tank-information",
+  "reportProfileId": "vertical_tank_inspection_v1",
+  "status": "sandbox_candidate",
+  "executionModes": ["evaluation"],
+  "productEnabled": false,
+  "inputContract": "section_evidence_package_v1",
+  "planContract": "package_bound_section_plan_v1",
+  "outputContract": "package_bound_section_generation_result_v1",
+  "generationMode": "deterministic_package_bound_labelled_fields",
+  "model": null,
+  "modelVersion": null,
+  "promptId": null,
+  "promptVersion": null,
+  "promptDisabledReason": "The section is compiled from protected structured fields.",
+  "bodyFieldCount": 31,
+  "reportHeaderMetadataCount": 3,
+  "supportOnlyFieldCount": 3,
+  "reviewerId": "general-tank-information-reviewer-candidate-b",
+  "evaluatorId": "general-tank-information-evaluator-candidate-b",
+  "approvalState": "not_approved"
+}
+

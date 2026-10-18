@@ -21,6 +21,7 @@ Run `npm run workflow:scaffold:audit` after changing a release registry, workflo
 stage, archive state, or generation handoff. Seven section-agent scaffolds now
 exist under `server/section-agents/specs/vertical-tank-v1/`. Each owns its prompt or
 deterministic instructions, format, KB policy, reviewer, evaluator and harness.
-Only General Tank Information Candidate A is executable; it is not qualified,
-frozen, promoted, or product-enabled. The higher Report Structure Agent, durable
+General Tank Information Candidate B is the active executable sandbox iteration;
+Candidate A remains a pinned regression baseline. Neither is qualified, frozen as an
+evaluation release, promoted, or product-enabled. The higher Report Structure Agent, durable
 plan store and report integration remain planned.

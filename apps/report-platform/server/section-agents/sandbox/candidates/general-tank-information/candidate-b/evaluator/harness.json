@@ -1,0 +1,20 @@
+{
+  "contractVersion": "section_evaluator_candidate_harness_v1",
+  "candidateId": "general-tank-information-candidate-b",
+  "datasetSplitUnit": "asset_scenario_lineage",
+  "developmentTarget": 10,
+  "untouchedValidationTarget": 1,
+  "goldAvailableDuringGeneration": false,
+  "sameLineageRetrievalAllowed": false,
+  "currentAutomatedMeasures": [
+    "protected field accuracy",
+    "expected field recall",
+    "supported claim precision",
+    "whole-section structural alignment",
+    "whole-section coherence"
+  ],
+  "manualMeasures": [
+    "rendered format alignment",
+    "inspector acceptance"
+  ]
+}

@@ -38,7 +38,7 @@ by these specifications.
 | ---: | --- | --- |
 | 1 | `01-scope-of-inspection/` | Scaffold ready; package-bound candidate pending |
 | 2 | `02-inspection-maintenance-regime/` | Scaffold ready; AI disabled |
-| 3 | `03-general-tank-information/` | Package-bound Candidate A implemented in sandbox |
+| 3 | `03-general-tank-information/` | Package-bound Candidate B active in sandbox; Candidate A retained for regression |
 | 4 | `04-inspection-report/` | Scaffold ready; section-specific LLM prompt |
 | 5 | `05-repair-recommendations/` | Scaffold ready; section-specific LLM prompt |
 | 6 | `06-test-information/` | Scaffold ready; bounded wording prompt |

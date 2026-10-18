@@ -1,0 +1,17 @@
+{
+  "contractVersion": "general_tank_information_format_candidate_v1",
+  "sectionId": "general-tank-information",
+  "title": "3 GENERAL TANK INFORMATION",
+  "historicalPattern": "numbered uppercase heading followed by paired labelled field rows",
+  "bodyFormat": "paired-fields",
+  "bodyFieldCount": 31,
+  "historyHeading": "Previous Inspection History",
+  "historyFields": ["previousExternal", "previousInternal", "previousBottom"],
+  "reportHeaderMetadata": ["jobNo", "dateCompleted", "inspector"],
+  "nonBodySupportFields": ["externalRoofType", "internalRoofType", "insulationDistance"],
+  "missingDisplay": "Not recorded",
+  "preserveSourceUnits": true,
+  "allowUnitConversion": false,
+  "allowNarrativeSummary": false
+}
+

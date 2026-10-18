@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 
 const use = (sectionId, blockId) => ({ sectionId, blockId });
 
+function structuredFieldBlock(field) {
+  if (/previous/i.test(field)) return 'inspection-history';
+  if (/inspector/i.test(field)) return 'inspector-certification';
+  if (/client|representative|job|tankNumber|dateCompleted|location|fieldLease/i.test(field)) return 'identity';
+  if (/constructionShell|shellConstruction|jointType|design|pressure|specificGravity|productStored|material|constructionStd|drawing/i.test(field)) return 'design-data';
+  return 'configuration';
+}
+
 function expectedUse(unit, block) {
   const heading = (block?.headingPath ?? []).join(' > ').toUpperCase();
   if (unit.unitType === 'scope_fact') return use('scope-of-inspection', 'scope');
@@ -23,13 +31,7 @@ function expectedUse(unit, block) {
     return blockId ? use('inspection-report', blockId) : null;
   }
   if (unit.unitType === 'structured_field') {
-    const field = String(unit.protectedFacts?.field ?? '');
-    let blockId = 'configuration';
-    if (/previous/i.test(field)) blockId = 'inspection-history';
-    else if (/inspector/i.test(field)) blockId = 'inspector-certification';
-    else if (/client|representative|job|tankNumber|dateCompleted|location|fieldLease/i.test(field)) blockId = 'identity';
-    else if (/design|pressure|specificGravity|productStored|material|constructionStd|drawing/i.test(field)) blockId = 'design-data';
-    return use('general-tank-information', blockId);
+    return use('general-tank-information', structuredFieldBlock(String(unit.protectedFacts?.field ?? '')));
   }
   if (unit.unitType === 'checklist_rating') return use('tank-inspection-checklist', 'checklist');
   if (unit.unitType === 'standard_content') return use('inspection-maintenance-regime', 'regime');
@@ -112,6 +114,8 @@ function appContractUses(atom, rawExport) {
   const parts = atom.sourcePointer.split('/').filter(Boolean);
   const record = Array.isArray(rawExport[parts[0]]) ? rawExport[parts[0]][Number(parts[1])] : null;
   if (!atom.reportEvidence || atom.kind === 'control_metadata') return { decision: 'exclude', uses: [] };
+  if (atom.kind === 'structured_field') return { decision: 'route',
+    uses: [use('general-tank-information', structuredFieldBlock(String(atom.entity?.field ?? '')))] };
   if (atom.kind === 'attachment' && atom.relationships?.kind === 'voice_audio') return { decision: 'exclude', uses: [] };
   if (atom.kind === 'checklist_note') return { decision: 'route', uses: [use('tank-inspection-checklist', 'notes')] };
   if (['layout_target', 'layout_config', 'layout_figure', 'layout_element'].includes(atom.kind)) {
@@ -148,7 +152,8 @@ function clauseSpans(note, transcript) {
 
 export function buildAtomGold({ atomization, rawExport, fullReportEvaluation, semanticPairs, sourceBlocks,
   acceptedDataset, atomicFactLedger, variantId = 'natural-field-speech' } = {}) {
-  assert.equal(atomization?.contractVersion, 'source_linked_evidence_atoms_v1');
+  assert(['source_linked_evidence_atoms_v1', 'source_linked_evidence_atoms_v5'].includes(atomization?.contractVersion),
+    'Atom gold requires a supported source-linked evidence atom contract.');
   const blocks = new Map(sourceBlocks.map((item) => [item.sourceBlockId, item]));
   const units = new Map(semanticPairs.semanticUnits.map((item) => [item.sourceUnitId, item]));
   const goldRows = fullReportEvaluation.rows.filter((item) => item.variantId === variantId);
@@ -224,4 +229,4 @@ export function buildAtomGold({ atomization, rawExport, fullReportEvaluation, se
       appContractLinked: entries.filter((item) => item.goldOrigins.includes('reviewed_app_contract')).length } };
 }
 
-export const __test = { expectedUse, atomsForReference, clauseSpans, appContractUses };
+export const __test = { expectedUse, atomsForReference, clauseSpans, appContractUses, structuredFieldBlock };

@@ -1,0 +1,16 @@
+{
+  "contractVersion": "section_evaluator_candidate_spec_v1",
+  "candidateId": "general-tank-information-candidate-b",
+  "evaluatorId": "general-tank-information-evaluator-candidate-b",
+  "generatorId": "general-tank-information-generator-candidate-b",
+  "reviewerId": "general-tank-information-reviewer-candidate-b",
+  "sectionId": "general-tank-information",
+  "status": "sandbox_candidate",
+  "executionModes": ["evaluation"],
+  "productEnabled": false,
+  "goldAccess": "after generation and pre-display review only",
+  "model": null,
+  "promptId": null,
+  "rubricFile": "rubric.json"
+}
+

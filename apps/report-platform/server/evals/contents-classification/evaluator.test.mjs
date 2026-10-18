@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildAtomGold } from './atom-gold-builder.mjs';
+import { buildAtomGold, __test } from './atom-gold-builder.mjs';
 import { evaluateClassification } from './evaluator.mjs';
 
 const atom = { evidenceId: 'atom-1', kind: 'voice_narrative', reportEvidence: true,
@@ -111,4 +111,24 @@ test('does not score an observation whose canonical primary-route gold was never
   assert.equal(result.summary.failed, 0);
   assert.equal(result.summary.notMeasured, 1);
   assert.equal(result.summary.qualificationStatus, 'blocked_missing_canonical_gold');
+});
+
+
+test('builds gold for the active Evidence Atomizer v5 contract', () => {
+  const atom = { evidenceId: 'field-v5', kind: 'structured_field', sourcePointer: '/inspectionRecord/generalTankInformation/client',
+    originalValue: 'Example Client', reportEvidence: true, entity: { field: 'client' }, relationships: {} };
+  const atomGold = buildAtomGold({
+    atomization: { contractVersion: 'source_linked_evidence_atoms_v5', inputPackageHash: 'package-v5', evidenceAtoms: [atom] },
+    rawExport: { inspectionRecord: { generalTankInformation: { client: 'Example Client' } } },
+    fullReportEvaluation: { rows: [] }, semanticPairs: { semanticUnits: [] }, sourceBlocks: [],
+    acceptedDataset: { notes: [] }, atomicFactLedger: { facts: [] },
+  });
+  assert.equal(atomGold.entries.length, 1);
+  assert.deepEqual(atomGold.entries[0].expectedUses, [{ sectionId: 'general-tank-information', blockId: 'identity' }]);
+});
+
+
+test('uses the reviewed design-data block for shell construction', () => {
+  const expected = __test.expectedUse({ unitType: 'structured_field', protectedFacts: { field: 'shellConstruction' } }, null);
+  assert.deepEqual(expected, { sectionId: 'general-tank-information', blockId: 'design-data' });
 });

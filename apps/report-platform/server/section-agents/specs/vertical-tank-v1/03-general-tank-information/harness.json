@@ -41,7 +41,7 @@
   ],
   "freezeGates": {
     "criticalIntegrityBlockers": 0,
-    "protectedFactAccuracy": 1.0,
+    "protectedFactAccuracy": 1,
     "unsupportedCurrentClaims": 0,
     "leakageFindings": 0,
     "renderReviewRequired": true,
@@ -51,7 +51,7 @@
   },
   "promotionPerformedByHarness": false,
   "activeCandidateHarnessReferences": [
-    "../../../sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs"
+    "../../../sandbox/candidates/general-tank-information/candidate-b/candidate.test.mjs"
   ],
   "existingHarnessReferences": [
     "../../../../scripts/audit-general-information-agent.mjs",
@@ -60,5 +60,8 @@
     "../../../../scripts/prepare-general-information-v2-historical.py",
     "../../../../scripts/run-general-information-v2-historical-evaluation.mjs",
     "../../../../scripts/audit-general-information-v2-historical.mjs"
+  ],
+  "priorCandidateHarnessReferences": [
+    "../../../sandbox/candidates/general-tank-information/candidate-a/candidate.test.mjs"
   ]
 }

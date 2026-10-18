@@ -1,0 +1,30 @@
+{
+  "contractVersion": "section_knowledge_bundle_candidate_v1",
+  "bundleId": "general-tank-information-knowledge-candidate-b",
+  "sectionId": "general-tank-information",
+  "reportProfileId": "vertical_tank_inspection_v1",
+  "status": "sandbox_candidate",
+  "historicalPatternInventory": {
+    "sourceCount": 52,
+    "memberSetSha256": "bbf6576c5c1c3f752de87c013449b5495a8d0971797cfcd357f730cb7163773c",
+    "datasetSplit": "training",
+    "contentIncludedAtRuntime": false
+  },
+  "canonicalPattern": {
+    "title": "GENERAL TANK INFORMATION",
+    "numberedTitle": "3 GENERAL TANK INFORMATION",
+    "bodyFormat": "paired labelled fields",
+    "historyPlacement": "after main fields",
+    "missingValueBehavior": "visible Not recorded value"
+  },
+  "roleProjections": {
+    "structure": ["title", "canonical order", "blocks"],
+    "generation": ["field order", "labels", "paired-field format"],
+    "review": ["field order", "labels", "paired-field format", "accepted missing values"],
+    "evaluation": ["generic format pattern only"]
+  },
+  "runtimeRetrievalEnabled": false,
+  "currentFactsFromHistoricalSources": false,
+  "targetGoldIncluded": false
+}
+

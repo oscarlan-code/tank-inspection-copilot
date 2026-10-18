@@ -193,7 +193,7 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   if (definition.sectionId === 'general-tank-information') {
     assert.equal(agent.status, 'sandbox_candidate_implemented');
     assert.equal(registryEntry.status, 'sandbox_candidate_implemented');
-    assert.equal(registryEntry.activePackageBoundCandidate, 'general-tank-information-candidate-a');
+    assert.equal(registryEntry.activePackageBoundCandidate, 'general-tank-information-candidate-b');
     assert(agent.activePackageBoundCandidate);
     await readFile(resolve(folder, agent.activePackageBoundCandidate));
   } else {

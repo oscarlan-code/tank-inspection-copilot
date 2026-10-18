@@ -51,7 +51,7 @@
       "generationStrategy": "deterministic_labelled_fields",
       "llmEnabled": false,
       "status": "sandbox_candidate_implemented",
-      "activePackageBoundCandidate": "general-tank-information-candidate-a"
+      "activePackageBoundCandidate": "general-tank-information-candidate-b"
     },
     {
       "sectionNumber": 4,

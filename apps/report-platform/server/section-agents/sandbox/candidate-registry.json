@@ -9,9 +9,22 @@
       "status": "sandbox_candidate",
       "candidatePath": "candidates/general-tank-information/candidate-a",
       "manifestSha256": "c4469afb16432ce12f0af482f4ae312759d3997e26bfb38a2bb71b217ab32135",
-      "executionModes": ["evaluation"],
+      "executionModes": [
+        "evaluation"
+      ],
+      "productEnabled": false
+    },
+    {
+      "candidateId": "general-tank-information-candidate-b",
+      "sectionId": "general-tank-information",
+      "reportProfileId": "vertical_tank_inspection_v1",
+      "status": "sandbox_candidate",
+      "candidatePath": "candidates/general-tank-information/candidate-b",
+      "manifestSha256": "4849e94970010b0c30633cc311547d93455659639a4c3134aece4e7208fdfc09",
+      "executionModes": [
+        "evaluation"
+      ],
       "productEnabled": false
     }
   ]
 }
-

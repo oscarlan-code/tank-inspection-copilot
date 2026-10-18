@@ -81,7 +81,7 @@
   "formatContractFile": "format-contract.json",
   "reviewerSpecFile": "reviewer-spec.json",
   "evaluatorSpecFile": "evaluator-spec.json",
-  "activePackageBoundCandidate": "../../../sandbox/candidates/general-tank-information/candidate-a/candidate-manifest.json",
+  "activePackageBoundCandidate": "../../../sandbox/candidates/general-tank-information/candidate-b/candidate-manifest.json",
   "historicalReleaseReferences": [
     "../../../releases/general-tank-information/generator/v1/manifest.json",
     "../../../releases/general-tank-information/generator/v2/manifest.json",
