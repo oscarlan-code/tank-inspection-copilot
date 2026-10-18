@@ -3,6 +3,7 @@
   "sectionId": "general-tank-information",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "labelled_field",
   "dimensions": [
     "field_recall",
@@ -11,6 +12,14 @@
     "unit_accuracy",
     "label_and_order_conformance",
     "missing_value_accuracy"
+  ],
+  "wholeSectionDimensions": [
+    "required_field_coverage",
+    "heading_and_field_order",
+    "paired_label_value_layout",
+    "header_metadata_separation",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_wrong_asset_identity",

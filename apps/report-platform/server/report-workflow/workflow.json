@@ -82,6 +82,8 @@
   },
   "sectionAgentArchitecture": {
     "registry": "server/section-agents/specs/vertical-tank-v1/scaffold-registry.json",
+    "developmentProtocol": "server/section-agents/specs/vertical-tank-v1/development-protocol.json",
+    "humanGuide": "server/section-agents/specs/vertical-tank-v1/WORKFLOW.md",
     "sectionCount": 7,
     "developmentMode": "one_section_at_a_time",
     "packageBoundCandidateCount": 1,

@@ -1,0 +1,101 @@
+{
+  "contractVersion": "section_agent_development_protocol_v1",
+  "profileId": "vertical_tank_inspection_v1",
+  "productEnabled": false,
+  "generationFlow": [
+    "reviewed_section_evidence_package_v1",
+    "frozen_package_bound_section_plan_v1",
+    "exact_sandbox_candidate_binding",
+    "section_generator",
+    "no_gold_pre_display_reviewer",
+    "unapproved_human_review_draft"
+  ],
+  "goldOpeningRule": "Sealed gold may open only after generation completes and the pre-display reviewer passes.",
+  "evaluationLevels": {
+    "atomic": {
+      "required": true,
+      "segmentationPolicy": "semantic_obligation_v1",
+      "comparison": "generation_eligible_evidence_units_to_generated_claim_units_with_sealed_source_gold",
+      "requiredColumns": [
+        "unit_id",
+        "outline_block",
+        "gold_meaning_or_value",
+        "classified_app_evidence",
+        "generated_claim_or_field",
+        "evidence_support",
+        "meaning_fidelity",
+        "protected_value_and_unit_integrity",
+        "verdict",
+        "feedback"
+      ],
+      "rules": [
+        "Use semantic facts, fields, measurement sets, observations, limitations, scope items, recommendations and cross-references as units.",
+        "Do not grade arbitrary fixed-length text chunks.",
+        "Allow many-to-many links when several evidence units support one claim or one evidence unit supports several claims.",
+        "Use deterministic graders for exact identity, values, units, ordering and support links.",
+        "Use a calibrated LLM or human grader only for semantic equivalence or narrative quality."
+      ]
+    },
+    "wholeSection": {
+      "required": true,
+      "dimensions": [
+        "required_content_coverage",
+        "unsupported_claim_absence",
+        "heading_and_block_order",
+        "section_specific_format",
+        "coherence_and_non_repetition",
+        "cross_reference_resolution",
+        "length_and_density",
+        "rendered_human_review",
+        "inspector_acceptance"
+      ],
+      "rules": [
+        "Whole-section scores cannot hide a failed critical atomic unit.",
+        "Atomic accuracy cannot replace rendered format, coherence or inspector review.",
+        "Accepted historical variation is allowed when meaning, obligations and format family remain correct."
+      ]
+    }
+  },
+  "qualificationDecision": {
+    "hardBlockOn": [
+      "unsupported_current_claim",
+      "changed_protected_value_or_unit",
+      "wrong_asset_component_location_or_side",
+      "missing_critical_unit",
+      "gold_or_lineage_leakage",
+      "failed_pre_display_review"
+    ],
+    "releaseRequires": [
+      "all_section_specific_freeze_gates",
+      "development_regression_pass",
+      "untouched_validation_pass",
+      "sealed_held_out_pass",
+      "rendered_human_review",
+      "inspector_domain_review",
+      "exact_candidate_manifest_hash"
+    ]
+  },
+  "sandboxLifecycle": {
+    "pathPattern": "server/section-agents/sandbox/candidates/<section-id>/candidate-<letter>",
+    "states": [
+      "scaffold_ready",
+      "sandbox_candidate_registered",
+      "development_evaluated",
+      "validation_evaluated",
+      "candidate_frozen_before_held_out",
+      "held_out_evaluated_once",
+      "approved_for_immutable_evaluation_release"
+    ],
+    "newCandidateRequiredWhen": [
+      "generator_code_changes",
+      "prompt_or_model_changes",
+      "knowledge_bundle_changes",
+      "standard_pack_changes",
+      "reviewer_or_evaluator_changes",
+      "format_contract_changes",
+      "metric_or_threshold_changes"
+    ],
+    "releaseRule": "Copy the exact qualified candidate bytes and hashes into releases/<section-id>/<role>/<version>; never release directly from a mutable scaffold.",
+    "automaticPromotion": false
+  }
+}

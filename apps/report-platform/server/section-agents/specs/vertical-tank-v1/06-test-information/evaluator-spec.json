@@ -3,6 +3,7 @@
   "sectionId": "test-information",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "method_record_and_limitation_claim",
   "dimensions": [
     "method_inventory_recall",
@@ -12,6 +13,15 @@
     "extent_and_limitation_fidelity",
     "result_reference_accuracy",
     "format_conformance"
+  ],
+  "wholeSectionDimensions": [
+    "performed_method_coverage",
+    "heading_and_method_order",
+    "traceability_table_format",
+    "limitation_coherence_and_non_repetition",
+    "result_reference_resolution",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_invented_performed_method",

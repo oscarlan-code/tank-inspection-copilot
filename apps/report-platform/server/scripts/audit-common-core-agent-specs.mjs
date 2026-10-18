@@ -26,6 +26,7 @@ const requiredFiles = [
 const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
 const scaffoldRegistry = JSON.parse(await readFile(join(specsRoot, 'scaffold-registry.json'), 'utf8'));
+const developmentProtocol = JSON.parse(await readFile(join(specsRoot, 'development-protocol.json'), 'utf8'));
 assert.equal(scaffoldRegistry.contractVersion, 'section_agent_scaffold_registry_v1');
 assert.equal(scaffoldRegistry.profileId, 'vertical_tank_inspection_v1');
 assert.equal(scaffoldRegistry.productEnabled, false);
@@ -36,6 +37,18 @@ assert.equal(new Set(scaffoldRegistry.entries.map((entry) => entry.sectionId)).s
 assert.equal(scaffoldRegistry.entries.filter((entry) => entry.llmEnabled).length, 3);
 assert.deepEqual(scaffoldRegistry.entries.filter((entry) => entry.llmEnabled)
   .map((entry) => entry.sectionId), ['inspection-report', 'repair-recommendations', 'test-information']);
+assert.equal(developmentProtocol.contractVersion, 'section_agent_development_protocol_v1');
+assert.equal(developmentProtocol.productEnabled, false);
+assert.equal(developmentProtocol.evaluationLevels.atomic.required, true);
+assert.equal(developmentProtocol.evaluationLevels.wholeSection.required, true);
+assert(developmentProtocol.evaluationLevels.atomic.requiredColumns.includes('classified_app_evidence'));
+assert(developmentProtocol.evaluationLevels.atomic.requiredColumns.includes('generated_claim_or_field'));
+assert(developmentProtocol.evaluationLevels.wholeSection.rules
+  .some((rule) => rule.includes('cannot hide a failed critical atomic unit')));
+assert.equal(developmentProtocol.sandboxLifecycle.automaticPromotion, false);
+assert(developmentProtocol.sandboxLifecycle.states.includes('sandbox_candidate_registered'));
+assert(developmentProtocol.sandboxLifecycle.states.includes('approved_for_immutable_evaluation_release'));
+assert(developmentProtocol.sandboxLifecycle.newCandidateRequiredWhen.includes('prompt_or_model_changes'));
 
 assert.deepEqual(parseCommonCorePackCliArguments(['--output', '/tmp/out']), { outputArg: '/tmp/out', sourceArg: null });
 assert.deepEqual(parseCommonCorePackCliArguments(['--source', '/tmp/in', '--output', '/tmp/out']),
@@ -109,6 +122,12 @@ for (const definition of COMMON_CORE_SECTION_DEFINITIONS) {
   assert.equal(evaluator.contractVersion, 'section_evaluator_scaffold_v1');
   assert.equal(evaluator.sectionId, definition.sectionId);
   assert.equal(evaluator.goldAccess, 'sealed_gold_after_generation_only');
+  assert.equal(evaluator.protocolFile, '../development-protocol.json');
+  await readFile(resolve(folder, evaluator.protocolFile));
+  assert(evaluator.dimensions.length > 0);
+  assert(evaluator.wholeSectionDimensions.length > 0);
+  assert(evaluator.wholeSectionDimensions.includes('rendered_human_review'));
+  assert(evaluator.wholeSectionDimensions.includes('inspector_acceptance'));
   assert.equal(evaluator.productEnabled, false);
 
   assert.equal(kb.contractVersion, 'section_kb_policy_candidate_v1');
@@ -405,6 +424,7 @@ try {
 
 console.log(JSON.stringify({ passed: true, profileId: 'vertical_tank_inspection_v1', sectionAgentFolders: 7,
   filesPerFolder: requiredFiles, sectionSpecificInstructionFilesVerified: 7,
+  twoLevelEvaluationProtocolVerified: true, sandboxLifecycleVerified: true,
   packageBoundCandidatesVerified: 1, historicalReleaseReferencesVerified: 4,
   privatePackSplitterVerified: true,
   inspectionReportKnowledgeCandidateBuilderVerified: true,

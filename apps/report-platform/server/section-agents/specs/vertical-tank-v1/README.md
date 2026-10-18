@@ -22,6 +22,10 @@ generation strategy and whether a package-bound candidate exists. A scaffold is 
 reviewable design; it is not executable until a candidate is created under
 `server/section-agents/sandbox/candidates/<section-id>/candidate-*`.
 
+See `WORKFLOW.md` for the classified-evidence generation example, atomic and
+whole-section evaluation, and sandbox-to-release lifecycle. The machine-readable
+rules are in `development-protocol.json`.
+
 The folder number is the report section number. It is different from development
 order. `03-general-tank-information` was the first section agent implemented; its
 actual frozen evaluation release remains under

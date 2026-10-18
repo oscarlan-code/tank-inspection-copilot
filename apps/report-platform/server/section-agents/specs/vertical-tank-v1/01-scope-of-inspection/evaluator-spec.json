@@ -3,6 +3,7 @@
   "sectionId": "scope-of-inspection",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "scope_obligation",
   "dimensions": [
     "obligation_recall",
@@ -11,6 +12,14 @@
     "limitation_preservation",
     "protected_value_accuracy",
     "format_conformance"
+  ],
+  "wholeSectionDimensions": [
+    "required_scope_coverage",
+    "heading_and_block_order",
+    "scope_list_format",
+    "coherence_and_non_repetition",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_unsupported_current_scope_claim",

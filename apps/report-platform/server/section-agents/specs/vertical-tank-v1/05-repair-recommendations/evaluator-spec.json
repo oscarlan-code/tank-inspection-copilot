@@ -3,6 +3,7 @@
   "sectionId": "repair-recommendations",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "observation_action_pair",
   "dimensions": [
     "approved_action_recall",
@@ -12,6 +13,15 @@
     "priority_timing_accuracy",
     "necessary_clarification_recall",
     "format_conformance"
+  ],
+  "wholeSectionDimensions": [
+    "approved_action_coverage",
+    "heading_and_component_order",
+    "action_basis_and_qualifier_format",
+    "coherence_and_non_repetition",
+    "cross_reference_resolution",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_unapproved_action",

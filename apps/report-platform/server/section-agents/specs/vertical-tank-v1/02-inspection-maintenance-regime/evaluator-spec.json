@@ -3,6 +3,7 @@
   "sectionId": "inspection-maintenance-regime",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "template_block_and_declared_field",
   "dimensions": [
     "template_integrity",
@@ -10,6 +11,13 @@
     "supported_history_accuracy",
     "requirement_qualification",
     "format_conformance"
+  ],
+  "wholeSectionDimensions": [
+    "approved_template_integrity",
+    "heading_and_block_order",
+    "controlled_format_conformance",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_unapproved_template_change",

@@ -3,6 +3,7 @@
   "sectionId": "inspection-report",
   "role": "post_generation_gold_evaluator",
   "goldAccess": "sealed_gold_after_generation_only",
+  "protocolFile": "../development-protocol.json",
   "comparisonUnit": "atomic_finding_claim",
   "dimensions": [
     "required_fact_recall",
@@ -13,6 +14,16 @@
     "component_block_assignment",
     "cross_variant_semantic_stability",
     "format_similarity_with_accepted_variation"
+  ],
+  "wholeSectionDimensions": [
+    "required_component_block_coverage",
+    "heading_and_component_order",
+    "section_specific_format",
+    "coherence_and_non_repetition",
+    "cross_reference_resolution",
+    "length_and_density",
+    "rendered_human_review",
+    "inspector_acceptance"
   ],
   "criticalFailureRules": [
     "any_unsupported_current_claim",
